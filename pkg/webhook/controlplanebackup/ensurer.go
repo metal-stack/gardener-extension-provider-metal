@@ -17,11 +17,11 @@ package controlplanebackup
 import (
 	"context"
 
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/apis/config"
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/openstack"
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	"github.com/gardener/gardener/pkg/operation/common"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
@@ -37,7 +37,7 @@ func NewEnsurer(etcdBackup *config.ETCDBackup, imageVector imagevector.ImageVect
 	return &ensurer{
 		etcdBackup:  etcdBackup,
 		imageVector: imageVector,
-		logger:      logger.WithName("openstack-controlplanebackup-ensurer"),
+		logger:      logger.WithName("metal-controlplanebackup-ensurer"),
 	}
 }
 
@@ -74,7 +74,7 @@ func (e *ensurer) ensureContainers(ps *corev1.PodSpec, name string, cluster *ext
 
 func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev1.PodTemplateSpec, namespace, name string) error {
 	if name == common.EtcdMainStatefulSetName {
-		return controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, openstack.BackupSecretName)
+		return controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, metal.BackupSecretName)
 	}
 	return nil
 }
@@ -82,90 +82,10 @@ func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev
 func (e *ensurer) getBackupRestoreContainer(name string, cluster *extensionscontroller.Cluster) (*corev1.Container, error) {
 	// Find etcd-backup-restore image
 	// TODO Get seed version from clientset when it's possible to inject it
-	image, err := e.imageVector.FindImage(openstack.ETCDBackupRestoreImageName, "", cluster.Shoot.Spec.Kubernetes.Version)
+	image, err := e.imageVector.FindImage(metal.ETCDBackupRestoreImageName, "", cluster.Shoot.Spec.Kubernetes.Version)
 	if err != nil {
-		return nil, errors.Wrapf(err, "could not find image %s", openstack.ETCDBackupRestoreImageName)
+		return nil, errors.Wrapf(err, "could not find image %s", metal.ETCDBackupRestoreImageName)
 	}
 
-	const (
-		defaultSchedule = "0 */24 * * *"
-	)
-
-	// Determine provider and container env variables
-	// They are only specified for the etcd-main stateful set (backup is enabled)
-	var (
-		provider                string
-		env                     []corev1.EnvVar
-		volumeClaimTemplateName = name
-	)
-	if name == common.EtcdMainStatefulSetName {
-		provider = openstack.StorageProviderName
-		env = []corev1.EnvVar{
-			{
-				Name: "STORAGE_CONTAINER",
-				// The bucket name is written to the backup secret by Gardener as a temporary solution.
-				// TODO In the future, the bucket name should come from a BackupBucket resource (see https://github.com/gardener/gardener/blob/master/docs/proposals/02-backupinfra.md)
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.BucketName,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
-					},
-				},
-			},
-			{
-				Name: "OS_AUTH_URL",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.AuthURL,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
-					},
-				},
-			},
-			{
-				Name: "OS_DOMAIN_NAME",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.DomainName,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
-					},
-				},
-			},
-			{
-				Name: "OS_USERNAME",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.UserName,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
-					},
-				},
-			},
-			{
-				Name: "OS_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.Password,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
-					},
-				},
-			},
-			{
-				Name: "OS_TENANT_NAME",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.TenantName,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
-					},
-				},
-			},
-		}
-		volumeClaimTemplateName = controlplane.EtcdMainVolumeClaimTemplateName
-	}
-
-	// Determine schedule
-	var schedule = defaultSchedule
-	if e.etcdBackup.Schedule != nil {
-		schedule = defaultSchedule
-	}
-
-	return controlplane.GetBackupRestoreContainer(name, volumeClaimTemplateName, schedule, provider, image.String(), nil, env, nil), nil
+	return controlplane.GetBackupRestoreContainer(name, name, "", "", image.String(), nil, nil, nil), nil
 }

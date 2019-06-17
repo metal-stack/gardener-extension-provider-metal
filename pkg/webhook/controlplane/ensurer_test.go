@@ -18,10 +18,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/openstack"
 	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/test"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	"github.com/coreos/go-systemd/unit"
 	"github.com/gardener/gardener/pkg/operation/common"
@@ -43,21 +43,21 @@ const (
 
 func TestController(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Openstack Controlplane Webhook Suite")
+	RunSpecs(t, "metal Controlplane Webhook Suite")
 }
 
 var _ = Describe("Ensurer", func() {
 	var (
 		ctrl *gomock.Controller
 
-		cmKey = client.ObjectKey{Namespace: namespace, Name: openstack.CloudProviderConfigName}
+		cmKey = client.ObjectKey{Namespace: namespace, Name: metal.CloudProviderConfigName}
 		cm    = &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: openstack.CloudProviderConfigName},
+			ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: metal.CloudProviderConfigName},
 			Data:       map[string]string{"abc": "xyz"},
 		}
 
 		annotations = map[string]string{
-			"checksum/configmap-" + openstack.CloudProviderConfigName: "08a7bc7fe8f59b055f173145e211760a83f02cf89635cef26ebb351378635606",
+			"checksum/configmap-" + metal.CloudProviderConfigName: "08a7bc7fe8f59b055f173145e211760a83f02cf89635cef26ebb351378635606",
 		}
 	)
 
@@ -120,12 +120,12 @@ var _ = Describe("Ensurer", func() {
 											"--disable-admission-plugins=PersistentVolumeLabel",
 										},
 										VolumeMounts: []corev1.VolumeMount{
-											{Name: openstack.CloudProviderConfigName, MountPath: "?"},
+											{Name: metal.CloudProviderConfigName, MountPath: "?"},
 										},
 									},
 								},
 								Volumes: []corev1.Volume{
-									{Name: openstack.CloudProviderConfigName},
+									{Name: metal.CloudProviderConfigName},
 								},
 							},
 						},
@@ -199,12 +199,12 @@ var _ = Describe("Ensurer", func() {
 											"--external-cloud-volume-plugin=?",
 										},
 										VolumeMounts: []corev1.VolumeMount{
-											{Name: openstack.CloudProviderConfigName, MountPath: "?"},
+											{Name: metal.CloudProviderConfigName, MountPath: "?"},
 										},
 									},
 								},
 								Volumes: []corev1.Volume{
-									{Name: openstack.CloudProviderConfigName},
+									{Name: metal.CloudProviderConfigName},
 								},
 							},
 						},
@@ -245,7 +245,7 @@ var _ = Describe("Ensurer", func() {
 						Name:    "ExecStart",
 						Value: `/opt/bin/hyperkube kubelet \
     --config=/var/lib/kubelet/config/kubelet \
-    --cloud-provider=openstack`,
+    --cloud-provider=metal`,
 					},
 				}
 			)
@@ -294,7 +294,7 @@ func checkKubeAPIServerDeployment(dep *appsv1.Deployment, annotations map[string
 	// env vars, and volume mounts
 	c := controlplane.ContainerWithName(dep.Spec.Template.Spec.Containers, "kube-apiserver")
 	Expect(c).To(Not(BeNil()))
-	Expect(c.Command).To(ContainElement("--cloud-provider=openstack"))
+	Expect(c.Command).To(ContainElement("--cloud-provider=metal"))
 	Expect(c.Command).To(ContainElement("--cloud-config=/etc/kubernetes/cloudprovider/cloudprovider.conf"))
 	Expect(c.Command).To(test.ContainElementWithPrefixContaining("--enable-admission-plugins=", "PersistentVolumeLabel", ","))
 	Expect(c.Command).To(Not(test.ContainElementWithPrefixContaining("--disable-admission-plugins=", "PersistentVolumeLabel", ",")))
@@ -314,7 +314,7 @@ func checkKubeControllerManagerDeployment(dep *appsv1.Deployment, annotations ma
 	Expect(c).To(Not(BeNil()))
 	Expect(c.Command).To(ContainElement("--cloud-provider=external"))
 	Expect(c.Command).To(ContainElement("--cloud-config=/etc/kubernetes/cloudprovider/cloudprovider.conf"))
-	Expect(c.Command).To(ContainElement("--external-cloud-volume-plugin=openstack"))
+	Expect(c.Command).To(ContainElement("--external-cloud-volume-plugin=metal"))
 	Expect(c.VolumeMounts).To(ContainElement(cloudProviderConfigVolumeMount))
 
 	// Check that the Pod spec contains all needed volumes

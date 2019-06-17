@@ -18,10 +18,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/apis/config"
 	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
 	"github.com/gardener/gardener-extensions/pkg/util"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
 
 	"github.com/gardener/gardener/pkg/operation/common"
 	"github.com/golang/mock/gomock"
@@ -42,7 +42,7 @@ const (
 
 func TestController(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Openstack Controlplane Exposure Webhook Suite")
+	RunSpecs(t, "metal Controlplane Exposure Webhook Suite")
 }
 
 var _ = Describe("Ensurer", func() {

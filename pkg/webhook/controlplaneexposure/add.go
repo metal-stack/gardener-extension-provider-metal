@@ -15,11 +15,11 @@
 package controlplaneexposure
 
 import (
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/apis/config"
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/openstack"
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,20 +34,20 @@ var (
 	DefaultAddOptions = AddOptions{}
 )
 
-// AddOptions are options to apply when adding the Openstack exposure webhook to the manager.
+// AddOptions are options to apply when adding the metal exposure webhook to the manager.
 type AddOptions struct {
 	// ETCDStorage is the etcd storage configuration.
 	ETCDStorage config.ETCDStorage
 }
 
-var logger = log.Log.WithName("openstack-controlplaneexposure-webhook")
+var logger = log.Log.WithName("metal-controlplaneexposure-webhook")
 
 // AddToManagerWithOptions creates a webhook with the given options and adds it to the manager.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (webhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
 	return controlplane.Add(mgr, controlplane.AddArgs{
 		Kind:     extensionswebhook.SeedKind,
-		Provider: openstack.Type,
+		Provider: metal.Type,
 		Types:    []runtime.Object{&appsv1.Deployment{}, &corev1.Service{}, &appsv1.StatefulSet{}},
 		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDStorage, logger), nil, nil, logger),
 	})

@@ -17,12 +17,12 @@ package controlplaneexposure
 import (
 	"context"
 
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/gardener/gardener/pkg/operation/common"
 	"github.com/go-logr/logr"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +33,7 @@ import (
 func NewEnsurer(etcdStorage *config.ETCDStorage, logger logr.Logger) genericmutator.Ensurer {
 	return &ensurer{
 		etcdStorage: etcdStorage,
-		logger:      logger.WithName("openstack-controlplaneexposure-ensurer"),
+		logger:      logger.WithName("metal-controlplaneexposure-ensurer"),
 	}
 }
 
@@ -72,8 +72,9 @@ func (e *ensurer) EnsureETCDStatefulSet(ctx context.Context, ss *appsv1.Stateful
 }
 
 func (e *ensurer) ensureVolumeClaimTemplates(spec *appsv1.StatefulSetSpec, name string) {
-	t := e.getVolumeClaimTemplate(name)
-	spec.VolumeClaimTemplates = controlplane.EnsurePVCWithName(spec.VolumeClaimTemplates, *t)
+	// use default storage class
+	// t := e.getVolumeClaimTemplate(name)
+	// spec.VolumeClaimTemplates = controlplane.EnsurePVCWithName(spec.VolumeClaimTemplates, *t)
 }
 
 func (e *ensurer) getVolumeClaimTemplate(name string) *corev1.PersistentVolumeClaim {

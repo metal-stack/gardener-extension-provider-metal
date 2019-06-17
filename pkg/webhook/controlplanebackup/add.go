@@ -15,12 +15,12 @@
 package controlplanebackup
 
 import (
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/apis/config"
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/imagevector"
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/openstack"
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,20 +34,20 @@ var (
 	DefaultAddOptions = AddOptions{}
 )
 
-// AddOptions are options to apply when adding the Openstack backup webhook to the manager.
+// AddOptions are options to apply when adding the metal backup webhook to the manager.
 type AddOptions struct {
 	// ETCDBackup is the etcd backup configuration.
 	ETCDBackup config.ETCDBackup
 }
 
-var logger = log.Log.WithName("openstack-controlplanebackup-webhook")
+var logger = log.Log.WithName("metal-controlplanebackup-webhook")
 
 // AddToManagerWithOptions creates a webhook with the given options and adds it to the manager.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (webhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
 	return controlplane.Add(mgr, controlplane.AddArgs{
 		Kind:     extensionswebhook.BackupKind,
-		Provider: openstack.Type,
+		Provider: metal.Type,
 		Types:    []runtime.Object{&appsv1.StatefulSet{}},
 		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDBackup, imagevector.ImageVector(), logger), nil, nil, logger),
 	})

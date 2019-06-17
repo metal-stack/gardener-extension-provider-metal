@@ -15,10 +15,10 @@
 package controlplane
 
 import (
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/openstack"
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -28,14 +28,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-var logger = log.Log.WithName("openstack-controlplane-webhook")
+var logger = log.Log.WithName("metal-controlplane-webhook")
 
 // AddToManager creates a webhook and adds it to the manager.
 func AddToManager(mgr manager.Manager) (webhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
 	return controlplane.Add(mgr, controlplane.AddArgs{
 		Kind:     extensionswebhook.ShootKind,
-		Provider: openstack.Type,
+		Provider: metal.Type,
 		Types:    []runtime.Object{&appsv1.Deployment{}, &extensionsv1alpha1.OperatingSystemConfig{}},
 		Mutator: genericmutator.NewMutator(NewEnsurer(logger), controlplane.NewUnitSerializer(),
 			controlplane.NewKubeletConfigCodec(controlplane.NewFileContentInlineCodec()), logger),

@@ -15,18 +15,18 @@
 package cmd
 
 import (
-	controlplanecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/controlplane"
-	infrastructurecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/infrastructure"
-	workercontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
-	controlplanewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplane"
-	controlplanebackupwebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplanebackup"
-	controlplaneexposurewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
 	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
 	extensionscontrolplanecontroller "github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	extensionsinfrastructurecontroller "github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
 	extensionsworkercontroller "github.com/gardener/gardener-extensions/pkg/controller/worker"
 	webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
 	extensioncontrolplanewebhook "github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
+	controlplanecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/controlplane"
+	infrastructurecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/infrastructure"
+	workercontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
+	controlplanewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplane"
+	controlplanebackupwebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplanebackup"
+	controlplaneexposurewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
 )
 
 // ControllerSwitchOptions are the controllercmd.SwitchOptions for the provider controllers.
@@ -38,7 +38,7 @@ func ControllerSwitchOptions() *controllercmd.SwitchOptions {
 	)
 }
 
-WebhookSwitchOptions are the webhookcmd.SwitchOptions for the provider webhooks.
+// WebhookSwitchOptions are the webhookcmd.SwitchOptions for the provider webhooks.
 func WebhookSwitchOptions() *webhookcmd.SwitchOptions {
 	return webhookcmd.NewSwitchOptions(
 		webhookcmd.Switch(extensioncontrolplanewebhook.WebhookName, controlplanewebhook.AddToManager),

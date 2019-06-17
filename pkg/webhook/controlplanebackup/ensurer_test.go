@@ -18,12 +18,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/apis/config"
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/openstack"
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
 	"github.com/gardener/gardener-extensions/pkg/util"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/garden/v1beta1"
 	"github.com/gardener/gardener/pkg/operation/common"
@@ -45,7 +45,7 @@ const (
 
 func TestController(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Openstack Controlplane Backup Webhook Suite")
+	RunSpecs(t, "metal Controlplane Backup Webhook Suite")
 }
 
 var _ = Describe("Ensurer", func() {
@@ -59,7 +59,7 @@ var _ = Describe("Ensurer", func() {
 
 			imageVector = imagevector.ImageVector{
 				{
-					Name:       openstack.ETCDBackupRestoreImageName,
+					Name:       metal.ETCDBackupRestoreImageName,
 					Repository: "test-repository",
 					Tag:        "test-tag",
 				},
@@ -75,14 +75,14 @@ var _ = Describe("Ensurer", func() {
 				},
 			}
 
-			secretKey = client.ObjectKey{Namespace: namespace, Name: openstack.BackupSecretName}
+			secretKey = client.ObjectKey{Namespace: namespace, Name: metal.BackupSecretName}
 			secret    = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: openstack.BackupSecretName, Namespace: namespace},
+				ObjectMeta: metav1.ObjectMeta{Name: metal.BackupSecretName, Namespace: namespace},
 				Data:       map[string][]byte{"foo": []byte("bar")},
 			}
 
 			annotations = map[string]string{
-				"checksum/secret-" + openstack.BackupSecretName: "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
+				"checksum/secret-" + metal.BackupSecretName: "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
 			}
 		)
 
@@ -201,8 +201,8 @@ func checkETCDMainStatefulSet(ss *appsv1.StatefulSet, annotations map[string]str
 				Name: "STORAGE_CONTAINER",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.BucketName,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
+						Key:                  metal.BucketName,
+						LocalObjectReference: corev1.LocalObjectReference{Name: metal.BackupSecretName},
 					},
 				},
 			},
@@ -210,8 +210,8 @@ func checkETCDMainStatefulSet(ss *appsv1.StatefulSet, annotations map[string]str
 				Name: "OS_AUTH_URL",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.AuthURL,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
+						Key:                  metal.AuthURL,
+						LocalObjectReference: corev1.LocalObjectReference{Name: metal.BackupSecretName},
 					},
 				},
 			},
@@ -219,8 +219,8 @@ func checkETCDMainStatefulSet(ss *appsv1.StatefulSet, annotations map[string]str
 				Name: "OS_DOMAIN_NAME",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.DomainName,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
+						Key:                  metal.DomainName,
+						LocalObjectReference: corev1.LocalObjectReference{Name: metal.BackupSecretName},
 					},
 				},
 			},
@@ -228,8 +228,8 @@ func checkETCDMainStatefulSet(ss *appsv1.StatefulSet, annotations map[string]str
 				Name: "OS_USERNAME",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.UserName,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
+						Key:                  metal.UserName,
+						LocalObjectReference: corev1.LocalObjectReference{Name: metal.BackupSecretName},
 					},
 				},
 			},
@@ -237,8 +237,8 @@ func checkETCDMainStatefulSet(ss *appsv1.StatefulSet, annotations map[string]str
 				Name: "OS_PASSWORD",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.Password,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
+						Key:                  metal.Password,
+						LocalObjectReference: corev1.LocalObjectReference{Name: metal.BackupSecretName},
 					},
 				},
 			},
@@ -246,8 +246,8 @@ func checkETCDMainStatefulSet(ss *appsv1.StatefulSet, annotations map[string]str
 				Name: "OS_TENANT_NAME",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  openstack.TenantName,
-						LocalObjectReference: corev1.LocalObjectReference{Name: openstack.BackupSecretName},
+						Key:                  metal.TenantName,
+						LocalObjectReference: corev1.LocalObjectReference{Name: metal.BackupSecretName},
 					},
 				},
 			},
@@ -255,7 +255,7 @@ func checkETCDMainStatefulSet(ss *appsv1.StatefulSet, annotations map[string]str
 	)
 
 	c := controlplane.ContainerWithName(ss.Spec.Template.Spec.Containers, "backup-restore")
-	Expect(c).To(Equal(controlplane.GetBackupRestoreContainer(common.EtcdMainStatefulSetName, controlplane.EtcdMainVolumeClaimTemplateName, "0 */24 * * *", openstack.StorageProviderName,
+	Expect(c).To(Equal(controlplane.GetBackupRestoreContainer(common.EtcdMainStatefulSetName, controlplane.EtcdMainVolumeClaimTemplateName, "0 */24 * * *", metal.StorageProviderName,
 		"test-repository:test-tag", nil, env, nil)))
 	Expect(ss.Spec.Template.Annotations).To(Equal(annotations))
 }

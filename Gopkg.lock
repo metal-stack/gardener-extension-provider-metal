@@ -98,6 +98,14 @@
   revision = "bf70f2a70fb1b1f36d90d671a72795984eab0fcb"
 
 [[projects]]
+  digest = "1:027c348e13b5f924c925aebf0d2932545644c78da3f43cc82327220286084539"
+  name = "github.com/coreos/go-systemd"
+  packages = ["unit"]
+  pruneopts = "NUT"
+  revision = "95778dfbb74eb7e4dbaf43bf7d71809650ef8076"
+  version = "v19"
+
+[[projects]]
   digest = "1:8449bb0c1da0fd7ec4706afb5ae46ad0ad658fd87f17a7eb067c5a307ffe3818"
   name = "github.com/cyphar/filepath-securejoin"
   packages = ["."]
@@ -199,7 +207,7 @@
   revision = "f718e4bd65f08a62a8fa7836dcebb8e7d2476c1e"
 
 [[projects]]
-  digest = "1:d56adb2a91a24e296841048ce70b7908151fae16b318abdd53c3618410886205"
+  digest = "1:9546dd4d30a501dc57872f7a2eac60792826722e3975c394bb4b9114bdfd7127"
   name = "github.com/gardener/gardener-extensions"
   packages = [
     "pkg/controller",
@@ -208,11 +216,17 @@
     "pkg/controller/controlplane/genericactuator",
     "pkg/controller/error",
     "pkg/controller/infrastructure",
+    "pkg/controller/operatingsystemconfig/oscommon/cloudinit",
     "pkg/controller/worker",
     "pkg/controller/worker/genericactuator",
     "pkg/mock/controller-runtime/client",
     "pkg/mock/gardener/client/kubernetes",
-    "pkg/util"
+    "pkg/util",
+    "pkg/webhook",
+    "pkg/webhook/cmd",
+    "pkg/webhook/controlplane",
+    "pkg/webhook/controlplane/genericmutator",
+    "pkg/webhook/controlplane/test"
   ]
   pruneopts = "NUT"
   revision = "946f575a6489de2c884973e27d0e15ca66ab96c5"
@@ -488,17 +502,6 @@
   version = "v1.0"
 
 [[projects]]
-  digest = "1:0c11e987235e8f37af4e9f24cca02754827d009e8b66cf24483b0006504f6045"
-  name = "github.com/jmoiron/sqlx"
-  packages = [
-    ".",
-    "reflectx"
-  ]
-  pruneopts = "NUT"
-  revision = "d161d7a76b5661016ad0b085869f77fd410f3e6a"
-  version = "v1.2.0"
-
-[[projects]]
   digest = "1:da62aa6632d04e080b8a8b85a59ed9ed1550842a0099a55f3ae3a20d02a3745a"
   name = "github.com/joho/godotenv"
   packages = ["."]
@@ -529,18 +532,6 @@
   pruneopts = "NUT"
   revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
   version = "v1.0.2"
-
-[[projects]]
-  digest = "1:3493089e5754b1471b97e783de2fb38f5bd4b68728d09046ec4a1e7e6ec48574"
-  name = "github.com/lib/pq"
-  packages = [
-    ".",
-    "oid",
-    "scram"
-  ]
-  pruneopts = "NUT"
-  revision = "bc6a3c0594130b1e34005880bc600b6d3f49fa7f"
-  version = "v1.1.1"
 
 [[projects]]
   branch = "master"
@@ -752,17 +743,6 @@
   pruneopts = "NUT"
   revision = "438578804ca6f31be148c27683afc419ce47c06e"
   version = "v1.3.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:6c9ffc8e817fe638d8169ceadc7bb32b12973ff953c2e686d4ac2a487024a6b2"
-  name = "github.com/rubenv/sql-migrate"
-  packages = [
-    ".",
-    "sqlparse"
-  ]
-  pruneopts = "NUT"
-  revision = "54bad0a9b051368ffec9cd2b869789c2b8eaea35"
 
 [[projects]]
   digest = "1:118f00f400c10c1dd21a267fd04697c758dbe9a38cf5fa3fab3bb3625af9efe7"
@@ -1048,14 +1028,6 @@
   pruneopts = "NUT"
   revision = "501c41df7f472c740d0674ff27122f3f48c80ce7"
   version = "v1.21.1"
-
-[[projects]]
-  digest = "1:1bfe1fa433123b451bb1a2a1a5d094322821b9463f5bf8eade67e71d7532e3d0"
-  name = "gopkg.in/gorp.v1"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "6a667da9c028871f98598d85413e3fc4c6daa52e"
-  version = "v1.7.2"
 
 [[projects]]
   digest = "1:2d1fbdc6777e5408cabeb02bf336305e724b925ff4546ded0fa8715a7267922a"
@@ -1438,6 +1410,14 @@
   revision = "db7b694dc208eead64d38030265f702db593fcf2"
 
 [[projects]]
+  digest = "1:c315e859e0da8b226202d60b2df6c48b17568468503ba080b4e3a30ad99887b4"
+  name = "k8s.io/kubelet"
+  packages = ["config/v1beta1"]
+  pruneopts = "NUT"
+  revision = "b2baec5a487a3ad344d60bd012d1c9464f517011"
+  version = "kubernetes-1.13.4"
+
+[[projects]]
   digest = "1:2f74601002e78f83998aa657a1e307fe270ac1ae5008b3fcad39bed266e67332"
   name = "k8s.io/kubernetes"
   packages = [
@@ -1558,13 +1538,14 @@
   revision = "c55fbcfc754a5b2ec2fbae8fb9dcac36bdba6a12"
 
 [[projects]]
-  digest = "1:8d8d4f7a1a5a4b33a122b9869d5d689c8a8e6dd6bb958ef756c6bf24a0db8cf6"
+  digest = "1:c6a930d477f6750f845653f04c87a8cb06cf4f5edfda3c977f25d429896fe55a"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
     "pkg/cache",
     "pkg/cache/internal",
     "pkg/client",
     "pkg/client/apiutil",
+    "pkg/client/config",
     "pkg/controller",
     "pkg/controller/controllerutil",
     "pkg/event",
@@ -1585,8 +1566,14 @@
     "pkg/runtime/signals",
     "pkg/source",
     "pkg/source/internal",
+    "pkg/webhook",
     "pkg/webhook/admission",
+    "pkg/webhook/admission/builder",
     "pkg/webhook/admission/types",
+    "pkg/webhook/internal/cert",
+    "pkg/webhook/internal/cert/generator",
+    "pkg/webhook/internal/cert/writer",
+    "pkg/webhook/internal/cert/writer/atomic",
     "pkg/webhook/internal/metrics",
     "pkg/webhook/types"
   ]
@@ -1614,6 +1601,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/coreos/go-systemd/unit",
     "github.com/gardener/gardener-extensions/pkg/controller",
     "github.com/gardener/gardener-extensions/pkg/controller/cmd",
     "github.com/gardener/gardener-extensions/pkg/controller/controlplane",
@@ -1624,6 +1612,11 @@
     "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client",
     "github.com/gardener/gardener-extensions/pkg/mock/gardener/client/kubernetes",
     "github.com/gardener/gardener-extensions/pkg/util",
+    "github.com/gardener/gardener-extensions/pkg/webhook",
+    "github.com/gardener/gardener-extensions/pkg/webhook/cmd",
+    "github.com/gardener/gardener-extensions/pkg/webhook/controlplane",
+    "github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator",
+    "github.com/gardener/gardener-extensions/pkg/webhook/controlplane/test",
     "github.com/gardener/gardener/pkg/apis/core/v1alpha1",
     "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1",
     "github.com/gardener/gardener/pkg/apis/garden/v1beta1",
@@ -1667,11 +1660,13 @@
     "k8s.io/code-generator/cmd/defaulter-gen",
     "k8s.io/code-generator/cmd/informer-gen",
     "k8s.io/code-generator/cmd/lister-gen",
+    "k8s.io/kubelet/config/v1beta1",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/controller",
     "sigs.k8s.io/controller-runtime/pkg/manager",
     "sigs.k8s.io/controller-runtime/pkg/runtime/inject",
-    "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+    "sigs.k8s.io/controller-runtime/pkg/runtime/log",
+    "sigs.k8s.io/controller-runtime/pkg/webhook"
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

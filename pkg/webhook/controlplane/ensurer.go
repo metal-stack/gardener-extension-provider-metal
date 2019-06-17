@@ -17,7 +17,6 @@ package controlplane
 import (
 	"context"
 
-	"github.com/gardener/gardener-extensions/controllers/provider-openstack/pkg/openstack"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
 
@@ -32,7 +31,7 @@ import (
 // NewEnsurer creates a new controlplane ensurer.
 func NewEnsurer(logger logr.Logger) genericmutator.Ensurer {
 	return &ensurer{
-		logger: logger.WithName("openstack-controlplane-ensurer"),
+		logger: logger.WithName("metal-controlplane-ensurer"),
 	}
 }
 
@@ -54,10 +53,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, dep *appsv1
 	ps := &template.Spec
 	if c := controlplane.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c)
-		ensureVolumeMounts(c)
 	}
-	ensureVolumes(ps)
-	return e.ensureChecksumAnnotations(ctx, &dep.Spec.Template, dep.Namespace)
+
+	return nil
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
@@ -66,57 +64,20 @@ func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, dep
 	ps := &template.Spec
 	if c := controlplane.ContainerWithName(ps.Containers, "kube-controller-manager"); c != nil {
 		ensureKubeControllerManagerCommandLineArgs(c)
-		ensureVolumeMounts(c)
 	}
-	ensureVolumes(ps)
-	return e.ensureChecksumAnnotations(ctx, &dep.Spec.Template, dep.Namespace)
+
+	return nil
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
-	c.Command = controlplane.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "openstack")
-	c.Command = controlplane.EnsureStringWithPrefix(c.Command, "--cloud-config=",
-		"/etc/kubernetes/cloudprovider/cloudprovider.conf")
-	c.Command = controlplane.EnsureStringWithPrefixContains(c.Command, "--enable-admission-plugins=",
+	c.Command = controlplane.EnsureNoStringWithPrefixContains(c.Command, "--enable-admission-plugins=",
 		"PersistentVolumeLabel", ",")
-	c.Command = controlplane.EnsureNoStringWithPrefixContains(c.Command, "--disable-admission-plugins=",
+	c.Command = controlplane.EnsureStringWithPrefixContains(c.Command, "--disable-admission-plugins=",
 		"PersistentVolumeLabel", ",")
 }
 
 func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
 	c.Command = controlplane.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
-	c.Command = controlplane.EnsureStringWithPrefix(c.Command, "--cloud-config=",
-		"/etc/kubernetes/cloudprovider/cloudprovider.conf")
-	c.Command = controlplane.EnsureStringWithPrefix(c.Command, "--external-cloud-volume-plugin=", "openstack")
-}
-
-var (
-	cloudProviderConfigVolumeMount = corev1.VolumeMount{
-		Name:      openstack.CloudProviderConfigName,
-		MountPath: "/etc/kubernetes/cloudprovider",
-	}
-	cloudProviderConfigVolume = corev1.Volume{
-		Name: openstack.CloudProviderConfigName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: openstack.CloudProviderConfigName},
-			},
-		},
-	}
-)
-
-func ensureVolumeMounts(c *corev1.Container) {
-	c.VolumeMounts = controlplane.EnsureVolumeMountWithName(c.VolumeMounts, cloudProviderConfigVolumeMount)
-}
-
-func ensureVolumes(ps *corev1.PodSpec) {
-	ps.Volumes = controlplane.EnsureVolumeWithName(ps.Volumes, cloudProviderConfigVolume)
-}
-
-func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev1.PodTemplateSpec, namespace string) error {
-	if err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, template, e.client, namespace, openstack.CloudProviderConfigName); err != nil {
-		return err
-	}
-	return nil
 }
 
 // EnsureKubeletServiceUnitOptions ensures that the kubelet.service unit options conform to the provider requirements.
@@ -130,16 +91,12 @@ func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, opts []*u
 }
 
 func ensureKubeletCommandLineArgs(command []string) []string {
-	command = controlplane.EnsureStringWithPrefix(command, "--cloud-provider=", "openstack")
+	command = controlplane.EnsureStringWithPrefix(command, "--cloud-provider=", "external")
 	return command
 }
 
 // EnsureKubeletConfiguration ensures that the kubelet configuration conforms to the provider requirements.
 func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, kubeletConfig *kubeletconfigv1beta1.KubeletConfiguration) error {
-	// Make sure CSI-related feature gates are not enabled
-	// TODO Leaving these enabled shouldn't do any harm, perhaps remove this code when properly tested?
-	delete(kubeletConfig.FeatureGates, "VolumeSnapshotDataSource")
-	delete(kubeletConfig.FeatureGates, "CSINodeInfo")
-	delete(kubeletConfig.FeatureGates, "CSIDriverRegistry")
+
 	return nil
 }
