@@ -31,8 +31,8 @@ import (
 	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
 	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
-	// webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
-
+	webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
+ 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -72,17 +72,17 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		workerCtrlOptsUnprefixed = controllercmd.NewOptionAggregator(workerCtrlOpts, workerReconcileOpts)
 
 		controllerSwitches   = metalcmd.ControllerSwitchOptions()
-		// webhookSwitches      = metalcmd.WebhookSwitchOptions()
-		// webhookServerOptions = &webhookcmd.ServerOptions{
-		// 	Port:             7890,
-		// 	CertDir:          "/tmp/cert",
-		// 	Mode:             webhookcmd.ServiceMode,
-		// 	Name:             "webhooks",
-		// 	Namespace:        os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
-		// 	ServiceSelectors: "{}",
-		// 	Host:             "localhost",
-		// }
-		// webhookOptions = webhookcmd.NewAddToManagerOptions(metal.Name, webhookServerOptions, webhookSwitches)
+		webhookSwitches      = metalcmd.WebhookSwitchOptions()
+		webhookServerOptions = &webhookcmd.ServerOptions{
+			Port:             7890,
+			CertDir:          "/tmp/cert",
+			Mode:             webhookcmd.ServiceMode,
+			Name:             "webhooks",
+			Namespace:        os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
+			ServiceSelectors: "{}",
+			Host:             "localhost",
+		}
+		webhookOptions = webhookcmd.NewAddToManagerOptions(metal.Name, webhookServerOptions, webhookSwitches)
 
 		aggOption = controllercmd.NewOptionAggregator(
 			restOpts,
@@ -92,7 +92,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			controllercmd.PrefixOption("worker-", &workerCtrlOptsUnprefixed),
 			configFileOpts,
 			controllerSwitches,
-			// webhookOptions,
+			webhookOptions,
 		)
 	)
 
@@ -135,9 +135,9 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				controllercmd.LogErrAndExit(err, "Could not add controllers to manager")
 			}
 
-			// if err := webhookOptions.Completed().AddToManager(mgr); err != nil {
-			// 	controllercmd.LogErrAndExit(err, "Could not add webhooks to manager")
-			// }
+			if err := webhookOptions.Completed().AddToManager(mgr); err != nil {
+				controllercmd.LogErrAndExit(err, "Could not add webhooks to manager")
+			}
 
 			if err := mgr.Start(ctx.Done()); err != nil {
 				controllercmd.LogErrAndExit(err, "Error running manager")
