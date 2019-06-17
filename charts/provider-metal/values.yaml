@@ -1,0 +1,57 @@
+image:
+  repository: eu.gcr.io/gardener-project/gardener/gardener-extension-hyper
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+resources: {}
+
+controllers:
+  controlplane:
+    concurrentSyncs: 5
+  infrastructure:
+    concurrentSyncs: 5
+    ignoreOperationAnnotation: false
+  worker:
+    concurrentSyncs: 5
+
+disableControllers: []
+disableWebhooks: []
+
+# imageVectorOverwrite: |
+#   images:
+#   - name: pause-container
+#     sourceRepository: github.com/kubernetes/kubernetes/blob/master/build/pause/Dockerfile
+#     repository: gcr.io/google_containers/pause-amd64
+#     tag: "3.0"
+#     version: 1.11.x
+#   - name: pause-container
+#     sourceRepository: github.com/kubernetes/kubernetes/blob/master/build/pause/Dockerfile
+#     repository: gcr.io/google_containers/pause-amd64
+#     tag: "3.1"
+#     version: ">= 1.12"
+#   ...
+
+config:
+  machineImages:
+  - name: coreos
+    version: 1967.5.0
+    regions:
+    - ami: ami-82645dfb
+      name: eu-west-1
+    - ami: ami-32042fd9
+      name: eu-central-1
+    - ami: ami-93d3b4ec
+      name: us-east-1
+    - ami: ami-e5cdf180
+      name: us-east-2
+  etcd:
+    storage:
+      className: gardener.cloud-fast
+      capacity: 80Gi
+    backup:
+      schedule: "0 */24 * * *"
+
+gardener:
+  seed:
+    provider: aws

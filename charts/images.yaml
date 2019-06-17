@@ -1,0 +1,16 @@
+images:
+- name: terraformer
+  sourceRepository: github.com/gardener/terraformer
+  repository: eu.gcr.io/gardener-project/gardener/terraformer
+  tag: "0.13.0"
+- name: hyperkube
+  sourceRepository: github.com/kubernetes/kubernetes
+  repository: k8s.gcr.io/hyperkube
+- name: machine-controller-manager
+  sourceRepository: github.com/gardener/machine-controller-manager
+  repository: eu.gcr.io/gardener-project/gardener/machine-controller-manager
+  tag: "0.18.0"
+- name: etcd-backup-restore
+  sourceRepository: github.com/gardener/etcd-backup-restore
+  repository: eu.gcr.io/gardener-project/gardener/etcdbrctl
+  tag: "0.6.4"
