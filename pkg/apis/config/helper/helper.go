@@ -20,21 +20,16 @@ import (
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
 )
 
-// FindAMIForRegion takes a list of machine images, and the desired image name, version, and region. It tries
+// FindImageID TODO: write docs takes a list of machine images, and the desired image name, version, and region. It tries
 // to find the image with the given name and version in the desired region. If it cannot be found then an error
 // is returned.
-func FindAMIForRegion(machineImages []config.MachineImage, imageName, version, regionName string) (string, error) {
+func FindImageID(machineImages []config.MachineImage, imageName, version string) (string, error) {
 	for _, machineImage := range machineImages {
 		if machineImage.Name != imageName || machineImage.Version != version {
 			continue
 		}
-
-		for _, region := range machineImage.Regions {
-			if region.Name == regionName {
-				return region.AMI, nil
-			}
-		}
+		return machineImage.ImageID, nil
 	}
 
-	return "", fmt.Errorf("could not find an AMI for region %q and machine image %q in version %q", regionName, imageName, version)
+	return "", fmt.Errorf("could not find an image id for machine image %q in version %q", imageName, version)
 }

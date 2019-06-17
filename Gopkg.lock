@@ -162,7 +162,7 @@
   revision = "d6023ce2651d8eafb5c75bb0c7167536102ec9f5"
 
 [[projects]]
-  digest = "1:59b55d57e1c4616eb376183c42b1b6ffd3c3fef868e96495c222fc4c53627ee8"
+  digest = "1:de019f5fb9d5ed4740e323ad2e8d58336a8010ebb28927f43da0044575dc6b89"
   name = "github.com/gardener/gardener"
   packages = [
     "pkg/apis/core",
@@ -188,10 +188,8 @@
     "pkg/client/machine/clientset/versioned/typed/machine/v1alpha1",
     "pkg/logger",
     "pkg/operation/common",
-    "pkg/operation/terraformer",
     "pkg/utils",
     "pkg/utils/chart",
-    "pkg/utils/flow",
     "pkg/utils/imagevector",
     "pkg/utils/kubernetes",
     "pkg/utils/kubernetes/health",
@@ -220,7 +218,7 @@
   revision = "946f575a6489de2c884973e27d0e15ca66ab96c5"
 
 [[projects]]
-  digest = "1:be08b3a88137d497fc3008eaadba7b05d151c6106ebd3d1df54af7b07320562a"
+  digest = "1:d97f36db679e42ff8caf914ecf98dd96fdb9befb7a64996b6c359956a468f172"
   name = "github.com/gardener/machine-controller-manager"
   packages = [
     "pkg/apis/machine",
@@ -228,7 +226,8 @@
     "pkg/client/clientset/versioned/scheme"
   ]
   pruneopts = "NUT"
-  revision = "119056ee3fddc24a33b206ba89958da30535bd02"
+  revision = "052c7e8a36509a335e8fa830299d54de226b7999"
+  source = "github.com/majst01/machine-controller-manager"
 
 [[projects]]
   digest = "1:81466b4218bf6adddac2572a30ac733a9255919bc2f470b4827a317bd4ee1756"
@@ -487,6 +486,17 @@
   pruneopts = "NUT"
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
+
+[[projects]]
+  digest = "1:0c11e987235e8f37af4e9f24cca02754827d009e8b66cf24483b0006504f6045"
+  name = "github.com/jmoiron/sqlx"
+  packages = [
+    ".",
+    "reflectx"
+  ]
+  pruneopts = "NUT"
+  revision = "d161d7a76b5661016ad0b085869f77fd410f3e6a"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:da62aa6632d04e080b8a8b85a59ed9ed1550842a0099a55f3ae3a20d02a3745a"
@@ -1608,25 +1618,18 @@
     "github.com/gardener/gardener-extensions/pkg/controller/cmd",
     "github.com/gardener/gardener-extensions/pkg/controller/controlplane",
     "github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator",
-    "github.com/gardener/gardener-extensions/pkg/controller/error",
     "github.com/gardener/gardener-extensions/pkg/controller/infrastructure",
     "github.com/gardener/gardener-extensions/pkg/controller/worker",
     "github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator",
     "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client",
     "github.com/gardener/gardener-extensions/pkg/mock/gardener/client/kubernetes",
     "github.com/gardener/gardener-extensions/pkg/util",
-    "github.com/gardener/gardener/pkg/apis/core",
     "github.com/gardener/gardener/pkg/apis/core/v1alpha1",
-    "github.com/gardener/gardener/pkg/apis/core/v1alpha1/helper",
     "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1",
     "github.com/gardener/gardener/pkg/apis/garden/v1beta1",
-    "github.com/gardener/gardener/pkg/chartrenderer",
     "github.com/gardener/gardener/pkg/client/kubernetes",
-    "github.com/gardener/gardener/pkg/logger",
     "github.com/gardener/gardener/pkg/operation/common",
-    "github.com/gardener/gardener/pkg/operation/terraformer",
     "github.com/gardener/gardener/pkg/utils/chart",
-    "github.com/gardener/gardener/pkg/utils/flow",
     "github.com/gardener/gardener/pkg/utils/imagevector",
     "github.com/gardener/gardener/pkg/utils/kubernetes",
     "github.com/gardener/gardener/pkg/utils/secrets",
@@ -1645,7 +1648,6 @@
     "k8s.io/api/core/v1",
     "k8s.io/api/rbac/v1",
     "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme",
-    "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/resource",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/conversion",
@@ -1659,7 +1661,6 @@
     "k8s.io/apiserver/pkg/authentication/user",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/rest",
-    "k8s.io/client-go/util/retry",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/conversion-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",

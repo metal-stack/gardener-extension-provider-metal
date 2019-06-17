@@ -1,23 +1,15 @@
 machineClasses:
 - name: class-1
-  ami: ami-123456
-  region: eu-west-1
-  machineType: m4.xlarge
-  iamInstanceProfile: nodes
-  keyName: my-ssh-key
-  networkInterfaces:
-  - subnetID: subnet-acbd1234
-    securityGroupIDs:
-    - sg-xyz12345
+  partition: nbg-w8101
+  size: c1-xlarge-x86
+  image: ubuntu-19.04
+  project: gardener-test
+  tenant: devops
+  sshkeys: []
   tags:
-    Name: shoot-crazy-botany
-    kubernetes.io/cluster/shoot-crazy-botany: "1"
-    kubernetes.io/role/node: "1"
+    - gardener
   secret:
-    accessKeyID: ABCD
-    secretAccessKey: ABCD
-    cloudConfig: base64(abc)
-  blockDevices:
-  - ebs:
-      volumeSize: 50
-      volumeType: gp2
+    cloudConfig: abc
+    metalAPIKey: abc
+    metalAPIHMac: abc
+    metalAPIURL: abc

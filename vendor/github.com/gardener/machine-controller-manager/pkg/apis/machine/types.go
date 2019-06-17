@@ -1234,3 +1234,54 @@ type PacketMachineClassSpec struct {
 
 	// TODO add more here
 }
+
+// PacketSSHKeySpec represents a single ssh key
+type PacketSSHKeySpec struct {
+	ID          string
+	Fingerprint string
+}
+
+/********************** MetalMachineClass APIs ***************/
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// MetalMachineClass TODO
+type MetalMachineClass struct {
+	// +optional
+	metav1.ObjectMeta
+
+	// +optional
+	metav1.TypeMeta
+
+	// +optional
+	Spec MetalMachineClassSpec
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// MetalMachineClassList is a collection of MetalMachineClasses.
+type MetalMachineClassList struct {
+	// +optional
+	metav1.TypeMeta
+
+	// +optional
+	metav1.ListMeta
+
+	// +optional
+	Items []MetalMachineClass
+}
+
+// MetalMachineClassSpec is the specification of a cluster.
+type MetalMachineClassSpec struct {
+	Partition string // required
+	Size      string // required
+	Image     string // required
+	Tenant    string // required
+	Project   string // required
+	Tags      []string
+	SSHKeys   []string
+	UserData  string
+
+	SecretRef *corev1.SecretReference
+}

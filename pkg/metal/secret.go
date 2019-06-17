@@ -26,6 +26,11 @@ func ReadCredentialsSecret(secret *corev1.Secret) (*Credentials, error) {
 		return nil, fmt.Errorf("secret does not contain any data")
 	}
 
+	url, ok := secret.Data[MetalAPIURL]
+	if !ok {
+		return nil, fmt.Errorf("missing %q field in secret", MetalAPIURL)
+	}
+
 	hmac, ok := secret.Data[MetalAPIHMac]
 	if !ok {
 		return nil, fmt.Errorf("missing %q field in secret", MetalAPIHMac)
@@ -37,6 +42,7 @@ func ReadCredentialsSecret(secret *corev1.Secret) (*Credentials, error) {
 	}
 
 	return &Credentials{
+		MetalAPIURL:  url,
 		MetalAPIHMac: hmac,
 		MetalAPIKey:  key,
 	}, nil

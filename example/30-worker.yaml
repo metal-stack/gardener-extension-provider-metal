@@ -6,8 +6,10 @@ metadata:
   namespace: shoot--foo--bar
 type: Opaque
 data:
-# accessKeyID: base64(access-key-id)
-# secretAccessKey: base64(secret-access-key)
+  metalAPIKey: abc
+  metalAPIHMac: cdf
+  metalAPIURL: ghj
+
 ---
 apiVersion: extensions.gardener.cloud/v1alpha1
 kind: Cluster
@@ -37,37 +39,19 @@ metadata:
   namespace: shoot--foo--bar
 spec:
   type: metal
-  region: eu-west-1
+  region: nbg
   secretRef:
     name: cloudprovider
     namespace: shoot--foo--bar
   infrastructureProviderStatus:
     apiVersion: metal.provider.extensions.gardener.cloud/v1alpha1
     kind: InfrastructureStatus
-    ec2:
-      keyName: my-shoot
-    iam:
-      instanceProfiles:
-      - purpose: nodes
-        name: nodes-my-shoot
-      roles:
-      - purpose: nodes
-        arn: arn://my-shoot
-    vpc:
-      id: vpc-1234
-      subnets:
-      - purpose: nodes
-        id: subnet-4567
-        zone: eu-west-1a
-      securityGroups:
-      - purpose: nodes
-        id: sg-35a44
   pools:
   - name: cpu-worker
-    machineType: m4.large
+    machineType: c1-xlarge-x86
     machineImage:
-      name: coreos
-      version: 1967.5.0
+      name: metal
+      version: ubuntu-19.04
     minimum: 1
     maximum: 1
     maxSurge: 1
@@ -81,8 +65,5 @@ spec:
   #   value: bar
   #   effect: NoSchedule
     userData: IyEvYmluL2Jhc2gKCmVjaG8gImhlbGxvIHdvcmxkIgo=
-    volume:
-      type: gp2
-      size: 20Gi
     zones:
-    - eu-west-1a
+    - nbg-w8101

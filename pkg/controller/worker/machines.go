@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	awsapi "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	awsapihelper "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	confighelper "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config/helper"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
@@ -33,12 +31,12 @@ import (
 
 // MachineClassKind yields the name of the AWS machine class.
 func (w *workerDelegate) MachineClassKind() string {
-	return "AWSMachineClass"
+	return "MetalMachineClass"
 }
 
 // MachineClassList yields a newly initialized AWSMachineClassList object.
 func (w *workerDelegate) MachineClassList() runtime.Object {
-	return &machinev1alpha1.AWSMachineClassList{}
+	return &machinev1alpha1.MetalMachineClassList{}
 }
 
 // DeployMachineClasses generates and creates the AWS specific machine classes.
@@ -50,7 +48,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 	}
 	return w.seedChartApplier.ApplyChart(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", map[string]interface{}{"machineClasses": w.machineClasses}, nil)
 }
-
+ 
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.
 func (w *workerDelegate) GenerateMachineDeployments(ctx context.Context) (worker.MachineDeployments, error) {
 	if w.machineDeployments == nil {
@@ -71,10 +69,11 @@ func (w *workerDelegate) generateMachineClassSecretData(ctx context.Context) (ma
 	if err != nil {
 		return nil, err
 	}
-
+ 
 	return map[string][]byte{
-		machinev1alpha1.AWSAccessKeyID:     credentials.AccessKeyID,
-		machinev1alpha1.AWSSecretAccessKey: credentials.SecretAccessKey,
+		machinev1alpha1.MetalAPIURL:     credentials.MetalAPIURL,
+		machinev1alpha1.MetalAPIKey: credentials.MetalAPIKey,
+		machinev1alpha1.MetalAPIHMac: credentials.MetalAPIHMac,
 	}, nil
 }
 
@@ -94,65 +93,27 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
-	infrastructureStatus := &awsapi.InfrastructureStatus{}
-	if _, _, err := w.decoder.Decode(w.worker.Spec.InfrastructureProviderStatus.Raw, nil, infrastructureStatus); err != nil {
-		return err
-	}
-
-	nodesInstanceProfile, err := awsapihelper.FindInstanceProfileForPurpose(infrastructureStatus.IAM.InstanceProfiles, awsapi.PurposeNodes)
-	if err != nil {
-		return err
-	}
-	nodesSecurityGroup, err := awsapihelper.FindSecurityGroupForPurpose(infrastructureStatus.VPC.SecurityGroups, awsapi.PurposeNodes)
-	if err != nil {
-		return err
-	}
-
 	for _, pool := range w.worker.Spec.Pools {
 		zoneLen := len(pool.Zones)
 
-		ami, err := confighelper.FindAMIForRegion(w.machineImageToAMIMapping, pool.MachineImage.Name, pool.MachineImage.Version, w.worker.Spec.Region)
-		if err != nil {
-			return err
-		}
-
-		volumeSize, err := worker.DiskSize(pool.Volume.Size)
+		imageID, err := confighelper.FindImageID(w.machineImages, pool.MachineImage.Name, pool.MachineImage.Version)
 		if err != nil {
 			return err
 		}
 
 		for zoneIndex, zone := range pool.Zones {
-			nodesSubnet, err := awsapihelper.FindSubnetForPurposeAndZone(infrastructureStatus.VPC.Subnets, awsapi.PurposeNodes, zone)
-			if err != nil {
-				return err
-			}
-
 			machineClassSpec := map[string]interface{}{
-				"ami":                ami,
-				"region":             w.worker.Spec.Region,
-				"machineType":        pool.MachineType,
-				"iamInstanceProfile": nodesInstanceProfile.Name,
-				"keyName":            infrastructureStatus.EC2.KeyName,
-				"networkInterfaces": []map[string]interface{}{
-					{
-						"subnetID":         nodesSubnet.ID,
-						"securityGroupIDs": []string{nodesSecurityGroup.ID},
-					},
-				},
-				"tags": map[string]string{
-					fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace): "1",
-					"kubernetes.io/role/node":                                   "1",
+				"partition":          zone,
+				"size":        pool.MachineType,
+				"project":     w.worker.Namespace, 
+				"tenant":      "devops", // FIXME: This should actually come from the gardener project definition
+				"image": imageID,
+				"tags": []string{
+					fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace),
+					fmt.Sprintf("kubernetes.io/role/node"),
 				},
 				"secret": map[string]interface{}{
 					"cloudConfig": string(pool.UserData),
-				},
-				"blockDevices": []map[string]interface{}{
-					{
-						"ebs": map[string]interface{}{
-							"volumeSize": volumeSize,
-							"volumeType": pool.Volume.Type,
-						},
-					},
 				},
 			}
 
@@ -176,8 +137,9 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			})
 
 			machineClassSpec["name"] = className
-			machineClassSpec["secret"].(map[string]interface{})[metal.AccessKeyID] = string(machineClassSecretData[machinev1alpha1.AWSAccessKeyID])
-			machineClassSpec["secret"].(map[string]interface{})[metal.SecretAccessKey] = string(machineClassSecretData[machinev1alpha1.AWSSecretAccessKey])
+			machineClassSpec["secret"].(map[string]interface{})[metal.MetalAPIKey] = string(machineClassSecretData[machinev1alpha1.MetalAPIKey])
+			machineClassSpec["secret"].(map[string]interface{})[metal.MetalAPIHMac] = string(machineClassSecretData[machinev1alpha1.MetalAPIHMac])
+			machineClassSpec["secret"].(map[string]interface{})[metal.MetalAPIURL] = string(machineClassSecretData[machinev1alpha1.MetalAPIURL])
 
 			machineClasses = append(machineClasses, machineClassSpec)
 		}

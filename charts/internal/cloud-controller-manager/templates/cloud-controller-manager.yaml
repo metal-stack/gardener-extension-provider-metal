@@ -17,7 +17,7 @@ spec:
     app: kubernetes
     role: cloud-controller-manager
 ---
-apiVersion: apps/v1
+apiVersion: {{ include "deploymentversion" . }}
 kind: Deployment
 metadata:
   name: cloud-controller-manager
@@ -43,28 +43,21 @@ spec:
         garden.sapcloud.io/role: controlplane
         app: kubernetes
         role: cloud-controller-manager
-        networking.gardener.cloud/to-dns: allowed
-        networking.gardener.cloud/to-public-networks: allowed
-        networking.gardener.cloud/to-shoot-apiserver: allowed
-        networking.gardener.cloud/from-prometheus: allowed
     spec:
       tolerations:
       - effect: NoExecute
         operator: Exists
       containers:
       - name: cloud-controller-manager
-        image: {{ index .Values.images "hyperkube" }}
+        image: {{ index .Values.images "metalccm" }}
         imagePullPolicy: IfNotPresent
         command:
-        - /hyperkube
-        - cloud-controller-manager
-        - --allocate-node-cidrs=true
-        - --cloud-provider=aws
-        - --cloud-config=/etc/kubernetes/cloudprovider/cloudprovider.conf
+        - ./metal-cloud-controller-manager
+        - --cloud-provider=metal
+        - --allow-untagged-cloud=true
         - --cluster-cidr={{ .Values.podNetwork }}
         - --cluster-name={{ .Values.clusterName }}
         - --concurrent-service-syncs=10
-        - --configure-cloud-routes=false
         {{- include "cloud-controller-manager.featureGates" . | trimSuffix "," | indent 8 }}
         - --kubeconfig=/var/lib/cloud-controller-manager/kubeconfig
         - --leader-elect=true
@@ -85,16 +78,23 @@ spec:
         - {{ $param }}
         {{- end }}
         env:
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: cloudprovider
-              key: accessKeyID
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: cloudprovider
-              key: secretAccessKey
+          - name: METAL_API_URL
+            valueFrom:
+              secretKeyRef:
+                name: cloudprovider
+                key: metalAPIURL
+          - name: METAL_AUTH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: cloudprovider
+                key: metalAPIKey
+          - name: METAL_AUTH_HMAC
+            valueFrom:
+              secretKeyRef:
+                name: cloudprovider
+                key: metalAPIHMac
+          - name: METAL_PROJECT_ID
+            value: gardener-test
         livenessProbe:
           httpGet:
             path: /healthz
@@ -109,10 +109,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 10
           timeoutSeconds: 15
-        ports:
-        - containerPort: {{ include "cloud-controller-manager.port" . }}
-          name: metrics
-          protocol: TCP
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         {{- if .Values.resources }}
@@ -124,8 +120,8 @@ spec:
           mountPath: /var/lib/cloud-controller-manager
         - name: cloud-controller-manager-server
           mountPath: /var/lib/cloud-controller-manager-server
-        - name: cloud-provider-config
-          mountPath: /etc/kubernetes/cloudprovider
+        - name: cloudprovider
+          mountPath: /srv/cloudprovider
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -137,6 +133,6 @@ spec:
       - name: cloud-controller-manager-server
         secret:
           secretName: cloud-controller-manager-server
-      - name: cloud-provider-config
-        configMap:
-          name: cloud-provider-config
+      - name: cloudprovider
+        secret:
+          secretName: cloudprovider

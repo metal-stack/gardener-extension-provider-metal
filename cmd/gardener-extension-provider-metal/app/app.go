@@ -22,15 +22,15 @@ import (
 	metalinstall "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/install"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalcmd "github.com/metal-pod/gardener-extension-provider-metal/pkg/cmd"
-	// metalcontrolplane "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/controlplane"
+	metalcontrolplane "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/controlplane"
 	metalinfrastructure "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/infrastructure"
-	// metalworker "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
+	metalworker "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
 	// metalcontrolplanebackup "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplanebackup"
 	// metalcontrolplaneexposure "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
 	"github.com/gardener/gardener-extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
 	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
-	// "github.com/gardener/gardener-extensions/pkg/controller/worker"
+	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	// webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
 
 	"github.com/spf13/cobra"
@@ -46,12 +46,12 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			LeaderElectionID:        controllercmd.LeaderElectionNameID(metal.Name),
 			LeaderElectionNamespace: os.Getenv("LEADER_ELECTION_NAMESPACE"),
 		}
-		// configFileOpts = &metalcmd.ConfigOptions{}
+		configFileOpts = &metalcmd.ConfigOptions{}
 
-		// // options for the controlplane controller
-		// controlPlaneCtrlOpts = &controllercmd.ControllerOptions{
-		// 	MaxConcurrentReconciles: 5,
-		// }
+		// options for the controlplane controller
+		controlPlaneCtrlOpts = &controllercmd.ControllerOptions{
+			MaxConcurrentReconciles: 5,
+		}
 
 		// options for the infrastructure controller
 		infraCtrlOpts = &controllercmd.ControllerOptions{
@@ -63,13 +63,13 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		infraCtrlOptsUnprefixed = controllercmd.NewOptionAggregator(infraCtrlOpts, infraReconcileOpts)
 
 		// options for the worker controller
-		// workerCtrlOpts = &controllercmd.ControllerOptions{
-		// 	MaxConcurrentReconciles: 5,
-		// }
-		// workerReconcileOpts = &worker.Options{
-		// 	DeployCRDs: true,
-		// }
-		// workerCtrlOptsUnprefixed = controllercmd.NewOptionAggregator(workerCtrlOpts, workerReconcileOpts)
+		workerCtrlOpts = &controllercmd.ControllerOptions{
+			MaxConcurrentReconciles: 5,
+		}
+		workerReconcileOpts = &worker.Options{
+			DeployCRDs: true,
+		}
+		workerCtrlOptsUnprefixed = controllercmd.NewOptionAggregator(workerCtrlOpts, workerReconcileOpts)
 
 		controllerSwitches   = metalcmd.ControllerSwitchOptions()
 		// webhookSwitches      = metalcmd.WebhookSwitchOptions()
@@ -87,10 +87,10 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		aggOption = controllercmd.NewOptionAggregator(
 			restOpts,
 			mgrOpts,
-			// controllercmd.PrefixOption("controlplane-", controlPlaneCtrlOpts),
+			controllercmd.PrefixOption("controlplane-", controlPlaneCtrlOpts),
 			controllercmd.PrefixOption("infrastructure-", &infraCtrlOptsUnprefixed),
-			// controllercmd.PrefixOption("worker-", &workerCtrlOptsUnprefixed),
-			// configFileOpts,
+			controllercmd.PrefixOption("worker-", &workerCtrlOptsUnprefixed),
+			configFileOpts,
 			controllerSwitches,
 			// webhookOptions,
 		)
@@ -104,11 +104,11 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				controllercmd.LogErrAndExit(err, "Error completing options")
 			}
 
-			// if workerReconcileOpts.Completed().DeployCRDs {
-			// 	if err := worker.ApplyMachineResourcesForConfig(ctx, restOpts.Completed().Config); err != nil {
-			// 		controllercmd.LogErrAndExit(err, "Error ensuring the machine CRDs")
-			// 	}
-			// }
+			if workerReconcileOpts.Completed().DeployCRDs {
+				if err := worker.ApplyMachineResourcesForConfig(ctx, restOpts.Completed().Config); err != nil {
+					controllercmd.LogErrAndExit(err, "Error ensuring the machine CRDs")
+				}
+			}
 
 			mgr, err := manager.New(restOpts.Completed().Config, mgrOpts.Completed().Options())
 			if err != nil {
@@ -123,13 +123,13 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
 			}
 
-			// configFileOpts.Completed().ApplyMachineImages(&metalworker.DefaultAddOptions.MachineImagesToAMIMapping)
+			configFileOpts.Completed().ApplyMachineImages(&metalworker.DefaultAddOptions.MachineImages)
 			// configFileOpts.Completed().ApplyETCDStorage(&metalcontrolplaneexposure.DefaultAddOptions.ETCDStorage)
 			// configFileOpts.Completed().ApplyETCDBackup(&metalcontrolplanebackup.DefaultAddOptions.ETCDBackup)
-			// controlPlaneCtrlOpts.Completed().Apply(&metalcontrolplane.Options)
+			controlPlaneCtrlOpts.Completed().Apply(&metalcontrolplane.Options)
 			infraCtrlOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.Controller)
 			infraReconcileOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation)
-			// workerCtrlOpts.Completed().Apply(&metalworker.DefaultAddOptions.Controller)
+			workerCtrlOpts.Completed().Apply(&metalworker.DefaultAddOptions.Controller)
 
 			if err := controllerSwitches.Completed().AddToManager(mgr); err != nil {
 				controllercmd.LogErrAndExit(err, "Could not add controllers to manager")

@@ -2,21 +2,9 @@
 apiVersion: metal.provider.extensions.config.gardener.cloud/v1alpha1
 kind: ControllerConfiguration
 machineImages:
-- name: coreos
-  version: 1967.5.0
-  regions:
-  - name: eu-central-1
-    ami: ami-0f46c2ed46d8157aa
-  - name: eu-west-1
-    ami: ami-0628e483315b5d17e
-  - name: us-east-1
-    ami: ami-0c6731558e5ca73f6
-  - name: us-east-2
-    ami: ami-05df30c25dffa0eaf
-  - name: ap-southeast-1
-    ami: ami-07739b17529e8c1d0
-  - name: ap-southeast-2
-    ami: ami-02d7d488d701a460e
+- name: metal
+  version: ubuntu-19.04
+  imageID: ubuntu-19.04
 etcd:
   storage:
     className: gardener.cloud-fast

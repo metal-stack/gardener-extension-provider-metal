@@ -47,14 +47,14 @@ type delegateFactory struct {
 	scheme  *runtime.Scheme
 	decoder runtime.Decoder
 
-	machineImageToAMIMapping []config.MachineImage
+	machineImages []config.MachineImage
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled WorkerPoolConfigs.
-func NewActuator(machineImageToAMIMapping []config.MachineImage) worker.Actuator {
+func NewActuator(machineImages []config.MachineImage) worker.Actuator {
 	delegateFactory := &delegateFactory{
 		logger:                   log.Log.WithName("worker-actuator"),
-		machineImageToAMIMapping: machineImageToAMIMapping,
+		machineImages: machineImages,
 	}
 	return genericactuator.NewActuator(
 		log.Log.WithName("metal-worker-actuator"),
@@ -102,7 +102,7 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 		d.client,
 		d.decoder,
 
-		d.machineImageToAMIMapping,
+		d.machineImages,
 		seedChartApplier,
 		serverVersion.GitVersion,
 
@@ -115,7 +115,7 @@ type workerDelegate struct {
 	client  client.Client
 	decoder runtime.Decoder
 
-	machineImageToAMIMapping []config.MachineImage
+	machineImages []config.MachineImage
 	seedChartApplier         gardener.ChartApplier
 	serverVersion            string
 
@@ -131,7 +131,7 @@ func NewWorkerDelegate(
 	client client.Client,
 	decoder runtime.Decoder,
 
-	machineImageToAMIMapping []config.MachineImage,
+	machineImages []config.MachineImage,
 	seedChartApplier gardener.ChartApplier,
 	serverVersion string,
 
@@ -142,7 +142,7 @@ func NewWorkerDelegate(
 		client:  client,
 		decoder: decoder,
 
-		machineImageToAMIMapping: machineImageToAMIMapping,
+		machineImages: machineImages,
 		seedChartApplier:         seedChartApplier,
 		serverVersion:            serverVersion,
 

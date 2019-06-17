@@ -18,7 +18,7 @@ import (
 	"context"
 	"path/filepath"
 
-	apisaws "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
@@ -85,21 +85,10 @@ var controlPlaneSecrets = &secrets.Secrets{
 	},
 }
 
-var configChart = &chart.Chart{
-	Name: "cloud-provider-config",
-	Path: filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
-	Objects: []*chart.Object{
-		{
-			Type: &corev1.ConfigMap{},
-			Name: metal.CloudProviderConfigName,
-		},
-	},
-}
-
 var ccmChart = &chart.Chart{
 	Name:   "cloud-controller-manager",
 	Path:   filepath.Join(metal.InternalChartsPath, "cloud-controller-manager"),
-	Images: []string{metal.HyperkubeImageName},
+	Images: []string{metal.CCMImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
@@ -140,14 +129,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
-	// Decode infrastructureProviderStatus
-	infraStatus := &apisaws.InfrastructureStatus{}
-	if _, _, err := vp.decoder.Decode(cp.Spec.InfrastructureProviderStatus.Raw, nil, infraStatus); err != nil {
-		return nil, errors.Wrapf(err, "could not decode infrastructureProviderStatus of controlplane '%s'", util.ObjectName(cp))
-	}
-
-	// Get config chart values
-	return getConfigChartValues(infraStatus, cp)
+	return nil, nil
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
@@ -158,7 +140,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	checksums map[string]string,
 ) (map[string]interface{}, error) {
 	// Decode providerConfig
-	cpConfig := &apisaws.ControlPlaneConfig{}
+	cpConfig := &apismetal.ControlPlaneConfig{}
 	if _, _, err := vp.decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
 		return nil, errors.Wrapf(err, "could not decode providerConfig of controlplane '%s'", util.ObjectName(cp))
 	}
@@ -176,29 +158,9 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	return nil, nil
 }
 
-// getConfigChartValues collects and returns the configuration chart values.
-func getConfigChartValues(
-	infraStatus *apisaws.InfrastructureStatus,
-	cp *extensionsv1alpha1.ControlPlane,
-) (map[string]interface{}, error) {
-	// Determine subnet ID and zone
-	subnetID, zone, err := getSubnetIDAndZone(infraStatus)
-	if err != nil {
-		return nil, errors.Wrapf(err, "could not determine subnet ID or zone from infrastructureProviderStatus of controlplane '%s'", util.ObjectName(cp))
-	}
-
-	// Collect config chart values
-	return map[string]interface{}{
-		"vpcID":       infraStatus.VPC.ID,
-		"subnetID":    subnetID,
-		"clusterName": cp.Namespace,
-		"zone":        zone,
-	}, nil
-}
-
 // getCCMChartValues collects and returns the CCM chart values.
 func getCCMChartValues(
-	cpConfig *apisaws.ControlPlaneConfig,
+	cpConfig *apismetal.ControlPlaneConfig,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 	checksums map[string]string,
@@ -214,7 +176,6 @@ func getCCMChartValues(
 			// TODO Use constant from github.com/gardener/gardener/pkg/apis/core/v1alpha1 when available
 			// See https://github.com/gardener/gardener/pull/930
 			"checksum/secret-cloudprovider":            checksums[common.CloudProviderSecretName],
-			"checksum/configmap-cloud-provider-config": checksums[metal.CloudProviderConfigName],
 		},
 	}
 
@@ -223,16 +184,4 @@ func getCCMChartValues(
 	}
 
 	return values, nil
-}
-
-// getSubnetIDAndZone determines the subnet ID and zone from the given infrastructure status by looking for the first
-// subnet with purpose "public".
-// TODO: Move to pkg/apis/metal/v1alpha1/helper once https://github.com/gardener/gardener-extensions/pull/71 is merged.
-func getSubnetIDAndZone(infraStatus *apisaws.InfrastructureStatus) (string, string, error) {
-	for _, subnet := range infraStatus.VPC.Subnets {
-		if subnet.Purpose == apisaws.PurposePublic {
-			return subnet.ID, subnet.Zone, nil
-		}
-	}
-	return "", "", errors.Errorf("subnet with purpose 'public' not found")
 }

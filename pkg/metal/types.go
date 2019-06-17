@@ -25,9 +25,11 @@ const (
 	// MachineControllerManagerImageName is the name of the MachineControllerManager image.
 	MachineControllerManagerImageName = "machine-controller-manager"
 	// HyperkubeImageName is the name of the hyperkube image.
-	HyperkubeImageName = "hyperkube"
+	CCMImageName = "metalccm"
 	// ETCDBackupRestoreImageName is the name of the etcd backup and restore image.
 	ETCDBackupRestoreImageName = "etcd-backup-restore"
+	// AccessKeyID is a constant for the key in a cloud provider secret and backup secret that holds the AWS access key id.
+	MetalAPIURL = "metalAPIURL"
 	// AccessKeyID is a constant for the key in a cloud provider secret and backup secret that holds the AWS access key id.
 	MetalAPIKey = "metalAPIKey"
 	// SecretAccessKey is a constant for the key in a cloud provider secret and backup secret that holds the AWS secret access key.
@@ -56,6 +58,7 @@ var (
 
 // Credentials stores AWS credentials.
 type Credentials struct {
+	MetalAPIURL  []byte
 	MetalAPIKey  []byte
 	MetalAPIHMac []byte
 }

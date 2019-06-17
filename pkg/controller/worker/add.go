@@ -34,8 +34,8 @@ var (
 type AddOptions struct {
 	// Controller are the controller.Options.
 	Controller controller.Options
-	// MachineImagesToAMIMapping is the default mapping from machine images to AMIs.
-	MachineImagesToAMIMapping []config.MachineImage
+	// MachineImages is the default mapping from machine images to AMIs.
+	MachineImages []config.MachineImage
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
@@ -50,7 +50,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	}
 
 	return worker.Add(mgr, worker.AddArgs{
-		Actuator:          NewActuator(opts.MachineImagesToAMIMapping),
+		Actuator:          NewActuator(opts.MachineImages),
 		ControllerOptions: opts.Controller,
 		Predicates:        worker.DefaultPredicates(mgr.GetClient(), metal.Type),
 	})

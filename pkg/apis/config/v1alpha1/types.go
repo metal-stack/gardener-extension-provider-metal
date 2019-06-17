@@ -38,17 +38,10 @@ type MachineImage struct {
 	Name string `json:"name"`
 	// Version is the logical version of the machine image.
 	Version string `json:"version"`
-	// Regions is a mapping to the correct AMI for the machine image in the supported regions.
-	Regions []RegionAMIMapping `json:"regions"`
+	// ImageID is a mapping to the correct image id for the machine image version.
+	ImageID string `json:"imageID"`
 }
 
-// RegionAMIMapping is a mapping to the correct AMI for the machine image in the given region.
-type RegionAMIMapping struct {
-	// Name is the name of the region.
-	Name string `json:"name"`
-	// AMI is the AMI for the machine image.
-	AMI string `json:"ami"`
-}
 
 // ETCD is an etcd configuration.
 type ETCD struct {

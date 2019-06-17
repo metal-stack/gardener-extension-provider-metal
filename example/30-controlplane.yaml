@@ -6,8 +6,10 @@ metadata:
   namespace: shoot--foo--bar
 type: Opaque
 data:
-# accessKeyID: base64(access-key-id)
-# secretAccessKey: base64(secret-access-key)
+  metalAPIKey: abc
+  metalAPIHMac: cdf
+  metalAPIURL: ghj
+
 ---
 apiVersion: extensions.gardener.cloud/v1alpha1
 kind: Cluster
@@ -43,7 +45,7 @@ metadata:
   namespace: shoot--foo--bar
 spec:
   type: metal
-  region: eu-west-1
+  region: nbg
   secretRef:
     name: cloudprovider
     namespace: shoot--foo--bar
@@ -56,9 +58,3 @@ spec:
   infrastructureProviderStatus:
     apiVersion: metal.provider.extensions.gardener.cloud/v1alpha1
     kind: InfrastructureStatus
-    vpc:
-      id: vpc-1234
-      subnets:
-      - id: subnet-acbd1234
-        purpose: public
-        zone: eu-west-1a

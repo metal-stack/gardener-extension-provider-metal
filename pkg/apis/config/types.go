@@ -39,16 +39,8 @@ type MachineImage struct {
 	Name string
 	// Version is the logical version of the machine image.
 	Version string
-	// Regions is a mapping to the correct AMI for the machine image in the supported regions.
-	Regions []RegionAMIMapping
-}
-
-// RegionAMIMapping is a mapping to the correct AMI for the machine image in the given region.
-type RegionAMIMapping struct {
-	// Name is the name of the region.
-	Name string
-	// AMI is the AMI for the machine image.
-	AMI string
+	// ImageID is a mapping to the correct image id for the machine image version.
+	ImageID string
 }
 
 // ETCD is an etcd configuration.
