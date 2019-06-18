@@ -15,7 +15,6 @@
 package v1alpha1
 
 import (
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,7 +23,14 @@ import (
 // InfrastructureConfig infrastructure configuration resource
 type InfrastructureConfig struct {
 	metav1.TypeMeta `json:",inline"`
+	Firewall        Firewall `json:"firewall"`
+}
 
+type Firewall struct {
+	Size      string   `json:"size"`
+	Image     string   `json:"image"`
+	Networks  []string `json:"networks"`
+	Partition string   `json:"partition"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -32,5 +38,4 @@ type InfrastructureConfig struct {
 // InfrastructureStatus contains information about created infrastructure resources.
 type InfrastructureStatus struct {
 	metav1.TypeMeta `json:",inline"`
-
 }

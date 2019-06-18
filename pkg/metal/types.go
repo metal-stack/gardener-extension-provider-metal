@@ -28,12 +28,14 @@ const (
 	CCMImageName = "metalccm"
 	// ETCDBackupRestoreImageName is the name of the etcd backup and restore image.
 	ETCDBackupRestoreImageName = "etcd-backup-restore"
-	// AccessKeyID is a constant for the key in a cloud provider secret and backup secret that holds the AWS access key id.
-	MetalAPIURL = "metalAPIURL"
-	// AccessKeyID is a constant for the key in a cloud provider secret and backup secret that holds the AWS access key id.
-	MetalAPIKey = "metalAPIKey"
-	// SecretAccessKey is a constant for the key in a cloud provider secret and backup secret that holds the AWS secret access key.
-	MetalAPIHMac = "metalAPIHMac"
+	// TenantID for creation of machines,...
+	TenantID = "tenant"
+	// APIURL is a constant for the url of metal-api.
+	APIURL = "metalAPIURL"
+	// APIKey is a constant for the key in a cloud provider secret.
+	APIKey = "metalAPIKey"
+	// APIHMac is a constant for the key in a cloud provider secret.
+	APIHMac = "metalAPIHMac"
 	// Region is a constant for the key in a backup secret that holds the AWS region.
 	Region = "region"
 	// BucketName is a constant for the key in a backup secret that holds the bucket name.

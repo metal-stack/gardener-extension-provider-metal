@@ -19,10 +19,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	confighelper "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config/helper"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	"github.com/gardener/gardener-extensions/pkg/util"
+	confighelper "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config/helper"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 
@@ -48,7 +48,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 	}
 	return w.seedChartApplier.ApplyChart(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", map[string]interface{}{"machineClasses": w.machineClasses}, nil)
 }
- 
+
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.
 func (w *workerDelegate) GenerateMachineDeployments(ctx context.Context) (worker.MachineDeployments, error) {
 	if w.machineDeployments == nil {
@@ -69,10 +69,10 @@ func (w *workerDelegate) generateMachineClassSecretData(ctx context.Context) (ma
 	if err != nil {
 		return nil, err
 	}
- 
+
 	return map[string][]byte{
-		machinev1alpha1.MetalAPIURL:     credentials.MetalAPIURL,
-		machinev1alpha1.MetalAPIKey: credentials.MetalAPIKey,
+		machinev1alpha1.MetalAPIURL:  credentials.MetalAPIURL,
+		machinev1alpha1.MetalAPIKey:  credentials.MetalAPIKey,
 		machinev1alpha1.MetalAPIHMac: credentials.MetalAPIHMac,
 	}, nil
 }
@@ -103,11 +103,11 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		for zoneIndex, zone := range pool.Zones {
 			machineClassSpec := map[string]interface{}{
-				"partition":          zone,
-				"size":        pool.MachineType,
-				"project":     w.worker.Namespace, 
-				"tenant":      "devops", // FIXME: This should actually come from the gardener project definition
-				"image": imageID,
+				"partition": zone,
+				"size":      pool.MachineType,
+				"project":   w.worker.Namespace,
+				"tenant":    "devops", // FIXME: This should actually come from the gardener project definition
+				"image":     imageID,
 				"tags": []string{
 					fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace),
 					fmt.Sprintf("kubernetes.io/role/node"),
@@ -137,9 +137,9 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			})
 
 			machineClassSpec["name"] = className
-			machineClassSpec["secret"].(map[string]interface{})[metal.MetalAPIKey] = string(machineClassSecretData[machinev1alpha1.MetalAPIKey])
-			machineClassSpec["secret"].(map[string]interface{})[metal.MetalAPIHMac] = string(machineClassSecretData[machinev1alpha1.MetalAPIHMac])
-			machineClassSpec["secret"].(map[string]interface{})[metal.MetalAPIURL] = string(machineClassSecretData[machinev1alpha1.MetalAPIURL])
+			machineClassSpec["secret"].(map[string]interface{})[metal.APIKey] = string(machineClassSecretData[machinev1alpha1.MetalAPIKey])
+			machineClassSpec["secret"].(map[string]interface{})[metal.APIHMac] = string(machineClassSecretData[machinev1alpha1.MetalAPIHMac])
+			machineClassSpec["secret"].(map[string]interface{})[metal.APIURL] = string(machineClassSecretData[machinev1alpha1.MetalAPIURL])
 
 			machineClasses = append(machineClasses, machineClassSpec)
 		}

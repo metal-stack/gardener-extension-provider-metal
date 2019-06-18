@@ -15,7 +15,6 @@
 package metal
 
 import (
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,8 +23,19 @@ import (
 // InfrastructureConfig infrastructure configuration resource
 type InfrastructureConfig struct {
 	metav1.TypeMeta
+	Firewall Firewall
+}
 
-	// TODO: Firewalls
+type Firewall struct {
+	Size      string
+	Image     string
+	Networks  []string
+	Partition string
+}
+
+type FirewallStatus struct {
+	Succeeded bool
+	MachineID string
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -33,4 +43,5 @@ type InfrastructureConfig struct {
 // InfrastructureStatus contains information about created infrastructure resources.
 type InfrastructureStatus struct {
 	metav1.TypeMeta
+	Firewall FirewallStatus
 }
