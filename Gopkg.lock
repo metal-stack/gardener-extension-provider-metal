@@ -77,6 +77,14 @@
   version = "1.0.0"
 
 [[projects]]
+  digest = "1:5a23cd3a5496a0b2da7e3b348d14e77b11a210738c398200d7d6f04ea8cf3bd8"
+  name = "github.com/asaskevich/govalidator"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "ccb8e960c48f04d6935e72476ae4a51028f9e22f"
+  version = "v9"
+
+[[projects]]
   digest = "1:707ebe952a8b3d00b343c01536c79c73771d100f63ec6babeaed5c79e2b8a8dd"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
@@ -120,6 +128,14 @@
   pruneopts = "NUT"
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
+
+[[projects]]
+  digest = "1:7a6852b35eb5bbc184561443762d225116ae630c26a7c4d90546619f1e7d2ad2"
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   digest = "1:4ddc17aeaa82cb18c5f0a25d7c253a10682f518f4b2558a82869506eec223d76"
@@ -252,6 +268,17 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:ce0cdcf4a121add67d3c6f7cc08e6233275d0f417852f025b790d35da88fab10"
+  name = "github.com/globalsign/mgo"
+  packages = [
+    "bson",
+    "internal/json"
+  ]
+  pruneopts = "NUT"
+  revision = "eeefdecb41b842af6dc652aaea4026e8403e62df"
+
+[[projects]]
   digest = "1:53becd66889185091b58ea3fc49294996f2179fb05a89702f4de7d15e581b509"
   name = "github.com/go-logr/logr"
   packages = ["."]
@@ -266,6 +293,25 @@
   pruneopts = "NUT"
   revision = "03f06a783fbb7dfaf3f629c7825480e43a7105e6"
   version = "v0.1.1"
+
+[[projects]]
+  digest = "1:e101aa2e25fac7e82ba4d2f66807eedd4bcf11abc5afcb4a4629a88f9a652b84"
+  name = "github.com/go-openapi/analysis"
+  packages = [
+    ".",
+    "internal"
+  ]
+  pruneopts = "NUT"
+  revision = "147e766af12c74c10c633436007317dbcd9abb0b"
+  version = "v0.19.2"
+
+[[projects]]
+  digest = "1:561157070be37514e296bbf1144e5e3130573483e253443bf378917475f55836"
+  name = "github.com/go-openapi/errors"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "0b2a0a1f89aa2eec2d13e03cd80ab0fdaf01f8ce"
+  version = "v0.19.2"
 
 [[projects]]
   digest = "1:260f7ebefc63024c8dfe2c9f1a2935a89fa4213637a1f522f592f80c001cc441"
@@ -284,6 +330,31 @@
   version = "v0.19.2"
 
 [[projects]]
+  digest = "1:c3cb0571346173abe3b329baf50e5ca05d2d1640cfe2817c65ed377e44c34afc"
+  name = "github.com/go-openapi/loads"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "8548893a17237be4a5b2f74773f23002f4179bbe"
+  version = "v0.19.2"
+
+[[projects]]
+  digest = "1:f5721118d4b820301fc735f0a0d73b673bbf9cc16b5f6fc362f5a94d5741f28f"
+  name = "github.com/go-openapi/runtime"
+  packages = [
+    ".",
+    "client",
+    "logger",
+    "middleware",
+    "middleware/denco",
+    "middleware/header",
+    "middleware/untyped",
+    "security"
+  ]
+  pruneopts = "NUT"
+  revision = "1c4afa5263ac1b091911b4f2440b6ae406fc31e1"
+  version = "v0.19.2"
+
+[[projects]]
   digest = "1:f04cb7797917efbe9d9efd509a311f28930a9ee7ef1e047d01808d64ded53554"
   name = "github.com/go-openapi/spec"
   packages = ["."]
@@ -292,11 +363,27 @@
   version = "v0.19.2"
 
 [[projects]]
+  digest = "1:60aff2b170a49776659202b25183974d06afea5641bf92c2c8525bbe67ffde6a"
+  name = "github.com/go-openapi/strfmt"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "29177d4b5db488583bb97ebc05d3842ebeda91a8"
+  version = "v0.19.0"
+
+[[projects]]
   digest = "1:10332cabbb0525ad9384874b4c0e23501540b7f469ab4177f47f227d46ad2dca"
   name = "github.com/go-openapi/swag"
   packages = ["."]
   pruneopts = "NUT"
   revision = "7e8dd5ceab83c86d17bc967d09e195414fe2b47e"
+  version = "v0.19.2"
+
+[[projects]]
+  digest = "1:9a32276054d546a6000ef4fe0465ee177012674e387cdf47c2ec8b7d6c4713cf"
+  name = "github.com/go-openapi/validate"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "6405b9095e4c96aabb45856da08a9323d50d9336"
   version = "v0.19.2"
 
 [[projects]]
@@ -534,6 +621,19 @@
   version = "v1.0.2"
 
 [[projects]]
+  digest = "1:aea1c53d4757225e70d19ddd87e7843a25897b3c4f3901a2ab07e04586a5b76a"
+  name = "github.com/lestrrat-go/jwx"
+  packages = [
+    "internal/base64",
+    "internal/option",
+    "jwa",
+    "jwk"
+  ]
+  pruneopts = "NUT"
+  revision = "5d60d87d07ddea9874404944870bec81aabcf574"
+  version = "v0.9.0"
+
+[[projects]]
   branch = "master"
   digest = "1:927762c6729b4e72957ba3310e485ed09cf8451c5a637a52fd016a9fe09e7936"
   name = "github.com/mailru/easyjson"
@@ -570,6 +670,33 @@
   version = "v1.0.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:13c6e09561b08d6acb2792db21d42e81542318eacc40c16fac38167e02ce59c2"
+  name = "github.com/metal-pod/metal-go"
+  packages = [
+    ".",
+    "api/client/firewall",
+    "api/client/image",
+    "api/client/ip",
+    "api/client/machine",
+    "api/client/network",
+    "api/client/partition",
+    "api/client/size",
+    "api/client/switch_operations",
+    "api/models"
+  ]
+  pruneopts = "NUT"
+  revision = "8304ab50346ba989fcc7691210edde59402e9fd7"
+
+[[projects]]
+  branch = "master"
+  digest = "1:881b216e88614284cda29875e3a99da6f4b395af1039f13c9c7724551a4113c4"
+  name = "github.com/metal-pod/security"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "319d1b2eca89cd6be42612155055d32decdab8b5"
+
+[[projects]]
   digest = "1:b8996d3892dda4382a73abca39fc42ee841adb0531cfacc7278f18cff2b2b902"
   name = "github.com/miekg/dns"
   packages = ["."]
@@ -584,6 +711,14 @@
   pruneopts = "NUT"
   revision = "9e67c67572bc5dd02aef930e2b0ae3c02a4b5a5c"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:a45ae66dea4c899d79fceb116accfa1892105c251f0dcd9a217ddc276b42ec68"
+  name = "github.com/mitchellh/mapstructure"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "3536a929edddb9a5b34bd6861dc4a9647cb459fe"
+  version = "v1.1.2"
 
 [[projects]]
   digest = "1:2f42fa12d6911c7b7659738758631bec870b7e9b4c6be5444f963cdcfccc191f"
@@ -1606,6 +1741,7 @@
     "github.com/gardener/gardener-extensions/pkg/controller/cmd",
     "github.com/gardener/gardener-extensions/pkg/controller/controlplane",
     "github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator",
+    "github.com/gardener/gardener-extensions/pkg/controller/error",
     "github.com/gardener/gardener-extensions/pkg/controller/infrastructure",
     "github.com/gardener/gardener-extensions/pkg/controller/worker",
     "github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator",
@@ -1631,6 +1767,9 @@
     "github.com/go-logr/logr",
     "github.com/gobuffalo/packr/v2",
     "github.com/golang/mock/gomock",
+    "github.com/google/uuid",
+    "github.com/metal-pod/metal-go",
+    "github.com/metal-pod/metal-go/api/client/firewall",
     "github.com/onsi/ginkgo",
     "github.com/onsi/ginkgo/extensions/table",
     "github.com/onsi/gomega",
@@ -1654,6 +1793,7 @@
     "k8s.io/apiserver/pkg/authentication/user",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/rest",
+    "k8s.io/client-go/util/retry",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/conversion-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",

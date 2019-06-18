@@ -3,13 +3,15 @@ package infrastructure
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	metalapi "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+	metalapi "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+
 	metalgo "github.com/metal-pod/metal-go"
+	metalfirewall "github.com/metal-pod/metal-go/api/client/firewall"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	controllererrors "github.com/gardener/gardener-extensions/pkg/controller/error"
@@ -24,7 +26,6 @@ import (
 )
 
 func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
-
 	infrastructureConfig := &metalapi.InfrastructureConfig{}
 	if _, _, err := a.decoder.Decode(infrastructure.Spec.ProviderConfig.Raw, nil, infrastructureConfig); err != nil {
 		return fmt.Errorf("could not decode provider config: %+v", err)
@@ -45,9 +46,47 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return nil
 	}
 
-	if firewallStatus.MachineID != "" {
-		// determine if succeeded
+	token := strings.TrimSpace(string(providerSecret.Data[metal.APIKey]))
+	hmac := strings.TrimSpace(string(providerSecret.Data[metal.APIHMac]))
 
+	u, ok := providerSecret.Data[metal.APIURL]
+	if !ok {
+		return fmt.Errorf("missing %s in secret", metal.APIURL)
+	}
+	url := strings.TrimSpace(string(u))
+
+	svc, err := metalgo.NewDriver(url, token, hmac)
+	if err != nil {
+		return err
+	}
+
+	if firewallStatus.MachineID != "" {
+		// firewall was already created
+
+		machineID := decodeMachineID(firewallStatus.MachineID)
+
+		resp, err := svc.FirewallGet(machineID)
+		if err != nil {
+			switch e := err.(type) {
+			case *metalfirewall.FindFirewallDefault:
+				if e.Code() >= 500 {
+					return &controllererrors.RequeueAfterError{
+						Cause:        e,
+						RequeueAfter: 30 * time.Second,
+					}
+				}
+			default:
+				return e
+			}
+		}
+
+		allocation := resp.Firewall.Allocation
+		if allocation == nil {
+			return fmt.Errorf("firewall %q was created but has no allocation", machineID)
+		}
+
+		firewallStatus.Succeeded = *resp.Firewall.Allocation.Succeeded
+		return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
 	}
 
 	uuid, err := uuid.NewUUID()
@@ -68,22 +107,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 			Partition:   infrastructureConfig.Firewall.Partition,
 			Image:       infrastructureConfig.Firewall.Image,
 		},
-
 		NetworkIDs: infrastructureConfig.Firewall.Networks,
-	}
-
-	token := strings.TrimSpace(string(providerSecret.Data[metal.APIKey]))
-	hmac := strings.TrimSpace(string(providerSecret.Data[metal.APIHMac]))
-
-	u, ok := providerSecret.Data[metal.APIURL]
-	if !ok {
-		return fmt.Errorf("missing %s in secret", metal.APIURL)
-	}
-	url := strings.TrimSpace(string(u))
-
-	svc, err := metalgo.NewDriver(url, token, hmac)
-	if err != nil {
-		return err
 	}
 
 	fcr, err := svc.FirewallCreate(createRequest)
@@ -95,16 +119,20 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		}
 	}
 
-	machineName := *fcr.Firewall.Allocation.Name
-	machineId := encodeMachineID(*fcr.Firewall.Partition.ID, *fcr.Firewall.ID)
+	machineID := encodeMachineID(*fcr.Firewall.Partition.ID, *fcr.Firewall.ID)
+
+	allocation := fcr.Firewall.Allocation
+	if allocation == nil {
+		return fmt.Errorf("firewall %q was created but has no allocation", machineID)
+	}
+
+	firewallStatus.MachineID = machineID
+	firewallStatus.Succeeded = *allocation.Succeeded
 
 	return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
 }
 
 func (a *actuator) updateProviderStatus(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, status metalapi.FirewallStatus) error {
-
-	// FIXME compute status
-
 	return extensionscontroller.TryUpdateStatus(ctx, retry.DefaultBackoff, a.client, infrastructure, func() error {
 		infrastructure.Status.ProviderStatus = &runtime.RawExtension{
 			Object: &metalapi.InfrastructureStatus{

@@ -66,10 +66,9 @@ func (a *actuator) InjectConfig(config *rest.Config) error {
 }
 
 func (a *actuator) Reconcile(ctx context.Context, config *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
-
-	return nil
+	return a.reconcile(ctx, config, cluster)
 }
 
 func (a *actuator) Delete(ctx context.Context, config *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
-	return nil
+	return a.delete(ctx, config, cluster)
 }
