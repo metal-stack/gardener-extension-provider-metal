@@ -33,15 +33,15 @@ type Firewall struct {
 	Partition string
 }
 
-type FirewallStatus struct {
-	Succeeded bool
-	MachineID string
-}
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // InfrastructureStatus contains information about created infrastructure resources.
 type InfrastructureStatus struct {
 	metav1.TypeMeta
 	Firewall FirewallStatus
+}
+
+type FirewallStatus struct {
+	Succeeded bool
+	MachineID string
 }
