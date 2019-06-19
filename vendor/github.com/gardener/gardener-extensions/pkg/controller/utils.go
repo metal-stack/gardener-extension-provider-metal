@@ -17,10 +17,11 @@ package controller
 import (
 	"context"
 	"fmt"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	corev1 "k8s.io/api/core/v1"
 	"reflect"
 	"time"
+
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	corev1 "k8s.io/api/core/v1"
 
 	controllererror "github.com/gardener/gardener-extensions/pkg/controller/error"
 	"github.com/gardener/gardener-extensions/pkg/util"
@@ -173,10 +174,12 @@ func DeleteFinalizer(ctx context.Context, client client.Client, finalizerName st
 	return client.Update(ctx, obj)
 }
 
+// SecretReferenceToKey returns the key of the given SecretReference.
 func SecretReferenceToKey(ref *corev1.SecretReference) client.ObjectKey {
 	return kutil.Key(ref.Namespace, ref.Name)
 }
 
+// GetSecretByReference returns the Secret object matching the given SecretReference.
 func GetSecretByReference(ctx context.Context, c client.Client, ref *corev1.SecretReference) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	if err := c.Get(ctx, SecretReferenceToKey(ref), secret); err != nil {

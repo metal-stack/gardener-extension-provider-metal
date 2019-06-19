@@ -25,7 +25,7 @@ import (
 // Actuator acts upon ControlPlane resources.
 type Actuator interface {
 	// Reconcile reconciles the ControlPlane.
-	Reconcile(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) error
+	Reconcile(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (bool, error)
 	// Delete deletes the ControlPlane.
 	Delete(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) error
 }

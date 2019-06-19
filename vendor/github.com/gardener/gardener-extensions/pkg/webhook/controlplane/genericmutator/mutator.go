@@ -17,6 +17,7 @@ package genericmutator
 import (
 	"context"
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
+	"github.com/gardener/gardener-extensions/pkg/util"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 
 	"github.com/coreos/go-systemd/unit"
@@ -51,6 +52,10 @@ type Ensurer interface {
 	EnsureKubeletConfiguration(context.Context, *kubeletconfigv1beta1.KubeletConfiguration) error
 	// EnsureKubernetesGeneralConfiguration ensures that the kubernetes general configuration conforms to the provider requirements.
 	EnsureKubernetesGeneralConfiguration(context.Context, *string) error
+	//ShouldProvisionKubeletCloudProviderConfig returns if the cloudprovider.config file should be added to the kubelet configuration.
+	ShouldProvisionKubeletCloudProviderConfig() bool
+	//EnsureKubeletCloudProviderConfig ensures that the cloudprovider.config file content conforms to the provider requirements.
+	EnsureKubeletCloudProviderConfig(context.Context, *string, string) error
 }
 
 // NewMutator creates a new controlplane mutator.
@@ -139,6 +144,13 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, osc *extensio
 		}
 	}
 
+	// Check if cloudprovider.conf needs to be ensured
+	if m.ensurer.ShouldProvisionKubeletCloudProviderConfig() {
+		if err := m.ensureKubeletCloudProviderConfig(ctx, osc); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -189,6 +201,43 @@ func (m *mutator) ensureKubeletConfigFileContent(ctx context.Context, fci *exten
 func (m *mutator) ensureKubernetesGeneralConfigFileContent(ctx context.Context, fci *extensionsv1alpha1.FileContentInline) error {
 	if err := m.ensurer.EnsureKubernetesGeneralConfiguration(ctx, &fci.Data); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+const cloudProviderConfigPath = "/var/lib/kubelet/cloudprovider.conf"
+
+func (m *mutator) ensureKubeletCloudProviderConfig(ctx context.Context, osc *extensionsv1alpha1.OperatingSystemConfig) error {
+	// Create file if it does not exist
+	f := controlplane.FileWithPath(osc.Spec.Files, cloudProviderConfigPath)
+	if f == nil {
+		f = &extensionsv1alpha1.File{
+			Path: cloudProviderConfigPath,
+		}
+		osc.Spec.Files = append(osc.Spec.Files, *f)
+	}
+
+	// Ensure permissions and content inline encoding
+	f = controlplane.FileWithPath(osc.Spec.Files, cloudProviderConfigPath)
+	f.Permissions = util.Int32Ptr(0644)
+	f.Content = extensionsv1alpha1.FileContent{
+		Inline: &extensionsv1alpha1.FileContentInline{
+			Encoding: "b64",
+		},
+	}
+
+	// Ensure content inline data
+	data := f.Content.Inline.Data
+	err := m.ensurer.EnsureKubeletCloudProviderConfig(ctx, &data, osc.Namespace)
+	if err != nil {
+		return errors.Wrapf(err, "could not ensure kubelet cloud provider config for Operation system config with name '%s' and namespace '%s'", osc.Name, osc.Namespace)
+	}
+	f.Content.Inline.Data = data
+
+	err = m.client.Update(ctx, osc)
+	if err != nil {
+		return errors.Wrapf(err, "could not update Operation system config with name '%s' and namespace '%s'", osc.Name, osc.Namespace)
 	}
 
 	return nil

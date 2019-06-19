@@ -18,12 +18,12 @@ import (
 	"context"
 	"path/filepath"
 
-	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener-extensions/pkg/util"
+	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -138,6 +138,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 	checksums map[string]string,
+	scaledDown bool,
 ) (map[string]interface{}, error) {
 	// Decode providerConfig
 	cpConfig := &apismetal.ControlPlaneConfig{}
@@ -146,7 +147,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	}
 
 	// Get CCM chart values
-	return getCCMChartValues(cpConfig, cp, cluster, checksums)
+	return getCCMChartValues(cpConfig, cp, cluster, checksums, scaledDown)
 }
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
@@ -164,9 +165,10 @@ func getCCMChartValues(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 	checksums map[string]string,
+	scaledDown bool,
 ) (map[string]interface{}, error) {
 	values := map[string]interface{}{
-		"replicas":          extensionscontroller.GetReplicas(cluster.Shoot, 1),
+		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster.Shoot, scaledDown, 1),
 		"clusterName":       cp.Namespace,
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"podNetwork":        extensionscontroller.GetPodNetwork(cluster.Shoot),
@@ -176,6 +178,7 @@ func getCCMChartValues(
 			// TODO Use constant from github.com/gardener/gardener/pkg/apis/core/v1alpha1 when available
 			// See https://github.com/gardener/gardener/pull/930
 			"checksum/secret-cloudprovider":            checksums[common.CloudProviderSecretName],
+			"checksum/configmap-cloud-provider-config": checksums[metal.CloudProviderConfigName],
 		},
 	}
 

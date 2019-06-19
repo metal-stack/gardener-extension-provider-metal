@@ -17,6 +17,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"time"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/util"
@@ -40,6 +41,9 @@ const (
 	EventControlPlaneReconciliation string = "ControlPlaneReconciliation"
 	// EventControlPlaneDeletion an event reason to describe control plane deletion.
 	EventControlPlaneDeletion string = "ControlPlaneDeletion"
+
+	// RequeueAfter is the duration to requeue a controlplane reconciliation if indicated by the actuator.
+	RequeueAfter time.Duration = 10 * time.Second
 )
 
 type reconciler struct {
@@ -107,7 +111,8 @@ func (r *reconciler) reconcile(ctx context.Context, cp *extensionsv1alpha1.Contr
 
 	r.logger.Info("Starting the reconciliation of controlplane", "controlplane", cp.Name)
 	r.recorder.Event(cp, corev1.EventTypeNormal, EventControlPlaneReconciliation, "Reconciling the controlplane")
-	if err := r.actuator.Reconcile(ctx, cp, cluster); err != nil {
+	requeue, err := r.actuator.Reconcile(ctx, cp, cluster)
+	if err != nil {
 		msg := "Error reconciling controlplane"
 		_ = r.updateStatusError(ctx, extensionscontroller.ReconcileErrCauseOrErr(err), cp, operationType, msg)
 		r.logger.Error(err, msg, "controlplane", cp.Name)
@@ -121,6 +126,9 @@ func (r *reconciler) reconcile(ctx context.Context, cp *extensionsv1alpha1.Contr
 		return reconcile.Result{}, err
 	}
 
+	if requeue {
+		return reconcile.Result{RequeueAfter: RequeueAfter}, nil
+	}
 	return reconcile.Result{}, nil
 }
 

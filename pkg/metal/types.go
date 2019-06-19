@@ -45,6 +45,8 @@ const (
 	// SSHKeyName key for accessing SSH key name from outputs in terraform
 	SSHKeyName = "keyName"
 
+	// CloudProviderConfigName is the name of the configmap containing the cloud provider config.
+	CloudProviderConfigName = "cloud-provider-config"
 	// MachineControllerManagerName is a constant for the name of the machine-controller-manager.
 	MachineControllerManagerName = "machine-controller-manager"
 	// BackupSecretName is the name of the secret containing the credentials for storing the backups of Shoot clusters.

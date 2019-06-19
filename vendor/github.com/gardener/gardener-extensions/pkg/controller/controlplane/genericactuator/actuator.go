@@ -30,6 +30,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -43,7 +44,7 @@ type ValuesProvider interface {
 	// GetConfigChartValues returns the values for the config chart applied by this actuator.
 	GetConfigChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (map[string]interface{}, error)
 	// GetControlPlaneChartValues returns the values for the control plane chart applied by this actuator.
-	GetControlPlaneChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster, map[string]string) (map[string]interface{}, error)
+	GetControlPlaneChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster, map[string]string, bool) (map[string]interface{}, error)
 	// GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by this actuator.
 	GetControlPlaneShootChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (map[string]interface{}, error)
 }
@@ -146,44 +147,61 @@ func (a *actuator) Reconcile(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
-) error {
+) (bool, error) {
 	// Deploy secrets
 	a.logger.Info("Deploying secrets", "controlplane", util.ObjectName(cp))
 	deployedSecrets, err := a.secrets.Deploy(a.clientset, a.gardenerClientset, cp.Namespace)
 	if err != nil {
-		return errors.Wrapf(err, "could not deploy secrets for controlplane '%s'", util.ObjectName(cp))
+		return false, errors.Wrapf(err, "could not deploy secrets for controlplane '%s'", util.ObjectName(cp))
 	}
 
 	// Get config chart values
 	if a.configChart != nil {
 		values, err := a.vp.GetConfigChartValues(ctx, cp, cluster)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		// Apply config chart
 		a.logger.Info("Applying configuration chart", "controlplane", util.ObjectName(cp), "values", values)
 		if err := a.configChart.Apply(ctx, a.gardenerClientset, a.chartApplier, cp.Namespace, cluster.Shoot, nil, nil, values); err != nil {
-			return errors.Wrapf(err, "could not apply configuration chart for controlplane '%s'", util.ObjectName(cp))
+			return false, errors.Wrapf(err, "could not apply configuration chart for controlplane '%s'", util.ObjectName(cp))
 		}
 	}
 
 	// Compute all needed checksums
 	checksums, err := a.computeChecksums(ctx, deployedSecrets, cp.Namespace)
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	// If the cluster is hibernated, check if kube-apiserver has been already scaled down
+	requeue := false
+	scaledDown := false
+	if extensionscontroller.IsHibernated(cluster.Shoot) {
+		dep := &appsv1.Deployment{}
+		if err := a.client.Get(ctx, client.ObjectKey{Namespace: cp.Namespace, Name: common.KubeAPIServerDeploymentName}, dep); err != nil {
+			return false, errors.Wrapf(err, "could not get deployment '%s/%s'", cp.Namespace, common.KubeAPIServerDeploymentName)
+		}
+
+		// If kube-apiserver has not been already scaled down, requeue. Otherwise, set the scaledDown flag so the value provider could scale CCM down.
+		if dep.Spec.Replicas != nil && *dep.Spec.Replicas > 0 {
+			requeue = true
+		} else {
+			scaledDown = true
+		}
 	}
 
 	// Get control plane chart values
-	values, err := a.vp.GetControlPlaneChartValues(ctx, cp, cluster, checksums)
+	values, err := a.vp.GetControlPlaneChartValues(ctx, cp, cluster, checksums, scaledDown)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Apply control plane chart
 	a.logger.Info("Applying control plane chart", "controlplane", util.ObjectName(cp), "values", values)
 	if err := a.controlPlaneChart.Apply(ctx, a.gardenerClientset, a.chartApplier, cp.Namespace, cluster.Shoot, a.imageVector, checksums, values); err != nil {
-		return errors.Wrapf(err, "could not apply control plane chart for controlplane '%s'", util.ObjectName(cp))
+		return false, errors.Wrapf(err, "could not apply control plane chart for controlplane '%s'", util.ObjectName(cp))
 	}
 
 	// Create shoot clients
@@ -204,7 +222,7 @@ func (a *actuator) Reconcile(
 	// 	return errors.Wrapf(err, "could not apply control plane shoot chart for controlplane '%s'", util.ObjectName(cp))
 	// }
 
-	return nil
+	return requeue, nil
 }
 
 // Delete reconciles the given controlplane and cluster, deleting the additional Shoot

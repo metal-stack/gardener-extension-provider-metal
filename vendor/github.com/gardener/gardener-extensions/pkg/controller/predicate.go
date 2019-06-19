@@ -78,6 +78,78 @@ func ShootFailedPredicate(c client.Client) predicate.Predicate {
 	}
 }
 
+// CloudProfileGenerationUpdatePredicate is a predicate for generation updates of cloud profiles.
+func CloudProfileGenerationUpdatePredicate() predicate.Predicate {
+	log := PredicateLog.WithName("cloudprofile-failed")
+
+	generationChanged := func(log logr.Logger, objectNew, objectOld runtime.Object) bool {
+		newCluster, ok := objectNew.(*extensionsv1alpha1.Cluster)
+		if !ok {
+			return false
+		}
+		oldCluster, ok := objectOld.(*extensionsv1alpha1.Cluster)
+		if !ok {
+			return false
+		}
+
+		newProfile, err := CloudProfileFromCluster(newCluster)
+		if err != nil {
+			log.Info("Could not retrieve cloud profile from corresponding cluster", "error", err.Error())
+			return false
+		}
+
+		oldProfile, err := CloudProfileFromCluster(oldCluster)
+		if err != nil {
+			log.Info("Could not retrieve cloud profile from corresponding cluster", "error", err.Error())
+			return false
+		}
+
+		return !equality.Semantic.DeepEqual(oldProfile.Spec, newProfile.Spec)
+	}
+
+	return predicate.Funcs{
+		UpdateFunc: func(event event.UpdateEvent) bool {
+			return generationChanged(UpdateEventLogger(log, event), event.ObjectNew, event.ObjectOld)
+		},
+	}
+}
+
+// ShootGenerationUpdatedPredicate is a predicate for generation updates of shoots.
+func ShootGenerationUpdatedPredicate() predicate.Predicate {
+	log := PredicateLog.WithName("shoot-failed")
+
+	generationChanged := func(log logr.Logger, objectNew, objectOld runtime.Object) bool {
+		newCluster, ok := objectNew.(*extensionsv1alpha1.Cluster)
+		if !ok {
+			return false
+		}
+		oldCluster, ok := objectOld.(*extensionsv1alpha1.Cluster)
+		if !ok {
+			return false
+		}
+
+		newShoot, err := ShootFromCluster(newCluster)
+		if err != nil {
+			log.Info("Could not retrieve shoot from corresponding cluster", "error", err.Error())
+			return false
+		}
+
+		oldShoot, err := ShootFromCluster(oldCluster)
+		if err != nil {
+			log.Info("Could not retrieve shoot from corresponding cluster", "error", err.Error())
+			return false
+		}
+
+		return oldShoot.Generation != newShoot.Generation
+	}
+
+	return predicate.Funcs{
+		UpdateFunc: func(event event.UpdateEvent) bool {
+			return generationChanged(UpdateEventLogger(log, event), event.ObjectNew, event.ObjectOld)
+		},
+	}
+}
+
 var generationChangedPredicate = predicate.Funcs{
 	UpdateFunc: func(e event.UpdateEvent) bool {
 		return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()

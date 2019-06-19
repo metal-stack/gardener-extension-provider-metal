@@ -16,6 +16,7 @@ package infrastructure
 
 import (
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
+	extensionshandler "github.com/gardener/gardener-extensions/pkg/handler"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -88,7 +89,9 @@ func add(mgr manager.Manager, args AddArgs) error {
 	if err := ctrl.Watch(&source.Kind{Type: &extensionsv1alpha1.Infrastructure{}}, &handler.EnqueueRequestForObject{}, args.Predicates...); err != nil {
 		return err
 	}
-	if err := ctrl.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: SecretToInfrastructureMapper(mgr.GetClient(), args.Predicates)}); err != nil {
+	if err := ctrl.Watch(&source.Kind{Type: &corev1.Secret{}}, &extensionshandler.EnqueueRequestsFromMapFunc{
+		ToRequests: extensionshandler.SimpleMapper(SecretToInfrastructureMapper(mgr.GetClient(), args.Predicates), extensionshandler.UpdateWithNew),
+	}); err != nil {
 		return err
 	}
 

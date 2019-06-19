@@ -16,7 +16,7 @@ package worker
 
 import (
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
-
+	extensionshandler "github.com/gardener/gardener-extensions/pkg/handler"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,12 +73,19 @@ func add(mgr manager.Manager, options controller.Options, predicates []predicate
 	if err := ctrl.Watch(&source.Kind{Type: &extensionsv1alpha1.Worker{}}, &handler.EnqueueRequestForObject{}, predicates...); err != nil {
 		return err
 	}
-	if err := ctrl.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: SecretToWorkerMapper(mgr.GetClient(), predicates)}); err != nil {
+	if err := ctrl.Watch(&source.Kind{Type: &corev1.Secret{}}, &extensionshandler.EnqueueRequestsFromMapFunc{
+		ToRequests: extensionshandler.SimpleMapper(SecretToWorkerMapper(mgr.GetClient(), predicates), extensionshandler.UpdateWithNew),
+	}); err != nil {
 		return err
 	}
-	if err := ctrl.Watch(&source.Kind{Type: &extensionsv1alpha1.Cluster{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: ClusterToWorkerMapper(mgr.GetClient(), predicates)}); err != nil {
-		return err
-	}
-
-	return nil
+	return ctrl.Watch(
+		&source.Kind{Type: &extensionsv1alpha1.Cluster{}},
+		&extensionshandler.EnqueueRequestsFromMapFunc{
+			ToRequests: extensionshandler.SimpleMapper(ClusterToWorkerMapper(mgr.GetClient(), predicates), extensionshandler.UpdateWithNew),
+		},
+		extensionscontroller.OrPredicate(
+			extensionscontroller.ShootGenerationUpdatedPredicate(),
+			extensionscontroller.CloudProfileGenerationUpdatePredicate(),
+		),
+	)
 }

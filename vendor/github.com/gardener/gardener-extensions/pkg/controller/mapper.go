@@ -28,54 +28,36 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// ObjectNameToExtensionTypeMapper returns a `ToRequestsFunc` that gets the Extension resource of type certificate-service
-// in the namespace that is named after the incoming object's name.
-func ObjectNameToExtensionTypeMapper(cl client.Client, extensionType string) handler.ToRequestsFunc {
+// MapperWithinNamespace returns a `ToRequestsFunc` that maps objects within the same namespace as the given MapObject.
+func MapperWithinNamespace(cl client.Client, newObjListFunc func() runtime.Object, predicates []predicate.Predicate) handler.ToRequestsFunc {
 	return func(object handler.MapObject) []reconcile.Request {
-		geList := extensionsv1alpha1.ExtensionList{}
-		if err := cl.List(context.TODO(), client.InNamespace(object.Meta.GetName()), &geList); err != nil {
+		objList := newObjListFunc()
+		if err := cl.List(context.TODO(), client.InNamespace(object.Meta.GetNamespace()), objList); err != nil {
 			return nil
 		}
 
-		for _, ge := range geList.Items {
-			if EvalGenericPredicate(&ge, TypePredicate(extensionType)) {
-				// There is only one extension object per type.
-				return []reconcile.Request{
-					reconcile.Request{
-						NamespacedName: types.NamespacedName{
-							Name:      ge.GetName(),
-							Namespace: object.Meta.GetName(),
-						},
-					}}
-			}
-		}
-		return nil
-	}
-}
+		var requests []reconcile.Request
 
-// TypeMapperWithinNamespace returns a `ToRequestsFunc` that maps the incoming object
-// to the certificate service extension object in the same namespace.
-func TypeMapperWithinNamespace(cl client.Client, extensionType string) handler.ToRequestsFunc {
-	return func(object handler.MapObject) []reconcile.Request {
-		geList := extensionsv1alpha1.ExtensionList{}
-		if err := cl.List(context.TODO(), client.InNamespace(object.Meta.GetNamespace()), &geList); err != nil {
+		utilruntime.HandleError(meta.EachListItem(objList, func(obj runtime.Object) error {
+			accessor, err := meta.Accessor(obj)
+			if err != nil {
+				return err
+			}
+
+			if !EvalGenericPredicate(obj, predicates...) {
+				return nil
+			}
+
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: accessor.GetNamespace(),
+					Name:      accessor.GetName(),
+				},
+			})
 			return nil
-		}
+		}))
 
-		for _, ge := range geList.Items {
-			if EvalGenericPredicate(&ge, TypePredicate(extensionType)) {
-				// There is only one extension object per type.
-				return []reconcile.Request{
-					reconcile.Request{
-						NamespacedName: types.NamespacedName{
-							Name:      ge.GetName(),
-							Namespace: object.Meta.GetNamespace(),
-						},
-					}}
-			}
-		}
-
-		return nil
+		return requests
 	}
 }
 
