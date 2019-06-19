@@ -63,16 +63,16 @@ spec:
           readOnly: true
         {{- end }}
       serviceAccountName: {{ include "name" . }}
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: {{ include "labels.app.key" . }}
-                operator: In
-                values:
-                - {{ include "labels.app.value" . }}
-            topologyKey: "kubernetes.io/hostname"
+      # affinity:
+      #   podAntiAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #     - labelSelector:
+      #         matchExpressions:
+      #         - key: {{ include "labels.app.key" . }}
+      #           operator: In
+      #           values:
+      #           - {{ include "labels.app.value" . }}
+      #       topologyKey: "kubernetes.io/hostname"
       volumes:
       - name: config
         configMap:
