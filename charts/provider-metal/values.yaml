@@ -1,5 +1,5 @@
 image:
-  repository: metalpod/gardener-extension-provider-metal
+  repository: metalpod/gardener-extension-provider-metal/gardener
   tag: latest
   pullPolicy: IfNotPresent
 
