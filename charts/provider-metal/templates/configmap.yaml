@@ -8,7 +8,7 @@ metadata:
 data:
   config.yaml: |
     ---
-    apiVersion: aws.provider.extensions.config.gardener.cloud/v1alpha1
+    apiVersion: metal.provider.extensions.config.gardener.cloud/v1alpha1
     kind: ControllerConfiguration
 {{- if .Values.config.machineImages }}
     machineImages:

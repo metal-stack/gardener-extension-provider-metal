@@ -24,7 +24,7 @@ go get "github.com/gobuffalo/packr/v2/packr2@v2.1.0"
 go get "github.com/onsi/ginkgo/ginkgo@v1.8.0"
 go get "github.com/golang/mock/mockgen@v1.2.0"
 go get "github.com/golangci/golangci-lint/cmd/golangci-lint@692dacb773b703162c091c2d8c59f9cd2d6801db"
-# curl -s "https://raw.githubusercontent.com/helm/helm/v2.13.1/scripts/get" | bash -s -- --version 'v2.13.1'
+curl -s "https://raw.githubusercontent.com/helm/helm/v2.13.1/scripts/get" | bash -s -- --version 'v2.13.1'
 
 if [[ "$(uname -s)" == *"Darwin"* ]]; then
   cat <<EOM

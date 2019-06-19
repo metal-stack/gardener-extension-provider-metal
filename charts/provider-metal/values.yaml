@@ -1,5 +1,5 @@
 image:
-  repository: eu.gcr.io/gardener-project/gardener/gardener-extension-hyper
+  repository: metalpod/gardener-extension-provider-metal
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -34,17 +34,9 @@ disableWebhooks: []
 
 config:
   machineImages:
-  - name: coreos
-    version: 1967.5.0
-    regions:
-    - ami: ami-82645dfb
-      name: eu-west-1
-    - ami: ami-32042fd9
-      name: eu-central-1
-    - ami: ami-93d3b4ec
-      name: us-east-1
-    - ami: ami-e5cdf180
-      name: us-east-2
+  - name: metal
+    version: ubuntu-19.04
+    imageID: ubuntu-19.04
   etcd:
     storage:
       className: gardener.cloud-fast
@@ -54,4 +46,4 @@ config:
 
 gardener:
   seed:
-    provider: aws
+    provider: metal
