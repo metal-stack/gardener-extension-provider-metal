@@ -13,7 +13,7 @@
 # limitations under the License.
 
 REGISTRY                    := metal-pod
-IMAGE_PREFIX                := $(REGISTRY)/gardener
+IMAGE_PREFIX                := $(REGISTRY)
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 HACK_DIR                    := $(REPO_ROOT)/hack
 HOSTNAME                    := $(shell hostname)
