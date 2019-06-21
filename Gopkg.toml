@@ -9,7 +9,7 @@ required = [
 
 [[override]]
   name = "github.com/gardener/gardener-extensions"
-  revision = "53ef991d2bed623370d7f74f2e681446277ff66b"
+  revision = "227adb277fa467b9e805af798a502514ccbe75dd"
 
 [[override]]
   name = "github.com/gardener/gardener"
@@ -76,28 +76,12 @@ required = [
   version = "^0.2.2"
 
 [[constraint]]
-  name = "github.com/packethost/packngo"
-  revision = "b3b45f1b4979af3ace1cd5450768ab387b40ae5b"
-
-[[constraint]]
-  name = "gopkg.in/yaml.v2"
-  version = "2.2.2"
-
-[[constraint]]
   name = "github.com/gobuffalo/packr"
   version = "1.21.9"
 
 [[constraint]]
   name = "github.com/spf13/cobra"
   version = "0.0.3"
-
-[[constraint]]
-  name = "golang.org/x/oauth2"
-  revision = "c85d3e98c914e3a33234ad863dcbff5dbc425bb8"
-
-[[constraint]]
-  name = "google.golang.org/api"
-  version = "0.2.0"
 
 [[constraint]]
   name = "github.com/coreos/go-systemd"

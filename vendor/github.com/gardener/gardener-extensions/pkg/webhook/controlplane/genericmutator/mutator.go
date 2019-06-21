@@ -16,7 +16,9 @@ package genericmutator
 
 import (
 	"context"
+
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
+	"github.com/gardener/gardener-extensions/pkg/controller/operatingsystemconfig/oscommon/cloudinit"
 	"github.com/gardener/gardener-extensions/pkg/util"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 
@@ -52,18 +54,25 @@ type Ensurer interface {
 	EnsureKubeletConfiguration(context.Context, *kubeletconfigv1beta1.KubeletConfiguration) error
 	// EnsureKubernetesGeneralConfiguration ensures that the kubernetes general configuration conforms to the provider requirements.
 	EnsureKubernetesGeneralConfiguration(context.Context, *string) error
-	//ShouldProvisionKubeletCloudProviderConfig returns if the cloudprovider.config file should be added to the kubelet configuration.
+	// ShouldProvisionKubeletCloudProviderConfig returns true if the cloud provider config file should be added to the kubelet configuration.
 	ShouldProvisionKubeletCloudProviderConfig() bool
-	//EnsureKubeletCloudProviderConfig ensures that the cloudprovider.config file content conforms to the provider requirements.
+	// EnsureKubeletCloudProviderConfig ensures that the cloud provider config file content conforms to the provider requirements.
 	EnsureKubeletCloudProviderConfig(context.Context, *string, string) error
 }
 
 // NewMutator creates a new controlplane mutator.
-func NewMutator(ensurer Ensurer, unitSerializer controlplane.UnitSerializer, kubeletConfigCodec controlplane.KubeletConfigCodec, logger logr.Logger) controlplane.Mutator {
+func NewMutator(
+	ensurer Ensurer,
+	unitSerializer controlplane.UnitSerializer,
+	kubeletConfigCodec controlplane.KubeletConfigCodec,
+	fciCodec controlplane.FileContentInlineCodec,
+	logger logr.Logger,
+) controlplane.Mutator {
 	return &mutator{
 		ensurer:            ensurer,
 		unitSerializer:     unitSerializer,
 		kubeletConfigCodec: kubeletConfigCodec,
+		fciCodec:           fciCodec,
 		logger:             logger.WithName("mutator"),
 	}
 }
@@ -73,6 +82,7 @@ type mutator struct {
 	ensurer            Ensurer
 	unitSerializer     controlplane.UnitSerializer
 	kubeletConfigCodec controlplane.KubeletConfigCodec
+	fciCodec           controlplane.FileContentInlineCodec
 	logger             logr.Logger
 }
 
@@ -139,12 +149,12 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, osc *extensio
 
 	// Mutate 99 kubernetes general configuration file, if present
 	if f := controlplane.FileWithPath(osc.Spec.Files, "/etc/sysctl.d/99-k8s-general.conf"); f != nil && f.Content.Inline != nil {
-		if err := m.ensureKubernetesGeneralConfigFileContent(ctx, f.Content.Inline); err != nil {
+		if err := m.ensureKubernetesGeneralConfiguration(ctx, f.Content.Inline); err != nil {
 			return err
 		}
 	}
 
-	// Check if cloudprovider.conf needs to be ensured
+	// Check if cloud provider config needs to be ensured
 	if m.ensurer.ShouldProvisionKubeletCloudProviderConfig() {
 		if err := m.ensureKubeletCloudProviderConfig(ctx, osc); err != nil {
 			return err
@@ -198,10 +208,26 @@ func (m *mutator) ensureKubeletConfigFileContent(ctx context.Context, fci *exten
 	return nil
 }
 
-func (m *mutator) ensureKubernetesGeneralConfigFileContent(ctx context.Context, fci *extensionsv1alpha1.FileContentInline) error {
-	if err := m.ensurer.EnsureKubernetesGeneralConfiguration(ctx, &fci.Data); err != nil {
+func (m *mutator) ensureKubernetesGeneralConfiguration(ctx context.Context, fci *extensionsv1alpha1.FileContentInline) error {
+	var data []byte
+	var err error
+
+	// Decode kubernetes general configuration from inline content
+	if data, err = m.fciCodec.Decode(fci); err != nil {
+		return errors.Wrap(err, "could not decode kubernetes general configuration")
+	}
+
+	s := string(data)
+	if err = m.ensurer.EnsureKubernetesGeneralConfiguration(ctx, &s); err != nil {
 		return err
 	}
+
+	// Encode kubernetes general configuration into inline content
+	var newFCI *extensionsv1alpha1.FileContentInline
+	if newFCI, err = m.fciCodec.Encode([]byte(s), fci.Encoding); err != nil {
+		return errors.Wrap(err, "could not encode kubernetes general configuration")
+	}
+	*fci = *newFCI
 
 	return nil
 }
@@ -209,36 +235,27 @@ func (m *mutator) ensureKubernetesGeneralConfigFileContent(ctx context.Context, 
 const cloudProviderConfigPath = "/var/lib/kubelet/cloudprovider.conf"
 
 func (m *mutator) ensureKubeletCloudProviderConfig(ctx context.Context, osc *extensionsv1alpha1.OperatingSystemConfig) error {
-	// Create file if it does not exist
-	f := controlplane.FileWithPath(osc.Spec.Files, cloudProviderConfigPath)
-	if f == nil {
-		f = &extensionsv1alpha1.File{
-			Path: cloudProviderConfigPath,
-		}
-		osc.Spec.Files = append(osc.Spec.Files, *f)
+	var err error
+
+	// Ensure kubelet cloud provider config
+	var s string
+	if err = m.ensurer.EnsureKubeletCloudProviderConfig(ctx, &s, osc.Namespace); err != nil {
+		return err
 	}
 
-	// Ensure permissions and content inline encoding
-	f = controlplane.FileWithPath(osc.Spec.Files, cloudProviderConfigPath)
-	f.Permissions = util.Int32Ptr(0644)
-	f.Content = extensionsv1alpha1.FileContent{
-		Inline: &extensionsv1alpha1.FileContentInline{
-			Encoding: "b64",
+	// Encode cloud provider config into inline content
+	var fci *extensionsv1alpha1.FileContentInline
+	if fci, err = m.fciCodec.Encode([]byte(s), string(cloudinit.B64FileCodecID)); err != nil {
+		return errors.Wrap(err, "could not encode kubelet cloud provider config")
+	}
+
+	// Ensure the cloud provider config file is part of the OperatingSystemConfig
+	osc.Spec.Files = controlplane.EnsureFileWithPath(osc.Spec.Files, extensionsv1alpha1.File{
+		Path:        cloudProviderConfigPath,
+		Permissions: util.Int32Ptr(0644),
+		Content: extensionsv1alpha1.FileContent{
+			Inline: fci,
 		},
-	}
-
-	// Ensure content inline data
-	data := f.Content.Inline.Data
-	err := m.ensurer.EnsureKubeletCloudProviderConfig(ctx, &data, osc.Namespace)
-	if err != nil {
-		return errors.Wrapf(err, "could not ensure kubelet cloud provider config for Operation system config with name '%s' and namespace '%s'", osc.Name, osc.Namespace)
-	}
-	f.Content.Inline.Data = data
-
-	err = m.client.Update(ctx, osc)
-	if err != nil {
-		return errors.Wrapf(err, "could not update Operation system config with name '%s' and namespace '%s'", osc.Name, osc.Namespace)
-	}
-
+	})
 	return nil
 }

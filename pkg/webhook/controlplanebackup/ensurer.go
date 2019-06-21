@@ -64,10 +64,13 @@ func (e *ensurer) EnsureETCDStatefulSet(ctx context.Context, ss *appsv1.Stateful
 }
 
 func (e *ensurer) ensureContainers(ps *corev1.PodSpec, name string, cluster *extensionscontroller.Cluster) error {
+	// FIXME remove next line, is only here for debugging purpose.
+	return nil
 	c, err := e.getBackupRestoreContainer(name, cluster)
 	if err != nil {
 		return err
 	}
+
 	ps.Containers = controlplane.EnsureContainerWithName(ps.Containers, *c)
 	return nil
 }

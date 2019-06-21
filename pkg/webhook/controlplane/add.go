@@ -38,6 +38,6 @@ func AddToManager(mgr manager.Manager) (webhook.Webhook, error) {
 		Provider: metal.Type,
 		Types:    []runtime.Object{&appsv1.Deployment{}, &extensionsv1alpha1.OperatingSystemConfig{}},
 		Mutator: genericmutator.NewMutator(NewEnsurer(logger), controlplane.NewUnitSerializer(),
-			controlplane.NewKubeletConfigCodec(controlplane.NewFileContentInlineCodec()), logger),
+			controlplane.NewKubeletConfigCodec(controlplane.NewFileContentInlineCodec()), nil, logger),
 	})
 }

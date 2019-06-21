@@ -68,12 +68,12 @@ func (e *NoopEnsurer) EnsureKubernetesGeneralConfiguration(context.Context, *str
 	return nil
 }
 
-//ShouldProvisionKubeletCloudProviderConfig returns if the cloudprovider.conf file should be added to the kubelet configuration.
+// ShouldProvisionKubeletCloudProviderConfig returns if the cloud provider config file should be added to the kubelet configuration.
 func (e *NoopEnsurer) ShouldProvisionKubeletCloudProviderConfig() bool {
 	return false
 }
 
-//EnsureKubeletCloudProviderConfig ensures that the cloudprovider.conf file conforms to the provider requirements.
+// EnsureKubeletCloudProviderConfig ensures that the cloud provider config file conforms to the provider requirements.
 func (e *NoopEnsurer) EnsureKubeletCloudProviderConfig(context.Context, *string, string) error {
 	return nil
 }

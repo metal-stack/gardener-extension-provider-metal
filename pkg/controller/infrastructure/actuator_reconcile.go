@@ -31,9 +31,13 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return fmt.Errorf("could not decode provider config: %+v", err)
 	}
 
+	a.logger.Info("InfrastructureConfig", "config", infrastructureConfig)
+
 	infrastructureStatus := &metalapi.InfrastructureStatus{}
-	if _, _, err := a.decoder.Decode(infrastructure.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
-		return fmt.Errorf("could not decode infrastructure status: %+v", err)
+	if infrastructure.Status.ProviderStatus != nil {
+		if _, _, err := a.decoder.Decode(infrastructure.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
+			return fmt.Errorf("could not decode infrastructure status: %+v", err)
+		}
 	}
 
 	providerSecret := &corev1.Secret{}
@@ -109,6 +113,8 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		},
 		NetworkIDs: infrastructureConfig.Firewall.Networks,
 	}
+
+	a.logger.Info("create firewall from", "request", createRequest)
 
 	fcr, err := svc.FirewallCreate(createRequest)
 	if err != nil {

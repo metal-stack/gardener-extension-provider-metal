@@ -233,6 +233,17 @@ func EnsureUnitOption(items []*unit.UnitOption, item *unit.UnitOption) []*unit.U
 	return items
 }
 
+// EnsureFileWithPath ensures that a file with a path equal to the path of the given file exists in the given slice
+// and is equal to the given file.
+func EnsureFileWithPath(items []extensionsv1alpha1.File, item extensionsv1alpha1.File) []extensionsv1alpha1.File {
+	if i := fileWithPathIndex(items, item.Path); i < 0 {
+		items = append(items, item)
+	} else if !reflect.DeepEqual(items[i], item) {
+		items = append(append(items[:i], item), items[i+1:]...)
+	}
+	return items
+}
+
 // StringIndex returns the index of the first occurrence of the given string in the given slice, or -1 if not found.
 func StringIndex(items []string, value string) int {
 	for i, item := range items {

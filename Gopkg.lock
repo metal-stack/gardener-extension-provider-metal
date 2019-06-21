@@ -7,7 +7,7 @@
   name = "github.com/Azure/go-ansiterm"
   packages = [
     ".",
-    "winterm"
+    "winterm",
   ]
   pruneopts = "NUT"
   revision = "d6e3b3328b783f23731bc4d058875b0371ff8109"
@@ -100,7 +100,7 @@
     "gettext",
     "gettext/mo",
     "gettext/plural",
-    "gettext/po"
+    "gettext/po",
   ]
   pruneopts = "NUT"
   revision = "bf70f2a70fb1b1f36d90d671a72795984eab0fcb"
@@ -142,7 +142,7 @@
   name = "github.com/docker/distribution"
   packages = [
     "digestset",
-    "reference"
+    "reference",
   ]
   pruneopts = "NUT"
   revision = "2461543d988979529609e8cb6fca9ca190dc48da"
@@ -153,7 +153,7 @@
   name = "github.com/docker/docker"
   packages = [
     "pkg/term",
-    "pkg/term/windows"
+    "pkg/term/windows",
   ]
   pruneopts = "NUT"
   revision = "a9fbbdc8dd8794b20af358382ab780559bca589d"
@@ -164,7 +164,7 @@
   name = "github.com/docker/spdystream"
   packages = [
     ".",
-    "spdy"
+    "spdy",
   ]
   pruneopts = "NUT"
   revision = "6480d4af844c189cf5dd913db24ddd339d3a4f85"
@@ -217,13 +217,13 @@
     "pkg/utils/imagevector",
     "pkg/utils/kubernetes",
     "pkg/utils/kubernetes/health",
-    "pkg/utils/secrets"
+    "pkg/utils/secrets",
   ]
   pruneopts = "NUT"
   revision = "f718e4bd65f08a62a8fa7836dcebb8e7d2476c1e"
 
 [[projects]]
-  digest = "1:05254c3e82c0f8f37656dc9938e45356e23b0bbe2f403f2d519b406cc8a70013"
+  digest = "1:01f28e1db30751de4408784c3cd7fa2f2b516790be4032ec8658297eb2a66090"
   name = "github.com/gardener/gardener-extensions"
   packages = [
     "pkg/controller",
@@ -243,10 +243,10 @@
     "pkg/webhook/cmd",
     "pkg/webhook/controlplane",
     "pkg/webhook/controlplane/genericmutator",
-    "pkg/webhook/controlplane/test"
+    "pkg/webhook/controlplane/test",
   ]
   pruneopts = "NUT"
-  revision = "53ef991d2bed623370d7f74f2e681446277ff66b"
+  revision = "227adb277fa467b9e805af798a502514ccbe75dd"
 
 [[projects]]
   digest = "1:d97f36db679e42ff8caf914ecf98dd96fdb9befb7a64996b6c359956a468f172"
@@ -254,7 +254,7 @@
   packages = [
     "pkg/apis/machine",
     "pkg/apis/machine/v1alpha1",
-    "pkg/client/clientset/versioned/scheme"
+    "pkg/client/clientset/versioned/scheme",
   ]
   pruneopts = "NUT"
   revision = "052c7e8a36509a335e8fa830299d54de226b7999"
@@ -274,7 +274,7 @@
   name = "github.com/globalsign/mgo"
   packages = [
     "bson",
-    "internal/json"
+    "internal/json",
   ]
   pruneopts = "NUT"
   revision = "eeefdecb41b842af6dc652aaea4026e8403e62df"
@@ -300,7 +300,7 @@
   name = "github.com/go-openapi/analysis"
   packages = [
     ".",
-    "internal"
+    "internal",
   ]
   pruneopts = "NUT"
   revision = "147e766af12c74c10c633436007317dbcd9abb0b"
@@ -349,7 +349,7 @@
     "middleware/denco",
     "middleware/header",
     "middleware/untyped",
-    "security"
+    "security",
   ]
   pruneopts = "NUT"
   revision = "1c4afa5263ac1b091911b4f2440b6ae406fc31e1"
@@ -420,7 +420,7 @@
     "v2/file/resolver",
     "v2/file/resolver/encoding/hex",
     "v2/jam/parser",
-    "v2/plog"
+    "v2/plog",
   ]
   pruneopts = "NUT"
   revision = "4b81a885b1a9f39cd9b53a46e16a7fce4b6734ae"
@@ -437,7 +437,7 @@
     "syntax/ast",
     "syntax/lexer",
     "util/runes",
-    "util/strings"
+    "util/strings",
   ]
   pruneopts = "NUT"
   revision = "5ccd90ef52e1e632236f7326478d4faa74f99438"
@@ -448,7 +448,7 @@
   name = "github.com/gogo/protobuf"
   packages = [
     "proto",
-    "sortkeys"
+    "sortkeys",
   ]
   pruneopts = "NUT"
   revision = "ba06b47c162d49f2af050fb4c75bcbc86a159d5c"
@@ -478,7 +478,7 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
-    "ptypes/timestamp"
+    "ptypes/timestamp",
   ]
   pruneopts = "NUT"
   revision = "b5d812f8a3706043e23a9cd5babf2e5423744d30"
@@ -514,7 +514,7 @@
   packages = [
     "OpenAPIv2",
     "compiler",
-    "extensions"
+    "extensions",
   ]
   pruneopts = "NUT"
   revision = "e73c7ec21d36ddb0711cb36d1502d18363b5c2c9"
@@ -526,7 +526,7 @@
   name = "github.com/gregjones/httpcache"
   packages = [
     ".",
-    "diskcache"
+    "diskcache",
   ]
   pruneopts = "NUT"
   revision = "901d90724c7919163f472a9812253fb26761123d"
@@ -559,7 +559,7 @@
   name = "github.com/hashicorp/golang-lru"
   packages = [
     ".",
-    "simplelru"
+    "simplelru",
   ]
   pruneopts = "NUT"
   revision = "7087cb70de9f7a8bc0a10c375cb0d2280a8edf9c"
@@ -628,7 +628,7 @@
     "internal/base64",
     "internal/option",
     "jwa",
-    "jwk"
+    "jwk",
   ]
   pruneopts = "NUT"
   revision = "5d60d87d07ddea9874404944870bec81aabcf574"
@@ -641,7 +641,7 @@
   packages = [
     "buffer",
     "jlexer",
-    "jwriter"
+    "jwriter",
   ]
   pruneopts = "NUT"
   revision = "94de47d64c6323a57053b3dd1c97f250cee92741"
@@ -684,7 +684,7 @@
     "api/client/partition",
     "api/client/size",
     "api/client/switch_operations",
-    "api/models"
+    "api/models",
   ]
   pruneopts = "NUT"
   revision = "8304ab50346ba989fcc7691210edde59402e9fd7"
@@ -759,7 +759,7 @@
     "reporters/stenographer",
     "reporters/stenographer/support/go-colorable",
     "reporters/stenographer/support/go-isatty",
-    "types"
+    "types",
   ]
   pruneopts = "NUT"
   revision = "9eda700730cba42af70d53180f9dcce9266bc2bc"
@@ -780,7 +780,7 @@
     "matchers/support/goraph/edge",
     "matchers/support/goraph/node",
     "matchers/support/goraph/util",
-    "types"
+    "types",
   ]
   pruneopts = "NUT"
   revision = "003f63b7f4cff3fc95357005358af2de0f5fe152"
@@ -831,7 +831,7 @@
   packages = [
     "prometheus",
     "prometheus/internal",
-    "prometheus/promhttp"
+    "prometheus/promhttp",
   ]
   pruneopts = "NUT"
   revision = "2641b987480bca71fb39738eb8c8b0d577cb1d76"
@@ -851,7 +851,7 @@
   packages = [
     "expfmt",
     "internal/bitbucket.org/ww/goautoneg",
-    "model"
+    "model",
   ]
   pruneopts = "NUT"
   revision = "17f5ca1748182ddf24fc33a5a7caaaf790a52fcc"
@@ -862,7 +862,7 @@
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
-    "internal/fs"
+    "internal/fs",
   ]
   pruneopts = "NUT"
   revision = "833678b5bb319f2d20a475cb165c6cc59c2cc77c"
@@ -874,7 +874,7 @@
   packages = [
     "modfile",
     "module",
-    "semver"
+    "semver",
   ]
   pruneopts = "NUT"
   revision = "438578804ca6f31be148c27683afc419ce47c06e"
@@ -952,7 +952,7 @@
     "internal/bufferpool",
     "internal/color",
     "internal/exit",
-    "zapcore"
+    "zapcore",
   ]
   pruneopts = "NUT"
   revision = "27376062155ad36be76b0f12cf1572a221d3a48c"
@@ -972,7 +972,7 @@
     "poly1305",
     "scrypt",
     "ssh",
-    "ssh/terminal"
+    "ssh/terminal",
   ]
   pruneopts = "NUT"
   revision = "5c40567a22f818bd14a1ea7245dad9f8ef0691aa"
@@ -997,7 +997,7 @@
     "internal/timeseries",
     "ipv4",
     "ipv6",
-    "trace"
+    "trace",
   ]
   pruneopts = "NUT"
   revision = "d28f0bde5980168871434b95cfc858db9f2a7a99"
@@ -1008,7 +1008,7 @@
   name = "golang.org/x/oauth2"
   packages = [
     ".",
-    "internal"
+    "internal",
   ]
   pruneopts = "NUT"
   revision = "0f29369cfe4552d0e4bcddc57cc75f4d7e672a33"
@@ -1028,7 +1028,7 @@
   packages = [
     "cpu",
     "unix",
-    "windows"
+    "windows",
   ]
   pruneopts = "NUT"
   revision = "15dcb6c0061f497a3f66e3ea034b629c6dd4d99e"
@@ -1065,7 +1065,7 @@
     "unicode/cldr",
     "unicode/norm",
     "unicode/rangetable",
-    "width"
+    "width",
   ]
   pruneopts = "NUT"
   revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
@@ -1095,7 +1095,7 @@
     "internal/gopathwalk",
     "internal/imports",
     "internal/module",
-    "internal/semver"
+    "internal/semver",
   ]
   pruneopts = "NUT"
   revision = "5aca471b1d59ca42d39ca6419e64061391b9a6ad"
@@ -1110,7 +1110,7 @@
     "internal/log",
     "internal/remote_api",
     "internal/urlfetch",
-    "urlfetch"
+    "urlfetch",
   ]
   pruneopts = "NUT"
   revision = "b2f4a3cf3c67576a2ee09e1fe62656a5086ce880"
@@ -1159,7 +1159,7 @@
     "resolver/passthrough",
     "stats",
     "status",
-    "tap"
+    "tap",
   ]
   pruneopts = "NUT"
   revision = "501c41df7f472c740d0674ff27122f3f48c80ce7"
@@ -1180,7 +1180,7 @@
     ".",
     "cipher",
     "json",
-    "jwt"
+    "jwt",
   ]
   pruneopts = "NUT"
   revision = "730df5f748271903322feb182be83b43ebbbe27d"
@@ -1231,7 +1231,7 @@
     "settings/v1alpha1",
     "storage/v1",
     "storage/v1alpha1",
-    "storage/v1beta1"
+    "storage/v1beta1",
   ]
   pruneopts = "NUT"
   revision = "5cb15d34447165a97c76ed5a60e4e99c8a01ecfe"
@@ -1246,7 +1246,7 @@
     "pkg/client/clientset/clientset",
     "pkg/client/clientset/clientset/scheme",
     "pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
-    "pkg/features"
+    "pkg/features",
   ]
   pruneopts = "NUT"
   revision = "d002e88f6236312f0289d9d1deab106751718ff0"
@@ -1309,7 +1309,7 @@
     "pkg/watch",
     "third_party/forked/golang/json",
     "third_party/forked/golang/netutil",
-    "third_party/forked/golang/reflect"
+    "third_party/forked/golang/reflect",
   ]
   pruneopts = "NUT"
   revision = "86fb29eff6288413d76bd8506874fddd9fccdff0"
@@ -1323,7 +1323,7 @@
     "pkg/authentication/serviceaccount",
     "pkg/authentication/user",
     "pkg/features",
-    "pkg/util/feature"
+    "pkg/util/feature",
   ]
   pruneopts = "NUT"
   revision = "79427f02047f9189a75b8cdaadccaf65a126853e"
@@ -1336,7 +1336,7 @@
   packages = [
     "pkg/genericclioptions",
     "pkg/genericclioptions/printers",
-    "pkg/genericclioptions/resource"
+    "pkg/genericclioptions/resource",
   ]
   pruneopts = "NUT"
   revision = "11047e25a94a7eaa541b92a8bbfd3e1243607219"
@@ -1425,7 +1425,7 @@
     "util/integer",
     "util/jsonpath",
     "util/retry",
-    "util/workqueue"
+    "util/workqueue",
   ]
   pruneopts = "NUT"
   revision = "b40b2a5939e43f7ffe0028ad67586b7ce50bb675"
@@ -1456,7 +1456,7 @@
     "cmd/lister-gen",
     "cmd/lister-gen/args",
     "cmd/lister-gen/generators",
-    "pkg/util"
+    "pkg/util",
   ]
   pruneopts = "T"
   revision = "c2090bec4d9b1fb25de3812f868accc2bc9ecbae"
@@ -1474,7 +1474,7 @@
     "generator",
     "namer",
     "parser",
-    "types"
+    "types",
   ]
   pruneopts = "NUT"
   revision = "e17681d19d3ac4837a019ece36c2a0ec31ffe985"
@@ -1504,7 +1504,7 @@
     "pkg/tiller",
     "pkg/tiller/environment",
     "pkg/timeconv",
-    "pkg/version"
+    "pkg/version",
   ]
   pruneopts = "NUT"
   revision = "618447cbf203d147601b4b9bd7f8c37a5d39fbb4"
@@ -1528,7 +1528,7 @@
     "pkg/client/clientset_generated/clientset",
     "pkg/client/clientset_generated/clientset/scheme",
     "pkg/client/clientset_generated/clientset/typed/apiregistration/v1",
-    "pkg/client/clientset_generated/clientset/typed/apiregistration/v1beta1"
+    "pkg/client/clientset_generated/clientset/typed/apiregistration/v1beta1",
   ]
   pruneopts = "NUT"
   revision = "3e0149950b0e22a3b8579db52bd50e40d0dac10e"
@@ -1540,7 +1540,7 @@
   name = "k8s.io/kube-openapi"
   packages = [
     "pkg/util/proto",
-    "pkg/util/proto/validation"
+    "pkg/util/proto/validation",
   ]
   pruneopts = "NUT"
   revision = "db7b694dc208eead64d38030265f702db593fcf2"
@@ -1656,7 +1656,7 @@
     "pkg/util/node",
     "pkg/util/parsers",
     "pkg/util/taints",
-    "pkg/version"
+    "pkg/version",
   ]
   pruneopts = "NUT"
   revision = "4683545293d792934a7a7e12f2cc47d20b2dd01b"
@@ -1668,7 +1668,7 @@
   name = "k8s.io/utils"
   packages = [
     "exec",
-    "pointer"
+    "pointer",
   ]
   pruneopts = "NUT"
   revision = "c55fbcfc754a5b2ec2fbae8fb9dcac36bdba6a12"
@@ -1711,7 +1711,7 @@
     "pkg/webhook/internal/cert/writer",
     "pkg/webhook/internal/cert/writer/atomic",
     "pkg/webhook/internal/metrics",
-    "pkg/webhook/types"
+    "pkg/webhook/types",
   ]
   pruneopts = "NUT"
   revision = "477bf4f046c31c351b46fa00262bc814ac0bbca1"
@@ -1808,7 +1808,7 @@
     "sigs.k8s.io/controller-runtime/pkg/manager",
     "sigs.k8s.io/controller-runtime/pkg/runtime/inject",
     "sigs.k8s.io/controller-runtime/pkg/runtime/log",
-    "sigs.k8s.io/controller-runtime/pkg/webhook"
+    "sigs.k8s.io/controller-runtime/pkg/webhook",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

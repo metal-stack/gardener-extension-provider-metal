@@ -49,7 +49,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (webhook.Webh
 		Kind:     extensionswebhook.BackupKind,
 		Provider: metal.Type,
 		Types:    []runtime.Object{&appsv1.StatefulSet{}},
-		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDBackup, imagevector.ImageVector(), logger), nil, nil, logger),
+		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDBackup, imagevector.ImageVector(), logger), nil, nil, nil, logger),
 	})
 }
 
