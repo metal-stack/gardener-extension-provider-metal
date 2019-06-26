@@ -43,7 +43,7 @@ config:
     imageID: ubuntu-19.04
   etcd:
     storage:
-      className: gardener.cloud-fast
+      className: local-path
       capacity: 80Gi
     backup:
       schedule: "0 */24 * * *"
