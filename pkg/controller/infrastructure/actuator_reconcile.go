@@ -133,7 +133,8 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	}
 
 	firewallStatus.MachineID = machineID
-	firewallStatus.Succeeded = *allocation.Succeeded
+	// FIXME should be check if allocation.Events.Log[0] == "Phoned Home" or a shorter metal-api side calculated bool
+	firewallStatus.Succeeded = true
 
 	return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
 }
