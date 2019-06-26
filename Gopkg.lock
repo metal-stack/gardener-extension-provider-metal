@@ -249,7 +249,7 @@
   revision = "227adb277fa467b9e805af798a502514ccbe75dd"
 
 [[projects]]
-  digest = "1:d97f36db679e42ff8caf914ecf98dd96fdb9befb7a64996b6c359956a468f172"
+  digest = "1:fc16744bda1315b372823ebd1b2e592e5c876ae704ac20e30371ac6729a21394"
   name = "github.com/gardener/machine-controller-manager"
   packages = [
     "pkg/apis/machine",
@@ -257,7 +257,7 @@
     "pkg/client/clientset/versioned/scheme",
   ]
   pruneopts = "NUT"
-  revision = "052c7e8a36509a335e8fa830299d54de226b7999"
+  revision = "4a824c6ef5810f8e11bd4480a519b7d17ba26ecc"
   source = "github.com/majst01/machine-controller-manager"
 
 [[projects]]

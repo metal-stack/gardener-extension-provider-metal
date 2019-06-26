@@ -21,7 +21,7 @@ required = [
 
 [[override]]
   name = "github.com/gardener/machine-controller-manager"
-  revision = "052c7e8a36509a335e8fa830299d54de226b7999"
+  revision = "4a824c6ef5810f8e11bd4480a519b7d17ba26ecc"
   source = "github.com/majst01/machine-controller-manager"
 
 [[override]]
