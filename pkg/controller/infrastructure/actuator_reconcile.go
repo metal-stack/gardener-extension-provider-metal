@@ -98,7 +98,11 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	name := cluster.Shoot.Namespace + "-" + uuid.String()[:5]
+	// Example values:
+	// cluster.Shoot.Namespace "garden-dev"
+	// cluster.Seed.Namespace  "shoot--dev--johndoe-metal"
+	name := cluster.Seed.Namespace + "-firewall-" + uuid.String()[:5]
+	project := cluster.Seed.Namespace
 
 	createRequest := &metalgo.FirewallCreateRequest{
 		MachineCreateRequest: metalgo.MachineCreateRequest{
@@ -106,11 +110,12 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 			Name:        name,
 			Hostname:    name,
 			Size:        infrastructureConfig.Firewall.Size,
-			Project:     cluster.Shoot.Namespace,
+			Project:     project,
 			Tenant:      string(providerSecret.Data[metal.TenantID]),
 			Partition:   infrastructureConfig.Firewall.Partition,
 			Image:       infrastructureConfig.Firewall.Image,
 		},
+
 		NetworkIDs: infrastructureConfig.Firewall.Networks,
 	}
 
