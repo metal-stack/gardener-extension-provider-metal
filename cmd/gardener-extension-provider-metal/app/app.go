@@ -19,12 +19,16 @@ import (
 	"fmt"
 	"os"
 
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	metalinstall "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/install"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalcmd "github.com/metal-pod/gardener-extension-provider-metal/pkg/cmd"
 	metalcontrolplane "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/controlplane"
 	metalinfrastructure "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/infrastructure"
 	metalworker "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	"k8s.io/apimachinery/pkg/runtime"
 	// metalcontrolplanebackup "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplanebackup"
 	// metalcontrolplaneexposure "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
 	"github.com/gardener/gardener-extensions/pkg/controller"
@@ -32,8 +36,10 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
- 
+
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -107,6 +113,56 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			if workerReconcileOpts.Completed().DeployCRDs {
 				if err := worker.ApplyMachineResourcesForConfig(ctx, restOpts.Completed().Config); err != nil {
 					controllercmd.LogErrAndExit(err, "Error ensuring the machine CRDs")
+				}
+
+				// FIXME this is a copy of the logic of worker.ApplyMachineResourcesForConfig from gardener/gardener-extension
+				// because there is currently nothing related to metal implemented, and should not.
+				// Refactoring into separate helper required.
+				name := "metal"
+				kind := "Metal"
+				const (
+					machineGroup   = "machine.sapcloud.io"
+					machineVersion = "v1alpha1"
+				)
+				var apiextensionsScheme = runtime.NewScheme()
+
+				metalCRD := &apiextensionsv1beta1.CustomResourceDefinition{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: name + "machineclasses.machine.sapcloud.io",
+					},
+					Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
+						Group:   machineGroup,
+						Version: machineVersion,
+						Scope:   apiextensionsv1beta1.NamespaceScoped,
+						Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
+							Kind:       kind + "MachineClass",
+							Plural:     name + "machineclasses",
+							Singular:   name + "machineclass",
+							ShortNames: []string{name + "cls"},
+						},
+						Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
+							Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
+						},
+					},
+				}
+
+				obj := &apiextensionsv1beta1.CustomResourceDefinition{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: metalCRD.Name,
+					},
+				}
+
+				c, err := client.New(restOpts.Completed().Config, client.Options{Scheme: apiextensionsScheme})
+				if err != nil {
+					controllercmd.LogErrAndExit(err, "Error creating k8s client for CRD deployment")
+				}
+
+				if _, err := controllerutil.CreateOrUpdate(ctx, c, obj, func(existing runtime.Object) error {
+					existingCRD := existing.(*apiextensionsv1beta1.CustomResourceDefinition)
+					existingCRD.Spec = metalCRD.Spec
+					return nil
+				}); err != nil {
+					controllercmd.LogErrAndExit(err, "Error ensuring the metal machine CRDs")
 				}
 			}
 
