@@ -20,6 +20,9 @@ import (
 	"os"
 
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionsscheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	metalinstall "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/install"
@@ -125,6 +128,8 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 					machineVersion = "v1alpha1"
 				)
 				var apiextensionsScheme = runtime.NewScheme()
+
+				utilruntime.Must(apiextensionsscheme.AddToScheme(apiextensionsScheme))
 
 				metalCRD := &apiextensionsv1beta1.CustomResourceDefinition{
 					ObjectMeta: metav1.ObjectMeta{

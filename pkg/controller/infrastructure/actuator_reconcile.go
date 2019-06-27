@@ -31,8 +31,6 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return fmt.Errorf("could not decode provider config: %+v", err)
 	}
 
-	a.logger.Info("InfrastructureConfig", "config", infrastructureConfig)
-
 	infrastructureStatus := &metalapi.InfrastructureStatus{}
 	if infrastructure.Status.ProviderStatus != nil {
 		if _, _, err := a.decoder.Decode(infrastructure.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
@@ -98,11 +96,11 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
+	a.logger.Info("Cluster", "cluster", cluster)
 	// Example values:
-	// cluster.Shoot.Namespace "garden-dev"
-	// cluster.Seed.Namespace  "shoot--dev--johndoe-metal"
-	name := cluster.Seed.Namespace + "-firewall-" + uuid.String()[:5]
-	project := cluster.Seed.Namespace
+	// cluster.Shoot.Status.TechnicalID  "shoot--dev--johndoe-metal"
+	project := cluster.Shoot.Status.TechnicalID
+	name := project + "-firewall-" + uuid.String()[:5]
 
 	createRequest := &metalgo.FirewallCreateRequest{
 		MachineCreateRequest: metalgo.MachineCreateRequest{
