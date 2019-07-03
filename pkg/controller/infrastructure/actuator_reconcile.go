@@ -104,14 +104,15 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 
 	createRequest := &metalgo.FirewallCreateRequest{
 		MachineCreateRequest: metalgo.MachineCreateRequest{
-			Description: name + " created by Gardener",
-			Name:        name,
-			Hostname:    name,
-			Size:        infrastructureConfig.Firewall.Size,
-			Project:     project,
-			Tenant:      string(providerSecret.Data[metal.TenantID]),
-			Partition:   infrastructureConfig.Firewall.Partition,
-			Image:       infrastructureConfig.Firewall.Image,
+			Description:   name + " created by Gardener",
+			Name:          name,
+			Hostname:      name,
+			Size:          infrastructureConfig.Firewall.Size,
+			Project:       project,
+			Tenant:        string(providerSecret.Data[metal.TenantID]),
+			Partition:     infrastructureConfig.Firewall.Partition,
+			Image:         infrastructureConfig.Firewall.Image,
+			SSHPublicKeys: []string{string(infrastructure.Spec.SSHPublicKey)},
 		},
 
 		NetworkIDs: infrastructureConfig.Firewall.Networks,

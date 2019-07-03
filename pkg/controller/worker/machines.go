@@ -112,6 +112,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 					fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace),
 					fmt.Sprintf("kubernetes.io/role/node"),
 				},
+				"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},
 				"secret": map[string]interface{}{
 					"cloudConfig": string(pool.UserData),
 				},
