@@ -25,6 +25,8 @@ spec:
   image: {{ $machineClass.image }}
   project: {{ $machineClass.project }}
   tenant: {{ $machineClass.tenant }}
+  sshKeys: 
+{{ toYaml $machineClass.sshkeys | indent 4 }}
   secretRef:
     name: {{ $machineClass.name }}
     namespace: {{ $.Release.Namespace }}
