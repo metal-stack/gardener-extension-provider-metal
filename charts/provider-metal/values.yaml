@@ -15,13 +15,6 @@ controllers:
   worker:
     concurrentSyncs: 5
 
-# FIXME they should both empty list.
-disableControllers:
-- controlplane-controller
-disableWebhooks:
-- controlplane
-- controlplaneexposure
-
 # imageVectorOverwrite: |
 #   images:
 #   - name: pause-container
