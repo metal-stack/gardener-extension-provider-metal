@@ -48,7 +48,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (webhook.Webh
 	return controlplane.Add(mgr, controlplane.AddArgs{
 		Kind:     extensionswebhook.SeedKind,
 		Provider: metal.Type,
-		Types:    []runtime.Object{&appsv1.Deployment{}, &corev1.Service{}, &appsv1.StatefulSet{}},
+		Types:    []runtime.Object{&corev1.Service{}, &appsv1.Deployment{}, &appsv1.StatefulSet{}},
 		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDStorage, logger), nil, nil, nil, logger),
 	})
 }

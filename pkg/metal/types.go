@@ -17,14 +17,14 @@ package metal
 import "path/filepath"
 
 const (
-	// Name is the name of the AWS provider.
+	// Name is the name of the Metal provider.
 	Name = "provider-metal"
-	// StorageProviderName is the name of the AWS storage provider.
+	// StorageProviderName is the name of the Metal storage provider.
 	StorageProviderName = "S3"
 
 	// MachineControllerManagerImageName is the name of the MachineControllerManager image.
 	MachineControllerManagerImageName = "machine-controller-manager"
-	// HyperkubeImageName is the name of the hyperkube image.
+	// CCMImageName is the name of the cloud controller manager image.
 	CCMImageName = "metalccm"
 	// ETCDBackupRestoreImageName is the name of the etcd backup and restore image.
 	ETCDBackupRestoreImageName = "etcd-backup-restore"

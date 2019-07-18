@@ -31,6 +31,7 @@ import (
 
 // NewEnsurer creates a new controlplaneexposure ensurer.
 func NewEnsurer(etcdStorage *config.ETCDStorage, logger logr.Logger) genericmutator.Ensurer {
+	logger.Info("create new ensurer")
 	return &ensurer{
 		etcdStorage: etcdStorage,
 		logger:      logger.WithName("metal-controlplaneexposure-ensurer"),
@@ -45,8 +46,13 @@ type ensurer struct {
 }
 
 // InjectClient injects the given client into the ensurer.
-func (m *ensurer) InjectClient(client client.Client) error {
-	m.client = client
+func (e *ensurer) InjectClient(client client.Client) error {
+	e.client = client
+	return nil
+}
+
+// EnsureKubeAPIServerService ensures that the kube-apiserver service conforms to the provider requirements.
+func (e *ensurer) EnsureKubeAPIServerService(ctx context.Context, svc *corev1.Service) error {
 	return nil
 }
 

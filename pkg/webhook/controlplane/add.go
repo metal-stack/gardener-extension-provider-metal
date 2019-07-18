@@ -33,11 +33,12 @@ var logger = log.Log.WithName("metal-controlplane-webhook")
 // AddToManager creates a webhook and adds it to the manager.
 func AddToManager(mgr manager.Manager) (webhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
+	fciCodec := controlplane.NewFileContentInlineCodec()
 	return controlplane.Add(mgr, controlplane.AddArgs{
 		Kind:     extensionswebhook.ShootKind,
 		Provider: metal.Type,
 		Types:    []runtime.Object{&appsv1.Deployment{}, &extensionsv1alpha1.OperatingSystemConfig{}},
 		Mutator: genericmutator.NewMutator(NewEnsurer(logger), controlplane.NewUnitSerializer(),
-			controlplane.NewKubeletConfigCodec(controlplane.NewFileContentInlineCodec()), nil, logger),
+			controlplane.NewKubeletConfigCodec(fciCodec), fciCodec, logger),
 	})
 }

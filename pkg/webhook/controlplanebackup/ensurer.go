@@ -34,6 +34,7 @@ import (
 
 // NewEnsurer creates a new controlplaneexposure ensurer.
 func NewEnsurer(etcdBackup *config.ETCDBackup, imageVector imagevector.ImageVector, logger logr.Logger) genericmutator.Ensurer {
+	logger.Info("create new ensurer")
 	return &ensurer{
 		etcdBackup:  etcdBackup,
 		imageVector: imageVector,
@@ -64,13 +65,10 @@ func (e *ensurer) EnsureETCDStatefulSet(ctx context.Context, ss *appsv1.Stateful
 }
 
 func (e *ensurer) ensureContainers(ps *corev1.PodSpec, name string, cluster *extensionscontroller.Cluster) error {
-	// FIXME remove next line, is only here for debugging purpose.
-	return nil
 	c, err := e.getBackupRestoreContainer(name, cluster)
 	if err != nil {
 		return err
 	}
-
 	ps.Containers = controlplane.EnsureContainerWithName(ps.Containers, *c)
 	return nil
 }
@@ -85,10 +83,19 @@ func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev
 func (e *ensurer) getBackupRestoreContainer(name string, cluster *extensionscontroller.Cluster) (*corev1.Container, error) {
 	// Find etcd-backup-restore image
 	// TODO Get seed version from clientset when it's possible to inject it
-	image, err := e.imageVector.FindImage(metal.ETCDBackupRestoreImageName, "", cluster.Shoot.Spec.Kubernetes.Version)
+	image, err := e.imageVector.FindImage(metal.ETCDBackupRestoreImageName, imagevector.TargetVersion(cluster.Shoot.Spec.Kubernetes.Version))
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not find image %s", metal.ETCDBackupRestoreImageName)
 	}
 
-	return controlplane.GetBackupRestoreContainer(name, name, "", "", image.String(), nil, nil, nil), nil
+	// Determine volume claim template name
+	// It is only specified for the etcd-main stateful set (backup is enabled)
+	var (
+		volumeClaimTemplateName = name
+	)
+	if name == common.EtcdMainStatefulSetName {
+		volumeClaimTemplateName = controlplane.EtcdMainVolumeClaimTemplateName
+	}
+
+	return controlplane.GetBackupRestoreContainer(name, volumeClaimTemplateName, "", "", image.String(), nil, nil, nil), nil
 }

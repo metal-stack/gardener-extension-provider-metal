@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	"github.com/gardener/gardener-extensions/pkg/util"
 	confighelper "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config/helper"
@@ -60,7 +61,7 @@ func (w *workerDelegate) GenerateMachineDeployments(ctx context.Context) (worker
 }
 
 func (w *workerDelegate) generateMachineClassSecretData(ctx context.Context) (map[string][]byte, error) {
-	secret, err := util.GetSecretByRef(ctx, w.client, w.worker.Spec.SecretRef)
+	secret, err := extensionscontroller.GetSecretByReference(ctx, w.client, &w.worker.Spec.SecretRef)
 	if err != nil {
 		return nil, err
 	}

@@ -15,14 +15,16 @@
 package controlplane
 
 import (
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener-extensions/pkg/util"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
@@ -33,12 +35,35 @@ var (
 	logger = log.Log.WithName("metal-controlplane-controller")
 )
 
+type SonInterface struct{}
+
+func (s *SonInterface) Create(event.CreateEvent) bool {
+	logger.Info("Create has been called")
+	return true
+}
+func (s *SonInterface) Delete(event.DeleteEvent) bool {
+	logger.Info("Delete has been called")
+
+	return true
+}
+func (s *SonInterface) Update(event.UpdateEvent) bool {
+	logger.Info("Update has been called")
+
+	return true
+}
+func (s *SonInterface) Generic(event.GenericEvent) bool {
+	logger.Info("Generic has been called")
+
+	return true
+}
+
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(mgr manager.Manager, opts controller.Options) error {
 	return controlplane.Add(mgr, controlplane.AddArgs{
+		Predicates: []predicate.Predicate{&SonInterface{}},
 		Actuator: genericactuator.NewActuator(controlPlaneSecrets, nil, ccmChart, ccmShootChart,
-			NewValuesProvider(logger), genericactuator.ShootClientsFactoryFunc(util.NewClientsForShoot),
+			NewValuesProvider(logger), genericactuator.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 			imagevector.ImageVector(), "", logger),
 		Type:              metal.Type,
 		ControllerOptions: opts,

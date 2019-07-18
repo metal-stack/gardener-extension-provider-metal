@@ -19,6 +19,8 @@ import (
 
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
+	"github.com/gardener/gardener/pkg/operation/common"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	"github.com/coreos/go-systemd/unit"
 	"github.com/go-logr/logr"
@@ -27,9 +29,10 @@ import (
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
- 
+
 // NewEnsurer creates a new controlplane ensurer.
 func NewEnsurer(logger logr.Logger) genericmutator.Ensurer {
+	logger.Info("create new ensurer")
 	return &ensurer{
 		logger: logger.WithName("metal-controlplane-ensurer"),
 	}
@@ -54,8 +57,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, dep *appsv1
 	if c := controlplane.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c)
 	}
-
-	return nil
+	return e.ensureChecksumAnnotations(ctx, &dep.Spec.Template, dep.Namespace)
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
@@ -65,19 +67,31 @@ func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, dep
 	if c := controlplane.ContainerWithName(ps.Containers, "kube-controller-manager"); c != nil {
 		ensureKubeControllerManagerCommandLineArgs(c)
 	}
-
-	return nil
+	ensureKubeControllerManagerAnnotations(template)
+	return e.ensureChecksumAnnotations(ctx, &dep.Spec.Template, dep.Namespace)
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
-	c.Command = controlplane.EnsureNoStringWithPrefixContains(c.Command, "--enable-admission-plugins=",
-		"PersistentVolumeLabel", ",")
-	c.Command = controlplane.EnsureStringWithPrefixContains(c.Command, "--disable-admission-plugins=",
-		"PersistentVolumeLabel", ",")
+	c.Command = controlplane.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
 }
 
 func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
 	c.Command = controlplane.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
+
+}
+
+func ensureKubeControllerManagerAnnotations(t *corev1.PodTemplateSpec) {
+	// TODO: These labels should be exposed as constants in Gardener
+	t.Labels = controlplane.EnsureAnnotationOrLabel(t.Labels, "networking.gardener.cloud/to-public-networks", "allowed")
+	t.Labels = controlplane.EnsureAnnotationOrLabel(t.Labels, "networking.gardener.cloud/to-private-networks", "allowed")
+	t.Labels = controlplane.EnsureAnnotationOrLabel(t.Labels, "networking.gardener.cloud/to-blocked-cidrs", "allowed")
+}
+
+func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev1.PodTemplateSpec, namespace string) error {
+	if err := controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, common.CloudProviderSecretName); err != nil {
+		return err
+	}
+	return controlplane.EnsureConfigMapChecksumAnnotation(ctx, template, e.client, namespace, metal.CloudProviderConfigName)
 }
 
 // EnsureKubeletServiceUnitOptions ensures that the kubelet.service unit options conform to the provider requirements.
@@ -97,6 +111,15 @@ func ensureKubeletCommandLineArgs(command []string) []string {
 
 // EnsureKubeletConfiguration ensures that the kubelet configuration conforms to the provider requirements.
 func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, kubeletConfig *kubeletconfigv1beta1.KubeletConfiguration) error {
+	// Make sure CSI-related feature gates are not enabled
+	// TODO Leaving these enabled shouldn't do any harm, perhaps remove this code when properly tested?
+	delete(kubeletConfig.FeatureGates, "VolumeSnapshotDataSource")
+	delete(kubeletConfig.FeatureGates, "CSINodeInfo")
+	delete(kubeletConfig.FeatureGates, "CSIDriverRegistry")
+	return nil
+}
 
+// EnsureKubernetesGeneralConfiguration ensures that the kubernetes general configuration conforms to the provider requirements.
+func (e *ensurer) EnsureKubernetesGeneralConfiguration(ctx context.Context, data *string) error {
 	return nil
 }

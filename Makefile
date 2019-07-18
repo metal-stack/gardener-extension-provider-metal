@@ -63,7 +63,7 @@ endif
 
 .PHONY: docker-image
 docker-image:
-	@docker build --build-arg VERIFY=$(VERIFY) -t $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(VERSION) -t $(IMAGE_PREFIX)/gardener-extension-provider-metal:latest -f Dockerfile -m 6g .
+	@docker build --no-cache --build-arg VERIFY=$(VERIFY) -t $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(VERSION) -t $(IMAGE_PREFIX)/gardener-extension-provider-metal:latest -f Dockerfile -m 6g .
 
 ### Debug / Development commands
 

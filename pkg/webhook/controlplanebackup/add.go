@@ -34,7 +34,7 @@ var (
 	DefaultAddOptions = AddOptions{}
 )
 
-// AddOptions are options to apply when adding the metal backup webhook to the manager.
+// AddOptions are options to apply when adding the Metal backup webhook to the manager.
 type AddOptions struct {
 	// ETCDBackup is the etcd backup configuration.
 	ETCDBackup config.ETCDBackup

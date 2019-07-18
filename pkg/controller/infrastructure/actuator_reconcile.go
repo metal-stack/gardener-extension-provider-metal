@@ -101,6 +101,14 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	// cluster.Shoot.Status.TechnicalID  "shoot--dev--johndoe-metal"
 	project := cluster.Shoot.Status.TechnicalID
 	name := project + "-firewall-" + uuid.String()[:5]
+	var networks []metalgo.MachineAllocationNetwork
+	for _, n := range infrastructureConfig.Firewall.Networks {
+		network := metalgo.MachineAllocationNetwork{
+			NetworkID:   n,
+			Autoacquire: true,
+		}
+		networks = append(networks, network)
+	}
 
 	createRequest := &metalgo.FirewallCreateRequest{
 		MachineCreateRequest: metalgo.MachineCreateRequest{
@@ -113,9 +121,8 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 			Partition:     infrastructureConfig.Firewall.Partition,
 			Image:         infrastructureConfig.Firewall.Image,
 			SSHPublicKeys: []string{string(infrastructure.Spec.SSHPublicKey)},
+			Networks:      networks,
 		},
-
-		NetworkIDs: infrastructureConfig.Firewall.Networks,
 	}
 
 	a.logger.Info("create firewall from", "request", createRequest)

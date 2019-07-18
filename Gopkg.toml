@@ -9,11 +9,18 @@ required = [
 
 [[override]]
   name = "github.com/gardener/gardener-extensions"
-  revision = "227adb277fa467b9e805af798a502514ccbe75dd"
+  revision = "2faeebd1c00c8325d2c2d9996217349e45c20dbf"
+  #version = "0.7.4"
+
+[[override]]
+  name = "github.com/gardener/gardener-resource-manager"
+  revision = "e0f770704e8c97f8a4a5003f14d88a1ae55253a1"
 
 [[override]]
   name = "github.com/gardener/gardener"
-  revision = "f718e4bd65f08a62a8fa7836dcebb8e7d2476c1e"
+  revision = "641367fd36d54086712027f337effcb6c9f950cf"
+  #revision = "c6b7b89a41eed319ac467ad2f448b3337d506dd7"
+  #source = "github.com/metal-pod/gardener"
 
 [[override]]
   name = "github.com/pkg/errors"
@@ -21,44 +28,8 @@ required = [
 
 [[override]]
   name = "github.com/gardener/machine-controller-manager"
-  revision = "4a824c6ef5810f8e11bd4480a519b7d17ba26ecc"
-  source = "github.com/majst01/machine-controller-manager"
-
-[[override]]
-  name = "sigs.k8s.io/controller-runtime"
-  version = "0.1.10"
-
-[[override]]
-  name = "k8s.io/api"
-  version = "kubernetes-1.13.4"
-
-[[override]]
-  name = "k8s.io/apimachinery"
-  version = "kubernetes-1.13.4"
-
-[[override]]
-  name = "k8s.io/apiserver"
-  version = "kubernetes-1.13.4"
-
-[[override]]
-  name = "k8s.io/apiextensions-apiserver"
-  version = "kubernetes-1.13.4"
-
-[[override]]
-  name = "k8s.io/client-go"
-  version = "kubernetes-1.13.4"
-
-[[override]]
-  name = "k8s.io/code-generator"
-  version = "kubernetes-1.13.4"
-
-[[override]]
-  name = "k8s.io/kube-aggregator"
-  version = "kubernetes-1.13.4"
-
-[[override]]
-  name = "k8s.io/kubelet"
-  version = "kubernetes-1.13.4"
+  revision = "11ed8d959f15e9e60d63333a8d6c863402fd647f"
+  source = "github.com/metal-pod/machine-controller-manager"
 
 # use the same version that is referenced by k8s.io/apiserver
 [[override]]
