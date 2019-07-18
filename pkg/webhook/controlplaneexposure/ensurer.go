@@ -31,7 +31,6 @@ import (
 
 // NewEnsurer creates a new controlplaneexposure ensurer.
 func NewEnsurer(etcdStorage *config.ETCDStorage, logger logr.Logger) genericmutator.Ensurer {
-	logger.Info("create new ensurer")
 	return &ensurer{
 		etcdStorage: etcdStorage,
 		logger:      logger.WithName("metal-controlplaneexposure-ensurer"),

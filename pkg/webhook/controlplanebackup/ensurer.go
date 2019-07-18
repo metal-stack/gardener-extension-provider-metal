@@ -34,7 +34,6 @@ import (
 
 // NewEnsurer creates a new controlplaneexposure ensurer.
 func NewEnsurer(etcdBackup *config.ETCDBackup, imageVector imagevector.ImageVector, logger logr.Logger) genericmutator.Ensurer {
-	logger.Info("create new ensurer")
 	return &ensurer{
 		etcdBackup:  etcdBackup,
 		imageVector: imageVector,

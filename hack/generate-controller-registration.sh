@@ -15,7 +15,6 @@
 # limitations under the License.
 set -e
 set -o pipefail
-set -x
 
 DIRNAME="$(echo "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )")"
 source "$DIRNAME/common.sh"
