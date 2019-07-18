@@ -35,6 +35,7 @@ spec:
         - --webhook-config-name={{ include "name" . }}
         - --webhook-config-namespace={{ .Release.Namespace }}
         - --webhook-config-service-selectors={"app.kubernetes.io/name":"{{ include "name" . }}","app.kubernetes.io/instance":"{{ .Release.Name }}"}
+        - --webhook-server-port={{ .Values.webhookConfig.serverPort }}
         - --disable-controllers={{ .Values.disableControllers | join "," }}
         - --disable-webhooks={{ .Values.disableWebhooks | join "," }}
         env:
@@ -48,7 +49,7 @@ spec:
         {{- end }}
         ports:
         - name: webhook-server
-          containerPort: 7890
+          containerPort: {{ .Values.webhookConfig.serverPort }}
           protocol: TCP
 {{- if .Values.resources }}
         resources:

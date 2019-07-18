@@ -83,11 +83,6 @@ spec:
               secretKeyRef:
                 name: cloudprovider
                 key: metalAPIURL
-          - name: METAL_AUTH_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: cloudprovider
-                key: metalAPIKey
           - name: METAL_AUTH_HMAC
             valueFrom:
               secretKeyRef:

@@ -29,7 +29,15 @@ controllers:
 #     version: ">= 1.12"
 #   ...
 
+webhookConfig:
+  serverPort: 443
+
 config:
+  clientConnection:
+    acceptContentTypes: application/json
+    contentType: application/json
+    qps: 100
+    burst: 130
   machineImages:
   - name: metal
     version: ubuntu-19.04
