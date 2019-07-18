@@ -24,12 +24,15 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/secrets"
 
+	"github.com/pkg/errors"
+
 	"github.com/Masterminds/semver"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/version"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -127,7 +130,20 @@ func GetReplicaCount(shoot *gardenv1beta1.Shoot, count int) int {
 func VersionMajorMinor(version string) (string, error) {
 	v, err := semver.NewVersion(version)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "Invalid version string '%s'", version)
 	}
 	return fmt.Sprintf("%d.%d", v.Major(), v.Minor()), nil
+}
+
+// VersionInfo converts the given version string to version.Info (input must be a semantic version).
+func VersionInfo(vs string) (*version.Info, error) {
+	v, err := semver.NewVersion(vs)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Invalid version string '%s'", vs)
+	}
+	return &version.Info{
+		Major:      fmt.Sprintf("%d", v.Major()),
+		Minor:      fmt.Sprintf("%d", v.Minor()),
+		GitVersion: fmt.Sprintf("v%d.%d.%d", v.Major(), v.Minor(), v.Patch()),
+	}, nil
 }

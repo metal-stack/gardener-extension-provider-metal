@@ -112,6 +112,35 @@ func (a *Client) FindNetwork(params *FindNetworkParams, authInfo runtime.ClientA
 }
 
 /*
+FindNetworks gets all networks that match given properties
+*/
+func (a *Client) FindNetworks(params *FindNetworksParams, authInfo runtime.ClientAuthInfoWriter) (*FindNetworksOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindNetworksParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "findNetworks",
+		Method:             "POST",
+		PathPattern:        "/v1/network/find",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindNetworksReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*FindNetworksOK), nil
+
+}
+
+/*
 ListNetworks gets all networks
 */
 func (a *Client) ListNetworks(params *ListNetworksParams, authInfo runtime.ClientAuthInfoWriter) (*ListNetworksOK, error) {

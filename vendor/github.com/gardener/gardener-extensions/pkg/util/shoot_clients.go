@@ -18,6 +18,7 @@ import (
 	"context"
 
 	corev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
+	"github.com/gardener/gardener/pkg/chartrenderer"
 	gardener "github.com/gardener/gardener/pkg/client/kubernetes"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
@@ -25,6 +26,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/helm/pkg/chartutil"
+	"k8s.io/helm/pkg/engine"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -101,4 +104,13 @@ func NewClientsForShoot(ctx context.Context, c client.Client, namespace string, 
 		chartApplier:      shootChartApplier,
 		version:           shootVersion,
 	}, nil
+}
+
+// NewChartRendererForShoot creates a new chartrenderer.Interface for the shoot cluster.
+func NewChartRendererForShoot(version string) (chartrenderer.Interface, error) {
+	v, err := VersionInfo(version)
+	if err != nil {
+		return nil, err
+	}
+	return chartrenderer.New(engine.New(), &chartutil.Capabilities{KubeVersion: v}), nil
 }

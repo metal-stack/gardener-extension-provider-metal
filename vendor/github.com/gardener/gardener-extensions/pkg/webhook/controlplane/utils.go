@@ -108,7 +108,11 @@ func EnsureStringWithPrefixContains(items []string, prefix, value, sep string) [
 	if i := StringWithPrefixIndex(items, prefix); i < 0 {
 		items = append(items, prefix+value)
 	} else {
-		values := strings.Split(strings.TrimPrefix(items[i], prefix), sep)
+		valuesList := strings.TrimPrefix(items[i], prefix)
+		var values []string
+		if valuesList != "" {
+			values = strings.Split(valuesList, sep)
+		}
 		if j := StringIndex(values, value); j < 0 {
 			values = append(values, value)
 			items = append(append(items[:i], prefix+strings.Join(values, sep)), items[i+1:]...)
@@ -242,6 +246,15 @@ func EnsureFileWithPath(items []extensionsv1alpha1.File, item extensionsv1alpha1
 		items = append(append(items[:i], item), items[i+1:]...)
 	}
 	return items
+}
+
+// EnsureAnnotationOrLabel ensures the given key/value exists in the annotationOrLabelMap map.
+func EnsureAnnotationOrLabel(annotationOrLabelMap map[string]string, key, value string) map[string]string {
+	if annotationOrLabelMap == nil {
+		annotationOrLabelMap = make(map[string]string, 1)
+	}
+	annotationOrLabelMap[key] = value
+	return annotationOrLabelMap
 }
 
 // StringIndex returns the index of the first occurrence of the given string in the given slice, or -1 if not found.

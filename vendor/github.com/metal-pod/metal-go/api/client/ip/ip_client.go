@@ -141,6 +141,35 @@ func (a *Client) FindIP(params *FindIPParams, authInfo runtime.ClientAuthInfoWri
 }
 
 /*
+FindIps gets all ips that match given properties
+*/
+func (a *Client) FindIps(params *FindIpsParams, authInfo runtime.ClientAuthInfoWriter) (*FindIpsOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindIpsParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "findIPs",
+		Method:             "POST",
+		PathPattern:        "/v1/ip/find",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindIpsReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*FindIpsOK), nil
+
+}
+
+/*
 ListIps gets all ips
 */
 func (a *Client) ListIps(params *ListIpsParams, authInfo runtime.ClientAuthInfoWriter) (*ListIpsOK, error) {

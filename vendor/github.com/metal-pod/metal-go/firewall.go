@@ -11,7 +11,6 @@ import (
 // FirewallCreateRequest contains data for a machine creation
 type FirewallCreateRequest struct {
 	MachineCreateRequest
-	NetworkIDs []string
 }
 
 // FirewallCreateResponse is returned when a machine was created
@@ -46,7 +45,8 @@ func (d *Driver) FirewallCreate(fcr *FirewallCreateRequest) (*FirewallCreateResp
 		SSHPubKeys:  fcr.SSHPublicKeys,
 		UserData:    fcr.UserData,
 		Tags:        fcr.Tags,
-		Networks:    fcr.NetworkIDs,
+		Networks:    fcr.translateNetworks(),
+		Ips:         fcr.IPs,
 	}
 
 	allocFirewall := firewall.NewAllocateFirewallParams()

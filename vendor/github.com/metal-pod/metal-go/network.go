@@ -8,6 +8,11 @@ import (
 	"github.com/metal-pod/metal-go/api/models"
 )
 
+// NetworkGetResponse contains the network get result
+type NetworkGetResponse struct {
+	Network *models.V1NetworkResponse
+}
+
 // NetworkListResponse is the response of a NetworkList action
 type NetworkListResponse struct {
 	Networks []*models.V1NetworkResponse
@@ -59,7 +64,7 @@ type NetworkDetailResponse struct {
 	Network *models.V1NetworkResponse
 }
 
-// NetworkUpdateRequest request to update the Network
+// NetworkUpdateRequest is the request to update the Network
 type NetworkUpdateRequest struct {
 	// the network id for this update request.
 	Networkid string `json:"networkid"`
@@ -67,12 +72,24 @@ type NetworkUpdateRequest struct {
 	Prefix string
 }
 
+// IPUpdateRequest is the request to update an IP
+type IPUpdateRequest struct {
+	// the ip address for this ip update request.
+	IPAddress string `json:"ipaddress"`
+	// a description for this entity
+	Description string `json:"description,omitempty"`
+	// the readable name
+	Name string `json:"name,omitempty"`
+	// the machine id that is associated to this ip
+	MachineID string `json:"machineid,omitempty"`
+}
+
 // IPListResponse is the response when ips are listed
 type IPListResponse struct {
 	IPs []*models.V1IPResponse
 }
 
-// IPAcquireRequest is the request to acquire a ip
+// IPAcquireRequest is the request to acquire an IP
 type IPAcquireRequest struct {
 
 	// a description for this entity
@@ -93,12 +110,52 @@ type IPAcquireRequest struct {
 	SpecificIP string `json:"specificip"`
 }
 
-// IPDetailResponse is the response to a ip detail request.
+// NetworkFindRequest contains criteria for a network listing
+type NetworkFindRequest struct {
+	ID                  *string
+	Name                *string
+	PartitionID         *string
+	ProjectID           *string
+	Prefixes            []string
+	DestinationPrefixes []string
+	Nat                 *bool
+	Primary             *bool
+	Underlay            *bool
+	Vrf                 *int64
+	ParentNetworkID     *string
+	TenantID            *string
+}
+
+// IPFindRequest contains criteria for a ip listing
+type IPFindRequest struct {
+	IPAddress        *string
+	ProjectID        *string
+	ParentPrefixCidr *string
+	NetworkID        *string
+	MachineID        *string
+}
+
+// IPDetailResponse is the response to an IP detail request.
 type IPDetailResponse struct {
 	IP *models.V1IPResponse
 }
 
-// NetworkList return all networks
+// NetworkGet returns the network with the given ID
+func (d *Driver) NetworkGet(id string) (*NetworkGetResponse, error) {
+	findNetwork := network.NewFindNetworkParams()
+	findNetwork.ID = id
+
+	response := &NetworkGetResponse{}
+	resp, err := d.network.FindNetwork(findNetwork, d.auth)
+	if err != nil {
+		return response, err
+	}
+	response.Network = resp.Payload
+
+	return response, nil
+}
+
+// NetworkList returns all networks
 func (d *Driver) NetworkList() (*NetworkListResponse, error) {
 	response := &NetworkListResponse{}
 	listNetworks := network.NewListNetworksParams()
@@ -110,20 +167,43 @@ func (d *Driver) NetworkList() (*NetworkListResponse, error) {
 	return response, nil
 }
 
-// NetworkFind return a networks
-func (d *Driver) NetworkFind(id string) (*NetworkDetailResponse, error) {
-	response := &NetworkDetailResponse{}
-	findNetwork := network.NewFindNetworkParams()
-	findNetwork.ID = id
-	resp, err := d.network.FindNetwork(findNetwork, d.auth)
+// NetworkFind returns all networks that match given properties
+func (d *Driver) NetworkFind(nfr *NetworkFindRequest) (*NetworkListResponse, error) {
+	if nfr == nil {
+		return d.NetworkList()
+	}
+
+	response := &NetworkListResponse{}
+	var err error
+	var resp *network.FindNetworksOK
+
+	findNetworks := network.NewFindNetworksParams()
+	req := &models.V1FindNetworksRequest{
+		ID:                  nfr.ID,
+		Name:                nfr.Name,
+		Partitionid:         nfr.PartitionID,
+		Projectid:           nfr.ProjectID,
+		Prefixes:            nfr.Prefixes,
+		Destinationprefixes: nfr.DestinationPrefixes,
+		Nat:                 nfr.Nat,
+		Primary:             nfr.Primary,
+		Underlay:            nfr.Underlay,
+		Vrf:                 nfr.Vrf,
+		Parentnetworkid:     nfr.ParentNetworkID,
+		Tenantid:            nfr.TenantID,
+	}
+	findNetworks.SetBody(req)
+
+	resp, err = d.network.FindNetworks(findNetworks, d.auth)
 	if err != nil {
 		return response, err
 	}
-	response.Network = resp.Payload
+	response.Networks = resp.Payload
+
 	return response, nil
 }
 
-// NetworkCreate create a new Network
+// NetworkCreate creates a new network
 func (d *Driver) NetworkCreate(ncr *NetworkCreateRequest) (*NetworkDetailResponse, error) {
 	response := &NetworkDetailResponse{}
 	createNetwork := network.NewCreateNetworkParams()
@@ -150,7 +230,7 @@ func (d *Driver) NetworkCreate(ncr *NetworkCreateRequest) (*NetworkDetailRespons
 	return response, nil
 }
 
-// NetworkUpdate create a new Network
+// NetworkUpdate creates a new network
 func (d *Driver) NetworkUpdate(ncr *NetworkCreateRequest) (*NetworkDetailResponse, error) {
 	response := &NetworkDetailResponse{}
 	updateNetwork := network.NewUpdateNetworkParams()
@@ -170,9 +250,9 @@ func (d *Driver) NetworkUpdate(ncr *NetworkCreateRequest) (*NetworkDetailRespons
 	return response, nil
 }
 
-// NetworkAddPrefix add a Prefix to a Network
+// NetworkAddPrefix adds a prefix to a network
 func (d *Driver) NetworkAddPrefix(nur *NetworkUpdateRequest) (*NetworkDetailResponse, error) {
-	old, err := d.NetworkFind(nur.Networkid)
+	old, err := d.NetworkGet(nur.Networkid)
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch network: %s to update:%v", nur.Networkid, err)
 	}
@@ -194,9 +274,9 @@ func (d *Driver) NetworkAddPrefix(nur *NetworkUpdateRequest) (*NetworkDetailResp
 	return response, nil
 }
 
-// NetworkRemovePrefix remove a Prefix from a Network
+// NetworkRemovePrefix removes a prefix from a network
 func (d *Driver) NetworkRemovePrefix(nur *NetworkUpdateRequest) (*NetworkDetailResponse, error) {
-	old, err := d.NetworkFind(nur.Networkid)
+	old, err := d.NetworkGet(nur.Networkid)
 	if err != nil {
 		return nil, fmt.Errorf("unable to fetch network: %s to update:%v", nur.Networkid, err)
 	}
@@ -224,7 +304,7 @@ func (d *Driver) NetworkRemovePrefix(nur *NetworkUpdateRequest) (*NetworkDetailR
 	return response, nil
 }
 
-// IPGet get a given ip
+// IPGet gets a given IP
 func (d *Driver) IPGet(ipaddress string) (*IPDetailResponse, error) {
 	response := &IPDetailResponse{}
 	findIP := ip.NewFindIPParams()
@@ -237,7 +317,27 @@ func (d *Driver) IPGet(ipaddress string) (*IPDetailResponse, error) {
 	return response, nil
 }
 
-// IPList list all ips
+// IPUpdate updates an IP
+func (d *Driver) IPUpdate(iur *IPUpdateRequest) (*IPDetailResponse, error) {
+	response := &IPDetailResponse{}
+	updateIP := ip.NewUpdateIPParams()
+
+	updateRequest := &models.V1IPUpdateRequest{
+		Ipaddress:   &iur.IPAddress,
+		Description: iur.Description,
+		Name:        iur.Name,
+		Machineid:   &iur.MachineID,
+	}
+	updateIP.SetBody(updateRequest)
+	resp, err := d.ip.UpdateIP(updateIP, d.auth)
+	if err != nil {
+		return response, err
+	}
+	response.IP = resp.Payload
+	return response, nil
+}
+
+// IPList lists all IPs
 func (d *Driver) IPList() (*IPListResponse, error) {
 	response := &IPListResponse{}
 	listIPs := ip.NewListIpsParams()
@@ -249,7 +349,36 @@ func (d *Driver) IPList() (*IPListResponse, error) {
 	return response, nil
 }
 
-// IPAcquire a ip in a Network for a project
+// IPFind returns all ips that match given properties
+func (d *Driver) IPFind(ifr *IPFindRequest) (*IPListResponse, error) {
+	if ifr == nil {
+		return d.IPList()
+	}
+
+	response := &IPListResponse{}
+	var err error
+	var resp *ip.FindIpsOK
+
+	findIPs := ip.NewFindIpsParams()
+	req := &models.V1FindIpsRequest{
+		Ipaddress:     ifr.IPAddress,
+		Projectid:     ifr.ProjectID,
+		Networkprefix: ifr.ParentPrefixCidr,
+		Networkid:     ifr.NetworkID,
+		Machineid:     ifr.MachineID,
+	}
+	findIPs.SetBody(req)
+
+	resp, err = d.ip.FindIps(findIPs, d.auth)
+	if err != nil {
+		return response, err
+	}
+	response.IPs = resp.Payload
+
+	return response, nil
+}
+
+// IPAcquire acquires an IP in a network for a project
 func (d *Driver) IPAcquire(iar *IPAcquireRequest) (*IPDetailResponse, error) {
 	response := &IPDetailResponse{}
 	acquireIPRequest := &models.V1IPAllocateRequest{
@@ -279,7 +408,7 @@ func (d *Driver) IPAcquire(iar *IPAcquireRequest) (*IPDetailResponse, error) {
 	return response, nil
 }
 
-// IPDelete release a ip
+// IPDelete releases an IP
 func (d *Driver) IPDelete(id string) (*IPDetailResponse, error) {
 	response := &IPDetailResponse{}
 	deleteIP := ip.NewDeleteIPParams()

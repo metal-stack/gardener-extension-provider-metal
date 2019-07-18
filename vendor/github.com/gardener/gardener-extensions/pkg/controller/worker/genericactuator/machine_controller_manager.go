@@ -58,7 +58,8 @@ func (a *genericActuator) deployMachineControllerManager(ctx context.Context, wo
 		}
 	}
 
-	if err := a.mcmSeedChart.Apply(ctx, a.gardenerClientset, a.chartApplier, workerObj.Namespace, cluster.Shoot, a.imageVector, nil, mcmValues); err != nil {
+	if err := a.mcmSeedChart.Apply(ctx, a.chartApplier, workerObj.Namespace,
+		a.imageVector, a.gardenerClientset.Version(), cluster.Shoot.Spec.Kubernetes.Version, mcmValues); err != nil {
 		return errors.Wrapf(err, "could not apply MCM chart in seed for worker '%s'", util.ObjectName(workerObj))
 	}
 
@@ -82,8 +83,9 @@ func (a *genericActuator) applyMachineControllerManagerShootChart(ctx context.Co
 		return err
 	}
 
-	if err := a.mcmShootChart.Apply(ctx, shootClients.GardenerClientset(), shootClients.ChartApplier(), metav1.NamespaceSystem, cluster.Shoot, a.imageVector, nil, mcmShootValues); err != nil {
-		return errors.Wrapf(err, "could not apply MCM chart in seed for worker '%s'", util.ObjectName(workerObj))
+	if err := a.mcmShootChart.Apply(ctx, shootClients.ChartApplier(), metav1.NamespaceSystem,
+		a.imageVector, shootClients.GardenerClientset().Version(), cluster.Shoot.Spec.Kubernetes.Version, mcmShootValues); err != nil {
+		return errors.Wrapf(err, "could not apply MCM chart in shoot for worker '%s'", util.ObjectName(workerObj))
 	}
 
 	return nil

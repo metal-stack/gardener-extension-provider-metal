@@ -170,6 +170,35 @@ func (a *Client) FindMachine(params *FindMachineParams, authInfo runtime.ClientA
 }
 
 /*
+FindMachines searches machines
+*/
+func (a *Client) FindMachines(params *FindMachinesParams, authInfo runtime.ClientAuthInfoWriter) (*FindMachinesOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindMachinesParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "findMachines",
+		Method:             "POST",
+		PathPattern:        "/v1/machine/find",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &FindMachinesReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*FindMachinesOK), nil
+
+}
+
+/*
 FreeMachine frees a machine
 */
 func (a *Client) FreeMachine(params *FreeMachineParams, authInfo runtime.ClientAuthInfoWriter) (*FreeMachineOK, error) {
@@ -433,35 +462,6 @@ func (a *Client) RegisterMachine(params *RegisterMachineParams, authInfo runtime
 		return nil, value, nil
 	}
 	return nil, nil, nil
-
-}
-
-/*
-SearchMachine searches machines
-*/
-func (a *Client) SearchMachine(params *SearchMachineParams, authInfo runtime.ClientAuthInfoWriter) (*SearchMachineOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewSearchMachineParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "searchMachine",
-		Method:             "GET",
-		PathPattern:        "/v1/machine/find",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &SearchMachineReader{formats: a.formats},
-		AuthInfo:           authInfo,
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*SearchMachineOK), nil
 
 }
 

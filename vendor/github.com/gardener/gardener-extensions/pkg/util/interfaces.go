@@ -17,15 +17,13 @@ package util
 import (
 	"context"
 
-	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/garden/v1beta1"
+	"github.com/gardener/gardener/pkg/chartrenderer"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// TODO Move these interfaces to Gardener when dependency issue is resolved
 
 // Secrets represents a set of secrets that can be deployed and deleted.
 type Secrets interface {
@@ -37,9 +35,12 @@ type Secrets interface {
 
 // Chart represents a Helm chart that can be applied and deleted.
 type Chart interface {
-	// Apply applies this chart into the given namespace using the given ChartApplier. Before applying the chart,
+	// Apply applies this chart in the given namespace using the given ChartApplier. Before applying the chart,
 	// it collects its values, injecting images and merging the given values as needed.
-	Apply(context.Context, gardenerkubernetes.Interface, gardenerkubernetes.ChartApplier, string, *gardenv1beta1.Shoot, imagevector.ImageVector, map[string]string, map[string]interface{}) error
+	Apply(context.Context, gardenerkubernetes.ChartApplier, string, imagevector.ImageVector, string, string, map[string]interface{}) error
+	// Render renders this chart in the given namespace using the given chartRenderer. Before rendering the chart,
+	// it collects its values, injecting images and merging the given values as needed.
+	Render(chartrenderer.Interface, string, imagevector.ImageVector, string, string, map[string]interface{}) (string, []byte, error)
 	// Delete deletes this chart's objects from the given namespace.
 	Delete(context.Context, client.Client, string) error
 }

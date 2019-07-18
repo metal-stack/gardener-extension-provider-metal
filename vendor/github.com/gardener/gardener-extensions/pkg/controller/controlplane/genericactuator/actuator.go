@@ -22,9 +22,12 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/util"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/chartrenderer"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/operation/common"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
+
+	"github.com/gardener/gardener-resource-manager/pkg/manager"
 
 	"github.com/go-logr/logr"
 
@@ -32,11 +35,18 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+)
+
+const (
+	// ShootNoCleanupLabel is a constant for a label on a resource indicating the the Gardener cleaner should not delete this
+	// resource when cleaning a shoot during the deletion flow.
+	ShootNoCleanupLabel = "shoot.gardener.cloud/no-cleanup"
 )
 
 // ValuesProvider provides values for the 2 charts applied by this actuator.
@@ -49,18 +59,18 @@ type ValuesProvider interface {
 	GetControlPlaneShootChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (map[string]interface{}, error)
 }
 
-// ShootClientsFactory creates ShootClients to be used by this actuator.
-type ShootClientsFactory interface {
-	// NewClientsForShoot creates a new set of clients for the given shoot namespace.
-	NewClientsForShoot(context.Context, client.Client, string, client.Options) (util.ShootClients, error)
+// ChartRendererFactory creates chartrenderer.Interface to be used by this actuator.
+type ChartRendererFactory interface {
+	// NewChartRendererForShoot creates a new chartrenderer.Interface for the shoot cluster.
+	NewChartRendererForShoot(string) (chartrenderer.Interface, error)
 }
 
-// ShootClientsFactoryFunc is a function that satisfies ShootClientsFactory.
-type ShootClientsFactoryFunc func(context.Context, client.Client, string, client.Options) (util.ShootClients, error)
+// ChartRendererFactoryFunc is a function that satisfies ChartRendererFactory.
+type ChartRendererFactoryFunc func(string) (chartrenderer.Interface, error)
 
-// NewClientsForShoot creates a new set of clients for the given shoot namespace.
-func (f ShootClientsFactoryFunc) NewClientsForShoot(ctx context.Context, c client.Client, namespace string, opts client.Options) (util.ShootClients, error) {
-	return f(ctx, c, namespace, opts)
+// NewChartRendererForShoot creates a new chartrenderer.Interface for the shoot cluster.
+func (f ChartRendererFactoryFunc) NewChartRendererForShoot(version string) (chartrenderer.Interface, error) {
+	return f(version)
 }
 
 // NewActuator creates a new Actuator that acts upon and updates the status of ControlPlane resources.
@@ -70,7 +80,7 @@ func NewActuator(
 	secrets util.Secrets,
 	configChart, controlPlaneChart, controlPlaneShootChart util.Chart,
 	vp ValuesProvider,
-	shootClientsFactory ShootClientsFactory,
+	chartRendererFactory ChartRendererFactory,
 	imageVector imagevector.ImageVector,
 	configName string,
 	logger logr.Logger,
@@ -81,7 +91,7 @@ func NewActuator(
 		controlPlaneChart:      controlPlaneChart,
 		controlPlaneShootChart: controlPlaneShootChart,
 		vp:                     vp,
-		shootClientsFactory:    shootClientsFactory,
+		chartRendererFactory:   chartRendererFactory,
 		imageVector:            imageVector,
 		configName:             configName,
 		logger:                 logger.WithName("controlplane-actuator"),
@@ -95,7 +105,7 @@ type actuator struct {
 	controlPlaneChart      util.Chart
 	controlPlaneShootChart util.Chart
 	vp                     ValuesProvider
-	shootClientsFactory    ShootClientsFactory
+	chartRendererFactory   ChartRendererFactory
 	imageVector            imagevector.ImageVector
 	configName             string
 
@@ -141,6 +151,8 @@ func (a *actuator) InjectClient(client client.Client) error {
 	return nil
 }
 
+const resourceName = "controlplane-shoot"
+
 // Reconcile reconciles the given controlplane and cluster, creating or updating the additional Shoot
 // control plane components as needed.
 func (a *actuator) Reconcile(
@@ -163,8 +175,8 @@ func (a *actuator) Reconcile(
 		}
 
 		// Apply config chart
-		a.logger.Info("Applying configuration chart", "controlplane", util.ObjectName(cp), "values", values)
-		if err := a.configChart.Apply(ctx, a.gardenerClientset, a.chartApplier, cp.Namespace, cluster.Shoot, nil, nil, values); err != nil {
+		a.logger.Info("Applying configuration chart", "controlplane", util.ObjectName(cp))
+		if err := a.configChart.Apply(ctx, a.chartApplier, cp.Namespace, nil, "", "", values); err != nil {
 			return false, errors.Wrapf(err, "could not apply configuration chart for controlplane '%s'", util.ObjectName(cp))
 		}
 	}
@@ -199,28 +211,49 @@ func (a *actuator) Reconcile(
 	}
 
 	// Apply control plane chart
-	a.logger.Info("Applying control plane chart", "controlplane", util.ObjectName(cp), "values", values)
-	if err := a.controlPlaneChart.Apply(ctx, a.gardenerClientset, a.chartApplier, cp.Namespace, cluster.Shoot, a.imageVector, checksums, values); err != nil {
+	a.logger.Info("Applying control plane chart", "controlplane", util.ObjectName(cp))
+	if err := a.controlPlaneChart.Apply(ctx, a.chartApplier, cp.Namespace, a.imageVector, a.gardenerClientset.Version(), cluster.Shoot.Spec.Kubernetes.Version, values); err != nil {
 		return false, errors.Wrapf(err, "could not apply control plane chart for controlplane '%s'", util.ObjectName(cp))
 	}
 
-	// Create shoot clients
-	// sc, err := a.shootClientsFactory.NewClientsForShoot(ctx, a.client, cp.Namespace, client.Options{})
-	// if err != nil {
-	// 	return errors.Wrapf(err, "could not create shoot clients for shoot '%s'", cp.Namespace)
-	// }
+	// Create shoot chart renderer
+	chartRenderer, err := a.chartRendererFactory.NewChartRendererForShoot(cluster.Shoot.Spec.Kubernetes.Version)
+	if err != nil {
+		return false, errors.Wrapf(err, "could not create chart renderer for shoot '%s'", cp.Namespace)
+	}
 
 	// Get control plane shoot chart values
-	// values, err = a.vp.GetControlPlaneShootChartValues(ctx, cp, cluster)
-	// if err != nil {
-	// 	return err
-	// }
+	values, err = a.vp.GetControlPlaneShootChartValues(ctx, cp, cluster)
+	if err != nil {
+		return false, err
+	}
 
-	// Apply control plane shoot chart
-	// a.logger.Info("Applying control plane shoot chart", "controlplane", util.ObjectName(cp), "values", values)
-	// if err := a.controlPlaneShootChart.Apply(ctx, sc.GardenerClientset(), sc.ChartApplier(), metav1.NamespaceSystem, cluster.Shoot, a.imageVector, nil, values); err != nil {
-	// 	return errors.Wrapf(err, "could not apply control plane shoot chart for controlplane '%s'", util.ObjectName(cp))
-	// }
+	// Render control plane shoot chart
+	a.logger.Info("Rendering control plane shoot chart", "controlplane", util.ObjectName(cp), "values", values)
+	version := cluster.Shoot.Spec.Kubernetes.Version
+	name, data, err := a.controlPlaneShootChart.Render(chartRenderer, metav1.NamespaceSystem, a.imageVector, version, version, values)
+	if err != nil {
+		return false, errors.Wrapf(err, "could not render control plane shoot chart for controlplane '%s'", util.ObjectName(cp))
+	}
+
+	// Create or update secret containing the rendered control plane shoot chart
+	a.logger.Info("Creating secret of managed resource containing shoot chart", "controlplane", util.ObjectName(cp), "name", resourceName)
+	if err := manager.NewSecret(a.client).
+		WithNamespacedName(cp.Namespace, resourceName).
+		WithKeyValues(map[string][]byte{name: data}).
+		Reconcile(ctx); err != nil {
+		return false, errors.Wrapf(err, "could not create or update secret '%s/%s' of managed resource containing shoot chart for controlplane '%s'", cp.Namespace, resourceName, util.ObjectName(cp))
+	}
+
+	// Create or update managed resource referencing the previously created secret
+	a.logger.Info("Creating managed resource containing shoot chart", "controlplane", util.ObjectName(cp), "name", resourceName)
+	if err := manager.NewManagedResource(a.client).
+		WithNamespacedName(cp.Namespace, resourceName).
+		WithInjectedLabels(map[string]string{ShootNoCleanupLabel: "true"}).
+		WithSecretRef(resourceName).
+		Reconcile(ctx); err != nil {
+		return false, errors.Wrapf(err, "could not create or update managed resource '%s/%s' containing shoot chart for controlplane '%s'", cp.Namespace, resourceName, util.ObjectName(cp))
+	}
 
 	return requeue, nil
 }
@@ -232,17 +265,21 @@ func (a *actuator) Delete(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 ) error {
-	// Create shoot clients
-	// sc, err := a.shootClientsFactory.NewClientsForShoot(ctx, a.client, cp.Namespace, client.Options{})
-	// if err != nil {
-	// 	return errors.Wrapf(err, "could not create shoot clients for shoot '%s'", cp.Namespace)
-	// }
+	// Delete the managed resource
+	a.logger.Info("Deleting managed resource containing shoot chart", "controlplane", util.ObjectName(cp), "name", resourceName)
+	if err := manager.NewManagedResource(a.client).
+		WithNamespacedName(cp.Namespace, resourceName).
+		Delete(ctx); err != nil {
+		return errors.Wrapf(err, "could not delete managed resource '%s/%s' containing shoot chart for controlplane '%s'", cp.Namespace, resourceName, util.ObjectName(cp))
+	}
 
-	// Delete control plane shoot objects
-	// a.logger.Info("Deleting control plane shoot objects", "controlplane", util.ObjectName(cp))
-	// if err := a.controlPlaneShootChart.Delete(ctx, sc.Client(), metav1.NamespaceSystem); err != nil {
-	// 	return errors.Wrapf(err, "could not delete control plane shoot objects for controlplane '%s'", util.ObjectName(cp))
-	// }
+	// Delete the secret referenced by the managed resource
+	a.logger.Info("Deleting secret of managed resource containing shoot chart", "controlplane", util.ObjectName(cp), "name", resourceName)
+	if err := manager.NewSecret(a.client).
+		WithNamespacedName(cp.Namespace, resourceName).
+		Delete(ctx); err != nil {
+		return errors.Wrapf(err, "could not delete secret '%s/%s' of managed resource containing shoot chart for controlplane '%s'", cp.Namespace, resourceName, util.ObjectName(cp))
+	}
 
 	// Delete control plane objects
 	a.logger.Info("Deleting control plane objects", "controlplane", util.ObjectName(cp))

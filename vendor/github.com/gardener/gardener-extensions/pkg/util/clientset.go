@@ -18,6 +18,7 @@ import (
 	apimachineryconfig "k8s.io/apimachinery/pkg/apis/config"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	componentbaseconfig "k8s.io/component-base/config"
 )
 
 // NewRESTConfigFromKubeconfig creates a new REST config from a given Kubeconfig and returns it.
@@ -29,6 +30,19 @@ func NewRESTConfigFromKubeconfig(kubeconfig []byte) (*rest.Config, error) {
 	clientConfig := clientcmd.NewDefaultClientConfig(*configObj, &clientcmd.ConfigOverrides{})
 
 	return createRESTConfig(clientConfig, nil)
+}
+
+// ApplyClientConnectionConfigurationToRESTConfig applies the given client connection configurations to the given
+// REST config.
+func ApplyClientConnectionConfigurationToRESTConfig(clientConnection *componentbaseconfig.ClientConnectionConfiguration, rest *rest.Config) {
+	if clientConnection == nil {
+		return
+	}
+
+	rest.AcceptContentTypes = clientConnection.AcceptContentTypes
+	rest.ContentType = clientConnection.ContentType
+	rest.Burst = int(clientConnection.Burst)
+	rest.QPS = clientConnection.QPS
 }
 
 // createRESTConfig creates a Config object for a rest client. If a clientConnection configuration object is passed

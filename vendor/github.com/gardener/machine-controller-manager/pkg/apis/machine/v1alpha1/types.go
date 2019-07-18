@@ -1173,11 +1173,12 @@ const (
 	AlicloudAccessKeySecret string = "alicloudAccessKeySecret"
 
 	// PacketAPIKey is a constant for a key name that is part of the Packet cloud credentials
+	PacketAPIKey string = "packetAPIKey"
+
 	// MetalAPIKey is a constant for a key name that is part of the Metal cloud credentials
 	MetalAPIKey string = "metalAPIKey"
 	// MetalAPIHMac is a constant for a hmac that is part of the Metal cloud credentials
 	MetalAPIHMac string = "metalAPIHMac"
-	PacketAPIKey string = "apiToken"
 	// MetalAPIURL is a constant for a url where to reach out the metal api
 	MetalAPIURL string = "metalAPIURL"
 )
@@ -1283,12 +1284,6 @@ type PacketMachineClassSpec struct {
 	UserData     string   `json:"userdata,omitempty"`
 
 	SecretRef *corev1.SecretReference `json:"secretRef,omitempty"`
-}
-
-// PacketSSHKeySpec describes ssh keys for packet
-type PacketSSHKeySpec struct {
-	ID          string `json:"id"`
-	Fingerprint string `json:"fingerprint"`
 }
 
 /********************** MetalMachineClass APIs ***************/

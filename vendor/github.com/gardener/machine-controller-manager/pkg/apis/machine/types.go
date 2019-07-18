@@ -1235,12 +1235,6 @@ type PacketMachineClassSpec struct {
 	// TODO add more here
 }
 
-// PacketSSHKeySpec represents a single ssh key
-type PacketSSHKeySpec struct {
-	ID          string
-	Fingerprint string
-}
-
 /********************** MetalMachineClass APIs ***************/
 
 // +genclient

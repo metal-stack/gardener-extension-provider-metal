@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/gardener/gardener/pkg/utils"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -51,13 +50,6 @@ func ComputeChecksum(data interface{}) string {
 		return ""
 	}
 	return utils.ComputeSHA256Hex(jsonString)
-}
-
-// GetSecretByRef reads the secret given by the reference and returns it.
-func GetSecretByRef(ctx context.Context, c client.Client, ref corev1.SecretReference) (*corev1.Secret, error) {
-	secret := &corev1.Secret{}
-	err := c.Get(ctx, kutil.Key(ref.Namespace, ref.Name), secret)
-	return secret, err
 }
 
 // GetKubeconfigFromSecret gets the Kubeconfig from the passed secret.
