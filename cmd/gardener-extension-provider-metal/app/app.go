@@ -32,6 +32,7 @@ import (
 	metalworker "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	"k8s.io/apimachinery/pkg/runtime"
+
 	// metalcontrolplanebackup "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplanebackup"
 	// metalcontrolplaneexposure "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
 	"github.com/gardener/gardener-extensions/pkg/controller"
@@ -83,7 +84,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		controllerSwitches   = metalcmd.ControllerSwitchOptions()
 		webhookSwitches      = metalcmd.WebhookSwitchOptions()
 		webhookServerOptions = &webhookcmd.ServerOptions{
-			Port:             7890,
+			Port:             443,
 			CertDir:          "/tmp/cert",
 			Mode:             webhookcmd.ServiceMode,
 			Name:             "webhooks",

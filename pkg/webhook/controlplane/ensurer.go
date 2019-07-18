@@ -20,7 +20,6 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/gardener/gardener/pkg/operation/common"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	"github.com/coreos/go-systemd/unit"
 	"github.com/go-logr/logr"
@@ -91,7 +90,7 @@ func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev
 	if err := controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, common.CloudProviderSecretName); err != nil {
 		return err
 	}
-	return controlplane.EnsureConfigMapChecksumAnnotation(ctx, template, e.client, namespace, metal.CloudProviderConfigName)
+	return nil
 }
 
 // EnsureKubeletServiceUnitOptions ensures that the kubelet.service unit options conform to the provider requirements.
