@@ -1,7 +1,7 @@
 images:
 - name: metalccm
   sourceRepository: github.com/kubernetes/kubernetes
-  repository: metal-pod/metal-ccm
+  repository: metalpod/metal-ccm
   tag: latest
 - name: machine-controller-manager
   sourceRepository: github.com/gardener/machine-controller-manager

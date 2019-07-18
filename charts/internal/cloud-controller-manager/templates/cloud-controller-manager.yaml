@@ -17,7 +17,7 @@ spec:
     app: kubernetes
     role: cloud-controller-manager
 ---
-apiVersion: {{ include "deploymentversion" . }}
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cloud-controller-manager

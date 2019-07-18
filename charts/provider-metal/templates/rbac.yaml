@@ -9,11 +9,15 @@ rules:
 - apiGroups:
   - extensions.gardener.cloud
   resources:
+  - backupbucket
+  - backupbucket/status
+  - backupentry
+  - backupentry/status
   - clusters
-  - infrastructures
-  - infrastructures/status
   - controlplanes
   - controlplanes/status
+  - infrastructures
+  - infrastructures/status
   - workers
   - workers/status
   verbs:
@@ -22,6 +26,12 @@ rules:
   - watch
   - patch
   - update
+- apiGroups:
+  - resources.gardener.cloud
+  resources:
+  - managedresources
+  verbs:
+  - "*"
 - apiGroups:
   - ""
   resources:
