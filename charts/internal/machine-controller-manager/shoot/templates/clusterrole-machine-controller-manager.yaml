@@ -23,6 +23,15 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumes
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - pods/eviction
   verbs:
   - create
