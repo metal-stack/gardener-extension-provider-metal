@@ -46,8 +46,10 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 	}
 
 	partition := infrastructureConfig.Firewall.Partition
-	project := cluster.Shoot.Namespace
+	project := cluster.Shoot.Status.TechnicalID
+	a.logger.Info("search firewalls:", "partition", partition, "project", project)
 	fws, err := svc.FirewallSearch(&partition, &project)
+	a.logger.Info("found firewalls:", "count", len(fws.Firewalls), "", fws.Firewalls)
 	if err != nil {
 		a.logger.Error(err, "failed get firewalls", "infrastructure", infrastructure.Name)
 		return &controllererrors.RequeueAfterError{
