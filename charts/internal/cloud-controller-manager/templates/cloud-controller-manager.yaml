@@ -89,7 +89,7 @@ spec:
                 name: cloudprovider
                 key: metalAPIHMac
           - name: METAL_PROJECT_ID
-            value: gardener-test
+            value: {{ .Values.clusterName }}
         livenessProbe:
           httpGet:
             path: /healthz
