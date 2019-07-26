@@ -107,11 +107,11 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				"partition": zone,
 				"size":      pool.MachineType,
 				"project":   w.worker.Namespace,
-				"tenant":    "devops", // FIXME: This should actually come from the gardener project definition
+				"tenant":    "devops", // FIXME tenant must not be required in MetalMachineClassSpec
 				"image":     imageID,
 				"tags": []string{
 					fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace),
-					fmt.Sprintf("kubernetes.io/role/node"),
+					"kubernetes.io/role/node",
 				},
 				"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},
 				"secret": map[string]interface{}{
