@@ -23,7 +23,6 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
 
-	"github.com/gardener/gardener/pkg/operation/common"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,6 +33,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+
+	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
+	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 )
 
 const (
@@ -54,9 +56,9 @@ var _ = Describe("Ensurer", func() {
 
 		ctrl *gomock.Controller
 
-		svcKey = client.ObjectKey{Namespace: namespace, Name: common.KubeAPIServerDeploymentName}
+		svcKey = client.ObjectKey{Namespace: namespace, Name: gardencorev1alpha1.DeploymentNameKubeAPIServer}
 		svc    = &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{Name: common.KubeAPIServerDeploymentName, Namespace: namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: gardencorev1alpha1.DeploymentNameKubeAPIServer, Namespace: namespace},
 			Status: corev1.ServiceStatus{
 				LoadBalancer: corev1.LoadBalancerStatus{
 					Ingress: []corev1.LoadBalancerIngress{
@@ -79,7 +81,7 @@ var _ = Describe("Ensurer", func() {
 		It("should add missing elements to kube-apiserver deployment", func() {
 			var (
 				dep = &appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{Name: common.KubeAPIServerDeploymentName, Namespace: namespace},
+					ObjectMeta: metav1.ObjectMeta{Name: gardencorev1alpha1.DeploymentNameKubeAPIServer, Namespace: namespace},
 					Spec: appsv1.DeploymentSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -112,7 +114,7 @@ var _ = Describe("Ensurer", func() {
 		It("should modify existing elements of kube-apiserver deployment", func() {
 			var (
 				dep = &appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{Name: common.KubeAPIServerDeploymentName, Namespace: namespace},
+					ObjectMeta: metav1.ObjectMeta{Name: gardencorev1alpha1.DeploymentNameKubeAPIServer, Namespace: namespace},
 					Spec: appsv1.DeploymentSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -148,7 +150,7 @@ var _ = Describe("Ensurer", func() {
 		It("should add or modify elements to etcd-main statefulset", func() {
 			var (
 				ss = &appsv1.StatefulSet{
-					ObjectMeta: metav1.ObjectMeta{Name: common.EtcdMainStatefulSetName},
+					ObjectMeta: metav1.ObjectMeta{Name: gardencorev1alpha1.StatefulSetNameETCDMain},
 				}
 			)
 
@@ -164,7 +166,7 @@ var _ = Describe("Ensurer", func() {
 		It("should modify existing elements of etcd-main statefulset", func() {
 			var (
 				ss = &appsv1.StatefulSet{
-					ObjectMeta: metav1.ObjectMeta{Name: common.EtcdMainStatefulSetName},
+					ObjectMeta: metav1.ObjectMeta{Name: gardencorev1alpha1.StatefulSetNameETCDMain},
 					Spec: appsv1.StatefulSetSpec{
 						VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 							{
@@ -195,7 +197,7 @@ var _ = Describe("Ensurer", func() {
 		It("should add or modify elements to etcd-events statefulset", func() {
 			var (
 				ss = &appsv1.StatefulSet{
-					ObjectMeta: metav1.ObjectMeta{Name: common.EtcdEventsStatefulSetName},
+					ObjectMeta: metav1.ObjectMeta{Name: gardencorev1alpha1.StatefulSetNameETCDEvents},
 				}
 			)
 
@@ -211,7 +213,7 @@ var _ = Describe("Ensurer", func() {
 		It("should modify existing elements of etcd-events statefulset", func() {
 			var (
 				ss = &appsv1.StatefulSet{
-					ObjectMeta: metav1.ObjectMeta{Name: common.EtcdEventsStatefulSetName},
+					ObjectMeta: metav1.ObjectMeta{Name: gardencorev1alpha1.StatefulSetNameETCDEvents},
 					Spec: appsv1.StatefulSetSpec{
 						VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 							{
@@ -243,21 +245,21 @@ var _ = Describe("Ensurer", func() {
 
 func checkKubeAPIServerDeployment(dep *appsv1.Deployment) {
 	// Check that the kube-apiserver container still exists and contains all needed command line args
-	c := controlplane.ContainerWithName(dep.Spec.Template.Spec.Containers, "kube-apiserver")
+	c := extensionswebhook.ContainerWithName(dep.Spec.Template.Spec.Containers, "kube-apiserver")
 	Expect(c).To(Not(BeNil()))
 	Expect(c.Command).To(ContainElement("--advertise-address=1.2.3.4"))
 	Expect(c.Command).To(ContainElement("--external-hostname=1.2.3.4"))
 }
 
 func checkETCDMainStatefulSet(ss *appsv1.StatefulSet) {
-	pvc := controlplane.PVCWithName(ss.Spec.VolumeClaimTemplates, controlplane.EtcdMainVolumeClaimTemplateName)
+	pvc := extensionswebhook.PVCWithName(ss.Spec.VolumeClaimTemplates, controlplane.EtcdMainVolumeClaimTemplateName)
 	Expect(pvc).To(Equal(controlplane.GetETCDVolumeClaimTemplate(controlplane.EtcdMainVolumeClaimTemplateName, util.StringPtr("gardener.cloud-fast"),
 		util.QuantityPtr(resource.MustParse("25Gi")))))
 }
 
 func checkETCDEventsStatefulSet(ss *appsv1.StatefulSet) {
-	pvc := controlplane.PVCWithName(ss.Spec.VolumeClaimTemplates, common.EtcdEventsStatefulSetName)
-	Expect(pvc).To(Equal(controlplane.GetETCDVolumeClaimTemplate(common.EtcdEventsStatefulSetName, nil, nil)))
+	pvc := extensionswebhook.PVCWithName(ss.Spec.VolumeClaimTemplates, gardencorev1alpha1.StatefulSetNameETCDEvents)
+	Expect(pvc).To(Equal(controlplane.GetETCDVolumeClaimTemplate(gardencorev1alpha1.StatefulSetNameETCDEvents, nil, nil)))
 }
 
 func clientGet(result runtime.Object) interface{} {

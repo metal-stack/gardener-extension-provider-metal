@@ -19,12 +19,12 @@ import (
 	"testing"
 
 	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
+	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/test"
+	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	"github.com/coreos/go-systemd/unit"
-	"github.com/gardener/gardener/pkg/operation/common"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -73,7 +73,7 @@ var _ = Describe("Ensurer", func() {
 		It("should add missing elements to kube-apiserver deployment", func() {
 			var (
 				dep = &appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: common.KubeAPIServerDeploymentName},
+					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: gardencorev1alpha1.DeploymentNameKubeAPIServer},
 					Spec: appsv1.DeploymentSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -106,7 +106,7 @@ var _ = Describe("Ensurer", func() {
 		It("should modify existing elements of kube-apiserver deployment", func() {
 			var (
 				dep = &appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: common.KubeAPIServerDeploymentName},
+					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: gardencorev1alpha1.DeploymentNameKubeAPIServer},
 					Spec: appsv1.DeploymentSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -153,7 +153,7 @@ var _ = Describe("Ensurer", func() {
 		It("should add missing elements to kube-controller-manager deployment", func() {
 			var (
 				dep = &appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: common.KubeControllerManagerDeploymentName},
+					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: gardencorev1alpha1.DeploymentNameKubeControllerManager},
 					Spec: appsv1.DeploymentSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -186,7 +186,7 @@ var _ = Describe("Ensurer", func() {
 		It("should modify existing elements of kube-controller-manager deployment", func() {
 			var (
 				dep = &appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: common.KubeControllerManagerDeploymentName},
+					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: gardencorev1alpha1.DeploymentNameKubeControllerManager},
 					Spec: appsv1.DeploymentSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -292,16 +292,14 @@ var _ = Describe("Ensurer", func() {
 func checkKubeAPIServerDeployment(dep *appsv1.Deployment, annotations map[string]string) {
 	// Check that the kube-apiserver container still exists and contains all needed command line args,
 	// env vars, and volume mounts
-	c := controlplane.ContainerWithName(dep.Spec.Template.Spec.Containers, "kube-apiserver")
+	c := extensionswebhook.ContainerWithName(dep.Spec.Template.Spec.Containers, "kube-apiserver")
 	Expect(c).To(Not(BeNil()))
-	Expect(c.Command).To(ContainElement("--cloud-provider=metal"))
-	Expect(c.Command).To(ContainElement("--cloud-config=/etc/kubernetes/cloudprovider/cloudprovider.conf"))
-	Expect(c.Command).To(test.ContainElementWithPrefixContaining("--enable-admission-plugins=", "PersistentVolumeLabel", ","))
-	Expect(c.Command).To(Not(test.ContainElementWithPrefixContaining("--disable-admission-plugins=", "PersistentVolumeLabel", ",")))
-	Expect(c.VolumeMounts).To(ContainElement(cloudProviderConfigVolumeMount))
-
-	// Check that the Pod spec contains all needed volumes
-	Expect(dep.Spec.Template.Spec.Volumes).To(ContainElement(cloudProviderConfigVolume))
+	Expect(c.Command).To(Not(test.ContainElementWithPrefixContaining("--enable-admission-plugins=", "PersistentVolumeLabel", ",")))
+	Expect(c.Command).To(test.ContainElementWithPrefixContaining("--disable-admission-plugins=", "PersistentVolumeLabel", ","))
+	Expect(c.Command).To(test.ContainElementWithPrefixContaining("--feature-gates=", "VolumeSnapshotDataSource=true", ","))
+	Expect(c.Command).To(test.ContainElementWithPrefixContaining("--feature-gates=", "CSINodeInfo=true", ","))
+	Expect(c.Command).To(test.ContainElementWithPrefixContaining("--feature-gates=", "CSIDriverRegistry=true", ","))
+	Expect(c.Command).To(test.ContainElementWithPrefixContaining("--feature-gates=", "KubeletPluginsWatcher=true", ","))
 
 	// Check that the Pod template contains all needed checksum annotations
 	Expect(dep.Spec.Template.Annotations).To(Equal(annotations))
@@ -310,18 +308,9 @@ func checkKubeAPIServerDeployment(dep *appsv1.Deployment, annotations map[string
 func checkKubeControllerManagerDeployment(dep *appsv1.Deployment, annotations map[string]string) {
 	// Check that the kube-controller-manager container still exists and contains all needed command line args,
 	// env vars, and volume mounts
-	c := controlplane.ContainerWithName(dep.Spec.Template.Spec.Containers, "kube-controller-manager")
+	c := extensionswebhook.ContainerWithName(dep.Spec.Template.Spec.Containers, "kube-controller-manager")
 	Expect(c).To(Not(BeNil()))
 	Expect(c.Command).To(ContainElement("--cloud-provider=external"))
-	Expect(c.Command).To(ContainElement("--cloud-config=/etc/kubernetes/cloudprovider/cloudprovider.conf"))
-	Expect(c.Command).To(ContainElement("--external-cloud-volume-plugin=metal"))
-	Expect(c.VolumeMounts).To(ContainElement(cloudProviderConfigVolumeMount))
-
-	// Check that the Pod spec contains all needed volumes
-	Expect(dep.Spec.Template.Spec.Volumes).To(ContainElement(cloudProviderConfigVolume))
-
-	// Check that the Pod template contains all needed checksum annotations
-	Expect(dep.Spec.Template.Annotations).To(Equal(annotations))
 }
 
 func clientGet(result runtime.Object) interface{} {

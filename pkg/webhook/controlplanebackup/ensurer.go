@@ -18,12 +18,13 @@ import (
 	"context"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
+	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
-	"github.com/gardener/gardener/pkg/operation/common"
+	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -68,12 +69,12 @@ func (e *ensurer) ensureContainers(ps *corev1.PodSpec, name string, cluster *ext
 	if err != nil {
 		return err
 	}
-	ps.Containers = controlplane.EnsureContainerWithName(ps.Containers, *c)
+	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, *c)
 	return nil
 }
 
 func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev1.PodTemplateSpec, namespace, name string) error {
-	if name == common.EtcdMainStatefulSetName {
+	if name == gardencorev1alpha1.StatefulSetNameETCDMain {
 		return controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, metal.BackupSecretName)
 	}
 	return nil
@@ -92,9 +93,9 @@ func (e *ensurer) getBackupRestoreContainer(name string, cluster *extensionscont
 	var (
 		volumeClaimTemplateName = name
 	)
-	if name == common.EtcdMainStatefulSetName {
+	if name == gardencorev1alpha1.StatefulSetNameETCDMain {
 		volumeClaimTemplateName = controlplane.EtcdMainVolumeClaimTemplateName
 	}
 
-	return controlplane.GetBackupRestoreContainer(name, volumeClaimTemplateName, "", "", image.String(), nil, nil, nil), nil
+	return controlplane.GetBackupRestoreContainer(name, volumeClaimTemplateName, "", "", "", image.String(), nil, nil, nil), nil
 }

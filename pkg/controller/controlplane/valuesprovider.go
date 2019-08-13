@@ -27,7 +27,6 @@ import (
 
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/operation/common"
 	"github.com/gardener/gardener/pkg/utils/chart"
 	"github.com/gardener/gardener/pkg/utils/secrets"
 
@@ -69,7 +68,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 				KubeConfigRequest: &secrets.KubeConfigRequest{
 					ClusterName:  clusterName,
-					APIServerURL: common.KubeAPIServerDeploymentName,
+					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -150,12 +149,21 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	return getCCMChartValues(cpConfig, cp, cluster, checksums, scaledDown)
 }
 
-// GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
-func (vp *valuesProvider) GetControlPlaneShootChartValues(
+// GetControlPlaneExposureChartValues returns the values for the control plane exposure chart applied by the generic actuator.
+func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
-	cluster *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
+	cluster *extensionscontroller.Cluster, m map[string]string) (map[string]interface{}, error) {
+	return nil, nil
+}
+
+// GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
+func (vp *valuesProvider) GetControlPlaneShootChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (map[string]interface{}, error) {
+	return nil, nil
+}
+
+// GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
+func (vp *valuesProvider) GetStorageClassesChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	return nil, nil
 }
 
@@ -177,7 +185,7 @@ func getCCMChartValues(
 			"checksum/secret-cloud-controller-manager-server": checksums[cloudControllerManagerServerName],
 			// TODO Use constant from github.com/gardener/gardener/pkg/apis/core/v1alpha1 when available
 			// See https://github.com/gardener/gardener/pull/930
-			"checksum/secret-cloudprovider":            checksums[common.CloudProviderSecretName],
+			"checksum/secret-cloudprovider":            checksums[gardencorev1alpha1.SecretNameCloudProvider],
 			"checksum/configmap-cloud-provider-config": checksums[metal.CloudProviderConfigName],
 		},
 	}

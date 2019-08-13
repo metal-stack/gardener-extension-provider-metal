@@ -25,17 +25,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var logger = log.Log.WithName("metal-controlplane-webhook")
 
 // AddToManager creates a webhook and adds it to the manager.
-func AddToManager(mgr manager.Manager) (webhook.Webhook, error) {
+func AddToManager(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
 	fciCodec := controlplane.NewFileContentInlineCodec()
 	return controlplane.Add(mgr, controlplane.AddArgs{
-		Kind:     extensionswebhook.ShootKind,
+		Kind:     controlplane.KindShoot,
 		Provider: metal.Type,
 		Types:    []runtime.Object{&appsv1.Deployment{}, &extensionsv1alpha1.OperatingSystemConfig{}},
 		Mutator: genericmutator.NewMutator(NewEnsurer(logger), controlplane.NewUnitSerializer(),

@@ -37,7 +37,6 @@ import (
 	// metalcontrolplaneexposure "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
 	"github.com/gardener/gardener-extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
-	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
 
@@ -67,7 +66,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		infraCtrlOpts = &controllercmd.ControllerOptions{
 			MaxConcurrentReconciles: 5,
 		}
-		infraReconcileOpts = &infrastructure.ReconcilerOptions{
+		infraReconcileOpts = &controllercmd.ReconcilerOptions{
 			IgnoreOperationAnnotation: true,
 		}
 		infraCtrlOptsUnprefixed = controllercmd.NewOptionAggregator(infraCtrlOpts, infraReconcileOpts)
@@ -84,13 +83,8 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		controllerSwitches   = metalcmd.ControllerSwitchOptions()
 		webhookSwitches      = metalcmd.WebhookSwitchOptions()
 		webhookServerOptions = &webhookcmd.ServerOptions{
-			Port:             443,
-			CertDir:          "/tmp/cert",
-			Mode:             webhookcmd.ServiceMode,
-			Name:             "webhooks",
-			Namespace:        os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
-			ServiceSelectors: "{}",
-			Host:             "localhost",
+			CertDir:   "/tmp/cert",
+			Namespace: os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
 		}
 		webhookOptions = webhookcmd.NewAddToManagerOptions(metal.Name, webhookServerOptions, webhookSwitches)
 
@@ -163,8 +157,8 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 					controllercmd.LogErrAndExit(err, "Error creating k8s client for CRD deployment")
 				}
 
-				if _, err := controllerutil.CreateOrUpdate(ctx, c, obj, func(existing runtime.Object) error {
-					existingCRD := existing.(*apiextensionsv1beta1.CustomResourceDefinition)
+				if _, err := controllerutil.CreateOrUpdate(ctx, c, obj, func() error {
+					existingCRD := obj
 					existingCRD.Spec = metalCRD.Spec
 					return nil
 				}); err != nil {
@@ -197,7 +191,8 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				controllercmd.LogErrAndExit(err, "Could not add controllers to manager")
 			}
 
-			if err := webhookOptions.Completed().AddToManager(mgr); err != nil {
+			cfg := webhookOptions.Completed()
+			if _, _, err := cfg.AddToManager(mgr); err != nil {
 				controllercmd.LogErrAndExit(err, "Could not add webhooks to manager")
 			}
 

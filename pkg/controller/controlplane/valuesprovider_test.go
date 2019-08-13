@@ -18,14 +18,13 @@ import (
 	"context"
 	"encoding/json"
 
+	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	apisaws "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/garden/v1beta1"
-	"github.com/gardener/gardener/pkg/operation/common"
 
 	"github.com/golang/mock/gomock"
 
@@ -106,10 +105,10 @@ var _ = Describe("ValuesProvider", func() {
 		}
 
 		checksums = map[string]string{
-			common.CloudProviderSecretName:    "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
-			metal.CloudProviderConfigName:       "08a7bc7fe8f59b055f173145e211760a83f02cf89635cef26ebb351378635606",
-			"cloud-controller-manager":        "3d791b164a808638da9a8df03924be2a41e34cd664e42231c00fe369e3588272",
-			"cloud-controller-manager-server": "6dff2a2e6f14444b66d8e4a351c049f7e89ee24ba3eaab95dbec40ba6bdebb52",
+			gardencorev1alpha1.SecretNameCloudProvider: "8bafb35ff1ac60275d62e1cbd495aceb511fb354f74a20f7d06ecb48b3a68432",
+			metal.CloudProviderConfigName:              "08a7bc7fe8f59b055f173145e211760a83f02cf89635cef26ebb351378635606",
+			"cloud-controller-manager":                 "3d791b164a808638da9a8df03924be2a41e34cd664e42231c00fe369e3588272",
+			"cloud-controller-manager-server":          "6dff2a2e6f14444b66d8e4a351c049f7e89ee24ba3eaab95dbec40ba6bdebb52",
 		}
 
 		configChartValues = map[string]interface{}{
@@ -168,7 +167,7 @@ var _ = Describe("ValuesProvider", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Call GetControlPlaneChartValues method and check the result
-			values, err := vp.GetControlPlaneChartValues(context.TODO(), cp, cluster, checksums)
+			values, err := vp.GetControlPlaneChartValues(context.TODO(), cp, cluster, checksums, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(values).To(Equal(ccmChartValues))
 		})

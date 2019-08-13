@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
@@ -43,10 +42,10 @@ type AddOptions struct {
 var logger = log.Log.WithName("metal-controlplaneexposure-webhook")
 
 // AddToManagerWithOptions creates a webhook with the given options and adds it to the manager.
-func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (webhook.Webhook, error) {
+func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionswebhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
 	return controlplane.Add(mgr, controlplane.AddArgs{
-		Kind:     extensionswebhook.SeedKind,
+		Kind:     controlplane.KindSeed,
 		Provider: metal.Type,
 		Types:    []runtime.Object{&corev1.Service{}, &appsv1.Deployment{}, &appsv1.StatefulSet{}},
 		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDStorage, logger), nil, nil, nil, logger),
@@ -54,6 +53,6 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (webhook.Webh
 }
 
 // AddToManager creates a webhook with the default options and adds it to the manager.
-func AddToManager(mgr manager.Manager) (webhook.Webhook, error) {
+func AddToManager(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	return AddToManagerWithOptions(mgr, DefaultAddOptions)
 }

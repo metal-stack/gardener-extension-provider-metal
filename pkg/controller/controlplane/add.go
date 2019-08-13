@@ -21,31 +21,47 @@ import (
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
+	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var (
-	// Options are the default controller.Options for AddToManager.
-	Options = controller.Options{}
+	// DefaultAddOptions are the default AddOptions for AddToManager.
+	DefaultAddOptions = AddOptions{}
 
 	logger = log.Log.WithName("metal-controlplane-controller")
 )
 
+// AddOptions are options to apply when adding the Packet controlplane controller to the manager.
+type AddOptions struct {
+	// Controller are the controller.Options.
+	Controller controller.Options
+	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
+	IgnoreOperationAnnotation bool
+}
+
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
-func AddToManagerWithOptions(mgr manager.Manager, opts controller.Options) error {
+func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return controlplane.Add(mgr, controlplane.AddArgs{
-		Actuator: genericactuator.NewActuator(controlPlaneSecrets, nil, ccmChart, ccmShootChart,
-			NewValuesProvider(logger), genericactuator.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
-			imagevector.ImageVector(), "", logger),
-		Type:              metal.Type,
-		ControllerOptions: opts,
+		Actuator: genericactuator.NewActuator(metal.Name, controlPlaneSecrets, nil, nil, ccmChart, ccmShootChart,
+			nil, nil, NewValuesProvider(logger), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
+			imagevector.ImageVector(), "", nil, 0, logger),
+		ControllerOptions: opts.Controller,
+		Predicates:        controlplane.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
 	})
+	// return controlplane.Add(mgr, controlplane.AddArgs{
+	// 	Actuator: genericactuator.NewActuator(controlPlaneSecrets, nil, ccmChart, ccmShootChart, storageClassChart,
+	// 		NewValuesProvider(logger), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
+	// 		imagevector.ImageVector(), "", logger),
+	// 	ControllerOptions: opts.Controller,
+	// 	Predicates:        controlplane.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
+	// })
 }
 
 // AddToManager adds a controller with the default Options.
 func AddToManager(mgr manager.Manager) error {
-	return AddToManagerWithOptions(mgr, Options)
+	return AddToManagerWithOptions(mgr, DefaultAddOptions)
 }

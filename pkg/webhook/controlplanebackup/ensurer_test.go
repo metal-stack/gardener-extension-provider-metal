@@ -26,7 +26,7 @@ import (
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/garden/v1beta1"
-	"github.com/gardener/gardener/pkg/operation/common"
+	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 )
 
 const (
@@ -97,7 +98,7 @@ var _ = Describe("Ensurer", func() {
 		It("should add or modify elements to etcd-main statefulset", func() {
 			var (
 				ss = &appsv1.StatefulSet{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: common.EtcdMainStatefulSetName},
+					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: gardencorev1alpha1.StatefulSetNameETCDMain},
 				}
 			)
 
@@ -119,7 +120,7 @@ var _ = Describe("Ensurer", func() {
 		It("should modify existing elements of etcd-main statefulset", func() {
 			var (
 				ss = &appsv1.StatefulSet{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: common.EtcdMainStatefulSetName},
+					ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: gardencorev1alpha1.StatefulSetNameETCDMain},
 					Spec: appsv1.StatefulSetSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -152,7 +153,7 @@ var _ = Describe("Ensurer", func() {
 		It("should add or modify elements to etcd-events statefulset", func() {
 			var (
 				ss = &appsv1.StatefulSet{
-					ObjectMeta: metav1.ObjectMeta{Name: common.EtcdEventsStatefulSetName},
+					ObjectMeta: metav1.ObjectMeta{Name: gardencorev1alpha1.StatefulSetNameETCDEvents},
 				}
 			)
 
@@ -168,7 +169,7 @@ var _ = Describe("Ensurer", func() {
 		It("should modify existing elements of etcd-events statefulset", func() {
 			var (
 				ss = &appsv1.StatefulSet{
-					ObjectMeta: metav1.ObjectMeta{Name: common.EtcdEventsStatefulSetName},
+					ObjectMeta: metav1.ObjectMeta{Name: gardencorev1alpha1.StatefulSetNameETCDEvents},
 					Spec: appsv1.StatefulSetSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -254,15 +255,15 @@ func checkETCDMainStatefulSet(ss *appsv1.StatefulSet, annotations map[string]str
 		}
 	)
 
-	c := controlplane.ContainerWithName(ss.Spec.Template.Spec.Containers, "backup-restore")
-	Expect(c).To(Equal(controlplane.GetBackupRestoreContainer(common.EtcdMainStatefulSetName, controlplane.EtcdMainVolumeClaimTemplateName, "0 */24 * * *", metal.StorageProviderName,
+	c := extensionswebhook.ContainerWithName(ss.Spec.Template.Spec.Containers, "backup-restore")
+	Expect(c).To(Equal(extensionswebhook.GetBackupRestoreContainer(gardencorev1alpha1.StatefulSetNameETCDMain, controlplane.EtcdMainVolumeClaimTemplateName, "0 */24 * * *", metal.StorageProviderName,
 		"test-repository:test-tag", nil, env, nil)))
 	Expect(ss.Spec.Template.Annotations).To(Equal(annotations))
 }
 
 func checkETCDEventsStatefulSet(ss *appsv1.StatefulSet) {
-	c := controlplane.ContainerWithName(ss.Spec.Template.Spec.Containers, "backup-restore")
-	Expect(c).To(Equal(controlplane.GetBackupRestoreContainer(common.EtcdEventsStatefulSetName, common.EtcdEventsStatefulSetName, "0 */24 * * *", "",
+	c := extensionswebhook.ContainerWithName(ss.Spec.Template.Spec.Containers, "backup-restore")
+	Expect(c).To(Equal(extensionswebhook.GetBackupRestoreContainer(gardencorev1alpha1.StatefulSetNameETCDEvents, gardencorev1alpha1.StatefulSetNameETCDEvents, "0 */24 * * *", "",
 		"test-repository:test-tag", nil, nil, nil)))
 }
 
