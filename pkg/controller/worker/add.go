@@ -36,6 +36,8 @@ type AddOptions struct {
 	Controller controller.Options
 	// MachineImages is the default mapping from machine images to AMIs.
 	MachineImages []config.MachineImage
+	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
+	IgnoreOperationAnnotation bool
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
@@ -52,7 +54,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return worker.Add(mgr, worker.AddArgs{
 		Actuator:          NewActuator(opts.MachineImages),
 		ControllerOptions: opts.Controller,
-		Predicates:        worker.DefaultPredicates(mgr.GetClient(), metal.Type),
+		Predicates:        worker.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
 	})
 }
 

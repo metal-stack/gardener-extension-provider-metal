@@ -15,8 +15,8 @@
 package infrastructure
 
 import (
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -39,9 +39,9 @@ type AddOptions struct {
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return infrastructure.Add(mgr, infrastructure.AddArgs{
-		Actuator:          infrastructure.OperationAnnotationWrapper(NewActuator()),
+		Actuator: 			NewActuator(),
 		ControllerOptions: opts.Controller,
-		Predicates:        infrastructure.DefaultPredicates(mgr.GetClient(), metal.Type, opts.IgnoreOperationAnnotation),
+		Predicates:        infrastructure.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
 	})
 }
 

@@ -69,7 +69,8 @@ docker-image:
 
 .PHONY: revendor
 revendor:
-	@dep ensure -update
+    go get -u github.com/kardianos/govendor
+    govendor fetch k8s.io/code-generator@kubernetes-1.15.2
 
 .PHONY: start-provider-metal
 start-provider-metal:
