@@ -25,8 +25,9 @@ import (
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
-	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/garden/v1beta1"
+	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
+	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/garden/v1beta1"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -37,7 +38,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
-	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 )
 
 const (
@@ -256,15 +256,15 @@ func checkETCDMainStatefulSet(ss *appsv1.StatefulSet, annotations map[string]str
 	)
 
 	c := extensionswebhook.ContainerWithName(ss.Spec.Template.Spec.Containers, "backup-restore")
-	Expect(c).To(Equal(extensionswebhook.GetBackupRestoreContainer(gardencorev1alpha1.StatefulSetNameETCDMain, controlplane.EtcdMainVolumeClaimTemplateName, "0 */24 * * *", metal.StorageProviderName,
-		"test-repository:test-tag", nil, env, nil)))
+	Expect(c).To(Equal(controlplane.GetBackupRestoreContainer(gardencorev1alpha1.StatefulSetNameETCDMain, controlplane.EtcdMainVolumeClaimTemplateName, "0 */24 * * *", metal.StorageProviderName,
+		"test-repository:test-tag", "", nil, env, nil)))
 	Expect(ss.Spec.Template.Annotations).To(Equal(annotations))
 }
 
 func checkETCDEventsStatefulSet(ss *appsv1.StatefulSet) {
 	c := extensionswebhook.ContainerWithName(ss.Spec.Template.Spec.Containers, "backup-restore")
-	Expect(c).To(Equal(extensionswebhook.GetBackupRestoreContainer(gardencorev1alpha1.StatefulSetNameETCDEvents, gardencorev1alpha1.StatefulSetNameETCDEvents, "0 */24 * * *", "",
-		"test-repository:test-tag", nil, nil, nil)))
+	Expect(c).To(Equal(controlplane.GetBackupRestoreContainer(gardencorev1alpha1.StatefulSetNameETCDEvents, gardencorev1alpha1.StatefulSetNameETCDEvents, "0 */24 * * *", "",
+		"test-repository:test-tag", "", nil, nil, nil)))
 }
 
 func clientGet(result runtime.Object) interface{} {

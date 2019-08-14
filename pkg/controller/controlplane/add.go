@@ -52,13 +52,6 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
 	})
-	// return controlplane.Add(mgr, controlplane.AddArgs{
-	// 	Actuator: genericactuator.NewActuator(controlPlaneSecrets, nil, ccmChart, ccmShootChart, storageClassChart,
-	// 		NewValuesProvider(logger), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
-	// 		imagevector.ImageVector(), "", logger),
-	// 	ControllerOptions: opts.Controller,
-	// 	Predicates:        controlplane.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
-	// })
 }
 
 // AddToManager adds a controller with the default Options.
