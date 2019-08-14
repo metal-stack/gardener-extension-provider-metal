@@ -82,5 +82,5 @@ start-provider-metal:
 		--infrastructure-ignore-operation-annotation=$(IGNORE_OPERATION_ANNOTATION) \
 		--leader-election=$(LEADER_ELECTION) \
 		--webhook-config-mode=url \
-		--webhook-config-name=gardener-extension-provider-metal \
-		--webhook-config-host=$(HOSTNAME)
+		--webhook-config-server-host=0.0.0.0 \
+		--webhook-config-server-port=8443
