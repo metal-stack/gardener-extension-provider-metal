@@ -66,10 +66,9 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		infraCtrlOpts = &controllercmd.ControllerOptions{
 			MaxConcurrentReconciles: 5,
 		}
-		infraReconcileOpts = &controllercmd.ReconcilerOptions{
+		reconcileOpts = &controllercmd.ReconcilerOptions{
 			IgnoreOperationAnnotation: true,
 		}
-		infraCtrlOptsUnprefixed = controllercmd.NewOptionAggregator(infraCtrlOpts, infraReconcileOpts)
 
 		// options for the worker controller
 		workerCtrlOpts = &controllercmd.ControllerOptions{
@@ -92,10 +91,10 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			restOpts,
 			mgrOpts,
 			controllercmd.PrefixOption("controlplane-", controlPlaneCtrlOpts),
-			controllercmd.PrefixOption("infrastructure-", &infraCtrlOptsUnprefixed),
+			controllercmd.PrefixOption("infrastructure-", infraCtrlOpts),
 			controllercmd.PrefixOption("worker-", &workerCtrlOptsUnprefixed),
 			configFileOpts,
-			controllerSwitches,
+			reconcileOpts,
 			webhookOptions,
 		)
 	)
@@ -184,7 +183,9 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			// configFileOpts.Completed().ApplyETCDBackup(&metalcontrolplanebackup.DefaultAddOptions.ETCDBackup)
 			controlPlaneCtrlOpts.Completed().Apply(&metalcontrolplane.DefaultAddOptions.Controller)
 			infraCtrlOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.Controller)
-			infraReconcileOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation)
+			reconcileOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation)
+			reconcileOpts.Completed().Apply(&metalcontrolplane.DefaultAddOptions.IgnoreOperationAnnotation)
+			reconcileOpts.Completed().Apply(&metalworker.DefaultAddOptions.IgnoreOperationAnnotation)
 			workerCtrlOpts.Completed().Apply(&metalworker.DefaultAddOptions.Controller)
 
 			if err := controllerSwitches.Completed().AddToManager(mgr); err != nil {

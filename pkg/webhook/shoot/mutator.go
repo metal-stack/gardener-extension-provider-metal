@@ -22,10 +22,12 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 type mutator struct {
+	client client.Client
 	logger logr.Logger
 }
 
@@ -36,13 +38,19 @@ func NewMutator() extensionswebhook.Mutator {
 	}
 }
 
+// InjectClient injects the given client into the ensurer.
+func (m *mutator) InjectClient(client client.Client) error {
+	m.client = client
+	return nil
+}
+
 func (m *mutator) Mutate(ctx context.Context, obj runtime.Object) error {
 	switch x := obj.(type) {
 	case *appsv1.Deployment:
 		switch x.Name {
 		case "vpn-shoot":
 			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			return m.mutateVPNShootDeployment(ctx, x)
+			return m.mutateVPNShootDeployment(ctx, logger, x)
 		}
 	}
 	return nil

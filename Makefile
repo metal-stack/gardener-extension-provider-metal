@@ -69,8 +69,8 @@ docker-image:
 
 .PHONY: revendor
 revendor:
-	go get -u github.com/kardianos/govendor
-	govendor fetch k8s.io/code-generator@kubernetes-1.15.2
+	@GO111MODULE=on go mod vendor
+	@GO111MODULE=on go mod tidy
 
 .PHONY: start-provider-metal
 start-provider-metal:
@@ -82,5 +82,5 @@ start-provider-metal:
 		--infrastructure-ignore-operation-annotation=$(IGNORE_OPERATION_ANNOTATION) \
 		--leader-election=$(LEADER_ELECTION) \
 		--webhook-config-mode=url \
-		--webhook-config-server-host=0.0.0.0 \
+		--webhook-config-server-host=$(HOSTNAME) \
 		--webhook-config-server-port=8443

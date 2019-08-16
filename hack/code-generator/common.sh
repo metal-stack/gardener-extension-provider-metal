@@ -13,16 +13,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -ex
 
+cp "${PROJECT_ROOT}"/hack/code-generator/generate-internal-groups.sh "${PROJECT_ROOT}"/vendor/k8s.io/code-generator/
 
-DIRNAME="$(echo "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )")"
-source "$DIRNAME/common.sh"
-
-header_text "Install"
-
-LD_FLAGS="-w -X github.com/gardener/gardener-extensions/pkg/version.Version=$VERSION"
-pwd
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on \
-    go install -ldflags "$LD_FLAGS" \
-    "${CMD_TREES[@]}"
+cleanup() {
+  rm -f "${PROJECT_ROOT}"/vendor/k8s.io/code-generator/generate-internal-groups.sh
+}
+trap "cleanup" EXIT SIGINT

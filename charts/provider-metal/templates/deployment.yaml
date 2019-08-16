@@ -29,14 +29,11 @@ spec:
         - --config-file=/etc/{{ include "name" . }}/config/config.yaml
         - --controlplane-max-concurrent-reconciles={{ .Values.controllers.controlplane.concurrentSyncs }}
         - --infrastructure-max-concurrent-reconciles={{ .Values.controllers.infrastructure.concurrentSyncs }}
-        - --infrastructure-ignore-operation-annotation={{ .Values.controllers.infrastructure.ignoreOperationAnnotation }}
+        - --ignore-operation-annotation={{ .Values.controllers.infrastructure.ignoreOperationAnnotation }}
         - --worker-max-concurrent-reconciles={{ .Values.controllers.worker.concurrentSyncs }}
         - --webhook-config-mode=service
-        - --webhook-config-name={{ include "name" . }}
         - --webhook-config-namespace={{ .Release.Namespace }}
-        - --webhook-config-service-selectors={"app.kubernetes.io/name":"{{ include "name" . }}","app.kubernetes.io/instance":"{{ .Release.Name }}"}
-        - --webhook-server-port={{ .Values.webhookConfig.serverPort }}
-        - --disable-controllers={{ .Values.disableControllers | join "," }}
+        - --webhook-config-server-port={{ .Values.webhookConfig.serverPort }}
         - --disable-webhooks={{ .Values.disableWebhooks | join "," }}
         env:
         - name: LEADER_ELECTION_NAMESPACE

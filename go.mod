@@ -3,24 +3,26 @@ module github.com/metal-pod/gardener-extension-provider-metal
 go 1.12
 
 require (
-	github.com/Bowery/prompt v0.0.0-20190419144237-972d0ceb96f5 // indirect
-	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e
-	github.com/dchest/safefile v0.0.0-20151022103144-855e8d98f185 // indirect
+	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/gardener/gardener v0.0.0-20190812144748-dec8f3c7f288
 	github.com/gardener/gardener-extensions v0.0.0-20190814053833-ca68fc5b800b
 	github.com/gardener/machine-controller-manager v0.0.0-20190606071036-119056ee3fdd
 	github.com/go-logr/logr v0.1.0
-	github.com/gobuffalo/packr/v2 v2.1.0
-	github.com/golang/mock v1.2.0
-	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf // indirect
+	github.com/gobuffalo/packr/v2 v2.5.2
+	github.com/golang/mock v1.3.1
 	github.com/google/uuid v1.1.1
-	github.com/kardianos/govendor v1.0.9 // indirect
+	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/metal-pod/metal-go v0.0.0-20190813124841-17be76055943
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1
+	github.com/prometheus/client_golang v1.1.0 // indirect
+	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
+	github.com/stretchr/testify v1.4.0 // indirect
+	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect
+	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
 	k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
 	k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
