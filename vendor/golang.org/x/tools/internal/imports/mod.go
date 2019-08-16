@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,39 +19,37 @@ import (
 	"golang.org/x/tools/internal/module"
 )
 
-// ModuleResolver implements resolver for modules using the go command as little
+// moduleResolver implements resolver for modules using the go command as little
 // as feasible.
-type ModuleResolver struct {
+type moduleResolver struct {
 	env *ProcessEnv
 
-	Initialized   bool
-	Main          *ModuleJSON
-	ModsByModPath []*ModuleJSON // All modules, ordered by # of path components in module Path...
-	ModsByDir     []*ModuleJSON // ...or Dir.
-
-	ModCachePkgs map[string]*pkg // Packages in the mod cache, keyed by absolute directory.
+	initialized   bool
+	main          *moduleJSON
+	modsByModPath []*moduleJSON // All modules, ordered by # of path components in module Path...
+	modsByDir     []*moduleJSON // ...or Dir.
 }
 
-type ModuleJSON struct {
+type moduleJSON struct {
 	Path     string           // module path
 	Version  string           // module version
 	Versions []string         // available module versions (with -versions)
-	Replace  *ModuleJSON      // replaced by this module
+	Replace  *moduleJSON      // replaced by this module
 	Time     *time.Time       // time version was created
-	Update   *ModuleJSON      // available update, if any (with -u)
+	Update   *moduleJSON      // available update, if any (with -u)
 	Main     bool             // is this the main module?
 	Indirect bool             // is this module only an indirect dependency of main module?
 	Dir      string           // directory holding files for this module, if any
 	GoMod    string           // path to go.mod file for this module, if any
-	Error    *ModuleErrorJSON // error loading module
+	Error    *moduleErrorJSON // error loading module
 }
 
-type ModuleErrorJSON struct {
+type moduleErrorJSON struct {
 	Err string // the error itself
 }
 
-func (r *ModuleResolver) init() error {
-	if r.Initialized {
+func (r *moduleResolver) init() error {
+	if r.initialized {
 		return nil
 	}
 	stdout, err := r.env.invokeGo("list", "-m", "-json", "...")
@@ -58,47 +57,45 @@ func (r *ModuleResolver) init() error {
 		return err
 	}
 	for dec := json.NewDecoder(stdout); dec.More(); {
-		mod := &ModuleJSON{}
+		mod := &moduleJSON{}
 		if err := dec.Decode(mod); err != nil {
 			return err
 		}
 		if mod.Dir == "" {
 			if r.env.Debug {
-				r.env.Logf("module %v has not been downloaded and will be ignored", mod.Path)
+				log.Printf("module %v has not been downloaded and will be ignored", mod.Path)
 			}
 			// Can't do anything with a module that's not downloaded.
 			continue
 		}
-		r.ModsByModPath = append(r.ModsByModPath, mod)
-		r.ModsByDir = append(r.ModsByDir, mod)
+		r.modsByModPath = append(r.modsByModPath, mod)
+		r.modsByDir = append(r.modsByDir, mod)
 		if mod.Main {
-			r.Main = mod
+			r.main = mod
 		}
 	}
 
-	sort.Slice(r.ModsByModPath, func(i, j int) bool {
+	sort.Slice(r.modsByModPath, func(i, j int) bool {
 		count := func(x int) int {
-			return strings.Count(r.ModsByModPath[x].Path, "/")
+			return strings.Count(r.modsByModPath[x].Path, "/")
 		}
 		return count(j) < count(i) // descending order
 	})
-	sort.Slice(r.ModsByDir, func(i, j int) bool {
+	sort.Slice(r.modsByDir, func(i, j int) bool {
 		count := func(x int) int {
-			return strings.Count(r.ModsByDir[x].Dir, "/")
+			return strings.Count(r.modsByDir[x].Dir, "/")
 		}
 		return count(j) < count(i) // descending order
 	})
 
-	r.ModCachePkgs = make(map[string]*pkg)
-
-	r.Initialized = true
+	r.initialized = true
 	return nil
 }
 
 // findPackage returns the module and directory that contains the package at
 // the given import path, or returns nil, "" if no module is in scope.
-func (r *ModuleResolver) findPackage(importPath string) (*ModuleJSON, string) {
-	for _, m := range r.ModsByModPath {
+func (r *moduleResolver) findPackage(importPath string) (*moduleJSON, string) {
+	for _, m := range r.modsByModPath {
 		if !strings.HasPrefix(importPath, m.Path) {
 			continue
 		}
@@ -127,7 +124,7 @@ func (r *ModuleResolver) findPackage(importPath string) (*ModuleJSON, string) {
 
 // findModuleByDir returns the module that contains dir, or nil if no such
 // module is in scope.
-func (r *ModuleResolver) findModuleByDir(dir string) *ModuleJSON {
+func (r *moduleResolver) findModuleByDir(dir string) *moduleJSON {
 	// This is quite tricky and may not be correct. dir could be:
 	// - a package in the main module.
 	// - a replace target underneath the main module's directory.
@@ -138,7 +135,7 @@ func (r *ModuleResolver) findModuleByDir(dir string) *ModuleJSON {
 	// - in /vendor/ in -mod=vendor mode.
 	//    - nested module? Dunno.
 	// Rumor has it that replace targets cannot contain other replace targets.
-	for _, m := range r.ModsByDir {
+	for _, m := range r.modsByDir {
 		if !strings.HasPrefix(dir, m.Dir) {
 			continue
 		}
@@ -154,7 +151,7 @@ func (r *ModuleResolver) findModuleByDir(dir string) *ModuleJSON {
 
 // dirIsNestedModule reports if dir is contained in a nested module underneath
 // mod, not actually in mod.
-func dirIsNestedModule(dir string, mod *ModuleJSON) bool {
+func dirIsNestedModule(dir string, mod *moduleJSON) bool {
 	if !strings.HasPrefix(dir, mod.Dir) {
 		return false
 	}
@@ -180,7 +177,7 @@ func findModFile(dir string) string {
 	}
 }
 
-func (r *ModuleResolver) loadPackageNames(importPaths []string, srcDir string) (map[string]string, error) {
+func (r *moduleResolver) loadPackageNames(importPaths []string, srcDir string) (map[string]string, error) {
 	if err := r.init(); err != nil {
 		return nil, err
 	}
@@ -199,7 +196,7 @@ func (r *ModuleResolver) loadPackageNames(importPaths []string, srcDir string) (
 	return names, nil
 }
 
-func (r *ModuleResolver) scan(_ references) ([]*pkg, error) {
+func (r *moduleResolver) scan(_ references) ([]*pkg, error) {
 	if err := r.init(); err != nil {
 		return nil, err
 	}
@@ -208,15 +205,15 @@ func (r *ModuleResolver) scan(_ references) ([]*pkg, error) {
 	roots := []gopathwalk.Root{
 		{filepath.Join(r.env.GOROOT, "/src"), gopathwalk.RootGOROOT},
 	}
-	if r.Main != nil {
-		roots = append(roots, gopathwalk.Root{r.Main.Dir, gopathwalk.RootCurrentModule})
+	if r.main != nil {
+		roots = append(roots, gopathwalk.Root{r.main.Dir, gopathwalk.RootCurrentModule})
 	}
 	for _, p := range filepath.SplitList(r.env.GOPATH) {
 		roots = append(roots, gopathwalk.Root{filepath.Join(p, "/pkg/mod"), gopathwalk.RootModuleCache})
 	}
 
 	// Walk replace targets, just in case they're not in any of the above.
-	for _, mod := range r.ModsByModPath {
+	for _, mod := range r.modsByModPath {
 		if mod.Replace != nil {
 			roots = append(roots, gopathwalk.Root{mod.Dir, gopathwalk.RootOther})
 		}
@@ -236,15 +233,6 @@ func (r *ModuleResolver) scan(_ references) ([]*pkg, error) {
 
 		dupCheck[dir] = true
 
-		absDir := dir
-		// Packages in the module cache are immutable. If we have
-		// already seen this package on a previous scan of the module
-		// cache, return that result.
-		if p, ok := r.ModCachePkgs[absDir]; ok {
-			result = append(result, p)
-			return
-		}
-
 		subdir := ""
 		if dir != root.Path {
 			subdir = dir[len(root.Path)+len("/"):]
@@ -260,13 +248,13 @@ func (r *ModuleResolver) scan(_ references) ([]*pkg, error) {
 		}
 		switch root.Type {
 		case gopathwalk.RootCurrentModule:
-			importPath = path.Join(r.Main.Path, filepath.ToSlash(subdir))
+			importPath = path.Join(r.main.Path, filepath.ToSlash(subdir))
 		case gopathwalk.RootModuleCache:
 			matches := modCacheRegexp.FindStringSubmatch(subdir)
 			modPath, err := module.DecodePath(filepath.ToSlash(matches[1]))
 			if err != nil {
 				if r.env.Debug {
-					r.env.Logf("decoding module cache path %q: %v", subdir, err)
+					log.Printf("decoding module cache path %q: %v", subdir, err)
 				}
 				return
 			}
@@ -311,18 +299,10 @@ func (r *ModuleResolver) scan(_ references) ([]*pkg, error) {
 			dir = canonicalDir
 		}
 
-		res := &pkg{
+		result = append(result, &pkg{
 			importPathShort: VendorlessPath(importPath),
 			dir:             dir,
-		}
-
-		switch root.Type {
-		case gopathwalk.RootModuleCache:
-			// Save the results of processing this directory.
-			r.ModCachePkgs[absDir] = res
-		}
-
-		result = append(result, res)
+		})
 	}, gopathwalk.Options{Debug: r.env.Debug, ModulesEnabled: true})
 	return result, nil
 }
