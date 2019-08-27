@@ -24,6 +24,7 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/util"
 	confighelper "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config/helper"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	metalgo "github.com/metal-pod/metal-go"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 
@@ -94,6 +95,31 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
+	url := string(machineClassSecretData[machinev1alpha1.MetalAPIURL])
+	token := string(machineClassSecretData[machinev1alpha1.MetalAPIKey])
+	hmac := string(machineClassSecretData[machinev1alpha1.MetalAPIHMac])
+
+	svc, err := metalgo.NewDriver(url, token, hmac)
+	if err != nil {
+		return err
+	}
+
+	// find private network
+	projectID := "tbd" // FIXME: w.cluster.Shoot.Spec.Cloud.Metal.ProjectID
+	nodeCIDR := "tbd"  // FIXME: *w.cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	networkFindRequest := metalgo.NetworkFindRequest{
+		ProjectID: &projectID,
+		Prefixes:  []string{string(nodeCIDR)},
+	}
+	networkFindResponse, err := svc.NetworkFind(&networkFindRequest)
+	if err != nil {
+		return err
+	}
+	if len(networkFindResponse.Networks) != 1 {
+		return fmt.Errorf("no distinct private network for project id %q found: %s", projectID, nodeCIDR)
+	}
+	privateNetwork := networkFindResponse.Networks[0]
+
 	for _, pool := range w.worker.Spec.Pools {
 		zoneLen := len(pool.Zones)
 
@@ -107,7 +133,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				"partition": zone,
 				"size":      pool.MachineType,
 				"project":   w.worker.Namespace,
-				"tenant":    "devops", // FIXME tenant must not be required in MetalMachineClassSpec
+				"network":   privateNetwork,
 				"image":     imageID,
 				"tags": []string{
 					fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace),

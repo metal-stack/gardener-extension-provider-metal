@@ -15,13 +15,14 @@
 package controlplane
 
 import (
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener-extensions/pkg/util"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
+	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -40,6 +41,8 @@ type AddOptions struct {
 	Controller controller.Options
 	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
 	IgnoreOperationAnnotation bool
+	// ShootWebhooks specifies the list of desired shoot webhooks.
+	ShootWebhooks []admissionregistrationv1beta1.Webhook
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.

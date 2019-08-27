@@ -4,8 +4,9 @@ go 1.12
 
 require (
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
-	github.com/gardener/gardener v0.0.0-20190812144748-dec8f3c7f288
-	github.com/gardener/gardener-extensions v0.0.0-20190814053833-ca68fc5b800b
+	github.com/gardener/gardener v0.0.0-20190823131435-15a8e9bf6702
+	github.com/gardener/gardener-extensions v0.0.0-20190827103822-b7b1788e3501
+	github.com/gardener/gardener-resource-manager v0.0.0-20190802153254-ea0dc5872b6a
 	github.com/gardener/machine-controller-manager v0.0.0-20190606071036-119056ee3fdd
 	github.com/go-logr/logr v0.1.0
 	github.com/gobuffalo/packr/v2 v2.5.2

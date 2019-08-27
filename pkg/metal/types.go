@@ -28,8 +28,6 @@ const (
 	CCMImageName = "metalccm"
 	// ETCDBackupRestoreImageName is the name of the etcd backup and restore image.
 	ETCDBackupRestoreImageName = "etcd-backup-restore"
-	// TenantID for creation of machines,...
-	TenantID = "tenant"
 	// APIURL is a constant for the url of metal-api.
 	APIURL = "metalAPIURL"
 	// APIKey is a constant for the key in a cloud provider secret.

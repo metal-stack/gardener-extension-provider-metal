@@ -96,12 +96,35 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	a.logger.Info("Cluster", "cluster", cluster)
 	// Example values:
 	// cluster.Shoot.Status.TechnicalID  "shoot--dev--johndoe-metal"
-	project := cluster.Shoot.Status.TechnicalID
-	name := project + "-firewall-" + uuid.String()[:5]
+	tid := cluster.Shoot.Status.TechnicalID
+	name := tid + "-firewall-" + uuid.String()[:5]
+
+	// find private network
+	projectID := "tbd" // FIXME: cluster.Shoot.Spec.Cloud.Metal.ProjectID
+	nodeCIDR := "tbd"  // FIXME: *cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	networkFindRequest := metalgo.NetworkFindRequest{
+		ProjectID: &projectID,
+		Prefixes:  []string{string(nodeCIDR)},
+	}
+	networkFindResponse, err := svc.NetworkFind(&networkFindRequest)
+	if err != nil {
+		return err
+	}
+	if len(networkFindResponse.Networks) != 1 {
+		return fmt.Errorf("no distinct private network for project id %q found: %s", projectID, nodeCIDR)
+	}
+	privateNetwork := networkFindResponse.Networks[0]
+
+	// assemble firewall allocation request
 	var networks []metalgo.MachineAllocationNetwork
+	network := metalgo.MachineAllocationNetwork{
+		NetworkID:   *privateNetwork.ID,
+		Autoacquire: true,
+	}
+	networks = append(networks, network)
+
 	for _, n := range infrastructureConfig.Firewall.Networks {
 		network := metalgo.MachineAllocationNetwork{
 			NetworkID:   n,
@@ -116,8 +139,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 			Name:          name,
 			Hostname:      name,
 			Size:          infrastructureConfig.Firewall.Size,
-			Project:       project,
-			Tenant:        string(providerSecret.Data[metal.TenantID]),
+			Project:       projectID,
 			Partition:     infrastructureConfig.Firewall.Partition,
 			Image:         infrastructureConfig.Firewall.Image,
 			SSHPublicKeys: []string{string(infrastructure.Spec.SSHPublicKey)},
@@ -144,7 +166,6 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	}
 
 	firewallStatus.MachineID = machineID
-	// FIXME should be check if allocation.Events.Log[0] == "Phoned Home" or a shorter metal-api side calculated bool
 	firewallStatus.Succeeded = true
 
 	return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)

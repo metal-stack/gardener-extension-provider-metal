@@ -243,15 +243,6 @@ func checkETCDMainStatefulSet(ss *appsv1.StatefulSet, annotations map[string]str
 					},
 				},
 			},
-			{
-				Name: "OS_TENANT_NAME",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						Key:                  metal.TenantName,
-						LocalObjectReference: corev1.LocalObjectReference{Name: metal.BackupSecretName},
-					},
-				},
-			},
 		}
 	)
 
