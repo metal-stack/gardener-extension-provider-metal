@@ -105,8 +105,9 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	// find private network
-	projectID := "tbd" // FIXME: w.cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	nodeCIDR := "tbd"  // FIXME: *w.cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	// TODO: Can we pass through the private network ID from the infrastructure actuator?
+	projectID := w.cluster.Shoot.Spec.Cloud.Metal.ProjectID
+	nodeCIDR := *w.cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
 	networkFindRequest := metalgo.NetworkFindRequest{
 		ProjectID: &projectID,
 		Prefixes:  []string{string(nodeCIDR)},
@@ -132,8 +133,8 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			machineClassSpec := map[string]interface{}{
 				"partition": zone,
 				"size":      pool.MachineType,
-				"project":   w.worker.Namespace,
-				"network":   privateNetwork,
+				"project":   projectID,
+				"network":   privateNetwork.ID,
 				"image":     imageID,
 				"tags": []string{
 					fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace),

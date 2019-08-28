@@ -4,16 +4,15 @@ go 1.12
 
 require (
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
-	github.com/gardener/gardener v0.0.0-20190823131435-15a8e9bf6702
-	github.com/gardener/gardener-extensions v0.0.0-20190827103822-b7b1788e3501
-	github.com/gardener/gardener-resource-manager v0.0.0-20190802153254-ea0dc5872b6a
+	github.com/gardener/gardener v0.0.0-20190827050434-cdafc6bd869f
+	github.com/gardener/gardener-extensions v0.0.0-20190828072712-cf446972f37d
 	github.com/gardener/machine-controller-manager v0.0.0-20190606071036-119056ee3fdd
 	github.com/go-logr/logr v0.1.0
 	github.com/gobuffalo/packr/v2 v2.5.2
 	github.com/golang/mock v1.3.1
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
-	github.com/metal-pod/metal-go v0.0.0-20190813124841-17be76055943
+	github.com/metal-pod/metal-go v0.0.0-20190816063655-41f27ea93449
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1
@@ -34,6 +33,7 @@ require (
 )
 
 replace (
+	github.com/gardener/gardener => github.com/metal-pod/gardener v0.0.0-20190827131320-58dad7be7444
 	github.com/gardener/machine-controller-manager => github.com/metal-pod/machine-controller-manager v0.0.0-20190801141331-4e2b75ebc6c0
 	k8s.io/api => k8s.io/api v0.0.0-20190313235455-40a48860b5ab //kubernetes-1.14.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190315093550-53c4693659ed // kubernetes-1.14.0

@@ -102,8 +102,8 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	name := tid + "-firewall-" + uuid.String()[:5]
 
 	// find private network
-	projectID := "tbd" // FIXME: cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	nodeCIDR := "tbd"  // FIXME: *cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
+	nodeCIDR := *cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
 	networkFindRequest := metalgo.NetworkFindRequest{
 		ProjectID: &projectID,
 		Prefixes:  []string{string(nodeCIDR)},
