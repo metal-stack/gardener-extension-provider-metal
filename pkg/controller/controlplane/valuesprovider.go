@@ -94,13 +94,18 @@ var ccmChart = &chart.Chart{
 	},
 }
 
-var ccmShootChart = &chart.Chart{
-	Name: "cloud-controller-manager-shoot",
-	Path: filepath.Join(metal.InternalChartsPath, "cloud-controller-manager-shoot"),
+var cpShootChart = &chart.Chart{
+	Name: "shoot-control-plane",
+	Path: filepath.Join(metal.InternalChartsPath, "shoot-control-plane"),
 	Objects: []*chart.Object{
 		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
 	},
+}
+
+var storageClassChart = &chart.Chart{
+	Name: "shoot-storageclasses",
+	Path: filepath.Join(metal.InternalChartsPath, "shoot-storageclasses"),
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.

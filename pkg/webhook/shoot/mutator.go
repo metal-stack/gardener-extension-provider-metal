@@ -20,7 +20,6 @@ import (
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 
 	"github.com/go-logr/logr"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -45,13 +44,5 @@ func (m *mutator) InjectClient(client client.Client) error {
 }
 
 func (m *mutator) Mutate(ctx context.Context, obj runtime.Object) error {
-	switch x := obj.(type) {
-	case *appsv1.Deployment:
-		switch x.Name {
-		case "vpn-shoot":
-			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			return m.mutateVPNShootDeployment(ctx, logger, x)
-		}
-	}
 	return nil
 }

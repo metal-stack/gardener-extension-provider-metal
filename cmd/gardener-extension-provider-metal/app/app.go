@@ -54,6 +54,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			LeaderElection:          true,
 			LeaderElectionID:        controllercmd.LeaderElectionNameID(metal.Name),
 			LeaderElectionNamespace: os.Getenv("LEADER_ELECTION_NAMESPACE"),
+			WebhookServerPort:       443,
 		}
 		configFileOpts = &metalcmd.ConfigOptions{}
 
@@ -66,9 +67,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		infraCtrlOpts = &controllercmd.ControllerOptions{
 			MaxConcurrentReconciles: 5,
 		}
-		reconcileOpts = &controllercmd.ReconcilerOptions{
-			IgnoreOperationAnnotation: true,
-		}
+		reconcileOpts = &controllercmd.ReconcilerOptions{}
 
 		// options for the worker controller
 		workerCtrlOpts = &controllercmd.ControllerOptions{
@@ -80,12 +79,12 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		workerCtrlOptsUnprefixed = controllercmd.NewOptionAggregator(workerCtrlOpts, workerReconcileOpts)
 
 		controllerSwitches   = metalcmd.ControllerSwitchOptions()
-		webhookSwitches      = metalcmd.WebhookSwitchOptions()
 		webhookServerOptions = &webhookcmd.ServerOptions{
 			CertDir:   "/tmp/cert",
 			Namespace: os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
 		}
-		webhookOptions = webhookcmd.NewAddToManagerOptions(metal.Name, webhookServerOptions, webhookSwitches)
+		webhookSwitches = metalcmd.WebhookSwitchOptions()
+		webhookOptions  = webhookcmd.NewAddToManagerOptions(metal.Name, webhookServerOptions, webhookSwitches)
 
 		aggOption = controllercmd.NewOptionAggregator(
 			restOpts,
@@ -95,6 +94,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			controllercmd.PrefixOption("worker-", &workerCtrlOptsUnprefixed),
 			configFileOpts,
 			reconcileOpts,
+			controllerSwitches,
 			webhookOptions,
 		)
 	)
@@ -188,13 +188,14 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			reconcileOpts.Completed().Apply(&metalworker.DefaultAddOptions.IgnoreOperationAnnotation)
 			workerCtrlOpts.Completed().Apply(&metalworker.DefaultAddOptions.Controller)
 
+			_, shootWebhooks, err := webhookOptions.Completed().AddToManager(mgr)
+			if err != nil {
+				controllercmd.LogErrAndExit(err, "Could not add webhooks to manager")
+			}
+			metalcontrolplane.DefaultAddOptions.ShootWebhooks = shootWebhooks
+
 			if err := controllerSwitches.Completed().AddToManager(mgr); err != nil {
 				controllercmd.LogErrAndExit(err, "Could not add controllers to manager")
-			}
-
-			cfg := webhookOptions.Completed()
-			if _, _, err := cfg.AddToManager(mgr); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not add webhooks to manager")
 			}
 
 			if err := mgr.Start(ctx.Done()); err != nil {

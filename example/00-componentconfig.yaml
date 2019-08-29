@@ -2,8 +2,8 @@
 apiVersion: metal.provider.extensions.config.gardener.cloud/v1alpha1
 kind: ControllerConfiguration
 machineImages:
-- name: metal
-  version: ubuntu-19.04
+- name: ubuntu
+  version: "19.04"
   imageID: ubuntu-19.04
 etcd:
   storage:

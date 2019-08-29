@@ -16,10 +16,12 @@ package infrastructure
 
 import (
 	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
+	"github.com/go-logr/logr"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var (
@@ -38,8 +40,9 @@ type AddOptions struct {
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
+	logr.InfoLogger.Info(log.Log.WithName("infrastructure-actuator"), "Adding infrastructure controller")
 	return infrastructure.Add(mgr, infrastructure.AddArgs{
-		Actuator: 			NewActuator(),
+		Actuator:          NewActuator(),
 		ControllerOptions: opts.Controller,
 		Predicates:        infrastructure.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
 	})

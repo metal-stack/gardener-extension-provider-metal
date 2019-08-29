@@ -24,7 +24,7 @@ spec:
   size: {{ $machineClass.size }}
   image: {{ $machineClass.image }}
   project: {{ $machineClass.project }}
-  tenant: {{ $machineClass.tenant }}
+  network: {{ $machineClass.network }}
   sshKeys: 
 {{ toYaml $machineClass.sshkeys | indent 4 }}
   secretRef:

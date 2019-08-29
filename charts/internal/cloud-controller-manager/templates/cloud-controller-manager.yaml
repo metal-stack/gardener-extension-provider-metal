@@ -50,7 +50,7 @@ spec:
       containers:
       - name: cloud-controller-manager
         image: {{ index .Values.images "metalccm" }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         command:
         - ./metal-cloud-controller-manager
         - --cloud-provider=metal

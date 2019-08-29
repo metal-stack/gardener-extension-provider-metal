@@ -6,6 +6,7 @@ metadata:
   labels:
 {{ include "labels" . | indent 4 }}
 spec:
+  revisionHistoryLimit: 0
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
@@ -14,7 +15,7 @@ spec:
     metadata:
       annotations:
         {{- if .Values.imageVectorOverwrite }}
-        checksum/configmap-{{ include "name" . }}-imagevector-overwrite: {{ include (print $.Template.BasePath "/configmap-imagevector-overwrite.yaml") . | sha256sum }}
+        checksum/configmap-metal-imagevector-overwrite: {{ include (print $.Template.BasePath "/configmap-imagevector-overwrite.yaml") . | sha256sum }}
         {{- end }}
         checksum/configmap-{{ include "name" . }}-config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       labels:
@@ -29,11 +30,11 @@ spec:
         - --config-file=/etc/{{ include "name" . }}/config/config.yaml
         - --controlplane-max-concurrent-reconciles={{ .Values.controllers.controlplane.concurrentSyncs }}
         - --infrastructure-max-concurrent-reconciles={{ .Values.controllers.infrastructure.concurrentSyncs }}
-        - --ignore-operation-annotation={{ .Values.controllers.infrastructure.ignoreOperationAnnotation }}
+        - --ignore-operation-annotation={{ .Values.controllers.ignoreOperationAnnotation }}
         - --worker-max-concurrent-reconciles={{ .Values.controllers.worker.concurrentSyncs }}
-        - --webhook-config-mode=service
         - --webhook-config-namespace={{ .Release.Namespace }}
         - --webhook-config-server-port={{ .Values.webhookConfig.serverPort }}
+        - --disable-controllers={{ .Values.disableControllers | join "," }}
         - --disable-webhooks={{ .Values.disableWebhooks | join "," }}
         env:
         - name: LEADER_ELECTION_NAMESPACE

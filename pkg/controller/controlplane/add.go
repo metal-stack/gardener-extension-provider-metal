@@ -15,12 +15,12 @@
 package controlplane
 
 import (
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener-extensions/pkg/util"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -49,9 +49,9 @@ type AddOptions struct {
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return controlplane.Add(mgr, controlplane.AddArgs{
-		Actuator: genericactuator.NewActuator(metal.Name, controlPlaneSecrets, nil, nil, ccmChart, ccmShootChart,
-			nil, nil, NewValuesProvider(logger), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
-			imagevector.ImageVector(), "", nil, 0, logger),
+		Actuator: genericactuator.NewActuator(metal.Name, controlPlaneSecrets, nil, nil, ccmChart, cpShootChart,
+			storageClassChart, nil, NewValuesProvider(logger), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
+			imagevector.ImageVector(), "", opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger),
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
 	})

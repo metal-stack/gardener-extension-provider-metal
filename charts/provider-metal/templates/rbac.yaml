@@ -9,15 +9,11 @@ rules:
 - apiGroups:
   - extensions.gardener.cloud
   resources:
-  - backupbucket
-  - backupbucket/status
-  - backupentry
-  - backupentry/status
   - clusters
-  - controlplanes
-  - controlplanes/status
   - infrastructures
   - infrastructures/status
+  - controlplanes
+  - controlplanes/status
   - workers
   - workers/status
   verbs:
@@ -50,6 +46,7 @@ rules:
   - rbac.authorization.k8s.io
   - admissionregistration.k8s.io
   - apiextensions.k8s.io
+  - networking.k8s.io
   resources:
   - namespaces
   - events
@@ -68,12 +65,19 @@ rules:
   - pods/log
   - mutatingwebhookconfigurations
   - customresourcedefinitions
+  - networkpolicies
   verbs:
   - "*"
 - apiGroups:
   - machine.sapcloud.io
   resources:
   - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - autoscaling.k8s.io
+  resources:
+  - verticalpodautoscalers
   verbs:
   - "*"
 ---

@@ -22,7 +22,7 @@ import (
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	"github.com/gardener/gardener-extensions/pkg/util"
-	confighelper "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config/helper"
+	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalgo "github.com/metal-pod/metal-go"
 
@@ -83,6 +83,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	var (
 		machineDeployments = worker.MachineDeployments{}
 		machineClasses     []map[string]interface{}
+		machineImages      []apismetal.MachineImage
 	)
 
 	machineClassSecretData, err := w.generateMachineClassSecretData(ctx)
@@ -124,10 +125,15 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	for _, pool := range w.worker.Spec.Pools {
 		zoneLen := len(pool.Zones)
 
-		imageID, err := confighelper.FindImageID(w.machineImages, pool.MachineImage.Name, pool.MachineImage.Version)
+		machineImage, err := w.findMachineImage(pool.MachineImage.Name, pool.MachineImage.Version)
 		if err != nil {
 			return err
 		}
+		machineImages = appendMachineImage(machineImages, apismetal.MachineImage{
+			Name:    pool.MachineImage.Name,
+			Version: pool.MachineImage.Version,
+			Image:   machineImage,
+		})
 
 		for zoneIndex, zone := range pool.Zones {
 			machineClassSpec := map[string]interface{}{
@@ -135,10 +141,12 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				"size":      pool.MachineType,
 				"project":   projectID,
 				"network":   privateNetwork.ID,
-				"image":     imageID,
+				"image":     machineImage,
 				"tags": []string{
-					fmt.Sprintf("kubernetes.io/cluster/%s", w.worker.Namespace),
-					"kubernetes.io/role/node",
+					fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace),
+					"kubernetes.io/role=node",
+					fmt.Sprintf("project-id=%s", projectID),
+					fmt.Sprintf("metallb.universe.tf/address-pool=%s", *privateNetwork.ID),
 				},
 				"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},
 				"secret": map[string]interface{}{

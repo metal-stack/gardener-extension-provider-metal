@@ -50,8 +50,8 @@ spec:
   - name: cpu-worker
     machineType: c1-xlarge-x86
     machineImage:
-      name: metal
-      version: ubuntu-19.04
+      name: ubuntu
+      version: "19.04"
     minimum: 1
     maximum: 1
     maxSurge: 1

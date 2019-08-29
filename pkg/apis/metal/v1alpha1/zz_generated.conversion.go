@@ -246,7 +246,7 @@ func Convert_metal_InfrastructureStatus_To_v1alpha1_InfrastructureStatus(in *met
 }
 
 func autoConvert_v1alpha1_WorkerStatus_To_metal_WorkerStatus(in *WorkerStatus, out *metal.WorkerStatus, s conversion.Scope) error {
-	out.MachineImages = *(*[]config.MachineImage)(unsafe.Pointer(&in.MachineImages))
+	out.MachineImages = *(*[]metal.MachineImage)(unsafe.Pointer(&in.MachineImages))
 	return nil
 }
 

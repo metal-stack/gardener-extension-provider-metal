@@ -16,17 +16,16 @@ package worker
 
 import (
 	"context"
-	"github.com/gardener/gardener-extensions/pkg/util"
-	metalapis "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	metalapisv1alpha1 "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
+	"github.com/gardener/gardener-extensions/pkg/util"
+
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gardener "github.com/gardener/gardener/pkg/client/kubernetes"
@@ -51,14 +50,14 @@ type delegateFactory struct {
 	scheme  *runtime.Scheme
 	decoder runtime.Decoder
 
-	machineImages []config.MachineImage
+	machineImageMapping []config.MachineImage
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled WorkerPoolConfigs.
 func NewActuator(machineImages []config.MachineImage) worker.Actuator {
 	delegateFactory := &delegateFactory{
-		logger:                   log.Log.WithName("worker-actuator"),
-		machineImages: machineImages,
+		logger:              log.Log.WithName("worker-actuator"),
+		machineImageMapping: machineImages,
 	}
 	return genericactuator.NewActuator(
 		log.Log.WithName("metal-worker-actuator"),
@@ -108,7 +107,7 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 		d.scheme,
 		d.decoder,
 
-		d.machineImages,
+		d.machineImageMapping,
 		seedChartApplier,
 		serverVersion.GitVersion,
 
@@ -119,18 +118,19 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 
 type workerDelegate struct {
 	client  client.Client
-	scheme *runtime.Scheme
+	scheme  *runtime.Scheme
 	decoder runtime.Decoder
 
-	machineImages []config.MachineImage
-	seedChartApplier         gardener.ChartApplier
-	serverVersion            string
+	machineImageMapping []config.MachineImage
+	seedChartApplier    gardener.ChartApplier
+	serverVersion       string
 
 	cluster *extensionscontroller.Cluster
 	worker  *extensionsv1alpha1.Worker
 
 	machineClasses     []map[string]interface{}
 	machineDeployments worker.MachineDeployments
+	machineImages      []apismetal.MachineImage
 }
 
 // NewWorkerDelegate creates a new context for a worker reconciliation.
@@ -139,7 +139,7 @@ func NewWorkerDelegate(
 	scheme *runtime.Scheme,
 	decoder runtime.Decoder,
 
-	machineImages []config.MachineImage,
+	machineImageMapping []config.MachineImage,
 	seedChartApplier gardener.ChartApplier,
 	serverVersion string,
 
@@ -148,45 +148,14 @@ func NewWorkerDelegate(
 ) genericactuator.WorkerDelegate {
 	return &workerDelegate{
 		client:  client,
-		scheme: scheme,
+		scheme:  scheme,
 		decoder: decoder,
 
-		machineImages: machineImages,
-		seedChartApplier:         seedChartApplier,
-		serverVersion:            serverVersion,
+		machineImageMapping: machineImageMapping,
+		seedChartApplier:    seedChartApplier,
+		serverVersion:       serverVersion,
 
 		cluster: cluster,
 		worker:  worker,
 	}
-}
-
-// GetMachineImages returns the used machine images for the `Worker` resource.
-func (w *workerDelegate) GetMachineImages(ctx context.Context) (runtime.Object, error) {
-	if w.machineImages == nil {
-		if err := w.generateMachineConfig(ctx); err != nil {
-			return nil, err
-		}
-	}
-
-	var (workerStatus = metalapis.WorkerStatus{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: metalapis.SchemeGroupVersion.String(),
-			Kind:       "WorkerStatus",
-		},
-		MachineImages: w.machineImages,
-	}
-
-		workerStatusV1alpha1 = &metalapisv1alpha1.WorkerStatus{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: metalapisv1alpha1.SchemeGroupVersion.String(),
-				Kind:       "WorkerStatus",
-			},
-		}
-	)
-
-	if err := w.scheme.Convert(workerStatus, workerStatusV1alpha1, nil); err != nil {
-		return nil, err
-	}
-
-	return workerStatusV1alpha1, nil
 }

@@ -2,12 +2,12 @@ machineClasses:
 - name: class-1
   partition: nbg-w8101
   size: c1-xlarge-x86
-  image: ubuntu-19.04
   project: gardener-test
-  tenant: devops
+  network: private-network-id
+  image: ubuntu-19.04
   sshkeys: []
   tags:
-    - gardener
+    - gardener=something
   secret:
     cloudConfig: abc
     metalAPIKey: abc

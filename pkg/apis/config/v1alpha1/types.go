@@ -32,16 +32,15 @@ type ControllerConfiguration struct {
 	ETCD ETCD `json:"etcd"`
 }
 
-// MachineImage is a mapping from logical names and versions to AWS-specific identifiers, i.e. AMIs.
+// MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
 type MachineImage struct {
 	// Name is the logical name of the machine image.
 	Name string `json:"name"`
 	// Version is the logical version of the machine image.
 	Version string `json:"version"`
-	// ImageID is a mapping to the correct image id for the machine image version.
-	ImageID string `json:"imageID"`
+	// Image is the path to the image.
+	Image string `json:"image"`
 }
-
 
 // ETCD is an etcd configuration.
 type ETCD struct {
