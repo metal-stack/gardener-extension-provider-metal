@@ -182,7 +182,8 @@ func getCCMChartValues(
 ) (map[string]interface{}, error) {
 	values := map[string]interface{}{
 		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster.Shoot, scaledDown, 1),
-		"clusterName":       cp.Namespace,
+		"projectID":         cluster.Shoot.Spec.Cloud.Metal.ProjectID,
+		"partitionID":       cluster.Shoot.Spec.Cloud.Metal.Zones[0],
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"podNetwork":        extensionscontroller.GetPodNetwork(cluster.Shoot),
 		"podAnnotations": map[string]interface{}{

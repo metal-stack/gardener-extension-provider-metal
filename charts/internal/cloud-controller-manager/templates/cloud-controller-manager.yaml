@@ -89,7 +89,9 @@ spec:
                 name: cloudprovider
                 key: metalAPIHMac
           - name: METAL_PROJECT_ID
-            value: {{ .Values.clusterName }}
+            value: {{ .Values.projectID }}
+          - name: METAL_PARTITION_ID
+            value: {{ .Values.partitionID }}
         livenessProbe:
           httpGet:
             path: /healthz

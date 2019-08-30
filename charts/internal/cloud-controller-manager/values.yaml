@@ -1,6 +1,7 @@
 replicas: 1
 kubernetesVersion: 1.7.5
-clusterName: shoot-foo-bar
+projectID: project-id
+partitionID: partition-id
 podNetwork: 192.168.0.0/16
 environment: []
 additionalParameters: []
