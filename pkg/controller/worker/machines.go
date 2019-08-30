@@ -145,8 +145,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				"tags": []string{
 					fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace),
 					"kubernetes.io/role=node",
-					fmt.Sprintf("project-id=%s", projectID),
-					fmt.Sprintf("metallb.universe.tf/address-pool=%s", *privateNetwork.ID),
+					fmt.Sprintf("machine.metal-pod.io/project-id=%s", projectID),
 				},
 				"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},
 				"secret": map[string]interface{}{

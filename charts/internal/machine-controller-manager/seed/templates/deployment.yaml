@@ -38,7 +38,7 @@ spec:
       containers:
       - name: machine-controller-manager
         image: {{ index .Values.images "machine-controller-manager" }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         command:
         - ./machine-controller-manager
         - --control-kubeconfig=inClusterConfig

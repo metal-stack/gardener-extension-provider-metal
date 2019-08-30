@@ -50,6 +50,11 @@ rules:
 - apiGroups: [""]
   resources: ["services", "endpoints", "nodes"]
   verbs: ["get", "list", "watch"]
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs:     ["use"]
+  resourceNames:
+  - psp.metallb
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -166,7 +171,7 @@ spec:
             drop:
             - all
             add:
-            - net_raw
+            - NET_RAW
 
 ---
 apiVersion: apps/v1beta2
