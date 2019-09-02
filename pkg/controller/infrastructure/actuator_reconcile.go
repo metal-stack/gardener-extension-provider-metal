@@ -73,11 +73,11 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
 	}
 
+	// we need to create a firewall
 	uuid, err := uuid.NewUUID()
 	if err != nil {
 		return err
 	}
-
 	// Example values:
 	// cluster.Shoot.Status.TechnicalID  "shoot--dev--johndoe-metal"
 	tid := cluster.Shoot.Status.TechnicalID
@@ -85,19 +85,10 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 
 	// find private network
 	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	nodeCIDR := *cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
-	networkFindRequest := metalgo.NetworkFindRequest{
-		ProjectID: &projectID,
-		Prefixes:  []string{string(nodeCIDR)},
-	}
-	networkFindResponse, err := mclient.NetworkFind(&networkFindRequest)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes)
 	if err != nil {
 		return err
 	}
-	if len(networkFindResponse.Networks) != 1 {
-		return fmt.Errorf("no distinct private network for project id %q found: %s", projectID, nodeCIDR)
-	}
-	privateNetwork := networkFindResponse.Networks[0]
 
 	// assemble firewall allocation request
 	var networks []metalgo.MachineAllocationNetwork
@@ -106,7 +97,6 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		Autoacquire: true,
 	}
 	networks = append(networks, network)
-
 	for _, n := range infrastructureConfig.Firewall.Networks {
 		network := metalgo.MachineAllocationNetwork{
 			NetworkID:   n,
@@ -167,4 +157,3 @@ func (a *actuator) updateProviderStatus(ctx context.Context, infrastructure *ext
 		return nil
 	})
 }
-
