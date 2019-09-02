@@ -3,12 +3,11 @@ package infrastructure
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	metalapi "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 
 	metalgo "github.com/metal-pod/metal-go"
 	metalfirewall "github.com/metal-pod/metal-go/api/client/firewall"
@@ -17,9 +16,7 @@ import (
 	controllererrors "github.com/gardener/gardener-extensions/pkg/controller/error"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/retry"
@@ -38,36 +35,21 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		}
 	}
 
-	providerSecret := &corev1.Secret{}
-	if err := a.client.Get(ctx, kutil.Key(infrastructure.Spec.SecretRef.Namespace, infrastructure.Spec.SecretRef.Name), providerSecret); err != nil {
-		return err
-	}
-
 	firewallStatus := infrastructureStatus.Firewall
 	if firewallStatus.Succeeded {
 		return nil
 	}
 
-	token := strings.TrimSpace(string(providerSecret.Data[metal.APIKey]))
-	hmac := strings.TrimSpace(string(providerSecret.Data[metal.APIHMac]))
-
-	u, ok := providerSecret.Data[metal.APIURL]
-	if !ok {
-		return fmt.Errorf("missing %s in secret", metal.APIURL)
-	}
-	url := strings.TrimSpace(string(u))
-
-	svc, err := metalgo.NewDriver(url, token, hmac)
+	mclient, err := metalclient.NewClient(ctx, a.client, &infrastructure.Spec.SecretRef)
 	if err != nil {
 		return err
 	}
 
 	if firewallStatus.MachineID != "" {
 		// firewall was already created
-
 		machineID := decodeMachineID(firewallStatus.MachineID)
 
-		resp, err := svc.FirewallGet(machineID)
+		resp, err := mclient.FirewallGet(machineID)
 		if err != nil {
 			switch e := err.(type) {
 			case *metalfirewall.FindFirewallDefault:
@@ -108,7 +90,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		ProjectID: &projectID,
 		Prefixes:  []string{string(nodeCIDR)},
 	}
-	networkFindResponse, err := svc.NetworkFind(&networkFindRequest)
+	networkFindResponse, err := mclient.NetworkFind(&networkFindRequest)
 	if err != nil {
 		return err
 	}
@@ -149,7 +131,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 
 	a.logger.Info("create firewall from", "request", createRequest)
 
-	fcr, err := svc.FirewallCreate(createRequest)
+	fcr, err := mclient.FirewallCreate(createRequest)
 	if err != nil {
 		a.logger.Error(err, "failed to create firewall", "infrastructure", infrastructure.Name)
 		return &controllererrors.RequeueAfterError{
@@ -186,11 +168,3 @@ func (a *actuator) updateProviderStatus(ctx context.Context, infrastructure *ext
 	})
 }
 
-func encodeMachineID(partition, machineID string) string {
-	return fmt.Sprintf("metal:///%s/%s", partition, machineID)
-}
-
-func decodeMachineID(id string) string {
-	splitProviderID := strings.Split(id, "/")
-	return splitProviderID[len(splitProviderID)-1]
-}

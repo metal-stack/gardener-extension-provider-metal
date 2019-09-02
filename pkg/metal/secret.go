@@ -43,8 +43,8 @@ func ReadCredentialsSecret(secret *corev1.Secret) (*Credentials, error) {
 	}
 
 	return &Credentials{
-		MetalAPIURL:  url,
-		MetalAPIHMac: hmac,
-		MetalAPIKey:  key,
+		MetalAPIURL:  string(url),
+		MetalAPIHMac: string(hmac),
+		MetalAPIKey:  string(key),
 	}, nil
 }

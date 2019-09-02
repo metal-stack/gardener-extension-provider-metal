@@ -19,12 +19,12 @@ import (
 	"fmt"
 	"path/filepath"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	"github.com/gardener/gardener-extensions/pkg/util"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	metalgo "github.com/metal-pod/metal-go"
+	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 
@@ -61,24 +61,6 @@ func (w *workerDelegate) GenerateMachineDeployments(ctx context.Context) (worker
 	return w.machineDeployments, nil
 }
 
-func (w *workerDelegate) generateMachineClassSecretData(ctx context.Context) (map[string][]byte, error) {
-	secret, err := extensionscontroller.GetSecretByReference(ctx, w.client, &w.worker.Spec.SecretRef)
-	if err != nil {
-		return nil, err
-	}
-
-	credentials, err := metal.ReadCredentialsSecret(secret)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string][]byte{
-		machinev1alpha1.MetalAPIURL:  credentials.MetalAPIURL,
-		machinev1alpha1.MetalAPIKey:  credentials.MetalAPIKey,
-		machinev1alpha1.MetalAPIHMac: credentials.MetalAPIHMac,
-	}, nil
-}
-
 func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	var (
 		machineDeployments = worker.MachineDeployments{}
@@ -86,41 +68,28 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		machineImages      []apismetal.MachineImage
 	)
 
-	machineClassSecretData, err := w.generateMachineClassSecretData(ctx)
-	if err != nil {
-		return err
-	}
-
 	shootVersionMajorMinor, err := util.VersionMajorMinor(w.cluster.Shoot.Spec.Kubernetes.Version)
 	if err != nil {
 		return err
 	}
 
-	url := string(machineClassSecretData[machinev1alpha1.MetalAPIURL])
-	token := string(machineClassSecretData[machinev1alpha1.MetalAPIKey])
-	hmac := string(machineClassSecretData[machinev1alpha1.MetalAPIHMac])
-
-	svc, err := metalgo.NewDriver(url, token, hmac)
+	credentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, w.client, &w.worker.Spec.SecretRef)
 	if err != nil {
 		return err
 	}
 
-	// find private network
-	// TODO: Can we pass through the private network ID from the infrastructure actuator?
+	mclient, err := metalclient.NewClientFromCredentials(credentials)
+	if err != nil {
+		return err
+	}
+
 	projectID := w.cluster.Shoot.Spec.Cloud.Metal.ProjectID
 	nodeCIDR := *w.cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
-	networkFindRequest := metalgo.NetworkFindRequest{
-		ProjectID: &projectID,
-		Prefixes:  []string{string(nodeCIDR)},
-	}
-	networkFindResponse, err := svc.NetworkFind(&networkFindRequest)
+
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, nodeCIDR)
 	if err != nil {
 		return err
 	}
-	if len(networkFindResponse.Networks) != 1 {
-		return fmt.Errorf("no distinct private network for project id %q found: %s", projectID, nodeCIDR)
-	}
-	privateNetwork := networkFindResponse.Networks[0]
 
 	for _, pool := range w.worker.Spec.Pools {
 		zoneLen := len(pool.Zones)
@@ -173,9 +142,9 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			})
 
 			machineClassSpec["name"] = className
-			machineClassSpec["secret"].(map[string]interface{})[metal.APIKey] = string(machineClassSecretData[machinev1alpha1.MetalAPIKey])
-			machineClassSpec["secret"].(map[string]interface{})[metal.APIHMac] = string(machineClassSecretData[machinev1alpha1.MetalAPIHMac])
-			machineClassSpec["secret"].(map[string]interface{})[metal.APIURL] = string(machineClassSecretData[machinev1alpha1.MetalAPIURL])
+			machineClassSpec["secret"].(map[string]interface{})[metal.APIURL] = credentials.MetalAPIURL
+			machineClassSpec["secret"].(map[string]interface{})[metal.APIKey] = credentials.MetalAPIKey
+			machineClassSpec["secret"].(map[string]interface{})[metal.APIHMac] = credentials.MetalAPIHMac
 
 			machineClasses = append(machineClasses, machineClassSpec)
 		}

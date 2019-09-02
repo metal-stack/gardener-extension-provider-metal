@@ -391,6 +391,8 @@ github.com/metal-pod/machine-controller-manager v0.0.0-20190801141331-4e2b75ebc6
 github.com/metal-pod/metal-go v0.0.0-20190708061258-5e4b2ad2be34/go.mod h1:QiBt6D6ecJPk6DQ0WasKUVFHo6XdbcrogP0lcEwqA4Y=
 github.com/metal-pod/metal-go v0.0.0-20190816063655-41f27ea93449 h1:O3jUF01Ju57RYEBOk2tOVoViOR2OkFES4hT+PE9yAaw=
 github.com/metal-pod/metal-go v0.0.0-20190816063655-41f27ea93449/go.mod h1:QiBt6D6ecJPk6DQ0WasKUVFHo6XdbcrogP0lcEwqA4Y=
+github.com/metal-pod/metal-go v0.0.0-20190830132640-c0f862d8039a h1:254xrnX81gXqmYj5PdgECeFrxXKT8ZZ80H5eueWaD8c=
+github.com/metal-pod/metal-go v0.0.0-20190830132640-c0f862d8039a/go.mod h1:pUnRARUX5JHjKyCIaoLBs1as3/RGmbaQ3Hmnwqb9vKw=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89 h1:RRVjpKhVGMGoDjadvr0IZWQSPoFvYUp4es7s62zhx8k=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89/go.mod h1:BUuL3n1TYvrGlxfUl2L6zrErSkw1NPchimPfcWMSU1k=
 github.com/mholt/archiver v3.1.1+incompatible/go.mod h1:Dh2dOXnSdiLxRiPoVfIr/fI1TwETms9B8CTWfeh7ROU=

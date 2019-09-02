@@ -23,9 +23,9 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gardener "github.com/gardener/gardener/pkg/client/kubernetes"

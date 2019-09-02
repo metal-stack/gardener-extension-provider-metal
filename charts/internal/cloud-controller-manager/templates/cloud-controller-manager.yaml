@@ -92,6 +92,8 @@ spec:
             value: {{ .Values.projectID }}
           - name: METAL_PARTITION_ID
             value: {{ .Values.partitionID }}
+          - name: METAL_NETWORK_ID
+            value: {{ .Values.networkID }}
         livenessProbe:
           httpGet:
             path: /healthz

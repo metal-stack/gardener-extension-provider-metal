@@ -23,6 +23,9 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener-extensions/pkg/util"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
+	metalgo "github.com/metal-pod/metal-go"
+
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
@@ -40,6 +43,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/rest"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Object names
@@ -117,13 +123,25 @@ func NewValuesProvider(logger logr.Logger) genericactuator.ValuesProvider {
 
 // valuesProvider is a ValuesProvider that provides AWS-specific values for the 2 charts applied by the generic actuator.
 type valuesProvider struct {
-	decoder runtime.Decoder
-	logger  logr.Logger
+	decoder    runtime.Decoder
+	restConfig *rest.Config
+	client     client.Client
+	logger     logr.Logger
 }
 
 // InjectScheme injects the given scheme into the valuesProvider.
 func (vp *valuesProvider) InjectScheme(scheme *runtime.Scheme) error {
 	vp.decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
+	return nil
+}
+
+func (vp *valuesProvider) InjectConfig(restConfig *rest.Config) error {
+	vp.restConfig = restConfig
+	return nil
+}
+
+func (vp *valuesProvider) InjectClient(client client.Client) error {
+	vp.client = client
 	return nil
 }
 
@@ -150,8 +168,13 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, errors.Wrapf(err, "could not decode providerConfig of controlplane '%s'", util.ObjectName(cp))
 	}
 
+	mclient, err := metalclient.NewClient(ctx, vp.client, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get CCM chart values
-	return getCCMChartValues(cpConfig, cp, cluster, checksums, scaledDown)
+	return getCCMChartValues(cpConfig, cp, cluster, checksums, scaledDown, mclient)
 }
 
 // GetControlPlaneExposureChartValues returns the values for the control plane exposure chart applied by the generic actuator.
@@ -179,11 +202,21 @@ func getCCMChartValues(
 	cluster *extensionscontroller.Cluster,
 	checksums map[string]string,
 	scaledDown bool,
+	mclient *metalgo.Driver,
 ) (map[string]interface{}, error) {
+	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
+	nodeCIDR := cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, nodeCIDR)
+	if err != nil {
+		return nil, err
+	}
+
 	values := map[string]interface{}{
 		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster.Shoot, scaledDown, 1),
-		"projectID":         cluster.Shoot.Spec.Cloud.Metal.ProjectID,
+		"projectID":         projectID,
 		"partitionID":       cluster.Shoot.Spec.Cloud.Metal.Zones[0],
+		"networkID":         *privateNetwork.ID,
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"podNetwork":        extensionscontroller.GetPodNetwork(cluster.Shoot),
 		"podAnnotations": map[string]interface{}{

@@ -58,9 +58,9 @@ var (
 	InternalChartsPath = filepath.Join(ChartsPath, "internal")
 )
 
-// Credentials stores AWS credentials.
+// Credentials stores Metal credentials.
 type Credentials struct {
-	MetalAPIURL  []byte
-	MetalAPIKey  []byte
-	MetalAPIHMac []byte
+	MetalAPIURL  string
+	MetalAPIKey  string
+	MetalAPIHMac string
 }
