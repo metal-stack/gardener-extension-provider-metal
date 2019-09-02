@@ -33,7 +33,7 @@ require (
 )
 
 replace (
-	git.apache.org/thrift => github.com/apache/thrift
+	git.apache.org/thrift => github.com/apache/thrift v0.12.0
 	github.com/gardener/gardener => github.com/metal-pod/gardener v0.0.0-20190827131320-58dad7be7444
 	github.com/gardener/machine-controller-manager => github.com/metal-pod/machine-controller-manager v0.0.0-20190801141331-4e2b75ebc6c0
 	k8s.io/api => k8s.io/api v0.0.0-20190313235455-40a48860b5ab //kubernetes-1.14.0
