@@ -84,7 +84,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	projectID := w.cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	nodeCIDR := *w.cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	nodeCIDR := w.cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
 
 	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, nodeCIDR)
 	if err != nil {
