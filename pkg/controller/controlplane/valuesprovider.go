@@ -16,7 +16,7 @@ package controlplane
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"path/filepath"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
@@ -91,12 +91,12 @@ var controlPlaneSecrets = &secrets.Secrets{
 	},
 }
 
-// FIXME deploy ConfigMap with Webhook Config
 var configChart = &chart.Chart{
 	Name:   "config",
 	Path:   filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
 	Images: []string{metal.AuthNWebhookImageName, metal.GroupRolebindingControllerImageName},
 	Objects: []*chart.Object{
+
 		{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
 
 		{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
@@ -170,38 +170,61 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 
-	values := getWebhookChartValues(cp, cluster)
-
-	// add values for "group-rolebinding-controller" -- prefix every value to avoid unintentional overwriting?
-
-	// FIXME where to get values from?
-	tenant := "xxx"
-
-	// FIXME get this value from config or at least info if UNIX-LDAP / ActiveDirectory (internalize Templates?)
-	values["groupnameTemplate"] = fmt.Sprintf("cn=%s_k8s-{{ .Clustername }}-{{ .Namespace }}-{{ .Group }}", tenant)
-
-	return values, nil
+	return getAuthNGroupRoleChartValues(cp, cluster)
 }
 
-func getWebhookChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) map[string]interface{} {
+// returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
+func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
-	clusterName := cluster.Shoot.ClusterName
+	annotations := cluster.Shoot.GetAnnotations()
+	clusterName := annotations[metal.ShootAnnotationClusterName]
+	tenant := annotations[metal.ShootAnnotationTenant]
 
-	// FIXME where to get values from?
-	tenant := "xxx"
-	issuerUrl := "https://tokenissuer/dex"
-	clientId := "xxx"
+	var tokenIssuerPC *gardencorev1alpha1.ProviderConfig
+	for _, ext := range cluster.Shoot.Spec.Extensions {
+
+		if ext.Type == metal.ShootExtensionTypeTokenIssuer {
+			tokenIssuerPC = ext.ProviderConfig
+			break
+		}
+	}
+
+	if tokenIssuerPC == nil {
+		return nil, errors.New("tokenissuer-Extension not found")
+	}
+
+	ti := &TokenIssuer{}
+	err := json.Unmarshal(tokenIssuerPC.Raw, ti)
+	if err != nil {
+		return nil, err
+	}
 
 	values := map[string]interface{}{
 		"tenant":             tenant,
 		"clustername":        clusterName,
-		"oidcIssuerUrl":      issuerUrl,
-		"oidcIssuerClientId": clientId,
-
-		"debug": "true",
+		"oidcIssuerUrl":      ti.IssuerUrl,
+		"oidcIssuerClientId": ti.ClientId,
+		"debug":              "true",
 	}
 
-	return values
+	return values, nil
+}
+
+// Data for configuration of AuthNWebhook
+type TokenIssuer struct {
+	IssuerUrl string `json:"issuerUrl" optional:"false"`
+	ClientId  string `json:"clientId" optional:"false"`
+}
+
+// Data for configuration of IDM-API WebHook
+type UserDirectory struct {
+	IdmApi           string `json:"idmApi" optional:"false"`
+	IdmApiUser       string `json:"idmApiUser" optional:"false"`
+	IdmApiPassword   string `json:"idmApiPassword" optional:"false"`
+	TargetSystemId   string `json:"targetSystemId" optional:"false"`
+	TargetSystemType string `json:"targetSystemType" optional:"false"`
+	AccessCode       string `json:"accessCode" optional:"false"`
+	CustomerId       string `json:"cstomerId" optional:"false"`
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.

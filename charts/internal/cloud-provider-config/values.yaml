@@ -1,0 +1,11 @@
+#
+# webhook
+#
+tenant: someTenant
+clustername: projectID
+
+oidcIssuerUrl: https://tokenissuer/dex
+oidcIssuerClientId: myClientId
+
+debug: true
+

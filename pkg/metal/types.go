@@ -56,7 +56,16 @@ const (
 	BackupSecretName = "etcd-backup"
 
 	// AuthN Webhook
-	AuthNWebHookConfigName = "authn-webhook-config"
+	AuthNWebHookConfigName        = "authn-webhook-config"
+	ShootExtensionTypeTokenIssuer = "tokenissuer"
+
+	// Shoot Annotations
+	ShootAnnotationCreatedBy   = "garden.sapcloud.io/createdBy"
+	ShootAnnotationPurpose     = "garden.sapcloud.io/purpose"
+	ShootAnnotationProject     = "cluster.metal-pod.io/project"
+	ShootAnnotationDescription = "cluster.metal-pod.io/description"
+	ShootAnnotationClusterName = "cluster.metal-pod.io/name"
+	ShootAnnotationTenant      = "cluster.metal-pod.io/tenant"
 )
 
 var (

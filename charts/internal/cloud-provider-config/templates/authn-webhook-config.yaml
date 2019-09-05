@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: authn-webhook-config
+    namespace: {{ .Release.Namespace }}
+data:
+    authn-webhook-config.json: |
+        {
+              "kind": "Config",
+              "apiVersion": "v1",
+              "preferences": {},
+              "clusters": [
+              {
+                    "name": "kube-jwt-authn-webhook",
+                    "cluster": {
+                          "server": "http://kube-jwt-authn-webhook:3000/authenticate"
+                    }
+              }
+              ],
+              "users": [
+              {
+                    "name": "authn-apiserver",
+                    "user": {
+                          "token": "secret"
+                    }
+              }
+              ],
+              "contexts": [
+              {
+                    "name": "kube-jwt-authn-webhook",
+                    "context": {
+                          "cluster": "kube-jwt-authn-webhook",
+                          "user": "authn-apiserver"
+                    }
+              }
+              ],
+              "current-context": "kube-jwt-authn-webhook"
+        }

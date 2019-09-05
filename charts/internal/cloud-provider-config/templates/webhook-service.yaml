@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: kube-jwt-authn-webhook
+    namespace: {{ .Release.Namespace }}
+    labels:
+        app: kube-jwt-authn-webhook
+spec:
+    ports:
+    - port: 3000
+      targetPort: 3000
+    selector:
+        app: kube-jwt-authn-webhook
