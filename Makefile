@@ -22,6 +22,8 @@ LD_FLAGS                    := "-w -X github.com/gardener/gardener-extensions/pk
 VERIFY                      := true
 LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
+WEBHOOK_CONFIG_URL          := localhost
+
 
 ### Build commands
 
@@ -79,8 +81,9 @@ start-provider-metal:
 		-tags netgo \
 		./cmd/gardener-extension-provider-metal \
 		--config-file=./example/00-componentconfig.yaml \
-		--infrastructure-ignore-operation-annotation=$(IGNORE_OPERATION_ANNOTATION) \
+		--ignore-operation-annotation=$(IGNORE_OPERATION_ANNOTATION) \
 		--leader-election=$(LEADER_ELECTION) \
-		--webhook-config-mode=url \
 		--webhook-config-server-host=$(HOSTNAME) \
-		--webhook-config-server-port=8443
+		--webhook-config-server-port=8443 \
+		--webhook-config-mode=url \
+		--webhook-config-url=$(WEBHOOK_CONFIG_URL)

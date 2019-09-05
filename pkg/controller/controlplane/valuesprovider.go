@@ -16,6 +16,7 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
@@ -90,6 +91,23 @@ var controlPlaneSecrets = &secrets.Secrets{
 	},
 }
 
+// FIXME deploy ConfigMap with Webhook Config
+var configChart = &chart.Chart{
+	Name:   "config",
+	Path:   filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
+	Images: []string{metal.AuthNWebhookImageName, metal.GroupRolebindingControllerImageName},
+	Objects: []*chart.Object{
+		{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
+
+		{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
+		{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
+
+		{Type: &corev1.ServiceAccount{}, Name: "group-rolebinding-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "group-rolebinding-controller"},
+		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
+	},
+}
+
 var ccmChart = &chart.Chart{
 	Name:   "cloud-controller-manager",
 	Path:   filepath.Join(metal.InternalChartsPath, "cloud-controller-manager"),
@@ -151,7 +169,39 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
-	return nil, nil
+
+	values := getWebhookChartValues(cp, cluster)
+
+	// add values for "group-rolebinding-controller" -- prefix every value to avoid unintentional overwriting?
+
+	// FIXME where to get values from?
+	tenant := "xxx"
+
+	// FIXME get this value from config or at least info if UNIX-LDAP / ActiveDirectory (internalize Templates?)
+	values["groupnameTemplate"] = fmt.Sprintf("cn=%s_k8s-{{ .Clustername }}-{{ .Namespace }}-{{ .Group }}", tenant)
+
+	return values, nil
+}
+
+func getWebhookChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) map[string]interface{} {
+
+	clusterName := cluster.Shoot.ClusterName
+
+	// FIXME where to get values from?
+	tenant := "xxx"
+	issuerUrl := "https://tokenissuer/dex"
+	clientId := "xxx"
+
+	values := map[string]interface{}{
+		"tenant":             tenant,
+		"clustername":        clusterName,
+		"oidcIssuerUrl":      issuerUrl,
+		"oidcIssuerClientId": clientId,
+
+		"debug": "true",
+	}
+
+	return values
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
@@ -186,7 +236,8 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 }
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
-func (vp *valuesProvider) GetControlPlaneShootChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
 	return nil, nil
 }
 

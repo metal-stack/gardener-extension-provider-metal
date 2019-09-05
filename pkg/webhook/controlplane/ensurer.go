@@ -16,11 +16,11 @@ package controlplane
 
 import (
 	"context"
-
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	"github.com/coreos/go-systemd/unit"
 	"github.com/go-logr/logr"
@@ -55,8 +55,40 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, dep *appsv1
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c)
+		ensureVolumeMounts(c)
+		ensureVolumes(ps)
 	}
 	return e.ensureChecksumAnnotations(ctx, &dep.Spec.Template, dep.Namespace)
+}
+
+var (
+	authnWebhookConfigVolumeMount = corev1.VolumeMount{
+		Name:      metal.AuthNWebHookConfigName,
+		MountPath: "/etc/kubernetes/metal",
+	}
+	authnWebhookConfigVolume = corev1.Volume{
+		Name: metal.AuthNWebHookConfigName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuthNWebHookConfigName},
+			},
+		},
+	}
+)
+
+func ensureVolumeMounts(c *corev1.Container) {
+	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
+}
+
+func ensureVolumes(ps *corev1.PodSpec) {
+	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
+}
+
+func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
+	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
+
+	// activate AuthN Webhook with mounted Webhook-Config
+	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/kubernetes/metal/authn-webhook-config.json")
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
@@ -70,13 +102,8 @@ func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, dep
 	return e.ensureChecksumAnnotations(ctx, &dep.Spec.Template, dep.Namespace)
 }
 
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
-	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
-}
-
 func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
-
 }
 
 func ensureKubeControllerManagerAnnotations(t *corev1.PodTemplateSpec) {
