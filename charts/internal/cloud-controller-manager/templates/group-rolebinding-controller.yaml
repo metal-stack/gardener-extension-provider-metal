@@ -2,48 +2,48 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-    name: group-rolebinding-controller
-    namespace: kube-system
+  name: group-rolebinding-controller
+  namespace: kube-system
 
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-    name: group-rolebinding-controller
+  name: group-rolebinding-controller
 subjects:
 - kind: ServiceAccount
   name: group-rolebinding-controller
   namespace: kube-system
 roleRef:
-    kind: ClusterRole
-    name: cluster-admin
-    apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    labels:
-        app: group-rolebinding-controller
-    name: group-rolebinding-controller
-    namespace: kube-system
+  labels:
+    app: group-rolebinding-controller
+  name: group-rolebinding-controller
+  namespace: kube-system
 spec:
-    replicas: 1
-    selector:
-        matchLabels:
-            app: group-rolebinding-controller
-    template:
-        metadata:
-            labels:
-                app: group-rolebinding-controller
-        spec:
-            serviceAccountName: group-rolebinding-controller
-            containers:
-            - name: group-rolebinding-controller
-              image: {{ index .Values.images "group-rolebinding-controller" }}
-              imagePullPolicy: Always
-              command: ["/group-rolebinding-controller"]
-              args: ["--excludeNamespaces", "kube-system,kube-public,kube-node-lease,default",
-                     "--expectedGroupsList", "admin,edit,view",
-                     "--clustername", "{{ .Values.clustername }}",
-              ]
+  replicas: 1
+  selector:
+    matchLabels:
+      app: group-rolebinding-controller
+  template:
+    metadata:
+      labels:
+        app: group-rolebinding-controller
+    spec:
+      serviceAccountName: group-rolebinding-controller
+      containers:
+      - name: group-rolebinding-controller
+        image: {{ index .Values.images "group-rolebinding-controller" }}
+        imagePullPolicy: Always
+        command: ["/group-rolebinding-controller"]
+        args: ["--excludeNamespaces", "kube-system,kube-public,kube-node-lease,default",
+               "--expectedGroupsList", "admin,edit,view",
+               "--clustername", "{{ .Values.clustername }}",
+        ]

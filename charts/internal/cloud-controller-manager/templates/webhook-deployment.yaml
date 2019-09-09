@@ -1,3 +1,4 @@
+---
 #
 # Deployment, deploys webhook in Shoot-Controlplane
 #
@@ -6,40 +7,40 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: kube-jwt-authn-webhook
-    namespace: {{ .Release.Namespace }}
-    labels:
-        k8s-app: kube-jwt-authn-webhook
+  name: kube-jwt-authn-webhook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    k8s-app: kube-jwt-authn-webhook
 spec:
-    selector:
-        matchLabels:
-            k8s-app: kube-jwt-authn-webhook
-    template:
-        metadata:
-            labels:
-                k8s-app: kube-jwt-authn-webhook
-                app: kube-jwt-authn-webhook
-            annotations:
-                scheduler.alpha.kubernetes.io/critical-pod: ''
-        spec:
-            containers:
-            - image: {{ index .Values.images "authn-webhook" }}
-              name: kubernetes-authn-webhook
-              ports:
-              - containerPort: 3000
-                hostPort: 3000
-                protocol: TCP
-              env:
-              - name: ISSUER
-                value: {{ .Values.oidcIssuerUrl }}
-              - name: CLIENTID
-                value: {{ .Values.oidcIssuerClientId }}
-              - name: GROUPSPREFIXTOREMOVE
-                value: k8s
-              - name: TENANT
-                value: {{ .Values.tenant }}
-              - name: CLUSTER
-                value: {{ .Values.clustername }}
-              - name: DEBUG
-                value: {{ .Values.debug }}
-            restartPolicy: Always
+  selector:
+    matchLabels:
+      k8s-app: kube-jwt-authn-webhook
+  template:
+    metadata:
+      labels:
+        k8s-app: kube-jwt-authn-webhook
+        app: kube-jwt-authn-webhook
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      containers:
+      - image: {{ index .Values.images "authn-webhook" }}
+        name: kubernetes-authn-webhook
+        ports:
+        - containerPort: 3000
+          hostPort: 3000
+          protocol: TCP
+        env:
+        - name: ISSUER
+          value: {{ .Values.oidcIssuerUrl }}
+        - name: CLIENTID
+          value: {{ .Values.oidcIssuerClientId }}
+        - name: GROUPSPREFIXTOREMOVE
+          value: k8s
+        - name: TENANT
+          value: {{ .Values.tenant }}
+        - name: CLUSTER
+          value: {{ .Values.clustername }}
+        - name: DEBUG
+          value: {{ .Values.debug }}
+      restartPolicy: Always
