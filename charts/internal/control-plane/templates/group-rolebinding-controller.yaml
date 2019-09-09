@@ -16,7 +16,6 @@ spec:
       labels:
         app: group-rolebinding-controller
     spec:
-      serviceAccountName: group-rolebinding-controller
       containers:
       - name: group-rolebinding-controller
         image: {{ index .Values.images "group-rolebinding-controller" }}
