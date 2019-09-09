@@ -42,5 +42,5 @@ spec:
         - name: CLUSTER
           value: {{ .Values.clustername }}
         - name: DEBUG
-          value: "true"
+          value: {{ quote .Values.debug }}
       restartPolicy: Always

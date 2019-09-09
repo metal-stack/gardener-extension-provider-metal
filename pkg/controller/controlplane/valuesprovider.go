@@ -96,14 +96,14 @@ var configChart = &chart.Chart{
 	Path:   filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
 	Images: []string{},
 	Objects: []*chart.Object{
-
+		// this config is mounted by the shoot-kube-apiserver at startup and should therefore be deployed before the controlplane
 		{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
 	},
 }
 
-var ccmChart = &chart.Chart{
-	Name:   "cloud-controller-manager",
-	Path:   filepath.Join(metal.InternalChartsPath, "cloud-controller-manager"),
+var controlPlaneChart = &chart.Chart{
+	Name:   "control-plane",
+	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
 	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.GroupRolebindingControllerImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
@@ -171,60 +171,6 @@ func (vp *valuesProvider) GetConfigChartValues(
 ) (map[string]interface{}, error) {
 
 	return nil, nil
-}
-
-// returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-
-	annotations := cluster.Shoot.GetAnnotations()
-	clusterName := annotations[metal.ShootAnnotationClusterName]
-	tenant := annotations[metal.ShootAnnotationTenant]
-
-	var tokenIssuerPC *gardencorev1alpha1.ProviderConfig
-	for _, ext := range cluster.Shoot.Spec.Extensions {
-
-		if ext.Type == metal.ShootExtensionTypeTokenIssuer {
-			tokenIssuerPC = ext.ProviderConfig
-			break
-		}
-	}
-
-	if tokenIssuerPC == nil {
-		return nil, errors.New("tokenissuer-Extension not found")
-	}
-
-	ti := &TokenIssuer{}
-	err := json.Unmarshal(tokenIssuerPC.Raw, ti)
-	if err != nil {
-		return nil, err
-	}
-
-	values := map[string]interface{}{
-		"tenant":             tenant,
-		"clustername":        clusterName,
-		"oidcIssuerUrl":      ti.IssuerUrl,
-		"oidcIssuerClientId": ti.ClientId,
-		"debug":              "true",
-	}
-
-	return values, nil
-}
-
-// Data for configuration of AuthNWebhook
-type TokenIssuer struct {
-	IssuerUrl string `json:"issuerUrl" optional:"false"`
-	ClientId  string `json:"clientId" optional:"false"`
-}
-
-// Data for configuration of IDM-API WebHook
-type UserDirectory struct {
-	IdmApi           string `json:"idmApi" optional:"false"`
-	IdmApiUser       string `json:"idmApiUser" optional:"false"`
-	IdmApiPassword   string `json:"idmApiPassword" optional:"false"`
-	TargetSystemId   string `json:"targetSystemId" optional:"false"`
-	TargetSystemType string `json:"targetSystemType" optional:"false"`
-	AccessCode       string `json:"accessCode" optional:"false"`
-	CustomerId       string `json:"cstomerId" optional:"false"`
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
@@ -323,4 +269,58 @@ func getCCMChartValues(
 	}
 
 	return values, nil
+}
+
+// returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
+func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
+	annotations := cluster.Shoot.GetAnnotations()
+	clusterName := annotations[metal.ShootAnnotationClusterName]
+	tenant := annotations[metal.ShootAnnotationTenant]
+
+	var tokenIssuerPC *gardencorev1alpha1.ProviderConfig
+	for _, ext := range cluster.Shoot.Spec.Extensions {
+
+		if ext.Type == metal.ShootExtensionTypeTokenIssuer {
+			tokenIssuerPC = ext.ProviderConfig
+			break
+		}
+	}
+
+	if tokenIssuerPC == nil {
+		return nil, errors.New("tokenissuer-Extension not found")
+	}
+
+	ti := &TokenIssuer{}
+	err := json.Unmarshal(tokenIssuerPC.Raw, ti)
+	if err != nil {
+		return nil, err
+	}
+
+	values := map[string]interface{}{
+		"tenant":             tenant,
+		"clustername":        clusterName,
+		"oidcIssuerUrl":      ti.IssuerUrl,
+		"oidcIssuerClientId": ti.ClientId,
+		"debug":              "true",
+	}
+
+	return values, nil
+}
+
+// Data for configuration of AuthNWebhook
+type TokenIssuer struct {
+	IssuerUrl string `json:"issuerUrl" optional:"false"`
+	ClientId  string `json:"clientId" optional:"false"`
+}
+
+// Data for configuration of IDM-API WebHook
+type UserDirectory struct {
+	IdmApi           string `json:"idmApi" optional:"false"`
+	IdmApiUser       string `json:"idmApiUser" optional:"false"`
+	IdmApiPassword   string `json:"idmApiPassword" optional:"false"`
+	TargetSystemId   string `json:"targetSystemId" optional:"false"`
+	TargetSystemType string `json:"targetSystemType" optional:"false"`
+	AccessCode       string `json:"accessCode" optional:"false"`
+	CustomerId       string `json:"cstomerId" optional:"false"`
 }
