@@ -53,6 +53,7 @@ import (
 const (
 	cloudControllerManagerDeploymentName = "cloud-controller-manager"
 	cloudControllerManagerServerName     = "cloud-controller-manager-server"
+	groupRolebindingControllerName       = "group-rolebinding-controller"
 )
 
 var controlPlaneSecrets = &secrets.Secrets{
@@ -69,6 +70,19 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         cloudControllerManagerDeploymentName,
 					CommonName:   "system:cloud-controller-manager",
+					Organization: []string{user.SystemPrivilegedGroup},
+					CertType:     secrets.ClientCert,
+					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+				},
+				KubeConfigRequest: &secrets.KubeConfigRequest{
+					ClusterName:  clusterName,
+					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:         groupRolebindingControllerName,
+					CommonName:   "system:group-rolebinding-controller",
 					Organization: []string{user.SystemPrivilegedGroup},
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
@@ -124,6 +138,8 @@ var cpShootChart = &chart.Chart{
 	Objects: []*chart.Object{
 		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
+
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
 	},
 }
 
