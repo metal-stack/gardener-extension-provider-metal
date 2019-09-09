@@ -94,10 +94,20 @@ var controlPlaneSecrets = &secrets.Secrets{
 var configChart = &chart.Chart{
 	Name:   "config",
 	Path:   filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
-	Images: []string{metal.AuthNWebhookImageName, metal.GroupRolebindingControllerImageName},
+	Images: []string{},
 	Objects: []*chart.Object{
 
 		{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
+	},
+}
+
+var ccmChart = &chart.Chart{
+	Name:   "cloud-controller-manager",
+	Path:   filepath.Join(metal.InternalChartsPath, "cloud-controller-manager"),
+	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.GroupRolebindingControllerImageName},
+	Objects: []*chart.Object{
+		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
+		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
 
 		{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
 		{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
@@ -105,16 +115,6 @@ var configChart = &chart.Chart{
 		{Type: &corev1.ServiceAccount{}, Name: "group-rolebinding-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "group-rolebinding-controller"},
 		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
-	},
-}
-
-var ccmChart = &chart.Chart{
-	Name:   "cloud-controller-manager",
-	Path:   filepath.Join(metal.InternalChartsPath, "cloud-controller-manager"),
-	Images: []string{metal.CCMImageName},
-	Objects: []*chart.Object{
-		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
-		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
 	},
 }
 
@@ -170,7 +170,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 
-	return getAuthNGroupRoleChartValues(cp, cluster)
+	return nil, nil
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
@@ -247,7 +247,22 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	}
 
 	// Get CCM chart values
-	return getCCMChartValues(cpConfig, cp, cluster, checksums, scaledDown, mclient)
+	chartValues, err := getCCMChartValues(cpConfig, cp, cluster, checksums, scaledDown, mclient)
+	if err != nil {
+		return nil, err
+	}
+
+	authValues, err := getAuthNGroupRoleChartValues(cp, cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	// "merge" - FIXME, prevent overwriting due to duplicate keys (prefixes?)
+	for k := range authValues {
+		chartValues[k] = authValues[k]
+	}
+
+	return chartValues, nil
 }
 
 // GetControlPlaneExposureChartValues returns the values for the control plane exposure chart applied by the generic actuator.
