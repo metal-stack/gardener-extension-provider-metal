@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloud-controller-manager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: kubernetes
+    role: cloud-controller-manager
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: metrics
+    port: {{ include "cloud-controller-manager.port" . }}
+    protocol: TCP
+  selector:
+    app: kubernetes
+    role: cloud-controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-controller-manager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    garden.sapcloud.io/role: controlplane
+    app: kubernetes
+    role: cloud-controller-manager
+spec:
+  revisionHistoryLimit: 0
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: kubernetes
+      role: cloud-controller-manager
+  template:
+    metadata:
+{{- if .Values.podAnnotations }}
+      annotations:
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
+      labels:
+        garden.sapcloud.io/role: controlplane
+        app: kubernetes
+        role: cloud-controller-manager
+    spec:
+      tolerations:
+      - effect: NoExecute
+        operator: Exists
+      containers:
+      - name: cloud-controller-manager
+        image: {{ index .Values.images "metalccm" }}
+        imagePullPolicy: Always
+        command:
+        - ./metal-cloud-controller-manager
+        - --cloud-provider=metal
+        - --allow-untagged-cloud=true
+        - --cluster-cidr={{ .Values.podNetwork }}
+        - --cluster-name={{ .Values.clusterName }}
+        - --concurrent-service-syncs=10
+        {{- include "cloud-controller-manager.featureGates" . | trimSuffix "," | indent 8 }}
+        - --kubeconfig=/var/lib/cloud-controller-manager/kubeconfig
+        - --leader-elect=true
+        {{- if semverCompare ">= 1.13" .Values.kubernetesVersion }}
+        - --secure-port={{ include "cloud-controller-manager.port" . }}
+        - --port=0
+        {{- end }}
+        {{- if semverCompare ">= 1.12" .Values.kubernetesVersion }}
+        - --authentication-kubeconfig=/var/lib/cloud-controller-manager/kubeconfig
+        - --authorization-kubeconfig=/var/lib/cloud-controller-manager/kubeconfig
+        - --tls-cert-file=/var/lib/cloud-controller-manager-server/cloud-controller-manager-server.crt
+        - --tls-private-key-file=/var/lib/cloud-controller-manager-server/cloud-controller-manager-server.key
+        {{- end }}
+        - --tls-cipher-suites={{ include "kubernetes.tlsCipherSuites" . | replace "\n" "," | trimPrefix "," }}
+        - --use-service-account-credentials
+        - --v=2
+        {{- range $index, $param := $.Values.additionalParameters }}
+        - {{ $param }}
+        {{- end }}
+        env:
+          - name: METAL_API_URL
+            valueFrom:
+              secretKeyRef:
+                name: cloudprovider
+                key: metalAPIURL
+          - name: METAL_AUTH_HMAC
+            valueFrom:
+              secretKeyRef:
+                name: cloudprovider
+                key: metalAPIHMac
+          - name: METAL_PROJECT_ID
+            value: {{ .Values.projectID }}
+          - name: METAL_PARTITION_ID
+            value: {{ .Values.partitionID }}
+          - name: METAL_NETWORK_ID
+            value: {{ .Values.networkID }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            {{- if semverCompare ">= 1.13" .Values.kubernetesVersion }}
+            scheme: HTTPS
+            {{- else }}
+            scheme: HTTP
+            {{- end }}
+            port: {{ include "cloud-controller-manager.port" . }}
+          successThreshold: 1
+          failureThreshold: 2
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 15
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        {{- if .Values.resources }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: cloud-controller-manager
+          mountPath: /var/lib/cloud-controller-manager
+        - name: cloud-controller-manager-server
+          mountPath: /var/lib/cloud-controller-manager-server
+        - name: cloudprovider
+          mountPath: /srv/cloudprovider
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: cloud-controller-manager
+        secret:
+          secretName: cloud-controller-manager
+      - name: cloud-controller-manager-server
+        secret:
+          secretName: cloud-controller-manager-server
+      - name: cloudprovider
+        secret:
+          secretName: cloudprovider

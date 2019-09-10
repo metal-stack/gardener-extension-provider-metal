@@ -1,0 +1,15 @@
+machineClasses:
+- name: class-1
+  partition: nbg-w8101
+  size: c1-xlarge-x86
+  project: gardener-test
+  network: private-network-id
+  image: ubuntu-19.04
+  sshkeys: []
+  tags:
+    - gardener=something
+  secret:
+    cloudConfig: abc
+    metalAPIKey: abc
+    metalAPIHMac: abc
+    metalAPIURL: abc

@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "name" . }}-configmap
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "labels" . | indent 4 }}
+data:
+  config.yaml: |
+    ---
+    apiVersion: metal.provider.extensions.config.gardener.cloud/v1alpha1
+    kind: ControllerConfiguration
+{{- if .Values.config.clientConnection }}
+    clientConnection:
+      acceptContentTypes: {{ required ".Values.config.clientConnection.acceptContentTypes is required" .Values.config.clientConnection.acceptContentTypes }}
+      contentType: {{ required ".Values.config.clientConnection.contentType is required" .Values.config.clientConnection.contentType }}
+      qps: {{ required ".Values.config.clientConnection.qps is required" .Values.config.clientConnection.qps }}
+      burst: {{ required ".Values.config.clientConnection.burst is required" .Values.config.clientConnection.burst }}
+{{- end }}
+{{- if .Values.config.machineImages }}
+    machineImages:
+{{ toYaml .Values.config.machineImages | indent 4 }}
+{{- end }}
+    etcd:
+      storage:
+        className: {{ .Values.config.etcd.storage.className }}
+        capacity: {{ .Values.config.etcd.storage.capacity }}
+      backup:
+        schedule: {{ .Values.config.etcd.backup.schedule }}

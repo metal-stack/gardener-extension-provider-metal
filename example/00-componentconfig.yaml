@@ -1,0 +1,13 @@
+---
+apiVersion: metal.provider.extensions.config.gardener.cloud/v1alpha1
+kind: ControllerConfiguration
+machineImages:
+- name: ubuntu
+  version: "19.04"
+  imageID: ubuntu-19.04
+etcd:
+  storage:
+    className: gardener.cloud-fast
+    capacity: 80Gi
+  backup:
+    schedule: "0 */24 * * *"

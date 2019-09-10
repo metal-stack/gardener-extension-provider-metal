@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: group-rolebinding-controller
+  name: group-rolebinding-controller
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: group-rolebinding-controller
+  template:
+    metadata:
+      labels:
+        app: group-rolebinding-controller
+    spec:
+      containers:
+      - name: group-rolebinding-controller
+        image: {{ index .Values.images "group-rolebinding-controller" }}
+        imagePullPolicy: Always
+        command: ["/group-rolebinding-controller"]
+        args:
+        - --excludeNamespaces=kube-system,kube-public,kube-node-lease,default
+        - --expectedGroupsList=admin,edit,view
+        - --clustername={{ .Values.clustername }}
+        - --kubeconfig=/var/lib/group-rolebinding-controller/kubeconfig
+        volumeMounts:
+        - name: group-rolebinding-controller
+          mountPath: /var/lib/group-rolebinding-controller
+      volumes:
+      - name: group-rolebinding-controller
+        secret:
+          secretName: group-rolebinding-controller

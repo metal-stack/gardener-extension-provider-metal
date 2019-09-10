@@ -1,0 +1,57 @@
+image:
+  repository: metalpod/gardener-extension-provider-metal
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+resources: {}
+
+controllers:
+  controlplane:
+    concurrentSyncs: 5
+  infrastructure:
+    concurrentSyncs: 5
+  worker:
+    concurrentSyncs: 5
+  ignoreOperationAnnotation: false
+
+disableControllers: []
+disableWebhooks: []
+
+# imageVectorOverwrite: |
+#   images:
+#   - name: pause-container
+#     sourceRepository: github.com/kubernetes/kubernetes/blob/master/build/pause/Dockerfile
+#     repository: gcr.io/google_containers/pause-amd64
+#     tag: "3.0"
+#     version: 1.11.x
+#   - name: pause-container
+#     sourceRepository: github.com/kubernetes/kubernetes/blob/master/build/pause/Dockerfile
+#     repository: gcr.io/google_containers/pause-amd64
+#     tag: "3.1"
+#     version: ">= 1.12"
+#   ...
+
+webhookConfig:
+  serverPort: 443
+
+config:
+  clientConnection:
+    acceptContentTypes: application/json
+    contentType: application/json
+    qps: 100
+    burst: 130
+  machineImages:
+  - name: ubuntu
+    version: "19.04"
+    image: ubuntu-19.04
+  etcd:
+    storage:
+      className: local-path
+      capacity: 80Gi
+    backup:
+      schedule: "0 */24 * * *"
+
+gardener:
+  seed:
+    provider: metal
