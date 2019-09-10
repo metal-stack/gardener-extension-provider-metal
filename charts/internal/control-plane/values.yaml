@@ -19,3 +19,15 @@ resources:
   limits:
     cpu: 250m
     memory: 300Mi
+
+
+#
+# webhook
+#
+tenant: someTenant
+clustername: projectID
+
+oidcIssuerUrl: https://tokenissuer/dex
+oidcIssuerClientId: myClientId
+
+debug: true

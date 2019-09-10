@@ -28,6 +28,11 @@ const (
 	CCMImageName = "metalccm"
 	// ETCDBackupRestoreImageName is the name of the etcd backup and restore image.
 	ETCDBackupRestoreImageName = "etcd-backup-restore"
+	// GroupRolebindingControllerImageName is the name of the GroupRolebindingController image
+	GroupRolebindingControllerImageName = "group-rolebinding-controller"
+	// AuthNWebhookImageName is the name of the AuthN Webhook configured with the shoot kube-apiserver
+	AuthNWebhookImageName = "authn-webhook"
+
 	// APIURL is a constant for the url of metal-api.
 	APIURL = "metalAPIURL"
 	// APIKey is a constant for the key in a cloud provider secret.
@@ -49,6 +54,18 @@ const (
 	MachineControllerManagerName = "machine-controller-manager"
 	// BackupSecretName is the name of the secret containing the credentials for storing the backups of Shoot clusters.
 	BackupSecretName = "etcd-backup"
+
+	// AuthN Webhook
+	AuthNWebHookConfigName        = "authn-webhook-config"
+	ShootExtensionTypeTokenIssuer = "tokenissuer"
+
+	// Shoot Annotations
+	ShootAnnotationCreatedBy   = "garden.sapcloud.io/createdBy"
+	ShootAnnotationPurpose     = "garden.sapcloud.io/purpose"
+	ShootAnnotationProject     = "cluster.metal-pod.io/project"
+	ShootAnnotationDescription = "cluster.metal-pod.io/description"
+	ShootAnnotationClusterName = "cluster.metal-pod.io/name"
+	ShootAnnotationTenant      = "cluster.metal-pod.io/tenant"
 )
 
 var (

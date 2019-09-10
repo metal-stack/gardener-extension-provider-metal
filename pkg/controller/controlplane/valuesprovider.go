@@ -16,6 +16,7 @@ package controlplane
 
 import (
 	"context"
+	"encoding/json"
 	"path/filepath"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
@@ -52,6 +53,7 @@ import (
 const (
 	cloudControllerManagerDeploymentName = "cloud-controller-manager"
 	cloudControllerManagerServerName     = "cloud-controller-manager-server"
+	groupRolebindingControllerName       = "group-rolebinding-controller"
 )
 
 var controlPlaneSecrets = &secrets.Secrets{
@@ -79,6 +81,19 @@ var controlPlaneSecrets = &secrets.Secrets{
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:         groupRolebindingControllerName,
+					CommonName:   "system:group-rolebinding-controller",
+					Organization: []string{user.SystemPrivilegedGroup},
+					CertType:     secrets.ClientCert,
+					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+				},
+				KubeConfigRequest: &secrets.KubeConfigRequest{
+					ClusterName:  clusterName,
+					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       cloudControllerManagerServerName,
 					CommonName: cloudControllerManagerDeploymentName,
 					DNSNames:   controlplane.DNSNamesForService(cloudControllerManagerDeploymentName, clusterName),
@@ -90,13 +105,30 @@ var controlPlaneSecrets = &secrets.Secrets{
 	},
 }
 
-var ccmChart = &chart.Chart{
-	Name:   "cloud-controller-manager",
-	Path:   filepath.Join(metal.InternalChartsPath, "cloud-controller-manager"),
-	Images: []string{metal.CCMImageName},
+var configChart = &chart.Chart{
+	Name:   "config",
+	Path:   filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
+	Images: []string{},
+	Objects: []*chart.Object{
+		// this config is mounted by the shoot-kube-apiserver at startup and should therefore be deployed before the controlplane
+		{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
+	},
+}
+
+var controlPlaneChart = &chart.Chart{
+	Name:   "control-plane",
+	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
+	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.GroupRolebindingControllerImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
+
+		{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
+		{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
+
+		{Type: &corev1.ServiceAccount{}, Name: "group-rolebinding-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "group-rolebinding-controller"},
+		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
 	},
 }
 
@@ -106,6 +138,8 @@ var cpShootChart = &chart.Chart{
 	Objects: []*chart.Object{
 		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
+
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
 	},
 }
 
@@ -151,6 +185,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
+
 	return nil, nil
 }
 
@@ -174,7 +209,22 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	}
 
 	// Get CCM chart values
-	return getCCMChartValues(cpConfig, cp, cluster, checksums, scaledDown, mclient)
+	chartValues, err := getCCMChartValues(cpConfig, cp, cluster, checksums, scaledDown, mclient)
+	if err != nil {
+		return nil, err
+	}
+
+	authValues, err := getAuthNGroupRoleChartValues(cp, cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	// "merge" - FIXME, prevent overwriting due to duplicate keys (prefixes?)
+	for k := range authValues {
+		chartValues[k] = authValues[k]
+	}
+
+	return chartValues, nil
 }
 
 // GetControlPlaneExposureChartValues returns the values for the control plane exposure chart applied by the generic actuator.
@@ -186,7 +236,8 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 }
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
-func (vp *valuesProvider) GetControlPlaneShootChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
 	return nil, nil
 }
 
@@ -234,4 +285,58 @@ func getCCMChartValues(
 	}
 
 	return values, nil
+}
+
+// returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
+func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
+	annotations := cluster.Shoot.GetAnnotations()
+	clusterName := annotations[metal.ShootAnnotationClusterName]
+	tenant := annotations[metal.ShootAnnotationTenant]
+
+	var tokenIssuerPC *gardencorev1alpha1.ProviderConfig
+	for _, ext := range cluster.Shoot.Spec.Extensions {
+
+		if ext.Type == metal.ShootExtensionTypeTokenIssuer {
+			tokenIssuerPC = ext.ProviderConfig
+			break
+		}
+	}
+
+	if tokenIssuerPC == nil {
+		return nil, errors.New("tokenissuer-Extension not found")
+	}
+
+	ti := &TokenIssuer{}
+	err := json.Unmarshal(tokenIssuerPC.Raw, ti)
+	if err != nil {
+		return nil, err
+	}
+
+	values := map[string]interface{}{
+		"tenant":             tenant,
+		"clustername":        clusterName,
+		"oidcIssuerUrl":      ti.IssuerUrl,
+		"oidcIssuerClientId": ti.ClientId,
+		"debug":              "true",
+	}
+
+	return values, nil
+}
+
+// Data for configuration of AuthNWebhook
+type TokenIssuer struct {
+	IssuerUrl string `json:"issuerUrl" optional:"false"`
+	ClientId  string `json:"clientId" optional:"false"`
+}
+
+// Data for configuration of IDM-API WebHook
+type UserDirectory struct {
+	IdmApi           string `json:"idmApi" optional:"false"`
+	IdmApiUser       string `json:"idmApiUser" optional:"false"`
+	IdmApiPassword   string `json:"idmApiPassword" optional:"false"`
+	TargetSystemId   string `json:"targetSystemId" optional:"false"`
+	TargetSystemType string `json:"targetSystemType" optional:"false"`
+	AccessCode       string `json:"accessCode" optional:"false"`
+	CustomerId       string `json:"cstomerId" optional:"false"`
 }
