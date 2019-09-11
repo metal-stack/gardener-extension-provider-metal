@@ -1,5 +1,5 @@
 #############      builder-base                             #############
-FROM golang:1.12.7 AS builder
+FROM golang:1.13 AS builder
 
 COPY ./hack/install-requirements.sh /install-requirements.sh
 COPY ./tools /tools
