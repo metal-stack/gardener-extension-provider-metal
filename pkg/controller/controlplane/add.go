@@ -21,7 +21,7 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/util"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-
+	"github.com/spf13/pflag"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -34,6 +34,50 @@ var (
 
 	logger = log.Log.WithName("metal-controlplane-controller")
 )
+
+type AccountingOptions struct {
+	AccountingSinkUrl  string
+	AccountingSinkHmac string
+
+	config *AccountingConfig
+}
+
+// AddFlags implements Flagger.AddFlags.
+func (a *AccountingOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.StringVar(&a.AccountingSinkUrl, "url", a.AccountingSinkUrl, "Url of the accounting sink API.")
+	fs.StringVar(&a.AccountingSinkHmac, "hmac", a.AccountingSinkHmac, "HMAC for the accounting sink API.")
+}
+
+func (a *AccountingOptions) Complete() error {
+	a.config = &AccountingConfig{
+		AccountingSinkUrl:  a.AccountingSinkUrl,
+		AccountingSinkHmac: a.AccountingSinkHmac,
+	}
+	return nil
+}
+
+func (a *AccountingOptions) Completed() *AccountingConfig {
+	return a.config
+}
+
+type AccountingConfig struct {
+	AccountingSinkUrl  string
+	AccountingSinkHmac string
+}
+
+func (a *AccountingConfig) Apply(accOpt *AccountingOptions) {
+	a.AccountingSinkUrl = accOpt.AccountingSinkUrl
+	a.AccountingSinkHmac = accOpt.AccountingSinkHmac
+}
+
+// Options initializes empty controller.Options, applies the set values and returns it.
+func (a *AccountingConfig) Options() AccountingOptions {
+	var opts AccountingOptions
+	a.Apply(&opts)
+	return opts
+}
+
+var AccOpts = AccountingOptions{}
 
 // AddOptions are options to apply when adding the Packet controlplane controller to the manager.
 type AddOptions struct {
@@ -48,9 +92,10 @@ type AddOptions struct {
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
+
 	return controlplane.Add(mgr, controlplane.AddArgs{
 		Actuator: genericactuator.NewActuator(metal.Name, controlPlaneSecrets, nil, configChart, controlPlaneChart, cpShootChart,
-			storageClassChart, nil, NewValuesProvider(logger), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
+			storageClassChart, nil, NewValuesProvider(logger, *AccOpts.config), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 			imagevector.ImageVector(), "", opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger),
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),

@@ -166,18 +166,20 @@ var storageClassChart = &chart.Chart{
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(logger logr.Logger) genericactuator.ValuesProvider {
+func NewValuesProvider(logger logr.Logger, config AccountingConfig) genericactuator.ValuesProvider {
 	return &valuesProvider{
-		logger: logger.WithName("metal-values-provider"),
+		logger:           logger.WithName("metal-values-provider"),
+		accountingConfig: config,
 	}
 }
 
 // valuesProvider is a ValuesProvider that provides AWS-specific values for the 2 charts applied by the generic actuator.
 type valuesProvider struct {
-	decoder    runtime.Decoder
-	restConfig *rest.Config
-	client     client.Client
-	logger     logr.Logger
+	decoder          runtime.Decoder
+	restConfig       *rest.Config
+	client           client.Client
+	logger           logr.Logger
+	accountingConfig AccountingConfig
 }
 
 // InjectScheme injects the given scheme into the valuesProvider.
@@ -236,7 +238,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	accValues, err := getAccountingExporterChartValues(cp, cluster)
+	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -246,8 +248,8 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	return chartValues, nil
 }
 
-// merge k&v of all source maps in the target map
-// FIXME, prevent overwriting due to duplicate keys (prefixes?)
+// merge all source maps in the target map
+// hint: prevent overwriting of values due to duplicate keys by the use of prefixes
 func merge(target map[string]interface{}, sources ...map[string]interface{}) {
 	for sIndex := range sources {
 		for k, v := range sources[sIndex] {
@@ -355,7 +357,7 @@ func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *
 	return values, nil
 }
 
-func getAccountingExporterChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
 
@@ -373,9 +375,8 @@ func getAccountingExporterChartValues(cp *extensionsv1alpha1.ControlPlane, clust
 		"accex_clustername": clusterName,
 		"accex_clusterID":   clusterID,
 
-		// FIXME
-		"accex_accountingsink_url":  "https://api.metal-pod.io/accounting",
-		"accex_accountingsink_HMAC": "_dummy_",
+		"accex_accountingsink_url":  accountingConfig.AccountingSinkUrl,
+		"accex_accountingsink_HMAC": accountingConfig.AccountingSinkHmac,
 	}
 
 	return values, nil
