@@ -54,6 +54,7 @@ const (
 	cloudControllerManagerDeploymentName = "cloud-controller-manager"
 	cloudControllerManagerServerName     = "cloud-controller-manager-server"
 	groupRolebindingControllerName       = "group-rolebinding-controller"
+	accountingExporterName               = "accounting-exporter"
 )
 
 var controlPlaneSecrets = &secrets.Secrets{
@@ -84,6 +85,20 @@ var controlPlaneSecrets = &secrets.Secrets{
 					Name:         groupRolebindingControllerName,
 					CommonName:   "system:group-rolebinding-controller",
 					Organization: []string{user.SystemPrivilegedGroup},
+					CertType:     secrets.ClientCert,
+					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+				},
+				KubeConfigRequest: &secrets.KubeConfigRequest{
+					ClusterName:  clusterName,
+					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:       accountingExporterName,
+					CommonName: "system:accounting-exporter",
+					// Groupname of user
+					Organization: []string{accountingExporterName},
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
 				},
@@ -129,6 +144,8 @@ var controlPlaneChart = &chart.Chart{
 		{Type: &corev1.ServiceAccount{}, Name: "group-rolebinding-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "group-rolebinding-controller"},
 		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
+
+		{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
 	},
 }
 
@@ -219,12 +236,24 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	// "merge" - FIXME, prevent overwriting due to duplicate keys (prefixes?)
-	for k := range authValues {
-		chartValues[k] = authValues[k]
+	accValues, err := getAccountingExporterChartValues(cp, cluster)
+	if err != nil {
+		return nil, err
 	}
 
+	merge(chartValues, authValues, accValues)
+
 	return chartValues, nil
+}
+
+// merge k&v of all source maps in the target map
+// FIXME, prevent overwriting due to duplicate keys (prefixes?)
+func merge(target map[string]interface{}, sources ...map[string]interface{}) {
+	for sIndex := range sources {
+		for k, v := range sources[sIndex] {
+			target[k] = v
+		}
+	}
 }
 
 // GetControlPlaneExposureChartValues returns the values for the control plane exposure chart applied by the generic actuator.
@@ -314,11 +343,39 @@ func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *
 	}
 
 	values := map[string]interface{}{
-		"tenant":             tenant,
-		"clustername":        clusterName,
-		"oidcIssuerUrl":      ti.IssuerUrl,
-		"oidcIssuerClientId": ti.ClientId,
-		"debug":              "true",
+		"authn_tenant":             tenant,
+		"authn_clustername":        clusterName,
+		"authn_oidcIssuerUrl":      ti.IssuerUrl,
+		"authn_oidcIssuerClientId": ti.ClientId,
+		"authn_debug":              "true",
+
+		"grprb_clustername": clusterName,
+	}
+
+	return values, nil
+}
+
+func getAccountingExporterChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
+	annotations := cluster.Shoot.GetAnnotations()
+
+	partitionID := cluster.Shoot.Spec.Cloud.Metal.Zones[0]
+	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
+	clusterID := cluster.Shoot.Name
+	clusterName := annotations[metal.ShootAnnotationClusterName]
+	tenant := annotations[metal.ShootAnnotationTenant]
+
+	values := map[string]interface{}{
+		"accex_partitionID": partitionID,
+		"accex_tenant":      tenant,
+		"accex_projectID":   projectID,
+
+		"accex_clustername": clusterName,
+		"accex_clusterID":   clusterID,
+
+		// FIXME
+		"accex_accountingsink_url":  "https://api.metal-pod.io/accounting",
+		"accex_accountingsink_HMAC": "_dummy_",
 	}
 
 	return values, nil
@@ -330,7 +387,7 @@ type TokenIssuer struct {
 	ClientId  string `json:"clientId" optional:"false"`
 }
 
-// Data for configuration of IDM-API WebHook
+// Data for configuration of IDM-API WebHook (deployment to be done!)
 type UserDirectory struct {
 	IdmApi           string `json:"idmApi" optional:"false"`
 	IdmApiUser       string `json:"idmApiUser" optional:"false"`

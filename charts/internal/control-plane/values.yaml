@@ -22,12 +22,29 @@ resources:
 
 
 #
-# webhook
+# group-rolebinding-controller
 #
-tenant: someTenant
-clustername: projectID
+grprb_clustername: clustername
 
-oidcIssuerUrl: https://tokenissuer/dex
-oidcIssuerClientId: myClientId
+#
+# authn webhook
+#
+authn_tenant: someTenant
+authn_clustername: projectID
 
-debug: true
+authn_oidcIssuerUrl: https://tokenissuer/dex
+authn_oidcIssuerClientId: myClientId
+
+authn_debug: true
+
+#
+# accounting-exporter
+#
+accex_projectID: project-id
+accex_partitionID: partition-id
+accex_tenant: someTenant
+accex_clusterID: 123123
+accex_clustername: clustername
+
+accex_accountingsink_url: https://api.metal-pod.io/accounting
+accex_accountingsink_HMAC: _dummy_

@@ -1,0 +1,80 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: accounting-exporter
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: accounting-exporter
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: accounting-exporter
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: accounting-exporter
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accounting-exporter
+  namespace: {{ .Release.Namespace }}
+  labels:
+    k8s-app: accounting-exporter
+spec:
+  selector:
+    matchLabels:
+      k8s-app: accounting-exporter
+  template:
+    metadata:
+      labels:
+        k8s-app: accounting-exporter
+        app: accounting-exporter
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      containers:
+      - image: {{ index .Values.images "accounting-exporter" }}
+        name: accounting-exporter
+        env:
+        - name: PARTITIONID
+          value: {{ .Values.accex_partitionID}}
+        - name: TENANT
+          value: {{ .Values.accex_tenant }}
+        - name: PROJECTID
+          value: {{ .Values.accex_projectID }}
+        - name: CLUSTERID
+          value: {{ .Values.accex_clusterID}}
+        - name: CLUSTER
+          value: {{ .Values.accex_clustername }}
+        - name: KUBECONFIG
+          value: /var/lib/accounting-exporter/kubeconfig
+        - name: ACCOUNTINGSINK_URL
+          value: {{ .Values.accex_accountingsink_url }}
+        - name: ACCOUNTINGSINK_HMAC
+          value: {{ .Values.accex_accountingsink_HMAC }}
+        volumeMounts:
+        - name: accounting-exporter
+          mountPath: /var/lib/accounting-exporter
+      restartPolicy: Always
+      volumes:
+      - name: accounting-exporter
+        secret:
+          secretName: accounting-exporter

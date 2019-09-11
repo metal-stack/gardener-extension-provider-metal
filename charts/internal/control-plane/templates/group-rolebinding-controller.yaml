@@ -24,7 +24,7 @@ spec:
         args:
         - --excludeNamespaces=kube-system,kube-public,kube-node-lease,default
         - --expectedGroupsList=admin,edit,view
-        - --clustername={{ .Values.clustername }}
+        - --clustername={{ .Values.grprb_clustername }}
         - --kubeconfig=/var/lib/group-rolebinding-controller/kubeconfig
         volumeMounts:
         - name: group-rolebinding-controller
