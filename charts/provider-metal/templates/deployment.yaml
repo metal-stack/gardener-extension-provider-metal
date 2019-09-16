@@ -37,10 +37,10 @@ spec:
         - --disable-controllers={{ .Values.disableControllers | join "," }}
         - --disable-webhooks={{ .Values.disableWebhooks | join "," }}
 {{- if .Values.accountingSink.Hmac }}
-        - --accounting-url={{ .Values.accountingSink.Hmac }}
+        - --accounting-hmac={{ .Values.accountingSink.Hmac }}
 {{- end }}
 {{- if .Values.accountingSink.Url }}
-        - --accounting-hmac={{ .Values.accountingSink.Url }}
+        - --accounting-url={{ .Values.accountingSink.Url }}
 {{- end }}
         env:
         - name: LEADER_ELECTION_NAMESPACE
