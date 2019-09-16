@@ -54,21 +54,19 @@ spec:
       - image: {{ index .Values.images "accounting-exporter" }}
         name: accounting-exporter
         env:
-        - name: PARTITIONID
-          value: {{ .Values.accex_partitionID}}
-        - name: TENANT
+        - name: KUBE_COUNTER_PARTITION
+          value: {{ .Values.accex_partitionID }}
+        - name: KUBE_COUNTER_TENANT
           value: {{ .Values.accex_tenant }}
-        - name: PROJECTID
+        - name: KUBE_COUNTER_PROJECT
           value: {{ .Values.accex_projectID }}
-        - name: CLUSTERID
+        - name: KUBE_COUNTER_CLUSTER
           value: {{ .Values.accex_clusterID}}
-        - name: CLUSTER
-          value: {{ .Values.accex_clustername }}
-        - name: KUBECONFIG
+        - name: KUBE_COUNTER_KUBECONFIG
           value: /var/lib/accounting-exporter/kubeconfig
-        - name: ACCOUNTINGSINK_URL
+        - name: KUBE_COUNTER_SINK_URL
           value: {{ .Values.accex_accountingsink_url }}
-        - name: ACCOUNTINGSINK_HMAC
+        - name: KUBE_COUNTER_SINK_HMAC
           value: {{ .Values.accex_accountingsink_HMAC }}
         volumeMounts:
         - name: accounting-exporter
