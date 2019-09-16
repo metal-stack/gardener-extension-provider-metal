@@ -12,6 +12,10 @@ featureGates: {}
   # RotateKubeletServerCertificate: false
 images: 
   metalccm: image-repository:image-tag
+  authn-webhook: image-repository:image-tag
+  group-rolebinding-controller: image-repository:image-tag
+  accounting-exporter: image-repository:image-tag
+
 resources:
   requests:
     cpu: 100m
@@ -19,7 +23,6 @@ resources:
   limits:
     cpu: 250m
     memory: 300Mi
-
 
 #
 # group-rolebinding-controller
@@ -48,3 +51,8 @@ accex_clustername: clustername
 
 accex_accountingsink_url: https://api.metal-pod.io/accounting
 accex_accountingsink_HMAC: _dummy_
+
+
+accountingSink:
+  Url: sink-url
+  Hmac: sink-hmac

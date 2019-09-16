@@ -30,6 +30,8 @@ const (
 	ETCDBackupRestoreImageName = "etcd-backup-restore"
 	// GroupRolebindingControllerImageName is the name of the GroupRolebindingController image
 	GroupRolebindingControllerImageName = "group-rolebinding-controller"
+	// AccountingExporterImageName is the name of the accounting exporter image
+	AccountingExporterImageName = "accounting-exporter"
 	// AuthNWebhookImageName is the name of the AuthN Webhook configured with the shoot kube-apiserver
 	AuthNWebhookImageName = "authn-webhook"
 

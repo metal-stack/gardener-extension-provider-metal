@@ -133,7 +133,7 @@ var configChart = &chart.Chart{
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.GroupRolebindingControllerImageName},
+	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
