@@ -157,6 +157,9 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
 
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
+
+		{Type: &rbacv1.ClusterRole{}, Name: "system:accounting-exporter"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:accounting-exporter"},
 	},
 }
 
