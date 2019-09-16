@@ -366,7 +366,7 @@ func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster
 
 	partitionID := cluster.Shoot.Spec.Cloud.Metal.Zones[0]
 	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	clusterID := cluster.Shoot.Name
+	clusterID := cluster.Shoot.ObjectMeta.UID
 	clusterName := annotations[metal.ShootAnnotationClusterName]
 	tenant := annotations[metal.ShootAnnotationTenant]
 
