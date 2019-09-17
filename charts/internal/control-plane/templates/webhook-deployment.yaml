@@ -28,7 +28,6 @@ spec:
         name: kubernetes-authn-webhook
         ports:
         - containerPort: 3000
-          hostPort: 3000
           protocol: TCP
         env:
         - name: ISSUER
