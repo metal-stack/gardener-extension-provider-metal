@@ -11,3 +11,16 @@ images:
   sourceRepository: github.com/gardener/etcd-backup-restore
   repository: eu.gcr.io/gardener-project/gardener/etcdbrctl
   tag: "0.6.4"
+# can be provided via image override:
+# - name: authn-webhook
+#   sourceRepository:
+#   repository:
+#   tag:
+# - name: group-rolebinding-controller
+#   sourceRepository:
+#   repository:
+#   tag:
+# - name: accounting-exporter
+#   sourceRepository:
+#   repository:
+#   tag:

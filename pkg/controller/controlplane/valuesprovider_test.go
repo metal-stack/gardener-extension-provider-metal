@@ -17,6 +17,7 @@ package controlplane
 import (
 	"context"
 	"encoding/json"
+	"testing"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	apisaws "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"

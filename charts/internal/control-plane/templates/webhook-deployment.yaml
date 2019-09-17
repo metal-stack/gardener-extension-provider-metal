@@ -32,15 +32,15 @@ spec:
           protocol: TCP
         env:
         - name: ISSUER
-          value: {{ .Values.oidcIssuerUrl }}
+          value: {{ .Values.authn_oidcIssuerUrl }}
         - name: CLIENTID
-          value: {{ .Values.oidcIssuerClientId }}
+          value: {{ .Values.authn_oidcIssuerClientId }}
         - name: GROUPSPREFIXTOREMOVE
           value: k8s
         - name: TENANT
-          value: {{ .Values.tenant }}
+          value: {{ .Values.authn_tenant }}
         - name: CLUSTER
-          value: {{ .Values.clustername }}
+          value: {{ .Values.authn_clustername }}
         - name: DEBUG
-          value: {{ quote .Values.debug }}
+          value: {{ quote .Values.authn_debug }}
       restartPolicy: Always

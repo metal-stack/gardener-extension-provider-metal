@@ -12,6 +12,10 @@ featureGates: {}
   # RotateKubeletServerCertificate: false
 images: 
   metalccm: image-repository:image-tag
+  authn-webhook: image-repository:image-tag
+  group-rolebinding-controller: image-repository:image-tag
+  accounting-exporter: image-repository:image-tag
+
 resources:
   requests:
     cpu: 100m
@@ -20,14 +24,35 @@ resources:
     cpu: 250m
     memory: 300Mi
 
+#
+# group-rolebinding-controller
+#
+grprb_clustername: clustername
 
 #
-# webhook
+# authn webhook
 #
-tenant: someTenant
-clustername: projectID
+authn_tenant: someTenant
+authn_clustername: projectID
 
-oidcIssuerUrl: https://tokenissuer/dex
-oidcIssuerClientId: myClientId
+authn_oidcIssuerUrl: https://tokenissuer/dex
+authn_oidcIssuerClientId: myClientId
 
-debug: true
+authn_debug: true
+
+#
+# accounting-exporter
+#
+accex_projectID: project-id
+accex_partitionID: partition-id
+accex_tenant: someTenant
+accex_clusterID: 123123
+accex_clustername: clustername
+
+accex_accountingsink_url: https://api.metal-pod.io/accounting
+accex_accountingsink_HMAC: _dummy_
+
+
+accountingSink:
+  Url: sink-url
+  Hmac: sink-hmac
