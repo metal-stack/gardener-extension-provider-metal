@@ -82,3 +82,12 @@ func GetPrivateNetworkFromNodeNetwork(client *metalgo.Driver, projectID string, 
 	}
 	return networkFindResponse.Networks[0], nil
 }
+
+// GetProjectByID returns a project by a given ID
+func GetProjectByID(client *metalgo.Driver, projectID string) (*models.V1ProjectResponse, error) {
+	resp, err := client.ProjectGet(projectID)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Project, nil
+}

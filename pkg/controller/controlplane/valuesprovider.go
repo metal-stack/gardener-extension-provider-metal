@@ -241,7 +241,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster)
+	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, mclient)
 	if err != nil {
 		return nil, err
 	}
@@ -360,19 +360,23 @@ func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *
 	return values, nil
 }
 
-func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-
+func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
-
 	partitionID := cluster.Shoot.Spec.Cloud.Metal.Zones[0]
 	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
 	clusterID := cluster.Shoot.ObjectMeta.UID
 	clusterName := annotations[metal.ShootAnnotationClusterName]
 	tenant := annotations[metal.ShootAnnotationTenant]
 
+	project, err := metalclient.GetProjectByID(mclient, projectID)
+	if err != nil {
+		return nil, err
+	}
+
 	values := map[string]interface{}{
 		"accex_partitionID": partitionID,
 		"accex_tenant":      tenant,
+		"accex_projectname": project.Name,
 		"accex_projectID":   projectID,
 
 		"accex_clustername": clusterName,

@@ -58,10 +58,14 @@ spec:
           value: {{ .Values.accex_partitionID }}
         - name: KUBE_COUNTER_TENANT
           value: {{ .Values.accex_tenant }}
-        - name: KUBE_COUNTER_PROJECT
+        - name: KUBE_COUNTER_PROJECT_ID
           value: {{ .Values.accex_projectID }}
-        - name: KUBE_COUNTER_CLUSTER
+        - name: KUBE_COUNTER_PROJECT_NAME
+          value: {{ .Values.accex_projectname }}
+        - name: KUBE_COUNTER_CLUSTER_ID
           value: {{ .Values.accex_clusterID}}
+        - name: KUBE_COUNTER_CLUSTER_NAME
+          value: {{ .Values.accex_clustername}}
         - name: KUBE_COUNTER_KUBECONFIG
           value: /var/lib/accounting-exporter/kubeconfig
         - name: KUBE_COUNTER_SINK_URL
