@@ -52,6 +52,7 @@ spec:
     spec:
       containers:
       - image: {{ index .Values.images "accounting-exporter" }}
+        imagePullPolicy: Always
         name: accounting-exporter
         env:
         - name: KUBE_COUNTER_PARTITION
