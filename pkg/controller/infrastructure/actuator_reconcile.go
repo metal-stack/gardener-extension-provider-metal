@@ -128,7 +128,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	secret, err := infrastructureSecrets.Deploy(ctx, a.clientset, a.gardenerClientset, cluster.Name)
+	secret, err := infrastructureSecrets.Deploy(ctx, a.clientset, a.gardenerClientset, infrastructure.Namespace)
 	if err != nil {
 		return err
 	}
