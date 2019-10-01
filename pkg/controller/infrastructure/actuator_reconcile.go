@@ -179,7 +179,7 @@ func (a *actuator) updateProviderStatus(ctx context.Context, infrastructure *ext
 }
 
 func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, error) {
-	apiServerURL := fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain)
+	apiServerURL := fmt.Sprintf("api.%s", *cluster.Shoot.Spec.DNS.Domain)
 	infrastructureSecrets := &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
 			gardencorev1alpha1.SecretNameCACluster: {
