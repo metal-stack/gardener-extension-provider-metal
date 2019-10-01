@@ -19,13 +19,16 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
+	"github.com/pkg/errors"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 
 	"github.com/go-logr/logr"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,7 +38,9 @@ import (
 type actuator struct {
 	logger logr.Logger
 
-	restConfig *rest.Config
+	clientset         kubernetes.Interface
+	gardenerClientset gardenerkubernetes.Interface
+	restConfig        *rest.Config
 
 	client  client.Client
 	scheme  *runtime.Scheme
@@ -61,6 +66,17 @@ func (a *actuator) InjectClient(client client.Client) error {
 }
 
 func (a *actuator) InjectConfig(config *rest.Config) error {
+	var err error
+	a.clientset, err = kubernetes.NewForConfig(config)
+	if err != nil {
+		return errors.Wrap(err, "could not create Kubernetes client")
+	}
+
+	a.gardenerClientset, err = gardenerkubernetes.NewForConfig(config, client.Options{})
+	if err != nil {
+		return errors.Wrap(err, "could not create Gardener client")
+	}
+
 	a.restConfig = config
 	return nil
 }

@@ -20,14 +20,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	apisaws "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	. "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
 	mockkubernetes "github.com/gardener/gardener-extensions/pkg/mock/gardener/client/kubernetes"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	apisaws "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	. "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/garden/v1beta1"

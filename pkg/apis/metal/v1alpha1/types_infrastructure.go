@@ -38,10 +38,10 @@ type Firewall struct {
 // InfrastructureStatus contains information about created infrastructure resources.
 type InfrastructureStatus struct {
 	metav1.TypeMeta `json:",inline"`
-	Firewall FirewallStatus `json:"firewall"`
+	Firewall        FirewallStatus `json:"firewall"`
 }
 
 type FirewallStatus struct {
-	Succeeded bool `json:"succeeded"`
+	Succeeded bool   `json:"succeeded"`
 	MachineID string `json:"machineID"`
 }

@@ -15,13 +15,6 @@
 package cmd
 
 import (
-	controlplanecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/controlplane"
-	infrastructurecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/infrastructure"
-	workercontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
-	controlplanewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplane"
-	controlplanebackupwebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplanebackup"
-	controlplaneexposurewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
-	shootwebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/shoot"
 	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
 	extensionscontrolplanecontroller "github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	extensionsinfrastructurecontroller "github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
@@ -29,6 +22,13 @@ import (
 	webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
 	extensioncontrolplanewebhook "github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	extensionshootwebhook "github.com/gardener/gardener-extensions/pkg/webhook/shoot"
+	controlplanecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/controlplane"
+	infrastructurecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/infrastructure"
+	workercontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
+	controlplanewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplane"
+	controlplanebackupwebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplanebackup"
+	controlplaneexposurewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
+	shootwebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/shoot"
 )
 
 // ControllerSwitchOptions are the controllercmd.SwitchOptions for the provider controllers.
