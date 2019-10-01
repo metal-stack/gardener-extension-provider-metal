@@ -128,7 +128,10 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	secret, err := infrastructureSecrets.Deploy(ctx, a.clientset, a.gardenerClientset, cluster.Seed.Namespace)
+	secret, err := infrastructureSecrets.Deploy(ctx, a.clientset, a.gardenerClientset, cluster.Name)
+	if err != nil {
+		return err
+	}
 	encodedKubeconfig, ok := secret[firewallPolicyControllerName].Data["kubeconfig"]
 	if !ok {
 		return fmt.Errorf("kubeconfig not part of generated firewall policy controller secret")
@@ -140,6 +143,9 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	}
 
 	firewallUserData, err := a.renderFirewallUserData(string(kubeconfig))
+	if err != nil {
+		return err
+	}
 
 	// assemble firewall allocation request
 	var networks []metalgo.MachineAllocationNetwork
