@@ -2,7 +2,6 @@ package infrastructure
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -132,15 +131,12 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	if err != nil {
 		return err
 	}
-	encodedKubeconfig, ok := secret[firewallPolicyControllerName].Data["kubeconfig"]
+
+	kubeconfig, ok := secret[firewallPolicyControllerName].Data["kubeconfig"]
 	if !ok {
 		return fmt.Errorf("kubeconfig not part of generated firewall policy controller secret")
 	}
-
-	kubeconfig, err := base64.StdEncoding.DecodeString(string(encodedKubeconfig))
-	if err != nil {
-		return fmt.Errorf("error decoding firewall policy controller kubeconfig: %v", err)
-	}
+	a.logger.Info("wrote secret for firewall policy controller", "data", secret[firewallPolicyControllerName].Data)
 
 	firewallUserData, err := a.renderFirewallUserData(string(kubeconfig))
 	if err != nil {
