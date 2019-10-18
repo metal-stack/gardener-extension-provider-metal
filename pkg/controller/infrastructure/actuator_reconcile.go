@@ -224,9 +224,11 @@ func (a *actuator) renderFirewallUserData(kubeconfig string) (string, error) {
 	cfg := types.Config{}
 	cfg.Systemd = types.Systemd{}
 
+	enabled := true
 	unit := types.SystemdUnit{
-		Name:   "firewall-policy-controller.service",
-		Enable: true,
+		Name:    "firewall-policy-controller.service",
+		Enable:  enabled,
+		Enabled: &enabled,
 	}
 
 	cfg.Systemd.Units = append(cfg.Systemd.Units, unit)
