@@ -8,10 +8,23 @@ rules:
   - ""
   resources:
   - services
+  - pods
   verbs:
   - get
   - list
   - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
 - apiGroups:
   - networking.k8s.io
   resources:
@@ -33,3 +46,48 @@ subjects:
 - kind: User
   name: system:firewall-policy-controller
   apiGroup: ""
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:firewall-policy-controller-droptailer-deployer
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:firewall-policy-controller-droptailer-deployer
+  namespace: firewall
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:firewall-policy-controller-droptailer-deployer
+subjects:
+- kind: User
+  name: system:firewall-policy-controller
+  apiGroup: ""
+
