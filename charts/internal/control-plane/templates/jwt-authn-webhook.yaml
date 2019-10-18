@@ -20,6 +20,9 @@ spec:
       labels:
         k8s-app: kube-jwt-authn-webhook
         app: kube-jwt-authn-webhook
+        networking.gardener.cloud/from-prometheus: allowed
+        networking.gardener.cloud/to-dns: allowed
+        networking.gardener.cloud/to-public-networks: allowed
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
@@ -43,3 +46,17 @@ spec:
         - name: DEBUG
           value: {{ quote .Values.authn_debug }}
       restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-jwt-authn-webhook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: kube-jwt-authn-webhook
+spec:
+  selector:
+    app: kube-jwt-authn-webhook
+  ports:
+  - port: 3000
+    targetPort: 3000

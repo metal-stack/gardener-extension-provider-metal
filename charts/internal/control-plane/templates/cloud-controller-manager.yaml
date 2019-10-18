@@ -43,6 +43,9 @@ spec:
         garden.sapcloud.io/role: controlplane
         app: kubernetes
         role: cloud-controller-manager
+        networking.gardener.cloud/from-prometheus: allowed
+        networking.gardener.cloud/to-dns: allowed
+        networking.gardener.cloud/to-shoot-apiserver: allowed
     spec:
       tolerations:
       - effect: NoExecute
