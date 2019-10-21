@@ -21,6 +21,9 @@ spec:
       - image: {{ index .Values.images "droptailer" }}
         imagePullPolicy: Always
         name: droptailer
+        ports:
+        - protocol: tcp
+          containerPort: 50051
         env:
         - name: SERVER_CERTIFICATE
           value: tls.crt
