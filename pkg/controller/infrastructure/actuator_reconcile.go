@@ -29,6 +29,7 @@ import (
 
 const (
 	firewallPolicyControllerName = "firewall-policy-controller"
+	droptailerClientName         = "droptailer"
 )
 
 func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
@@ -193,7 +194,7 @@ func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context,
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         firewallPolicyControllerName,
-						CommonName:   "system:firewall-policy-controller",
+						CommonName:   fmt.Sprintf("system:%s", firewallPolicyControllerName),
 						Organization: []string{firewallPolicyControllerName},
 						CertType:     secrets.ClientCert,
 						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
@@ -225,13 +226,18 @@ func (a *actuator) renderFirewallUserData(kubeconfig string) (string, error) {
 	cfg.Systemd = types.Systemd{}
 
 	enabled := true
-	unit := types.SystemdUnit{
-		Name:    "firewall-policy-controller.service",
+	fpcUnit := types.SystemdUnit{
+		Name:    fmt.Sprintf("%s.service", firewallPolicyControllerName),
+		Enable:  enabled,
+		Enabled: &enabled,
+	}
+	dcUnit := types.SystemdUnit{
+		Name:    fmt.Sprintf("%s.service", droptailerClientName),
 		Enable:  enabled,
 		Enabled: &enabled,
 	}
 
-	cfg.Systemd.Units = append(cfg.Systemd.Units, unit)
+	cfg.Systemd.Units = append(cfg.Systemd.Units, fpcUnit, dcUnit)
 
 	cfg.Storage = types.Storage{}
 

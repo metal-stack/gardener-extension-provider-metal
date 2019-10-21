@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: droptailer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    k8s-app: droptailer
+spec:
+  selector:
+    matchLabels:
+      k8s-app: droptailer
+  template:
+    metadata:
+      labels:
+        k8s-app: droptailer
+        app: droptailer
+        networking.gardener.cloud/from-prometheus: allowed
+    spec:
+      containers:
+      - image: {{ index .Values.images "droptailer" }}
+        imagePullPolicy: Always
+        name: droptailer
+        env:
+        - name: SERVER_CERTIFICATE
+          value: tls.crt
+        - name: SERVER_KEY
+          value: tls.key
+        - name: SERVER_CA_CERTIFICATE
+          value: ca.crt
+        volumeMounts:
+        - name: droptailer-server
+          mountPath: /certificates/
+          readOnly: true
+      restartPolicy: Always
+      volumes:
+      - name: droptailer-server
+        secret:
+          secretName: droptailer-server
+          items:
+          - key: tls.key
+            path: tls.key
+          - key: tls.crt
+            path: tls.crt
+          - key: ca.crt
+            path: ca.crt

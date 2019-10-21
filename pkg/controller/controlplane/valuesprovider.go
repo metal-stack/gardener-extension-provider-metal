@@ -55,6 +55,8 @@ const (
 	cloudControllerManagerServerName     = "cloud-controller-manager-server"
 	groupRolebindingControllerName       = "group-rolebinding-controller"
 	accountingExporterName               = "accounting-exporter"
+	droptailerClientName                 = "droptailer-client"
+	droptailerServerName                 = "droptailer-server"
 )
 
 var controlPlaneSecrets = &secrets.Secrets{
@@ -116,6 +118,24 @@ var controlPlaneSecrets = &secrets.Secrets{
 					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
 				},
 			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:         droptailerClientName,
+					CommonName:   "system:droptailer-client",
+					Organization: []string{droptailerClientName},
+					CertType:     secrets.ClientCert,
+					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:         droptailerServerName,
+					CommonName:   "system:droptailer-server",
+					Organization: []string{droptailerServerName},
+					CertType:     secrets.ServerCert,
+					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+				},
+			},
 		}
 	},
 }
@@ -133,7 +153,7 @@ var configChart = &chart.Chart{
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName},
+	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.DroptailerImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
@@ -146,6 +166,7 @@ var controlPlaneChart = &chart.Chart{
 		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
 
 		{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
+		{Type: &appsv1.Deployment{}, Name: "droptailer"},
 	},
 }
 
