@@ -24,6 +24,8 @@ spec:
         ports:
         - protocol: tcp
           containerPort: 50051
+        securityContext:
+          runAsUser: 65534
         env:
         - name: SERVER_CERTIFICATE
           value: tls.crt
