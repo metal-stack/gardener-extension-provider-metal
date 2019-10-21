@@ -7,8 +7,9 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - services
   - pods
+  - services
+  - secrets
   verbs:
   - get
   - list
