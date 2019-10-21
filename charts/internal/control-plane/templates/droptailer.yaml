@@ -22,7 +22,7 @@ spec:
         imagePullPolicy: Always
         name: droptailer
         ports:
-        - protocol: tcp
+        - protocol: TCP
           containerPort: 50051
         securityContext:
           runAsUser: 65534
