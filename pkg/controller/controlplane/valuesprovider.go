@@ -55,8 +55,6 @@ const (
 	cloudControllerManagerServerName     = "cloud-controller-manager-server"
 	groupRolebindingControllerName       = "group-rolebinding-controller"
 	accountingExporterName               = "accounting-exporter"
-	droptailerClientName                 = "droptailer-client"
-	droptailerServerName                 = "droptailer-server"
 )
 
 var controlPlaneSecrets = &secrets.Secrets{
@@ -118,24 +116,6 @@ var controlPlaneSecrets = &secrets.Secrets{
 					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
 				},
 			},
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         droptailerClientName,
-					CommonName:   "system:droptailer-client",
-					Organization: []string{droptailerClientName},
-					CertType:     secrets.ClientCert,
-					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
-				},
-			},
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         droptailerServerName,
-					CommonName:   "system:droptailer-server",
-					Organization: []string{droptailerServerName},
-					CertType:     secrets.ServerCert,
-					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
-				},
-			},
 		}
 	},
 }
@@ -166,7 +146,6 @@ var controlPlaneChart = &chart.Chart{
 		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
 
 		{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
-		{Type: &appsv1.Deployment{}, Name: "droptailer"},
 	},
 }
 
@@ -181,6 +160,8 @@ var cpShootChart = &chart.Chart{
 
 		{Type: &rbacv1.ClusterRole{}, Name: "system:accounting-exporter"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:accounting-exporter"},
+
+		{Type: &appsv1.Deployment{}, Name: "droptailer"},
 	},
 }
 

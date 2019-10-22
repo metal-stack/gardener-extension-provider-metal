@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: droptailer
-  namespace: {{ .Release.Namespace }}
+  namespace: droptailer
   labels:
     k8s-app: droptailer
 spec:
@@ -18,7 +18,7 @@ spec:
         networking.gardener.cloud/from-prometheus: allowed
     spec:
       containers:
-      - image: {{ index .Values.images "droptailer" }}
+      - image: docker.io/metalpod/droptailer:latest
         imagePullPolicy: Always
         name: droptailer
         ports:
@@ -43,9 +43,9 @@ spec:
         secret:
           secretName: droptailer-server
           items:
-          - key: tls.key
+          - key: droptailer-server.key
             path: tls.key
-          - key: tls.crt
+          - key: droptailer-server.crt
             path: tls.crt
           - key: ca.crt
             path: ca.crt
