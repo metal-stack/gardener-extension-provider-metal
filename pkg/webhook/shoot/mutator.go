@@ -22,9 +22,11 @@ import (
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/secrets"
+	"github.com/pkg/errors"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,14 +53,27 @@ func NewMutator() extensionswebhook.MutatorWithShootClient {
 }
 
 func (m *mutator) Mutate(ctx context.Context, obj runtime.Object, shootClient client.Client) error {
-	t := &appsv1.Deployment{}
-	if obj.GetObjectKind() != t {
+	acc, err := meta.Accessor(obj)
+	if err != nil {
+		return errors.Wrapf(err, "could not create accessor during webhook")
+	}
+	// If the object does have a deletion timestamp then we don't want to mutate anything.
+	if acc.GetDeletionTimestamp() != nil {
 		return nil
 	}
-	d := obj.(*appsv1.Deployment)
-	if d.Name != droptailerDeploymentName {
-		return nil
+
+	switch x := obj.(type) {
+	case *appsv1.Deployment:
+		switch x.Name {
+		case droptailerDeploymentName:
+			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
+			return m.mutateDroptailerDeployment(ctx, shootClient, x)
+		}
 	}
+	return nil
+}
+
+func (m *mutator) mutateDroptailerDeployment(ctx context.Context, shootClient client.Client, d *appsv1.Deployment) error {
 	wanted := &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
 			gardencorev1alpha1.SecretNameCACluster: {
