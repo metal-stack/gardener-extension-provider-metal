@@ -302,6 +302,7 @@ func getCCMChartValues(
 	values := map[string]interface{}{
 		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster.Shoot, scaledDown, 1),
 		"projectID":         projectID,
+		"clusterID":         cluster.Shoot.ObjectMeta.UID,
 		"partitionID":       cluster.Shoot.Spec.Cloud.Metal.Zones[0],
 		"networkID":         *privateNetwork.ID,
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
