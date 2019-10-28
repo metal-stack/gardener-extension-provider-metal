@@ -12,6 +12,7 @@ metadata:
   labels:
     k8s-app: kube-jwt-authn-webhook
 spec:
+  replicas: 1
   selector:
     matchLabels:
       k8s-app: kube-jwt-authn-webhook
@@ -28,8 +29,9 @@ spec:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
       containers:
-      - image: {{ index .Values.images "authn-webhook" }}
-        name: kubernetes-authn-webhook
+      - name: kubernetes-authn-webhook
+        image: {{ index .Values.images "authn-webhook" }}
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
           protocol: TCP
@@ -47,6 +49,7 @@ spec:
         - name: DEBUG
           value: {{ quote .Values.authn_debug }}
       restartPolicy: Always
+
 ---
 apiVersion: v1
 kind: Service

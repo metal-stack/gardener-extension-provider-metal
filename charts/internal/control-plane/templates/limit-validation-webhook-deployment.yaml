@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: limit-validating-webhook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: limit-validating-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: limit-validating-webhook
+  template:
+    metadata:
+      labels:
+        k8s-app: limit-validating-webhook
+        app: limit-validating-webhook
+        networking.gardener.cloud/from-prometheus: allowed
+        networking.gardener.cloud/to-dns: allowed
+        networking.gardener.cloud/to-shoot-apiserver: allowed
+        networking.gardener.cloud/to-public-networks: allowed
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      containers:
+        - name: limit-validating-webhook
+          image: {{ index .Values.images "limit-validating-webhook" }}
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 443
+            protocol: TCP
+          args:
+            - -tlsCertFile=/etc/webhook/certs/cert.pem
+            - -tlsKeyFile=/etc/webhook/certs/key.pem
+            - -excludedNamespaces=kube-system
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: limit-validating-webhook-server
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: limit-validating-webhook
+    namespace: {{ .Release.Namespace }}
+    labels:
+        app: limit-validating-webhook
+spec:
+    selector:
+        app: limit-validating-webhook
+    ports:
+    - port: 443
+      targetPort: 443

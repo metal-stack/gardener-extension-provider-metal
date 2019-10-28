@@ -38,6 +38,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -54,6 +55,8 @@ const (
 	cloudControllerManagerDeploymentName = "cloud-controller-manager"
 	cloudControllerManagerServerName     = "cloud-controller-manager-server"
 	groupRolebindingControllerName       = "group-rolebinding-controller"
+	limitValidatingWebhookDeploymentName = "limit-validating-webhook"
+	limitValidatingWebhookServerName     = "limit-validating-webhook-server"
 	accountingExporterName               = "accounting-exporter"
 )
 
@@ -91,6 +94,15 @@ var controlPlaneSecrets = &secrets.Secrets{
 				KubeConfigRequest: &secrets.KubeConfigRequest{
 					ClusterName:  clusterName,
 					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:       limitValidatingWebhookServerName,
+					CommonName: limitValidatingWebhookDeploymentName,
+					DNSNames:   controlplane.DNSNamesForService(limitValidatingWebhookDeploymentName, clusterName),
+					CertType:   secrets.ServerCert,
+					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -141,6 +153,9 @@ var controlPlaneChart = &chart.Chart{
 		{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
 		{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
 
+		{Type: &appsv1.Deployment{}, Name: "limit-validating-webhook"},
+		{Type: &corev1.Service{}, Name: "limit-validating-webhook"},
+
 		{Type: &corev1.ServiceAccount{}, Name: "group-rolebinding-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "group-rolebinding-controller"},
 		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
@@ -155,6 +170,8 @@ var cpShootChart = &chart.Chart{
 	Objects: []*chart.Object{
 		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
+
+		{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "ValidatingWebhookConfiguration"},
 
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
 
@@ -243,12 +260,17 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
+	limitWebhook, err := getLimitValidationWebhookChartValues(cp, cluster)
+	if err != nil {
+		return nil, err
+	}
+
 	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, mclient)
 	if err != nil {
 		return nil, err
 	}
 
-	merge(chartValues, authValues, accValues)
+	merge(chartValues, authValues, limitWebhook, accValues)
 
 	return chartValues, nil
 }
@@ -320,6 +342,12 @@ func getCCMChartValues(
 	if cpConfig.CloudControllerManager != nil {
 		values["featureGates"] = cpConfig.CloudControllerManager.FeatureGates
 	}
+
+	return values, nil
+}
+
+func getLimitValidationWebhookChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+	values := map[string]interface{}{}
 
 	return values, nil
 }

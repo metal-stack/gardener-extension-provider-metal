@@ -16,6 +16,7 @@ images:
   group-rolebinding-controller: image-repository:image-tag
   accounting-exporter: image-repository:image-tag
   droptailer: image-repository:image-tag
+  limit-validating-webhook: image-repository:image-tag
 
 resources:
   requests:
