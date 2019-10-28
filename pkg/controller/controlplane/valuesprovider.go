@@ -145,7 +145,7 @@ var configChart = &chart.Chart{
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.DroptailerImageName},
+	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.DroptailerImageName, metal.LimitValidatingWebhookImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
@@ -171,7 +171,7 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
 
-		{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "ValidatingWebhookConfiguration"},
+		{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "limit-validating-webhook"},
 
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
 

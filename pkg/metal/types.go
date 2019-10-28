@@ -36,6 +36,8 @@ const (
 	AuthNWebhookImageName = "authn-webhook"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
 	DroptailerImageName = "droptailer"
+	// LimitValidatingWebhookImageName is the name of the limit validating webhook to deploy to the seed's shoot namespace.
+	LimitValidatingWebhookImageName = "limit-validating-webhook"
 
 	// APIURL is a constant for the url of metal-api.
 	APIURL = "metalAPIURL"
