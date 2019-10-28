@@ -30,8 +30,8 @@ spec:
           - containerPort: 443
             protocol: TCP
           args:
-            - -tlsCertFile=/etc/webhook/certs/cert.pem
-            - -tlsKeyFile=/etc/webhook/certs/key.pem
+            - -tlsCertFile=/etc/webhook/certs/limit-validating-webhook-server.crt
+            - -tlsKeyFile=/etc/webhook/certs/limit-validating-webhook-server.key
             - -excludedNamespaces=kube-system
           volumeMounts:
             - name: webhook-certs
