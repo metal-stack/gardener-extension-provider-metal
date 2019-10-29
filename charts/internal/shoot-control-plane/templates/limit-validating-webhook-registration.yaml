@@ -11,6 +11,7 @@ webhooks:
       name: limit-validating-webhook
       namespace: kube-system
       path: "/validate"
+    caBundle: {{ .Values.limitValidatingWebhook_caBundle }}
   rules:
   - operations: ["CREATE"]
     apiGroups: ["*"]

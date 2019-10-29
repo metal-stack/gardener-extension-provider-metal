@@ -16,7 +16,9 @@ package controlplane
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+
 	"path/filepath"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
@@ -29,6 +31,12 @@ import (
 
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
+	corev1 "k8s.io/api/core/v1"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
@@ -40,7 +48,6 @@ import (
 
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -260,17 +267,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	limitWebhook, err := getLimitValidationWebhookChartValues(cp, cluster)
-	if err != nil {
-		return nil, err
-	}
-
 	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, mclient)
 	if err != nil {
 		return nil, err
 	}
 
-	merge(chartValues, authValues, limitWebhook, accValues)
+	merge(chartValues, authValues, accValues)
 
 	return chartValues, nil
 }
@@ -296,7 +298,27 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
 func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
-	return nil, nil
+	secretName := limitValidatingWebhookServerName
+	namespace := cluster.Shoot.Status.TechnicalID
+
+	// Alternative caSecret, ca, err := secrets.LoadCAFromSecret(vp.mgr.GetClient(), namespace, secretName)
+
+	secret := &corev1.Secret{}
+	err := vp.client.Get(ctx, kutil.Key(namespace, secretName), secret)
+	if !apierrors.IsNotFound(err) {
+		return nil, errors.Wrapf(err, "error getting cert secret")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	caBundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
+
+	values := map[string]interface{}{
+		"limitValidatingWebhook_caBundle": caBundle,
+	}
+
+	return values, nil
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
@@ -342,12 +364,6 @@ func getCCMChartValues(
 	if cpConfig.CloudControllerManager != nil {
 		values["featureGates"] = cpConfig.CloudControllerManager.FeatureGates
 	}
-
-	return values, nil
-}
-
-func getLimitValidationWebhookChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-	values := map[string]interface{}{}
 
 	return values, nil
 }
