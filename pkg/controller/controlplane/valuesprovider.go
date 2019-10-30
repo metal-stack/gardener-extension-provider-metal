@@ -317,7 +317,46 @@ func (vp *valuesProvider) getLimitValidationWebhookChartValues(ctx context.Conte
 	secretName := limitValidatingWebhookServerName
 	namespace := cluster.Shoot.Status.TechnicalID
 
-	// Alternative caSecret, ca, err := secrets.LoadCAFromSecret(vp.mgr.GetClient(), namespace, secretName)
+	// try to get secret directly
+	secret, err := vp.getSecret(ctx, namespace, secretName)
+	if err != nil {
+		secret, err = vp.getSecretFromList(ctx, namespace, secretName)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	caBundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
+
+	vp.logger.Info("Prepare CABundle " + caBundle)
+
+	values := map[string]interface{}{
+		"limitValidatingWebhook_caBundle": caBundle,
+	}
+
+	return values, nil
+}
+
+func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
+	key := kutil.Key(namespace, secretName)
+	vp.logger.Info("GetSecret", "key", key)
+	secret := &corev1.Secret{}
+	err := vp.mgr.GetClient().Get(ctx, key, secret)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			vp.logger.Error(err, "error getting chart secret - not found")
+			return nil, err
+		}
+		vp.logger.Error(err, "error getting chart secret")
+		return nil, err
+	}
+	return secret, nil
+}
+
+func (vp *valuesProvider) getSecretFromList(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
+
+	vp.logger.Info("GetSecretFromList")
 
 	k8sClient := vp.mgr.GetClient()
 
@@ -335,42 +374,12 @@ func (vp *valuesProvider) getLimitValidationWebhookChartValues(ctx context.Conte
 		logger.Info("Secret", "name", secret.Name)
 		if secret.Name == secretName {
 			logger.Info("Found secret")
-			caBundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
 
-			vp.logger.Info("Prepare CABundle " + caBundle)
-
-			values := map[string]interface{}{
-				"limitValidatingWebhook_caBundle": caBundle,
-			}
-
-			return values, nil
+			return &secret, nil
 		}
 	}
 
-	// try to get secret directly
-	key := kutil.Key(namespace, secretName)
-	vp.logger.Info("GetSecret", "key", key)
-
-	secret := &corev1.Secret{}
-	err = k8sClient.Get(ctx, key, secret)
-	if apierrors.IsNotFound(err) {
-		vp.logger.Error(err, "error getting chart secret - not found")
-		return nil, err
-	}
-	if err != nil {
-		vp.logger.Error(err, "error getting chart secret")
-		return nil, err
-	}
-
-	caBundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
-
-	vp.logger.Info("Prepare CABundle " + caBundle)
-
-	values := map[string]interface{}{
-		"limitValidatingWebhook_caBundle": caBundle,
-	}
-
-	return values, nil
+	return nil, nil
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
