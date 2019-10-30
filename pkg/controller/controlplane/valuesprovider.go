@@ -277,7 +277,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	lvwValues, err := getLimitValidationWebhooControlPlaneChartValues(cluster)
+	lvwValues, err := getLimitValidationWebhookControlPlaneChartValues(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -409,7 +409,7 @@ func getCCMChartValues(
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func (vp *valuesProvider) getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[metal.ShootAnnotationClusterName]
@@ -447,7 +447,7 @@ func (vp *valuesProvider) getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.Co
 	return values, nil
 }
 
-func (vp *valuesProvider) getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	partitionID := cluster.Shoot.Spec.Cloud.Metal.Zones[0]
 	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
@@ -476,12 +476,10 @@ func (vp *valuesProvider) getAccountingExporterChartValues(accountingConfig Acco
 	return values, nil
 }
 
-func (vp *valuesProvider) getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
 	shootedSeed, err := helper.ReadShootedSeed(cluster.Shoot)
 	isNormalShoot := shootedSeed == nil || err != nil
-
-	vp.logger.Info("LimitValidatingWebhook", "shoot", cluster.Shoot.Status.TechnicalID, "validate", isNormalShoot)
 
 	values := map[string]interface{}{
 		"lvw_validate": isNormalShoot,
