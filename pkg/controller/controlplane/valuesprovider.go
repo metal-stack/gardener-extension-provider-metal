@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
 
@@ -195,8 +196,9 @@ var storageClassChart = &chart.Chart{
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(logger logr.Logger, config AccountingConfig) genericactuator.ValuesProvider {
+func NewValuesProvider(mgr manager.Manager, logger logr.Logger, config AccountingConfig) genericactuator.ValuesProvider {
 	return &valuesProvider{
+		mgr:              mgr,
 		logger:           logger.WithName("metal-values-provider"),
 		accountingConfig: config,
 	}
@@ -209,6 +211,7 @@ type valuesProvider struct {
 	client           client.Client
 	logger           logr.Logger
 	accountingConfig AccountingConfig
+	mgr              manager.Manager
 }
 
 // InjectScheme injects the given scheme into the valuesProvider.
@@ -306,10 +309,10 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	// Alternative caSecret, ca, err := secrets.LoadCAFromSecret(vp.mgr.GetClient(), namespace, secretName)
 
 	key := kutil.Key(namespace, secretName)
-	vp.logger.Info("GetSecret", "key", key, "client", vp.client, "clientStatus", vp.client.Status())
+	vp.logger.Info("GetSecret", "key", key)
 
 	secret := &corev1.Secret{}
-	err := vp.client.Get(ctx, key, secret)
+	err := vp.mgr.GetClient().Get(ctx, key, secret)
 	if !apierrors.IsNotFound(err) {
 		vp.logger.Error(err, "error getting chart secret - not found")
 		return nil, errors.Wrapf(err, "error getting cert secret")

@@ -95,7 +95,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 
 	return controlplane.Add(mgr, controlplane.AddArgs{
 		Actuator: genericactuator.NewActuator(metal.Name, controlPlaneSecrets, nil, configChart, controlPlaneChart, cpShootChart,
-			storageClassChart, nil, NewValuesProvider(logger, *AccOpts.config), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
+			storageClassChart, nil, NewValuesProvider(mgr, logger, *AccOpts.config), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 			imagevector.ImageVector(), "", opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger),
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
