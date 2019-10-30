@@ -33,6 +33,8 @@ spec:
             - -tlsCertFile=/etc/webhook/certs/limit-validating-webhook-server.crt
             - -tlsKeyFile=/etc/webhook/certs/limit-validating-webhook-server.key
             - -excludedNamespaces=kube-system
+            - -enforceResourceRequests=false
+            - -enforceResourceLimits={{ .Values.lvw_validate }}
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs

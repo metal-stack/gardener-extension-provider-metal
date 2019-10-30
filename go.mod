@@ -8,7 +8,7 @@ require (
 	github.com/coreos/container-linux-config-transpiler v0.9.0
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/coreos/ignition v0.33.0 // indirect
-	github.com/gardener/gardener v0.0.0-20190827050434-cdafc6bd869f
+	github.com/gardener/gardener v0.0.0-20191030115115-7728c74f731e
 	github.com/gardener/gardener-extensions v0.0.0-20190828072712-cf446972f37d
 	github.com/gardener/machine-controller-manager v0.0.0-20190606071036-119056ee3fdd
 	github.com/go-logr/logr v0.1.0

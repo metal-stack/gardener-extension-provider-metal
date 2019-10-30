@@ -19,6 +19,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/gardener/gardener-extensions/pkg/util"
+	"github.com/gardener/gardener/pkg/apis/garden/v1beta1/helper"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
@@ -26,7 +28,6 @@ import (
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
-	"github.com/gardener/gardener-extensions/pkg/util"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-pod/metal-go"
@@ -276,7 +277,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, authValues, accValues)
+	lvwValues, err := getLimitValidationWebhooControlPlaneChartValues(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	merge(chartValues, authValues, accValues, lvwValues)
 
 	return chartValues, nil
 }
@@ -304,7 +310,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	vp.logger.Info("GetControlPlaneShootChartValues")
 
-	values, err := vp.getLimitValidationWebhookChartValues(ctx, cp, cluster)
+	values, err := vp.getControlPlaneShootLimitValidationWebhookChartValues(ctx, cp, cluster)
 	if err != nil {
 		vp.logger.Error(err, "Error getting LimitValidationWebhookChartValues")
 	}
@@ -313,7 +319,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // GetLimitValidationWebhookChartValues returns the values for the LimitValidationWebhook.
-func (vp *valuesProvider) getLimitValidationWebhookChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootLimitValidationWebhookChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
 	secretName := limitValidatingWebhookServerName
 	namespace := cluster.Shoot.Status.TechnicalID
@@ -403,7 +409,7 @@ func getCCMChartValues(
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[metal.ShootAnnotationClusterName]
@@ -441,7 +447,7 @@ func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *
 	return values, nil
 }
 
-func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func (vp *valuesProvider) getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	partitionID := cluster.Shoot.Spec.Cloud.Metal.Zones[0]
 	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
@@ -465,6 +471,20 @@ func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster
 
 		"accex_accountingsink_url":  accountingConfig.AccountingSinkUrl,
 		"accex_accountingsink_HMAC": accountingConfig.AccountingSinkHmac,
+	}
+
+	return values, nil
+}
+
+func (vp *valuesProvider) getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
+	shootedSeed, err := helper.ReadShootedSeed(cluster.Shoot)
+	isNormalShoot := shootedSeed == nil || err != nil
+
+	vp.logger.Info("LimitValidatingWebhook", "shoot", cluster.Shoot.Status.TechnicalID, "validate", isNormalShoot)
+
+	values := map[string]interface{}{
+		"lvw_validate": isNormalShoot,
 	}
 
 	return values, nil

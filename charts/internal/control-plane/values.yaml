@@ -55,7 +55,11 @@ accex_clustername: clustername
 accex_accountingsink_url: https://api.metal-pod.io/accounting
 accex_accountingsink_HMAC: _dummy_
 
-
 accountingSink:
   Url: sink-url
   Hmac: sink-hmac
+
+#
+# limit-validating-webhook
+#
+lvw_validate: true
