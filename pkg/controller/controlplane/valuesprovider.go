@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
@@ -317,27 +318,27 @@ func (vp *valuesProvider) getLimitValidationWebhookChartValues(ctx context.Conte
 	secretName := limitValidatingWebhookServerName
 	namespace := cluster.Shoot.Status.TechnicalID
 
-	// try to get secret directly
 	secret, err := vp.getSecret(ctx, namespace, secretName)
-	if err != nil {
-		secret, err = vp.getSecretFromList(ctx, namespace, secretName)
-	}
-
 	if err != nil {
 		return nil, err
 	}
 
+	// CA-Cert for TLS
 	caBundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
 
-	vp.logger.Info("Prepare CABundle " + caBundle)
+	// this should work as the kube-apiserver is a pod in the same cluster as the limit-validating-webhook
+	// example https://limit-validating-webhook.shoot--local--myshootname.svc.cluster.local/validate
+	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
 
 	values := map[string]interface{}{
+		"limitValidatingWebhook_url":      url,
 		"limitValidatingWebhook_caBundle": caBundle,
 	}
 
 	return values, nil
 }
 
+// getSecret returns the secret with the given namespace/secretName
 func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
 	key := kutil.Key(namespace, secretName)
 	vp.logger.Info("GetSecret", "key", key)
@@ -352,34 +353,6 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 		return nil, err
 	}
 	return secret, nil
-}
-
-func (vp *valuesProvider) getSecretFromList(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
-
-	vp.logger.Info("GetSecretFromList")
-
-	k8sClient := vp.mgr.GetClient()
-
-	// check what we can see
-	secretList := &corev1.SecretList{}
-	err := k8sClient.List(ctx, secretList, client.InNamespace(namespace))
-	if err != nil {
-		return nil, err
-	}
-
-	// lookup secret from list
-	items := secretList.Items
-	for i := range items {
-		secret := items[i]
-		logger.Info("Secret", "name", secret.Name)
-		if secret.Name == secretName {
-			logger.Info("Found secret")
-
-			return &secret, nil
-		}
-	}
-
-	return nil, nil
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.

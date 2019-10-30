@@ -7,10 +7,7 @@ metadata:
 webhooks:
 - name: limit-validating-webhook.metal-pod.io
   clientConfig:
-    service:
-      name: limit-validating-webhook
-      namespace: kube-system
-      path: "/validate"
+    url: {{ .Values.limitValidatingWebhook_url }}
     caBundle: {{ .Values.limitValidatingWebhook_caBundle }}
   rules:
   - operations: ["CREATE"]
