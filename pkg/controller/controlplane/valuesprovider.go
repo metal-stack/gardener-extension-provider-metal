@@ -298,6 +298,8 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
 func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
+	vp.logger.Info("GetControlPlaneShootChartValues")
+
 	secretName := limitValidatingWebhookServerName
 	namespace := cluster.Shoot.Status.TechnicalID
 
@@ -306,13 +308,17 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	secret := &corev1.Secret{}
 	err := vp.client.Get(ctx, kutil.Key(namespace, secretName), secret)
 	if !apierrors.IsNotFound(err) {
+		vp.logger.Error(err, "error getting chart secret - not found")
 		return nil, errors.Wrapf(err, "error getting cert secret")
 	}
 	if err != nil {
+		vp.logger.Error(err, "error getting chart secret")
 		return nil, err
 	}
 
 	caBundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
+
+	vp.logger.Info("Prepare CABundle " + caBundle)
 
 	values := map[string]interface{}{
 		"limitValidatingWebhook_caBundle": caBundle,
