@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
@@ -320,32 +319,43 @@ func (vp *valuesProvider) getLimitValidationWebhookChartValues(ctx context.Conte
 
 	// Alternative caSecret, ca, err := secrets.LoadCAFromSecret(vp.mgr.GetClient(), namespace, secretName)
 
+	k8sClient := vp.mgr.GetClient()
+
 	// check what we can see
 	secretList := &corev1.SecretList{}
-	err := vp.mgr.GetClient().List(ctx, secretList, client.InNamespace(namespace))
+	err := k8sClient.List(ctx, secretList, client.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}
-	if err := meta.EachListItem(secretList, func(secret runtime.Object) error {
-		accessor, err := meta.Accessor(secret)
-		if err != nil {
-			return err
-		}
 
-		vp.logger.Info("got secret", "name", accessor.GetName())
-		return nil
-	}); err != nil {
-		return nil, err
+	// lookup secret from list
+	items := secretList.Items
+	for i := range items {
+		secret := items[i]
+		logger.Info("Secret", "name", secret.Name)
+		if secret.Name == secretName {
+			logger.Info("Found secret")
+			caBundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
+
+			vp.logger.Info("Prepare CABundle " + caBundle)
+
+			values := map[string]interface{}{
+				"limitValidatingWebhook_caBundle": caBundle,
+			}
+
+			return values, nil
+		}
 	}
 
+	// try to get secret directly
 	key := kutil.Key(namespace, secretName)
 	vp.logger.Info("GetSecret", "key", key)
 
 	secret := &corev1.Secret{}
-	err = vp.mgr.GetClient().Get(ctx, key, secret)
-	if !apierrors.IsNotFound(err) {
+	err = k8sClient.Get(ctx, key, secret)
+	if apierrors.IsNotFound(err) {
 		vp.logger.Error(err, "error getting chart secret - not found")
-		return nil, errors.Wrapf(err, "error getting cert secret")
+		return nil, err
 	}
 	if err != nil {
 		vp.logger.Error(err, "error getting chart secret")
