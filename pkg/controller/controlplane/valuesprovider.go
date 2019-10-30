@@ -305,8 +305,11 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	// Alternative caSecret, ca, err := secrets.LoadCAFromSecret(vp.mgr.GetClient(), namespace, secretName)
 
+	key := kutil.Key(namespace, secretName)
+	vp.logger.Info("GetSecret", "key", key, "client", vp.client, "clientStatus", vp.client.Status())
+
 	secret := &corev1.Secret{}
-	err := vp.client.Get(ctx, kutil.Key(namespace, secretName), secret)
+	err := vp.client.Get(ctx, key, secret)
 	if !apierrors.IsNotFound(err) {
 		vp.logger.Error(err, "error getting chart secret - not found")
 		return nil, errors.Wrapf(err, "error getting cert secret")
