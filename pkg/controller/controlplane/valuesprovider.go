@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
@@ -303,16 +304,45 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	vp.logger.Info("GetControlPlaneShootChartValues")
 
+	values, err := vp.getLimitValidationWebhookChartValues(ctx, cp, cluster)
+	if err != nil {
+		vp.logger.Error(err, "Error getting LimitValidationWebhookChartValues")
+	}
+
+	return values, err
+}
+
+// GetLimitValidationWebhookChartValues returns the values for the LimitValidationWebhook.
+func (vp *valuesProvider) getLimitValidationWebhookChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
 	secretName := limitValidatingWebhookServerName
 	namespace := cluster.Shoot.Status.TechnicalID
 
 	// Alternative caSecret, ca, err := secrets.LoadCAFromSecret(vp.mgr.GetClient(), namespace, secretName)
 
+	// check what we can see
+	secretList := &corev1.SecretList{}
+	err := vp.mgr.GetClient().List(ctx, secretList, client.InNamespace(namespace))
+	if err != nil {
+		return nil, err
+	}
+	if err := meta.EachListItem(secretList, func(secret runtime.Object) error {
+		accessor, err := meta.Accessor(secret)
+		if err != nil {
+			return err
+		}
+
+		vp.logger.Info("got secret", "name", accessor.GetName())
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
 	key := kutil.Key(namespace, secretName)
 	vp.logger.Info("GetSecret", "key", key)
 
 	secret := &corev1.Secret{}
-	err := vp.mgr.GetClient().Get(ctx, key, secret)
+	err = vp.mgr.GetClient().Get(ctx, key, secret)
 	if !apierrors.IsNotFound(err) {
 		vp.logger.Error(err, "error getting chart secret - not found")
 		return nil, errors.Wrapf(err, "error getting cert secret")
