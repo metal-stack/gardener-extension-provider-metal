@@ -93,15 +93,6 @@ func GetPrivateNetworkFromNodeNetwork(client *metalgo.Driver, projectID string, 
 	return privateNetworks[0], nil
 }
 
-// FreePrivateNetworkFromNodeNetwork free the private network that belongs to the given node network cidr and project.
-func FreePrivateNetworkFromNodeNetwork(client *metalgo.Driver, networkID string) (*models.V1NetworkResponse, error) {
-	_, err := client.NetworkFree(networkID)
-	if err != nil {
-		return nil, err
-	}
-	return nil, nil
-}
-
 const (
 	tagClusterPrefix = "cluster.metal-pod.io/clusterid"
 	tagServicePrefix = "service.metal-pod.io/clusterid/namespace/servicename"
@@ -119,9 +110,10 @@ func GetEphemeralIPsFromCluster(client *metalgo.Driver, projectID, clusterID str
 	if err != nil {
 		return nil, nil, err
 	}
-	result := []*models.V1IPResponse{}
+	// only these who are member of one cluster are freed
+	ipsToFree := []*models.V1IPResponse{}
+	// those who are member of more clusters must be updated and the tags which references this cluster must be removed.
 	ipsToUpdate := []*models.V1IPResponse{}
-	// return only these who are member of one cluster
 	for _, ip := range ipFindResponse.IPs {
 		clusterCount := 0
 		for _, t := range ip.Tags {
@@ -129,15 +121,14 @@ func GetEphemeralIPsFromCluster(client *metalgo.Driver, projectID, clusterID str
 				clusterCount++
 			}
 		}
-		if clusterCount < 2 {
-			result = append(result, ip)
+		if clusterCount == 1 {
+			ipsToFree = append(ipsToFree, ip)
+			continue
 		}
 		// IPs which are used in more than one cluster must be updated to get the tags with this clusterid removed
-		if clusterCount >= 2 {
-			ipsToUpdate = append(ipsToUpdate, ip)
-		}
+		ipsToUpdate = append(ipsToUpdate, ip)
 	}
-	return result, ipsToUpdate, nil
+	return ipsToFree, ipsToUpdate, nil
 }
 
 // UpdateIPInCluster update the IP in the cluster to have only these tags left which are not from this cluster
@@ -145,7 +136,7 @@ func UpdateIPInCluster(client *metalgo.Driver, ip *models.V1IPResponse, clusterI
 	serviceTag := fmt.Sprintf("%s=%s", tagServicePrefix, clusterID)
 	clusterTag := fmt.Sprintf("%s=%s", tagClusterPrefix, clusterID)
 
-	newTags := []string{}
+	var newTags []string
 	for _, t := range ip.Tags {
 		if strings.HasPrefix(t, serviceTag) || strings.HasPrefix(t, clusterTag) {
 			continue

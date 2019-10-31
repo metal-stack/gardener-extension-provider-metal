@@ -50,7 +50,7 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 	nodeCIDR := cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
 	clusterID := string(cluster.Shoot.ObjectMeta.UID)
 
-	ephemerals, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(mclient, projectID, clusterID)
+	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(mclient, projectID, clusterID)
 	if err != nil {
 		a.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", infrastructure.Name, "clusterID", clusterID)
 		return &controllererrors.RequeueAfterError{
@@ -59,19 +59,19 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		}
 	}
 
-	for _, e := range ephemerals {
-		_, err := mclient.IPFree(*e.Ipaddress)
-		a.logger.Error(err, "failed to release ephemeral cluster ip", "infrastructure", infrastructure.Name, "ip", *e.Ipaddress)
+	for _, ip := range ipsToFree {
+		_, err := mclient.IPFree(*ip.Ipaddress)
+		a.logger.Error(err, "failed to release ephemeral cluster ip", "infrastructure", infrastructure.Name, "ip", *ip.Ipaddress)
 		return &controllererrors.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
 		}
 	}
 
-	for _, e := range ipsToUpdate {
-		err := metalclient.UpdateIPInCluster(mclient, e, clusterID)
+	for _, ip := range ipsToUpdate {
+		err := metalclient.UpdateIPInCluster(mclient, ip, clusterID)
 		if err != nil {
-			a.logger.Error(err, "failed to remove cluster tags from ip which is member of other clusters", "infrastructure", infrastructure.Name, "ip", *e.Ipaddress)
+			a.logger.Error(err, "failed to remove cluster tags from ip which is member of other clusters", "infrastructure", infrastructure.Name, "ip", *ip.Ipaddress)
 			return &controllererrors.RequeueAfterError{
 				Cause:        err,
 				RequeueAfter: 30 * time.Second,
