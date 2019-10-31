@@ -383,6 +383,8 @@ github.com/metal-pod/metal-go v0.0.0-20190708061258-5e4b2ad2be34/go.mod h1:QiBt6
 github.com/metal-pod/metal-go v0.0.0-20190816063655-41f27ea93449/go.mod h1:QiBt6D6ecJPk6DQ0WasKUVFHo6XdbcrogP0lcEwqA4Y=
 github.com/metal-pod/metal-go v0.0.0-20190906074518-f002e94f3db0 h1:9qLzXtg9lVeYQwBv4pOR9QSB5c3U1iJcrB2yzvWAxeI=
 github.com/metal-pod/metal-go v0.0.0-20190906074518-f002e94f3db0/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
+github.com/metal-pod/metal-go v0.0.0-20191030082046-945b5b800d10 h1:hyODYZ9z6yionaTCEvxNiEmjNykHIVtXrQyyBYwAgt0=
+github.com/metal-pod/metal-go v0.0.0-20191030082046-945b5b800d10/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89 h1:RRVjpKhVGMGoDjadvr0IZWQSPoFvYUp4es7s62zhx8k=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89/go.mod h1:BUuL3n1TYvrGlxfUl2L6zrErSkw1NPchimPfcWMSU1k=
 github.com/mholt/archiver v3.1.1+incompatible/go.mod h1:Dh2dOXnSdiLxRiPoVfIr/fI1TwETms9B8CTWfeh7ROU=

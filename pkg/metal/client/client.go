@@ -17,6 +17,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	gardencorev1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
@@ -63,7 +64,7 @@ func ReadCredentialsFromSecretRef(ctx context.Context, k8sClient client.Client, 
 }
 
 // GetPrivateNetworkFromNodeNetwork returns the private network that belongs to the given node network cidr and project.
-func GetPrivateNetworkFromNodeNetwork(client *metalgo.Driver, projectID string, nodeNetworkCIDR *gardencorev1.CIDR) (*models.V1NetworkResponse, error) {
+func GetPrivateNetworksFromNodeNetwork(client *metalgo.Driver, projectID string, nodeNetworkCIDR *gardencorev1.CIDR) ([]*models.V1NetworkResponse, error) {
 	if nodeNetworkCIDR == nil {
 		return nil, fmt.Errorf("node network cidr is nil")
 	}
@@ -77,10 +78,89 @@ func GetPrivateNetworkFromNodeNetwork(client *metalgo.Driver, projectID string, 
 	if err != nil {
 		return nil, err
 	}
-	if len(networkFindResponse.Networks) != 1 {
-		return nil, fmt.Errorf("no distinct private network for project id %q and prefix %s found", projectID, prefix)
+	return networkFindResponse.Networks, nil
+}
+
+// GetPrivateNetworkFromNodeNetwork returns the private network that belongs to the given node network cidr and project.
+func GetPrivateNetworkFromNodeNetwork(client *metalgo.Driver, projectID string, nodeNetworkCIDR *gardencorev1.CIDR) (*models.V1NetworkResponse, error) {
+	privateNetworks, err := GetPrivateNetworksFromNodeNetwork(client, projectID, nodeNetworkCIDR)
+	if err != nil {
+		return nil, err
 	}
-	return networkFindResponse.Networks[0], nil
+	if len(privateNetworks) != 1 {
+		return nil, fmt.Errorf("no distinct private network for project id %q and prefix %s found", projectID, string(*nodeNetworkCIDR))
+	}
+	return privateNetworks[0], nil
+}
+
+// FreePrivateNetworkFromNodeNetwork free the private network that belongs to the given node network cidr and project.
+func FreePrivateNetworkFromNodeNetwork(client *metalgo.Driver, networkID string) (*models.V1NetworkResponse, error) {
+	_, err := client.NetworkFree(networkID)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+const (
+	tagClusterPrefix = "cluster.metal-pod.io/clusterid"
+	tagServicePrefix = "service.metal-pod.io/clusterid/namespace/servicename"
+)
+
+// GetEphemeralIPsFromCluster return all ephemeral IPs for given project and cluster
+func GetEphemeralIPsFromCluster(client *metalgo.Driver, projectID, clusterID string) ([]*models.V1IPResponse, []*models.V1IPResponse, error) {
+	ephemeral := "ephemeral"
+	ipFindRequest := metalgo.IPFindRequest{
+		ProjectID: &projectID,
+		ClusterID: &clusterID,
+		Type:      &ephemeral,
+	}
+	ipFindResponse, err := client.IPFind(&ipFindRequest)
+	if err != nil {
+		return nil, nil, err
+	}
+	result := []*models.V1IPResponse{}
+	ipsToUpdate := []*models.V1IPResponse{}
+	// return only these who are member of one cluster
+	for _, ip := range ipFindResponse.IPs {
+		clusterCount := 0
+		for _, t := range ip.Tags {
+			if strings.HasPrefix(t, tagClusterPrefix) {
+				clusterCount++
+			}
+		}
+		if clusterCount < 2 {
+			result = append(result, ip)
+		}
+		// IPs which are used in more than one cluster must be updated to get the tags with this clusterid removed
+		if clusterCount >= 2 {
+			ipsToUpdate = append(ipsToUpdate, ip)
+		}
+	}
+	return result, ipsToUpdate, nil
+}
+
+// UpdateIPInCluster update the IP in the cluster to have only these tags left which are not from this cluster
+func UpdateIPInCluster(client *metalgo.Driver, ip *models.V1IPResponse, clusterID string) error {
+	serviceTag := fmt.Sprintf("%s=%s", tagServicePrefix, clusterID)
+	clusterTag := fmt.Sprintf("%s=%s", tagClusterPrefix, clusterID)
+
+	newTags := []string{}
+	for _, t := range ip.Tags {
+		if strings.HasPrefix(t, serviceTag) || strings.HasPrefix(t, clusterTag) {
+			continue
+		}
+		newTags = append(newTags, t)
+	}
+	iur := &metalgo.IPUpdateRequest{
+		IPAddress: *ip.Ipaddress,
+		Tags:      newTags,
+	}
+	_, err := client.IPUpdate(iur)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetProjectByID returns a project by a given ID

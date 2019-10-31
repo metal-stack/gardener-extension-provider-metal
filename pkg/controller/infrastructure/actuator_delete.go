@@ -30,19 +30,70 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		if _, _, err := a.decoder.Decode(infrastructure.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
 			return fmt.Errorf("could not decode infrastructure status: %+v", err)
 		}
-		if infrastructureStatus.Firewall.MachineID == "" {
-			return nil
-		}
-		machineID := decodeMachineID(infrastructureStatus.Firewall.MachineID)
-		if machineID != "" {
-			_, err = mclient.MachineDelete(machineID)
-			if err != nil {
-				a.logger.Error(err, "failed to delete firewall", "infrastructure", infrastructure.Name, "firewallID", machineID)
-				return &controllererrors.RequeueAfterError{
-					Cause:        err,
-					RequeueAfter: 30 * time.Second,
+
+		if infrastructureStatus.Firewall.MachineID != "" {
+			machineID := decodeMachineID(infrastructureStatus.Firewall.MachineID)
+			if machineID != "" {
+				_, err = mclient.MachineDelete(machineID)
+				if err != nil {
+					a.logger.Error(err, "failed to delete firewall", "infrastructure", infrastructure.Name, "firewallID", machineID)
+					return &controllererrors.RequeueAfterError{
+						Cause:        err,
+						RequeueAfter: 30 * time.Second,
+					}
 				}
 			}
+		}
+	}
+
+	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
+	nodeCIDR := cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	clusterID := string(cluster.Shoot.ObjectMeta.UID)
+
+	ephemerals, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(mclient, projectID, clusterID)
+	if err != nil {
+		a.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", infrastructure.Name, "clusterID", clusterID)
+		return &controllererrors.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
+		}
+	}
+
+	for _, e := range ephemerals {
+		_, err := mclient.IPFree(*e.Ipaddress)
+		a.logger.Error(err, "failed to release ephemeral cluster ip", "infrastructure", infrastructure.Name, "ip", *e.Ipaddress)
+		return &controllererrors.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
+		}
+	}
+
+	for _, e := range ipsToUpdate {
+		err := metalclient.UpdateIPInCluster(mclient, e, clusterID)
+		if err != nil {
+			a.logger.Error(err, "failed to remove cluster tags from ip which is member of other clusters", "infrastructure", infrastructure.Name, "ip", *e.Ipaddress)
+			return &controllererrors.RequeueAfterError{
+				Cause:        err,
+				RequeueAfter: 30 * time.Second,
+			}
+		}
+	}
+
+	privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(mclient, projectID, nodeCIDR)
+	if err != nil {
+		a.logger.Error(err, "failed to query private network", "infrastructure", infrastructure.Name, "nodeCIDR", nodeCIDR)
+		return &controllererrors.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
+		}
+	}
+
+	for _, pn := range privateNetworks {
+		_, err := mclient.NetworkFree(*pn.ID)
+		a.logger.Error(err, "failed to release private network", "infrastructure", infrastructure.Name, "networkID", *pn.ID)
+		return &controllererrors.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
 		}
 	}
 
