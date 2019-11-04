@@ -58,3 +58,42 @@ spec:
     ports:
     - port: 443
       targetPort: 443
+
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+    name: limit-validating-webhook-allow-namespace
+    namespace: {{ .Release.Namespace }}
+spec:
+    podSelector:
+        matchLabels:
+            app: limit-validating-webhook
+    ingress:
+    - from:
+      - podSelector:
+            matchLabels:
+                app: kubernetes
+                role: apiserver
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: kubeapi2limit-validating-webhook
+    namespace: {{ .Release.Namespace }}
+spec:
+    egress:
+    - ports:
+      - port: 443
+        protocol: TCP
+      to:
+      - podSelector:
+            matchLabels:
+                app: limit-validating-webhook
+    podSelector:
+        matchLabels:
+            app: kubernetes
+            role: apiserver
+    policyTypes:
+    - Egress

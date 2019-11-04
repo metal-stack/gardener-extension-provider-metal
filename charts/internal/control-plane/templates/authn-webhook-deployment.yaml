@@ -36,6 +36,12 @@ spec:
         - containerPort: {{ .Values.authn_listen_port }}
           protocol: TCP
         env:
+        - name: LISTEN
+          value: ":{{ .Values.authn_listen_port }}"
+        - name: TLSCERTFILE
+          value: /etc/webhook/certs/limit-validating-webhook-server.crt
+        - name: TLSKEYFILE
+          value: /etc/webhook/certs/limit-validating-webhook-server.key
         - name: ISSUER
           value: {{ .Values.authn_oidcIssuerUrl }}
         - name: CLIENTID
@@ -48,8 +54,14 @@ spec:
           value: {{ .Values.authn_clustername }}
         - name: DEBUG
           value: {{ quote .Values.authn_debug }}
-        - name: LISTEN
-          value: ":{{ .Values.authn_listen_port }}"
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: /etc/webhook/certs
+          readOnly: true
+      volumes:
+      - name: webhook-certs
+        secret:
+            secretName: kube-jwt-authn-webhook-server
       restartPolicy: Always
 
 ---
@@ -66,3 +78,42 @@ spec:
   ports:
   - port: 443
     targetPort: {{ .Values.authn_listen_port }}
+
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+    name: kube-jwt-authn-webhook-allow-namespace
+    namespace: {{ .Release.Namespace }}
+spec:
+    podSelector:
+        matchLabels:
+            app: kube-jwt-authn-webhook
+    ingress:
+    - from:
+      - podSelector:
+            matchLabels:
+                app: kubernetes
+                role: apiserver
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: kubeapi2kube-jwt-authn-webhook
+    namespace: {{ .Release.Namespace }}
+spec:
+    egress:
+    - ports:
+      - port: 443
+        protocol: TCP
+      to:
+      - podSelector:
+            matchLabels:
+                app: kube-jwt-authn-webhook
+    podSelector:
+        matchLabels:
+            app: kubernetes
+            role: apiserver
+    policyTypes:
+    - Egress

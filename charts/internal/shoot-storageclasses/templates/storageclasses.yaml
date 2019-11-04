@@ -112,3 +112,7 @@ spec:
           value: "metalpod/csi-lvm-provisioner"
         - name: CSI_LVM_DEVICE_PATTERN
           value: "/dev/nvme[0-9]n*"
+        resources:
+            limits:
+                cpu: 20m
+                memory: "16Mi"
