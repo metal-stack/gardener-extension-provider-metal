@@ -264,7 +264,7 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/authenticate", authNWebhookDeploymentName, namespace)
 
 	values := map[string]interface{}{
-		"limitValidatingWebhook_url": url,
+		"authnWebhook_url": url,
 	}
 
 	return values, nil
