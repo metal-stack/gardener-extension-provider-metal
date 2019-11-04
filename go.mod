@@ -12,11 +12,19 @@ require (
 	github.com/gardener/gardener-extensions v0.0.0-20190828072712-cf446972f37d
 	github.com/gardener/machine-controller-manager v0.0.0-20190606071036-119056ee3fdd
 	github.com/go-logr/logr v0.1.0
+	github.com/go-openapi/analysis v0.19.6 // indirect
+	github.com/go-openapi/jsonreference v0.19.3 // indirect
+	github.com/go-openapi/loads v0.19.4 // indirect
+	github.com/go-openapi/runtime v0.19.7 // indirect
+	github.com/go-openapi/spec v0.19.4 // indirect
+	github.com/go-openapi/validate v0.19.4 // indirect
 	github.com/gobuffalo/packr/v2 v2.5.2
 	github.com/golang/mock v1.3.1
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
-	github.com/metal-pod/metal-go v0.0.0-20191030082046-945b5b800d10
+	github.com/mailru/easyjson v0.7.0 // indirect
+	github.com/metal-pod/metal-go v0.0.0-20191104095617-f77f18b100f2
+	github.com/metal-pod/security v0.0.0-20190920091500-ed81ae92725b // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1
@@ -25,6 +33,8 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
 	github.com/vincent-petithory/dataurl v0.0.0-20160330182126-9a301d65acbb // indirect
+	go.mongodb.org/mongo-driver v1.1.2 // indirect
+	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9 // indirect
 	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
 	k8s.io/api v0.0.0-20190409021203-6e4e0e4f393b
 	k8s.io/apiextensions-apiserver v0.0.0-20190409022649-727a075fdec8

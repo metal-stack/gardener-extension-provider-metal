@@ -93,17 +93,11 @@ func GetPrivateNetworkFromNodeNetwork(client *metalgo.Driver, projectID string, 
 	return privateNetworks[0], nil
 }
 
-const (
-	tagClusterPrefix = "cluster.metal-pod.io/clusterid"
-	tagServicePrefix = "service.metal-pod.io/clusterid/namespace/servicename"
-)
-
 // GetEphemeralIPsFromCluster return all ephemeral IPs for given project and cluster
 func GetEphemeralIPsFromCluster(client *metalgo.Driver, projectID, clusterID string) ([]*models.V1IPResponse, []*models.V1IPResponse, error) {
-	ephemeral := "ephemeral"
+	ephemeral := metalgo.IPTypeEphemeral
 	ipFindRequest := metalgo.IPFindRequest{
 		ProjectID: &projectID,
-		ClusterID: &clusterID,
 		Type:      &ephemeral,
 	}
 	ipFindResponse, err := client.IPFind(&ipFindRequest)
@@ -117,7 +111,7 @@ func GetEphemeralIPsFromCluster(client *metalgo.Driver, projectID, clusterID str
 	for _, ip := range ipFindResponse.IPs {
 		clusterCount := 0
 		for _, t := range ip.Tags {
-			if strings.HasPrefix(t, tagClusterPrefix) {
+			if metalgo.TagIsMemberOfCluster(t, clusterID) {
 				clusterCount++
 			}
 		}
@@ -133,12 +127,11 @@ func GetEphemeralIPsFromCluster(client *metalgo.Driver, projectID, clusterID str
 
 // UpdateIPInCluster update the IP in the cluster to have only these tags left which are not from this cluster
 func UpdateIPInCluster(client *metalgo.Driver, ip *models.V1IPResponse, clusterID string) error {
-	serviceTag := fmt.Sprintf("%s=%s", tagServicePrefix, clusterID)
-	clusterTag := fmt.Sprintf("%s=%s", tagClusterPrefix, clusterID)
+	clusterTag := metalgo.BuildServiceTagClusterPrefix(clusterID)
 
 	var newTags []string
 	for _, t := range ip.Tags {
-		if strings.HasPrefix(t, serviceTag) || strings.HasPrefix(t, clusterTag) {
+		if strings.HasPrefix(t, clusterTag) {
 			continue
 		}
 		newTags = append(newTags, t)
