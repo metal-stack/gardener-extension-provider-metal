@@ -86,12 +86,6 @@ var (
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
 				SecretName: "kube-jwt-authn-webhook-server",
-				Items: []corev1.KeyToPath{
-					{
-						Key:  "ca.crt",
-						Path: "",
-					},
-				},
 			},
 		},
 	}
