@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 type mutator struct {
@@ -46,9 +45,9 @@ const (
 )
 
 // NewMutator creates a new Mutator that mutates resources in the shoot cluster.
-func NewMutator() extensionswebhook.MutatorWithShootClient {
+func NewMutator(logger logr.Logger) extensionswebhook.MutatorWithShootClient {
 	return &mutator{
-		logger: log.Log.WithName("shoot-mutator"),
+		logger: logger,
 	}
 }
 
