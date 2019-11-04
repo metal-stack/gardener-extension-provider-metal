@@ -89,7 +89,7 @@ var (
 				Items: []corev1.KeyToPath{
 					{
 						Key:  "ca.crt",
-						Path: "/",
+						Path: "",
 					},
 				},
 			},
