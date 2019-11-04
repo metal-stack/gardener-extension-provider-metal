@@ -63,6 +63,7 @@ const (
 
 	// AuthN Webhook
 	AuthNWebHookConfigName        = "authn-webhook-config"
+	AuthNWebHookCertName          = "authn-webhook-cert"
 	ShootExtensionTypeTokenIssuer = "tokenissuer"
 
 	// Shoot Annotations

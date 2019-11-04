@@ -33,7 +33,7 @@ spec:
         image: {{ index .Values.images "authn-webhook" }}
         imagePullPolicy: Always
         ports:
-        - containerPort: 3000
+        - containerPort: {{ .Values.authn_listen_port }}
           protocol: TCP
         env:
         - name: ISSUER
@@ -48,6 +48,8 @@ spec:
           value: {{ .Values.authn_clustername }}
         - name: DEBUG
           value: {{ quote .Values.authn_debug }}
+        - name: LISTEN
+          value: ":{{ .Values.authn_listen_port }}"
       restartPolicy: Always
 
 ---
@@ -62,5 +64,5 @@ spec:
   selector:
     app: kube-jwt-authn-webhook
   ports:
-  - port: 3000
-    targetPort: 3000
+  - port: 443
+    targetPort: {{ .Values.authn_listen_port }}

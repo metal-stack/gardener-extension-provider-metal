@@ -68,6 +68,8 @@ const (
 	limitValidatingWebhookDeploymentName = "limit-validating-webhook"
 	limitValidatingWebhookServerName     = "limit-validating-webhook-server"
 	accountingExporterName               = "accounting-exporter"
+	authNWebhookDeploymentName           = "kube-jwt-authn-webhook"
+	authNWebhookServerName               = "kube-jwt-authn-webhook-server"
 )
 
 var controlPlaneSecrets = &secrets.Secrets{
@@ -104,6 +106,15 @@ var controlPlaneSecrets = &secrets.Secrets{
 				KubeConfigRequest: &secrets.KubeConfigRequest{
 					ClusterName:  clusterName,
 					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:       authNWebhookServerName,
+					CommonName: authNWebhookDeploymentName,
+					DNSNames:   controlplane.DNSNamesForService(authNWebhookDeploymentName, clusterName),
+					CertType:   secrets.ServerCert,
+					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -239,7 +250,24 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 
-	return nil, nil
+	values, err := vp.getAuthNConfigValues(ctx, cp, cluster)
+
+	return values, err
+}
+
+func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
+	namespace := cluster.Shoot.Status.TechnicalID
+
+	// this should work as the kube-apiserver is a pod in the same cluster as the kube-jwt-authn-webhook
+	// example https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
+	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/authenticate", authNWebhookDeploymentName, namespace)
+
+	values := map[string]interface{}{
+		"limitValidatingWebhook_url": url,
+	}
+
+	return values, nil
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.

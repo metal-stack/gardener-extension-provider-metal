@@ -40,6 +40,7 @@ authn_clustername: projectID
 authn_oidcIssuerUrl: https://tokenissuer/dex
 authn_oidcIssuerClientId: myClientId
 
+authn_listen_port: 443
 authn_debug: true
 
 #

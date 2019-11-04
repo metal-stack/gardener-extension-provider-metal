@@ -13,7 +13,8 @@ data:
               {
                     "name": "kube-jwt-authn-webhook",
                     "cluster": {
-                          "server": "http://kube-jwt-authn-webhook:3000/authenticate"
+                          "server": "{{ .Values.authnWebhook_url }}"
+                          "certificate-authority": "/etc/webhook/certs/ca.crt"
                     }
               }
               ],

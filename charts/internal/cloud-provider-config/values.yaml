@@ -1,0 +1,4 @@
+#
+# AuthN Webhook for shoot kube-apiserver
+#
+authnWebhook_url: https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
