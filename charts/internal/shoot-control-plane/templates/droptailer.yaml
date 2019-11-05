@@ -1,4 +1,10 @@
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: droptailer
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,6 +43,10 @@ spec:
         - name: droptailer-server
           mountPath: /certificates/
           readOnly: true
+        resources:
+          limits:
+            cpu: 50m
+            memory: 200Mi
       restartPolicy: Always
       volumes:
       - name: droptailer-server
