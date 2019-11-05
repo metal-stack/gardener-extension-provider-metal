@@ -16,11 +16,9 @@ package shoot
 
 import (
 	"context"
-	"fmt"
 
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
-	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/gardener/gardener/pkg/utils/secrets"
 	"github.com/pkg/errors"
 
@@ -28,7 +26,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -73,7 +70,8 @@ func (m *mutator) Mutate(ctx context.Context, obj runtime.Object, shootClient cl
 }
 
 func (m *mutator) mutateDroptailerDeployment(ctx context.Context, shootClient client.Client, d *appsv1.Deployment) error {
-	wanted := &secrets.Secrets{
+	// FIXME: Mutation is not working like this
+	_ = &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
 			gardencorev1alpha1.SecretNameCACluster: {
 				Name:       gardencorev1alpha1.SecretNameCACluster,
@@ -104,9 +102,10 @@ func (m *mutator) mutateDroptailerDeployment(ctx context.Context, shootClient cl
 			}
 		},
 	}
-	_, err := wanted.Deploy(ctx, shootClient.(kubernetes.Interface), shootClient.(gardenerkubernetes.Interface), droptailerNamespace)
-	if err != nil {
-		return fmt.Errorf("could not deploy droptailer secrets to shoot cluster; err: %w", err)
-	}
+
+	// _, err := wanted.Deploy(ctx, shootClient, shootClient, droptailerNamespace)
+	// if err != nil {
+	// 	return fmt.Errorf("could not deploy droptailer secrets to shoot cluster; err: %w", err)
+	// }
 	return nil
 }
