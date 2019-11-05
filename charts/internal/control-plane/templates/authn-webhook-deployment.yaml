@@ -39,9 +39,9 @@ spec:
         - name: LISTEN
           value: ":{{ .Values.authn_listen_port }}"
         - name: TLSCERTFILE
-          value: /etc/webhook/certs/limit-validating-webhook-server.crt
+          value: /etc/webhook/certs/kube-jwt-authn-webhook-server.crt
         - name: TLSKEYFILE
-          value: /etc/webhook/certs/limit-validating-webhook-server.key
+          value: /etc/webhook/certs/kube-jwt-authn-webhook-server.key
         - name: ISSUER
           value: {{ .Values.authn_oidcIssuerUrl }}
         - name: CLIENTID
