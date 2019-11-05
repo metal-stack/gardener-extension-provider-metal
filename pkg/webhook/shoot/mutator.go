@@ -18,14 +18,13 @@ import (
 	"context"
 
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
-	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
-	"github.com/gardener/gardener/pkg/utils/secrets"
 	"github.com/pkg/errors"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -46,6 +45,12 @@ func NewMutator(logger logr.Logger) extensionswebhook.MutatorWithShootClient {
 	return &mutator{
 		logger: logger,
 	}
+}
+
+// InjectConfig injects the given config into the actuator.
+func (m *mutator) InjectConfig(config *rest.Config) error {
+	m.logger.Info("config injection was called: %v", config.Host)
+	return nil
 }
 
 func (m *mutator) Mutate(ctx context.Context, obj runtime.Object, shootClient client.Client) error {
@@ -71,37 +76,39 @@ func (m *mutator) Mutate(ctx context.Context, obj runtime.Object, shootClient cl
 
 func (m *mutator) mutateDroptailerDeployment(ctx context.Context, shootClient client.Client, d *appsv1.Deployment) error {
 	// FIXME: Mutation is not working like this
-	_ = &secrets.Secrets{
-		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-			gardencorev1alpha1.SecretNameCACluster: {
-				Name:       gardencorev1alpha1.SecretNameCACluster,
-				CommonName: "kubernetes",
-				CertType:   secrets.CACert,
-			},
-		},
-		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
-			return []secrets.ConfigInterface{
-				&secrets.ControlPlaneSecretConfig{
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         droptailerClientSecretName,
-						CommonName:   "system:droptailer-client",
-						Organization: []string{"droptailer-client"},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
-					},
-				},
-				&secrets.ControlPlaneSecretConfig{
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         droptailerServerSecretName,
-						CommonName:   "system:droptailer-server",
-						Organization: []string{"droptailer-server"},
-						CertType:     secrets.ServerCert,
-						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
-					},
-				},
-			}
-		},
-	}
+	// wanted := &secrets.Secrets{
+	// 	CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
+	// 		gardencorev1alpha1.SecretNameCACluster: {
+	// 			Name:       gardencorev1alpha1.SecretNameCACluster,
+	// 			CommonName: "kubernetes",
+	// 			CertType:   secrets.CACert,
+	// 		},
+	// 	},
+	// 	SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
+	// 		return []secrets.ConfigInterface{
+	// 			&secrets.ControlPlaneSecretConfig{
+	// 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+	// 					Name:         droptailerClientSecretName,
+	// 					CommonName:   "system:droptailer-client",
+	// 					Organization: []string{"droptailer-client"},
+	// 					CertType:     secrets.ClientCert,
+	// 					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+	// 				},
+	// 			},
+	// 			&secrets.ControlPlaneSecretConfig{
+	// 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+	// 					Name:         droptailerServerSecretName,
+	// 					CommonName:   "system:droptailer-server",
+	// 					Organization: []string{"droptailer-server"},
+	// 					CertType:     secrets.ServerCert,
+	// 					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+	// 				},
+	// 			},
+	// 		}
+	// 	},
+	// }
+
+	// kubernetes.New(shootClient)
 
 	// _, err := wanted.Deploy(ctx, shootClient, shootClient, droptailerNamespace)
 	// if err != nil {

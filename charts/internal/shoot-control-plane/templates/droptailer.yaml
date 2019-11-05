@@ -3,7 +3,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: droptailer
-
+  labels:
+    gardener.cloud/purpose: kube-system
 ---
 apiVersion: apps/v1
 kind: Deployment
