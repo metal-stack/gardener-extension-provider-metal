@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
 	"github.com/gardener/gardener-extensions/pkg/util"
 	"github.com/gardener/gardener/pkg/apis/garden/v1beta1/helper"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -28,6 +29,7 @@ import (
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
+	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-pod/metal-go"
@@ -55,6 +57,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,6 +73,9 @@ const (
 	accountingExporterName               = "accounting-exporter"
 	authNWebhookDeploymentName           = "kube-jwt-authn-webhook"
 	authNWebhookServerName               = "kube-jwt-authn-webhook-server"
+	droptailerNamespace                  = "droptailer"
+	droptailerClientSecretName           = "droptailer-client"
+	droptailerServerSecretName           = "droptailer-server"
 )
 
 var controlPlaneSecrets = &secrets.Secrets{
@@ -341,14 +347,19 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	values, err := vp.getControlPlaneShootLimitValidationWebhookChartValues(ctx, cp, cluster)
 	if err != nil {
 		vp.logger.Error(err, "Error getting LimitValidationWebhookChartValues")
+		return nil, err
 	}
 
-	return values, err
+	err = vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster)
+	if err != nil {
+		vp.logger.Error(err, "error deploying droptailer certs")
+	}
+
+	return values, nil
 }
 
 // GetLimitValidationWebhookChartValues returns the values for the LimitValidationWebhook.
 func (vp *valuesProvider) getControlPlaneShootLimitValidationWebhookChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-
 	secretName := limitValidatingWebhookServerName
 	namespace := cluster.Shoot.Status.TechnicalID
 
@@ -370,6 +381,64 @@ func (vp *valuesProvider) getControlPlaneShootLimitValidationWebhookChartValues(
 	}
 
 	return values, nil
+}
+
+func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
+	// TODO: There is actually no nice way to deploy the certs into the shoot when we want to use
+	// the certificate helper functions from Gardener itself...
+	// Maybe we can find a better solution? This is actually only for chart values...
+
+	wanted := &secrets.Secrets{
+		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
+			gardencorev1alpha1.SecretNameCACluster: {
+				Name:       gardencorev1alpha1.SecretNameCACluster,
+				CommonName: "kubernetes",
+				CertType:   secrets.CACert,
+			},
+		},
+		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
+			return []secrets.ConfigInterface{
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         droptailerClientSecretName,
+						CommonName:   "system:droptailer-client",
+						Organization: []string{"droptailer-client"},
+						CertType:     secrets.ClientCert,
+						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					},
+				},
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         droptailerServerSecretName,
+						CommonName:   "system:droptailer-server",
+						Organization: []string{"droptailer-server"},
+						CertType:     secrets.ServerCert,
+						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					},
+				},
+			}
+		},
+	}
+
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.Shoot.Status.TechnicalID, client.Options{})
+	if err != nil {
+		return errors.Wrapf(err, "could not create shoot client")
+	}
+	cs, err := kubernetes.NewForConfig(shootConfig)
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot kubernetes client")
+	}
+	gcs, err := gardenerkubernetes.NewForConfig(shootConfig, client.Options{})
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot Gardener client")
+	}
+
+	_, err = wanted.Deploy(ctx, cs, gcs, droptailerNamespace)
+	if err != nil {
+		return fmt.Errorf("could not deploy droptailer secrets to shoot cluster; err: %w", err)
+	}
+
+	return nil
 }
 
 // getSecret returns the secret with the given namespace/secretName
