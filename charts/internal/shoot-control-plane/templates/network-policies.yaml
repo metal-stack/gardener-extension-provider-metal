@@ -9,14 +9,8 @@ spec:
   policyTypes:
   - Egress
   egress:
-  - to:
-    - ipBlock:
-        cidr: 0.0.0.0/0
-    ports:
-    - protocol: UDP
-      port: 53
-    - protocol: TCP
-      port: 53
+  - {}
+# FIXME this rule must be enable again, just a workaround to make DNS between pods work for now.
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
