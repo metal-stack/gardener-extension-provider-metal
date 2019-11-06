@@ -18,13 +18,11 @@ import (
 	"context"
 
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
-	"github.com/pkg/errors"
-
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -33,27 +31,14 @@ type mutator struct {
 	logger logr.Logger
 }
 
-const (
-	droptailerNamespace        = "droptailer"
-	droptailerDeploymentName   = "droptailer"
-	droptailerClientSecretName = "droptailer-client"
-	droptailerServerSecretName = "droptailer-server"
-)
-
 // NewMutator creates a new Mutator that mutates resources in the shoot cluster.
-func NewMutator(logger logr.Logger) extensionswebhook.MutatorWithShootClient {
+func NewMutator(logger logr.Logger) extensionswebhook.Mutator {
 	return &mutator{
 		logger: logger,
 	}
 }
 
-// InjectConfig injects the given config into the actuator.
-func (m *mutator) InjectConfig(config *rest.Config) error {
-	m.logger.Info("config injection was called: %v", config.Host)
-	return nil
-}
-
-func (m *mutator) Mutate(ctx context.Context, obj runtime.Object, shootClient client.Client) error {
+func (m *mutator) Mutate(ctx context.Context, obj runtime.Object) error {
 	acc, err := meta.Accessor(obj)
 	if err != nil {
 		return errors.Wrapf(err, "could not create accessor during webhook")
@@ -66,53 +51,7 @@ func (m *mutator) Mutate(ctx context.Context, obj runtime.Object, shootClient cl
 	switch x := obj.(type) {
 	case *appsv1.Deployment:
 		switch x.Name {
-		case droptailerDeploymentName:
-			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			return m.mutateDroptailerDeployment(ctx, shootClient, x)
 		}
 	}
-	return nil
-}
-
-func (m *mutator) mutateDroptailerDeployment(ctx context.Context, shootClient client.Client, d *appsv1.Deployment) error {
-	// FIXME: Mutation is not working like this
-	// wanted := &secrets.Secrets{
-	// 	CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-	// 		gardencorev1alpha1.SecretNameCACluster: {
-	// 			Name:       gardencorev1alpha1.SecretNameCACluster,
-	// 			CommonName: "kubernetes",
-	// 			CertType:   secrets.CACert,
-	// 		},
-	// 	},
-	// 	SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
-	// 		return []secrets.ConfigInterface{
-	// 			&secrets.ControlPlaneSecretConfig{
-	// 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-	// 					Name:         droptailerClientSecretName,
-	// 					CommonName:   "system:droptailer-client",
-	// 					Organization: []string{"droptailer-client"},
-	// 					CertType:     secrets.ClientCert,
-	// 					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
-	// 				},
-	// 			},
-	// 			&secrets.ControlPlaneSecretConfig{
-	// 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-	// 					Name:         droptailerServerSecretName,
-	// 					CommonName:   "system:droptailer-server",
-	// 					Organization: []string{"droptailer-server"},
-	// 					CertType:     secrets.ServerCert,
-	// 					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
-	// 				},
-	// 			},
-	// 		}
-	// 	},
-	// }
-
-	// kubernetes.New(shootClient)
-
-	// _, err := wanted.Deploy(ctx, shootClient, shootClient, droptailerNamespace)
-	// if err != nil {
-	// 	return fmt.Errorf("could not deploy droptailer secrets to shoot cluster; err: %w", err)
-	// }
 	return nil
 }
