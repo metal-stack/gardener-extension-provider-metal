@@ -423,7 +423,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 
 	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.Shoot.Status.TechnicalID, client.Options{})
 	if err != nil {
-		return errors.Wrapf(err, "could not create shoot client")
+		return errors.Wrap(err, "could not create shoot client")
 	}
 	cs, err := kubernetes.NewForConfig(shootConfig)
 	if err != nil {
@@ -447,13 +447,13 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 				return errors.Wrap(err, "could not create droptailer namespace")
 			}
 		} else {
-			return errors.Wrap(err, "could not search for existance of droptailer namespace")
+			return errors.Wrap(err, "could not search for existence of droptailer namespace")
 		}
 	}
 
 	_, err = wanted.Deploy(ctx, cs, gcs, droptailerNamespace)
 	if err != nil {
-		return fmt.Errorf("could not deploy droptailer secrets to shoot cluster; err: %w", err)
+		return errors.Wrap(err, "could not deploy droptailer secrets to shoot cluster")
 	}
 
 	return nil
