@@ -35,11 +35,11 @@ spec:
           runAsUser: 65534
         env:
         - name: SERVER_CERTIFICATE
-          value: tls.crt
+          value: /certificates/tls.crt
         - name: SERVER_KEY
-          value: tls.key
+          value: /certificates/tls.key
         - name: SERVER_CA_CERTIFICATE
-          value: ca.crt
+          value: /certificates/ca.crt
         volumeMounts:
         - name: droptailer-server
           mountPath: /certificates/
