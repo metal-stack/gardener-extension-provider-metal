@@ -401,7 +401,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         droptailerClientSecretName,
-						CommonName:   "system:droptailer-client",
+						CommonName:   "droptailer",
 						Organization: []string{"droptailer-client"},
 						CertType:     secrets.ClientCert,
 						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
@@ -410,7 +410,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         droptailerServerSecretName,
-						CommonName:   "system:droptailer-server",
+						CommonName:   "droptailer",
 						Organization: []string{"droptailer-server"},
 						CertType:     secrets.ServerCert,
 						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
