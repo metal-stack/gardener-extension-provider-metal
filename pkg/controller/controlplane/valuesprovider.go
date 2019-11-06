@@ -73,7 +73,7 @@ const (
 	accountingExporterName               = "accounting-exporter"
 	authNWebhookDeploymentName           = "kube-jwt-authn-webhook"
 	authNWebhookServerName               = "kube-jwt-authn-webhook-server"
-	droptailerNamespace                  = "droptailer"
+	droptailerNamespace                  = "firewall"
 	droptailerClientSecretName           = "droptailer-client"
 	droptailerServerSecretName           = "droptailer-server"
 )
