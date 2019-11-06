@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: egress-allow-cloudflare-dns
+  name: egress-allow-dns
   namespace: default
 spec:
   podSelector: {}
@@ -11,9 +11,7 @@ spec:
   egress:
   - to:
     - ipBlock:
-        cidr: 1.1.1.1/32
-    - ipBlock:
-        cidr: 1.0.0.1/32
+        cidr: 0.0.0.0/0
     ports:
     - protocol: UDP
       port: 53
