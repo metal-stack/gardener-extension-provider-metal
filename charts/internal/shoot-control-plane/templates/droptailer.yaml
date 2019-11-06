@@ -1,10 +1,4 @@
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: firewall
-  labels:
-    gardener.cloud/purpose: kube-system
+# Namespace is created in the valuesprovider together with the secrets.
 ---
 apiVersion: apps/v1
 kind: Deployment

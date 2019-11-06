@@ -37,6 +37,7 @@ import (
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -431,6 +432,23 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 	gcs, err := gardenerkubernetes.NewForConfig(shootConfig, client.Options{})
 	if err != nil {
 		return errors.Wrap(err, "could not create shoot Gardener client")
+	}
+
+	_, err = cs.CoreV1().Namespaces().Get(droptailerNamespace, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			ns := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: droptailerNamespace,
+				},
+			}
+			_, err := cs.CoreV1().Namespaces().Create(ns)
+			if err != nil {
+				return errors.Wrap(err, "could not create droptailer namespace")
+			}
+		} else {
+			return errors.Wrap(err, "could not search for existance of droptailer namespace")
+		}
 	}
 
 	_, err = wanted.Deploy(ctx, cs, gcs, droptailerNamespace)
