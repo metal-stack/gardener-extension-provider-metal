@@ -3,6 +3,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: egress-allow-dns
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector: {}
   policyTypes:
@@ -22,6 +23,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: egress-allow-any
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector: {}
   policyTypes:
@@ -33,6 +35,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: egress-allow-https
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector: {}
   policyTypes:
@@ -49,6 +52,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: egress-allow-ntp
+  namespace: {{ .Release.Namespace }}
 spec:
   podSelector: {}
   policyTypes:
