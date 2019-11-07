@@ -16,14 +16,13 @@ package controlplane
 
 import (
 	"context"
+	"github.com/coreos/go-systemd/unit"
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-
-	"github.com/coreos/go-systemd/unit"
 	"github.com/go-logr/logr"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
@@ -62,9 +61,11 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, dep *appsv1
 }
 
 var (
+	// config mount for authn-webhook-config that is specified at kube-apiserver commandline
 	authnWebhookConfigVolumeMount = corev1.VolumeMount{
 		Name:      metal.AuthNWebHookConfigName,
-		MountPath: "/etc/kubernetes/metal",
+		MountPath: "/etc/webhook/config",
+		ReadOnly:  true,
 	}
 	authnWebhookConfigVolume = corev1.Volume{
 		Name: metal.AuthNWebHookConfigName,
@@ -74,21 +75,37 @@ var (
 			},
 		},
 	}
+	// cert mount "kube-jwt-authn-webhook-server" that is referenced from the authn-webhook-config
+	authnWebhookCertVolumeMount = corev1.VolumeMount{
+		Name:      metal.AuthNWebHookCertName,
+		MountPath: "/etc/webhook/certs",
+		ReadOnly:  true,
+	}
+	authnWebhookCertVolume = corev1.Volume{
+		Name: metal.AuthNWebHookCertName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: "kube-jwt-authn-webhook-server",
+			},
+		},
+	}
 )
 
 func ensureVolumeMounts(c *corev1.Container) {
 	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
+	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
 }
 
 func ensureVolumes(ps *corev1.PodSpec) {
 	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
+	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
 
 	// activate AuthN Webhook with mounted Webhook-Config
-	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/kubernetes/metal/authn-webhook-config.json")
+	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.

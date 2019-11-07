@@ -1,0 +1,16 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: limit-validating-webhook
+  labels:
+    app: limit-validating-webhook
+webhooks:
+- name: limit-validating-webhook.metal-pod.io
+  clientConfig:
+    url: {{ .Values.limitValidatingWebhook_url }}
+    caBundle: {{ .Values.limitValidatingWebhook_caBundle }}
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["containers","pods","deployments","daemonsets","statefulsets","replicasets","replicationcontrollers","jobs","cronjobs"]

@@ -1,0 +1,56 @@
+# Namespace is created in the valuesprovider together with the secrets.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: droptailer
+  namespace: firewall
+  labels:
+    k8s-app: droptailer
+spec:
+  selector:
+    matchLabels:
+      k8s-app: droptailer
+  template:
+    metadata:
+      labels:
+        k8s-app: droptailer
+        app: droptailer
+        networking.gardener.cloud/from-prometheus: allowed
+    spec:
+      containers:
+      - image: docker.io/metalpod/droptailer:latest
+        imagePullPolicy: Always
+        name: droptailer
+        ports:
+        - protocol: TCP
+          containerPort: 50051
+        securityContext:
+          runAsUser: 65534
+        env:
+        - name: SERVER_CERTIFICATE
+          value: /certificates/tls.crt
+        - name: SERVER_KEY
+          value: /certificates/tls.key
+        - name: SERVER_CA_CERTIFICATE
+          value: /certificates/ca.crt
+        volumeMounts:
+        - name: droptailer-server
+          mountPath: /certificates/
+          readOnly: true
+        resources:
+          limits:
+            cpu: 50m
+            memory: 200Mi
+      restartPolicy: Always
+      volumes:
+      - name: droptailer-server
+        secret:
+          secretName: droptailer-server
+          items:
+          - key: droptailer-server.key
+            path: tls.key
+          - key: droptailer-server.crt
+            path: tls.crt
+          - key: ca.crt
+            path: ca.crt

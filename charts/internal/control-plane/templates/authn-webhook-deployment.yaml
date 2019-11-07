@@ -1,0 +1,119 @@
+---
+#
+# Deployment, deploys webhook in Shoot-Controlplane
+#
+# MUST BE CONFIGURED FOR CLUSTER / TENANT / TRUSTED TOKEN ISSUER
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-jwt-authn-webhook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    k8s-app: kube-jwt-authn-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: kube-jwt-authn-webhook
+  template:
+    metadata:
+      labels:
+        k8s-app: kube-jwt-authn-webhook
+        app: kube-jwt-authn-webhook
+        networking.gardener.cloud/from-prometheus: allowed
+        networking.gardener.cloud/to-dns: allowed
+        networking.gardener.cloud/to-shoot-apiserver: allowed
+        networking.gardener.cloud/to-public-networks: allowed
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      containers:
+      - name: kubernetes-authn-webhook
+        image: {{ index .Values.images "authn-webhook" }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ .Values.authn_listen_port }}
+          protocol: TCP
+        env:
+        - name: LISTEN
+          value: ":{{ .Values.authn_listen_port }}"
+        - name: TLSCERTFILE
+          value: /etc/webhook/certs/kube-jwt-authn-webhook-server.crt
+        - name: TLSKEYFILE
+          value: /etc/webhook/certs/kube-jwt-authn-webhook-server.key
+        - name: ISSUER
+          value: {{ .Values.authn_oidcIssuerUrl }}
+        - name: CLIENTID
+          value: {{ .Values.authn_oidcIssuerClientId }}
+        - name: GROUPSPREFIXTOREMOVE
+          value: k8s
+        - name: TENANT
+          value: {{ .Values.authn_tenant }}
+        - name: CLUSTER
+          value: {{ .Values.authn_clustername }}
+        - name: DEBUG
+          value: {{ quote .Values.authn_debug }}
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: /etc/webhook/certs
+          readOnly: true
+      volumes:
+      - name: webhook-certs
+        secret:
+            secretName: kube-jwt-authn-webhook-server
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-jwt-authn-webhook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: kube-jwt-authn-webhook
+spec:
+  selector:
+    app: kube-jwt-authn-webhook
+  ports:
+  - port: 443
+    targetPort: {{ .Values.authn_listen_port }}
+
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+    name: kube-jwt-authn-webhook-allow-namespace
+    namespace: {{ .Release.Namespace }}
+spec:
+    podSelector:
+        matchLabels:
+            app: kube-jwt-authn-webhook
+    ingress:
+    - from:
+      - podSelector:
+            matchLabels:
+                app: kubernetes
+                role: apiserver
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: kubeapi2kube-jwt-authn-webhook
+    namespace: {{ .Release.Namespace }}
+spec:
+    egress:
+    - ports:
+      - port: 443
+        protocol: TCP
+      to:
+      - podSelector:
+            matchLabels:
+                app: kube-jwt-authn-webhook
+    podSelector:
+        matchLabels:
+            app: kubernetes
+            role: apiserver
+    policyTypes:
+    - Egress

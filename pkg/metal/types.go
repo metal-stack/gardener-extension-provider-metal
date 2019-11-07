@@ -34,6 +34,10 @@ const (
 	AccountingExporterImageName = "accounting-exporter"
 	// AuthNWebhookImageName is the name of the AuthN Webhook configured with the shoot kube-apiserver
 	AuthNWebhookImageName = "authn-webhook"
+	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
+	DroptailerImageName = "droptailer"
+	// LimitValidatingWebhookImageName is the name of the limit validating webhook to deploy to the seed's shoot namespace.
+	LimitValidatingWebhookImageName = "limit-validating-webhook"
 
 	// APIURL is a constant for the url of metal-api.
 	APIURL = "metalAPIURL"
@@ -59,6 +63,7 @@ const (
 
 	// AuthN Webhook
 	AuthNWebHookConfigName        = "authn-webhook-config"
+	AuthNWebHookCertName          = "authn-webhook-cert"
 	ShootExtensionTypeTokenIssuer = "tokenissuer"
 
 	// Shoot Annotations

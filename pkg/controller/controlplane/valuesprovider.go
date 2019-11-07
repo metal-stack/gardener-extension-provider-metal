@@ -16,18 +16,32 @@ package controlplane
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
+
+	"github.com/gardener/gardener-extensions/pkg/util"
+	"github.com/gardener/gardener/pkg/apis/garden/v1beta1/helper"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
 	"path/filepath"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
-	"github.com/gardener/gardener-extensions/pkg/util"
+	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-pod/metal-go"
 
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -38,12 +52,13 @@ import (
 
 	"github.com/pkg/errors"
 
+	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,7 +69,14 @@ const (
 	cloudControllerManagerDeploymentName = "cloud-controller-manager"
 	cloudControllerManagerServerName     = "cloud-controller-manager-server"
 	groupRolebindingControllerName       = "group-rolebinding-controller"
+	limitValidatingWebhookDeploymentName = "limit-validating-webhook"
+	limitValidatingWebhookServerName     = "limit-validating-webhook-server"
 	accountingExporterName               = "accounting-exporter"
+	authNWebhookDeploymentName           = "kube-jwt-authn-webhook"
+	authNWebhookServerName               = "kube-jwt-authn-webhook-server"
+	droptailerNamespace                  = "firewall"
+	droptailerClientSecretName           = "droptailer-client"
+	droptailerServerSecretName           = "droptailer-server"
 )
 
 var controlPlaneSecrets = &secrets.Secrets{
@@ -91,6 +113,24 @@ var controlPlaneSecrets = &secrets.Secrets{
 				KubeConfigRequest: &secrets.KubeConfigRequest{
 					ClusterName:  clusterName,
 					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:       authNWebhookServerName,
+					CommonName: authNWebhookDeploymentName,
+					DNSNames:   controlplane.DNSNamesForService(authNWebhookDeploymentName, clusterName),
+					CertType:   secrets.ServerCert,
+					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:       limitValidatingWebhookServerName,
+					CommonName: limitValidatingWebhookDeploymentName,
+					DNSNames:   controlplane.DNSNamesForService(limitValidatingWebhookDeploymentName, clusterName),
+					CertType:   secrets.ServerCert,
+					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -133,13 +173,16 @@ var configChart = &chart.Chart{
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName},
+	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.DroptailerImageName, metal.LimitValidatingWebhookImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
 
 		{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
 		{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
+
+		{Type: &appsv1.Deployment{}, Name: "limit-validating-webhook"},
+		{Type: &corev1.Service{}, Name: "limit-validating-webhook"},
 
 		{Type: &corev1.ServiceAccount{}, Name: "group-rolebinding-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "group-rolebinding-controller"},
@@ -156,10 +199,14 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
 
+		{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "limit-validating-webhook"},
+
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
 
 		{Type: &rbacv1.ClusterRole{}, Name: "system:accounting-exporter"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:accounting-exporter"},
+
+		{Type: &appsv1.Deployment{}, Name: "droptailer"},
 	},
 }
 
@@ -169,8 +216,9 @@ var storageClassChart = &chart.Chart{
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(logger logr.Logger, config AccountingConfig) genericactuator.ValuesProvider {
+func NewValuesProvider(mgr manager.Manager, logger logr.Logger, config AccountingConfig) genericactuator.ValuesProvider {
 	return &valuesProvider{
+		mgr:              mgr,
 		logger:           logger.WithName("metal-values-provider"),
 		accountingConfig: config,
 	}
@@ -183,6 +231,7 @@ type valuesProvider struct {
 	client           client.Client
 	logger           logr.Logger
 	accountingConfig AccountingConfig
+	mgr              manager.Manager
 }
 
 // InjectScheme injects the given scheme into the valuesProvider.
@@ -208,7 +257,24 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 
-	return nil, nil
+	values, err := vp.getAuthNConfigValues(ctx, cp, cluster)
+
+	return values, err
+}
+
+func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
+	namespace := cluster.Shoot.Status.TechnicalID
+
+	// this should work as the kube-apiserver is a pod in the same cluster as the kube-jwt-authn-webhook
+	// example https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
+	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/authenticate", authNWebhookDeploymentName, namespace)
+
+	values := map[string]interface{}{
+		"authnWebhook_url": url,
+	}
+
+	return values, nil
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
@@ -246,7 +312,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, authValues, accValues)
+	lvwValues, err := getLimitValidationWebhookControlPlaneChartValues(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	merge(chartValues, authValues, accValues, lvwValues)
 
 	return chartValues, nil
 }
@@ -272,7 +343,137 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
 func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
-	return nil, nil
+	vp.logger.Info("GetControlPlaneShootChartValues")
+
+	values, err := vp.getControlPlaneShootLimitValidationWebhookChartValues(ctx, cp, cluster)
+	if err != nil {
+		vp.logger.Error(err, "Error getting LimitValidationWebhookChartValues")
+		return nil, err
+	}
+
+	err = vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster)
+	if err != nil {
+		vp.logger.Error(err, "error deploying droptailer certs")
+	}
+
+	return values, nil
+}
+
+// GetLimitValidationWebhookChartValues returns the values for the LimitValidationWebhook.
+func (vp *valuesProvider) getControlPlaneShootLimitValidationWebhookChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+	secretName := limitValidatingWebhookServerName
+	namespace := cluster.Shoot.Status.TechnicalID
+
+	secret, err := vp.getSecret(ctx, namespace, secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	// CA-Cert for TLS
+	caBundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
+
+	// this should work as the kube-apiserver is a pod in the same cluster as the limit-validating-webhook
+	// example https://limit-validating-webhook.shoot--local--myshootname.svc.cluster.local/validate
+	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
+
+	values := map[string]interface{}{
+		"limitValidatingWebhook_url":      url,
+		"limitValidatingWebhook_caBundle": caBundle,
+	}
+
+	return values, nil
+}
+
+func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
+	// TODO: There is actually no nice way to deploy the certs into the shoot when we want to use
+	// the certificate helper functions from Gardener itself...
+	// Maybe we can find a better solution? This is actually only for chart values...
+
+	wanted := &secrets.Secrets{
+		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
+			gardencorev1alpha1.SecretNameCACluster: {
+				Name:       gardencorev1alpha1.SecretNameCACluster,
+				CommonName: "kubernetes",
+				CertType:   secrets.CACert,
+			},
+		},
+		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
+			return []secrets.ConfigInterface{
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         droptailerClientSecretName,
+						CommonName:   "droptailer",
+						Organization: []string{"droptailer-client"},
+						CertType:     secrets.ClientCert,
+						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					},
+				},
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         droptailerServerSecretName,
+						CommonName:   "droptailer",
+						Organization: []string{"droptailer-server"},
+						CertType:     secrets.ServerCert,
+						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					},
+				},
+			}
+		},
+	}
+
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.Shoot.Status.TechnicalID, client.Options{})
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot client")
+	}
+	cs, err := kubernetes.NewForConfig(shootConfig)
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot kubernetes client")
+	}
+	gcs, err := gardenerkubernetes.NewForConfig(shootConfig, client.Options{})
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot Gardener client")
+	}
+
+	_, err = cs.CoreV1().Namespaces().Get(droptailerNamespace, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			ns := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: droptailerNamespace,
+				},
+			}
+			_, err := cs.CoreV1().Namespaces().Create(ns)
+			if err != nil {
+				return errors.Wrap(err, "could not create droptailer namespace")
+			}
+		} else {
+			return errors.Wrap(err, "could not search for existence of droptailer namespace")
+		}
+	}
+
+	_, err = wanted.Deploy(ctx, cs, gcs, droptailerNamespace)
+	if err != nil {
+		return errors.Wrap(err, "could not deploy droptailer secrets to shoot cluster")
+	}
+
+	return nil
+}
+
+// getSecret returns the secret with the given namespace/secretName
+func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
+	key := kutil.Key(namespace, secretName)
+	vp.logger.Info("GetSecret", "key", key)
+	secret := &corev1.Secret{}
+	err := vp.mgr.GetClient().Get(ctx, key, secret)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			vp.logger.Error(err, "error getting chart secret - not found")
+			return nil, err
+		}
+		vp.logger.Error(err, "error getting chart secret")
+		return nil, err
+	}
+	return secret, nil
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
@@ -300,6 +501,7 @@ func getCCMChartValues(
 	values := map[string]interface{}{
 		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster.Shoot, scaledDown, 1),
 		"projectID":         projectID,
+		"clusterID":         cluster.Shoot.ObjectMeta.UID,
 		"partitionID":       cluster.Shoot.Spec.Cloud.Metal.Zones[0],
 		"networkID":         *privateNetwork.ID,
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
@@ -384,6 +586,18 @@ func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster
 
 		"accex_accountingsink_url":  accountingConfig.AccountingSinkUrl,
 		"accex_accountingsink_HMAC": accountingConfig.AccountingSinkHmac,
+	}
+
+	return values, nil
+}
+
+func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
+	shootedSeed, err := helper.ReadShootedSeed(cluster.Shoot)
+	isNormalShoot := shootedSeed == nil || err != nil
+
+	values := map[string]interface{}{
+		"lvw_validate": isNormalShoot,
 	}
 
 	return values, nil

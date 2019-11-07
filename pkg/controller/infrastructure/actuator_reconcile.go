@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -15,11 +16,20 @@ import (
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	controllererrors "github.com/gardener/gardener-extensions/pkg/controller/error"
 
+	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/utils/secrets"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/retry"
+
+	"github.com/coreos/container-linux-config-transpiler/config/types"
+)
+
+const (
+	firewallPolicyControllerName = "firewall-policy-controller"
+	droptailerClientName         = "droptailer"
 )
 
 func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
@@ -90,6 +100,16 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
+	kubeconfig, err := a.createFirewallPolicyControllerKubeconfig(ctx, infrastructure, cluster)
+	if err != nil {
+		return err
+	}
+
+	firewallUserData, err := a.renderFirewallUserData(kubeconfig)
+	if err != nil {
+		return err
+	}
+
 	// assemble firewall allocation request
 	var networks []metalgo.MachineAllocationNetwork
 	network := metalgo.MachineAllocationNetwork{
@@ -116,6 +136,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 			Image:         infrastructureConfig.Firewall.Image,
 			SSHPublicKeys: []string{string(infrastructure.Spec.SSHPublicKey)},
 			Networks:      networks,
+			UserData:      firewallUserData,
 		},
 	}
 
@@ -156,4 +177,97 @@ func (a *actuator) updateProviderStatus(ctx context.Context, infrastructure *ext
 		}
 		return nil
 	})
+}
+
+func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, error) {
+	apiServerURL := fmt.Sprintf("api.%s", *cluster.Shoot.Spec.DNS.Domain)
+	infrastructureSecrets := &secrets.Secrets{
+		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
+			gardencorev1alpha1.SecretNameCACluster: {
+				Name:       gardencorev1alpha1.SecretNameCACluster,
+				CommonName: "kubernetes",
+				CertType:   secrets.CACert,
+			},
+		},
+		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
+			return []secrets.ConfigInterface{
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         firewallPolicyControllerName,
+						CommonName:   fmt.Sprintf("system:%s", firewallPolicyControllerName),
+						Organization: []string{firewallPolicyControllerName},
+						CertType:     secrets.ClientCert,
+						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					},
+					KubeConfigRequest: &secrets.KubeConfigRequest{
+						ClusterName:  clusterName,
+						APIServerURL: apiServerURL,
+					},
+				},
+			}
+		},
+	}
+
+	secret, err := infrastructureSecrets.Deploy(ctx, a.clientset, a.gardenerClientset, infrastructure.Namespace)
+	if err != nil {
+		return "", err
+	}
+
+	kubeconfig, ok := secret[firewallPolicyControllerName].Data["kubeconfig"]
+	if !ok {
+		return "", fmt.Errorf("kubeconfig not part of generated firewall policy controller secret")
+	}
+
+	return string(kubeconfig), nil
+}
+
+func (a *actuator) renderFirewallUserData(kubeconfig string) (string, error) {
+	cfg := types.Config{}
+	cfg.Systemd = types.Systemd{}
+
+	enabled := true
+	fpcUnit := types.SystemdUnit{
+		Name:    fmt.Sprintf("%s.service", firewallPolicyControllerName),
+		Enable:  enabled,
+		Enabled: &enabled,
+	}
+	dcUnit := types.SystemdUnit{
+		Name:    fmt.Sprintf("%s.service", droptailerClientName),
+		Enable:  enabled,
+		Enabled: &enabled,
+	}
+
+	cfg.Systemd.Units = append(cfg.Systemd.Units, fpcUnit, dcUnit)
+
+	cfg.Storage = types.Storage{}
+
+	mode := 0600
+	id := 0
+	ignitionFile := types.File{
+		Path:       "/etc/firewall-policy-controller/.kubeconfig",
+		Filesystem: "root",
+		Mode:       &mode,
+		User: &types.FileUser{
+			Id: &id,
+		},
+		Group: &types.FileGroup{
+			Id: &id,
+		},
+		Contents: types.FileContents{
+			Inline: string(kubeconfig),
+		},
+	}
+	cfg.Storage.Files = append(cfg.Storage.Files, ignitionFile)
+
+	outCfg, report := types.Convert(cfg, "", nil)
+	if report.IsFatal() {
+		return "", fmt.Errorf("could not transpile ignition config: %s", report.String())
+	}
+
+	userData, err := json.Marshal(outCfg)
+	if err != nil {
+		return "", err
+	}
+
+	return string(userData), nil
 }

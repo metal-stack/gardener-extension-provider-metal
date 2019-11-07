@@ -47,6 +47,10 @@ spec:
       labels:
         k8s-app: accounting-exporter
         app: accounting-exporter
+        networking.gardener.cloud/from-prometheus: allowed
+        networking.gardener.cloud/to-dns: allowed
+        networking.gardener.cloud/to-shoot-apiserver: allowed
+        networking.gardener.cloud/to-public-networks: allowed
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:

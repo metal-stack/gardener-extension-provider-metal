@@ -15,6 +15,8 @@ images:
   authn-webhook: image-repository:image-tag
   group-rolebinding-controller: image-repository:image-tag
   accounting-exporter: image-repository:image-tag
+  droptailer: image-repository:image-tag
+  limit-validating-webhook: image-repository:image-tag
 
 resources:
   requests:
@@ -38,6 +40,7 @@ authn_clustername: projectID
 authn_oidcIssuerUrl: https://tokenissuer/dex
 authn_oidcIssuerClientId: myClientId
 
+authn_listen_port: 443
 authn_debug: true
 
 #
@@ -53,7 +56,11 @@ accex_clustername: clustername
 accex_accountingsink_url: https://api.metal-pod.io/accounting
 accex_accountingsink_HMAC: _dummy_
 
-
 accountingSink:
   Url: sink-url
   Hmac: sink-hmac
+
+#
+# limit-validating-webhook
+#
+lvw_validate: true

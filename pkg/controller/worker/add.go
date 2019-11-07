@@ -15,9 +15,9 @@
 package worker
 
 import (
+	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 
 	machinescheme "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/scheme"
 	apiextensionsscheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
