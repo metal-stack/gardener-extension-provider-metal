@@ -16,9 +16,11 @@ package infrastructure
 
 import (
 	"context"
+	"fmt"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
+	metalapi "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/pkg/errors"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -26,10 +28,12 @@ import (
 
 	"github.com/go-logr/logr"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -87,4 +91,35 @@ func (a *actuator) Reconcile(ctx context.Context, config *extensionsv1alpha1.Inf
 
 func (a *actuator) Delete(ctx context.Context, config *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
 	return a.delete(ctx, config, cluster)
+}
+
+func (a *actuator) decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure) (*metalapi.InfrastructureConfig, *metalapi.InfrastructureStatus, error) {
+	infrastructureConfig := &metalapi.InfrastructureConfig{}
+	if _, _, err := a.decoder.Decode(infrastructure.Spec.ProviderConfig.Raw, nil, infrastructureConfig); err != nil {
+		return nil, nil, fmt.Errorf("could not decode provider config: %+v", err)
+	}
+
+	infrastructureStatus := &metalapi.InfrastructureStatus{}
+	if infrastructure.Status.ProviderStatus != nil {
+		if _, _, err := a.decoder.Decode(infrastructure.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
+			return nil, nil, fmt.Errorf("could not decode infrastructure status: %+v", err)
+		}
+	}
+
+	return infrastructureConfig, infrastructureStatus, nil
+}
+
+func (a *actuator) updateProviderStatus(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, status metalapi.FirewallStatus) error {
+	return extensionscontroller.TryUpdateStatus(ctx, retry.DefaultBackoff, a.client, infrastructure, func() error {
+		infrastructure.Status.ProviderStatus = &runtime.RawExtension{
+			Object: &metalapi.InfrastructureStatus{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: metalapi.SchemeGroupVersion.String(),
+					Kind:       "InfrastructureStatus",
+				},
+				Firewall: status,
+			},
+		}
+		return nil
+	})
 }
