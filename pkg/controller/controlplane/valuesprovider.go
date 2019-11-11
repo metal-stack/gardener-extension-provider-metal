@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener-extensions/pkg/util"
-	"github.com/gardener/gardener/pkg/apis/garden/v1beta1/helper"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
@@ -593,11 +592,13 @@ func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster
 
 func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
-	shootedSeed, err := helper.ReadShootedSeed(cluster.Shoot)
-	isNormalShoot := shootedSeed == nil || err != nil
+	// limit validation deactivated
+	// import helper "github.com/gardener/gardener/pkg/apis/garden/v1beta1/helper"
+	// shootedSeed, err := helper.ReadShootedSeed(cluster.Shoot)
+	// isNormalShoot := shootedSeed == nil || err != nil
 
 	values := map[string]interface{}{
-		"lvw_validate": isNormalShoot,
+		"lvw_validate": false,
 	}
 
 	return values, nil
