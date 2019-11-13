@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+IMAGE_TAG                   := (or ${GITHUB_TAG_NAME}, latest)
 REGISTRY                    := metalpod
 IMAGE_PREFIX                := $(REGISTRY)
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
@@ -65,7 +66,16 @@ endif
 
 .PHONY: docker-image
 docker-image:
-	@docker build --no-cache --build-arg VERIFY=$(VERIFY) -t $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(VERSION) -t $(IMAGE_PREFIX)/gardener-extension-provider-metal:latest -f Dockerfile -m 6g .
+	@docker build --no-cache \
+		--build-arg VERIFY=$(VERIFY) \
+		--tag $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(VERSION) \
+		--tag $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(IMAGE_TAG) \
+		--file Dockerfile --memory 6g .
+
+.PHONY: docker-push
+docker-push:
+	@docker push $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(VERSION)
+	@docker push $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(IMAGE_TAG)
 
 ### Debug / Development commands
 
