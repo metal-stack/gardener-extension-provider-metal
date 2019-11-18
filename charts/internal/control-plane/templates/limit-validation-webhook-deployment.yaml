@@ -32,6 +32,8 @@ spec:
           ports:
           - containerPort: 443
             protocol: TCP
+          - containerPort: 2112
+            name: monitoring
           args:
             - -tlsCertFile=/etc/webhook/certs/limit-validating-webhook-server.crt
             - -tlsKeyFile=/etc/webhook/certs/limit-validating-webhook-server.key

@@ -38,6 +38,8 @@ spec:
         ports:
         - containerPort: {{ .Values.authn_listen_port }}
           protocol: TCP
+        - containerPort: 2112
+          name: monitoring
         env:
         - name: LISTEN
           value: ":{{ .Values.authn_listen_port }}"
