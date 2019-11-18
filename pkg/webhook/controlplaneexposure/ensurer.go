@@ -17,7 +17,6 @@ package controlplaneexposure
 import (
 	"context"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/go-logr/logr"
@@ -28,7 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
-	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
+	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 )
 
@@ -54,14 +54,14 @@ func (e *ensurer) InjectClient(client client.Client) error {
 }
 
 // EnsureKubeAPIServerService ensures that the kube-apiserver service conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerService(ctx context.Context, svc *corev1.Service) error {
+func (e *ensurer) EnsureKubeAPIServerService(ctx context.Context, ectx genericmutator.EnsurerContext, svc *corev1.Service) error {
 	return nil
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, dep *appsv1.Deployment) error {
+func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, dep *appsv1.Deployment) error {
 	// Get load balancer address of the kube-apiserver service
-	address, err := kutil.GetLoadBalancerIngress(ctx, e.client, dep.Namespace, gardencorev1alpha1.DeploymentNameKubeAPIServer)
+	address, err := kutil.GetLoadBalancerIngress(ctx, e.client, dep.Namespace, v1alpha1constants.DeploymentNameKubeAPIServer)
 	if err != nil {
 		return errors.Wrap(err, "could not get kube-apiserver service load balancer address")
 	}
@@ -74,7 +74,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, dep *appsv1
 }
 
 // EnsureETCDStatefulSet ensures that the etcd stateful sets conform to the provider requirements.
-func (e *ensurer) EnsureETCDStatefulSet(ctx context.Context, ss *appsv1.StatefulSet, cluster *extensionscontroller.Cluster) error {
+func (e *ensurer) EnsureETCDStatefulSet(ctx context.Context, ectx genericmutator.EnsurerContext, ss *appsv1.StatefulSet) error {
 	e.ensureVolumeClaimTemplates(&ss.Spec, ss.Name)
 	return nil
 }
@@ -91,7 +91,7 @@ func (e *ensurer) getVolumeClaimTemplate(name string) *corev1.PersistentVolumeCl
 		volumeClaimTemplateName = name
 	)
 
-	if name == gardencorev1alpha1.StatefulSetNameETCDMain {
+	if name == v1alpha1constants.StatefulSetNameETCDMain {
 		etcdStorage = *e.etcdStorage
 		volumeClaimTemplateName = controlplane.EtcdMainVolumeClaimTemplateName
 	}

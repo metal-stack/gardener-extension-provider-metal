@@ -15,7 +15,8 @@ import (
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	controllererrors "github.com/gardener/gardener-extensions/pkg/controller/error"
 
-	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
+	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/secrets"
 
@@ -82,8 +83,8 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	name := tid + "-firewall-" + uuid.String()[:5]
 
 	// find private network
-	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes)
+	projectID := infrastructureConfig.ProjectID
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, cluster.Shoot.Spec.Networking.Nodes)
 	if err != nil {
 		return err
 	}
@@ -120,7 +121,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 			Hostname:      name,
 			Size:          infrastructureConfig.Firewall.Size,
 			Project:       projectID,
-			Partition:     infrastructureConfig.Firewall.Partition,
+			Partition:     infrastructureConfig.PartitionID,
 			Image:         infrastructureConfig.Firewall.Image,
 			SSHPublicKeys: []string{string(infrastructure.Spec.SSHPublicKey)},
 			Networks:      networks,
@@ -156,8 +157,8 @@ func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context,
 	apiServerURL := fmt.Sprintf("api.%s", *cluster.Shoot.Spec.DNS.Domain)
 	infrastructureSecrets := &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-			gardencorev1alpha1.SecretNameCACluster: {
-				Name:       gardencorev1alpha1.SecretNameCACluster,
+			v1alpha1constants.SecretNameCACluster: {
+				Name:       v1alpha1constants.SecretNameCACluster,
 				CommonName: "kubernetes",
 				CertType:   secrets.CACert,
 			},
@@ -170,7 +171,7 @@ func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context,
 						CommonName:   fmt.Sprintf("system:%s", firewallPolicyControllerName),
 						Organization: []string{firewallPolicyControllerName},
 						CertType:     secrets.ClientCert,
-						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 					},
 					KubeConfigRequest: &secrets.KubeConfigRequest{
 						ClusterName:  clusterName,

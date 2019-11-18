@@ -98,7 +98,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 			storageClassChart, nil, NewValuesProvider(mgr, logger, *AccOpts.config), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 			imagevector.ImageVector(), "", opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger),
 		ControllerOptions: opts.Controller,
-		Predicates:        controlplane.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
+		Predicates:        controlplane.DefaultPredicates(opts.IgnoreOperationAnnotation),
 	})
 }
 

@@ -24,13 +24,14 @@ import (
 type InfrastructureConfig struct {
 	metav1.TypeMeta `json:",inline"`
 	Firewall        Firewall `json:"firewall"`
+	PartitionID     string   `json:"partitionID"`
+	ProjectID       string   `json:"projectID"`
 }
 
 type Firewall struct {
-	Size      string   `json:"size"`
-	Image     string   `json:"image"`
-	Networks  []string `json:"networks"`
-	Partition string   `json:"partition"`
+	Size     string   `json:"size"`
+	Image    string   `json:"image"`
+	Networks []string `json:"networks"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

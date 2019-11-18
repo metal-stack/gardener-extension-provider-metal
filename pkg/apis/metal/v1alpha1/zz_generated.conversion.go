@@ -153,7 +153,6 @@ func autoConvert_v1alpha1_Firewall_To_metal_Firewall(in *Firewall, out *metal.Fi
 	out.Size = in.Size
 	out.Image = in.Image
 	out.Networks = *(*[]string)(unsafe.Pointer(&in.Networks))
-	out.Partition = in.Partition
 	return nil
 }
 
@@ -166,7 +165,6 @@ func autoConvert_metal_Firewall_To_v1alpha1_Firewall(in *metal.Firewall, out *Fi
 	out.Size = in.Size
 	out.Image = in.Image
 	out.Networks = *(*[]string)(unsafe.Pointer(&in.Networks))
-	out.Partition = in.Partition
 	return nil
 }
 
@@ -201,6 +199,8 @@ func autoConvert_v1alpha1_InfrastructureConfig_To_metal_InfrastructureConfig(in 
 	if err := Convert_v1alpha1_Firewall_To_metal_Firewall(&in.Firewall, &out.Firewall, s); err != nil {
 		return err
 	}
+	out.PartitionID = in.PartitionID
+	out.ProjectID = in.ProjectID
 	return nil
 }
 
@@ -213,6 +213,8 @@ func autoConvert_metal_InfrastructureConfig_To_v1alpha1_InfrastructureConfig(in 
 	if err := Convert_metal_Firewall_To_v1alpha1_Firewall(&in.Firewall, &out.Firewall, s); err != nil {
 		return err
 	}
+	out.PartitionID = in.PartitionID
+	out.ProjectID = in.ProjectID
 	return nil
 }
 

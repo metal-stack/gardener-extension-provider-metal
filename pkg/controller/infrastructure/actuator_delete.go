@@ -48,8 +48,8 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		}
 	}
 
-	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	nodeCIDR := cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	projectID := infrastructureConfig.ProjectID
+	nodeCIDR := cluster.Shoot.Spec.Networking.Nodes
 	clusterID := string(cluster.Shoot.ObjectMeta.UID)
 
 	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(mclient, projectID, clusterID)

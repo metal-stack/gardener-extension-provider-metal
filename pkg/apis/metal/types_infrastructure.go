@@ -23,14 +23,15 @@ import (
 // InfrastructureConfig infrastructure configuration resource
 type InfrastructureConfig struct {
 	metav1.TypeMeta
-	Firewall Firewall
+	Firewall    Firewall
+	PartitionID string
+	ProjectID   string
 }
 
 type Firewall struct {
-	Size      string
-	Image     string
-	Networks  []string
-	Partition string
+	Size     string
+	Image    string
+	Networks []string
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

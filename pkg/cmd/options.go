@@ -26,7 +26,6 @@ import (
 	infrastructurecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/infrastructure"
 	workercontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
 	controlplanewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplane"
-	controlplanebackupwebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplanebackup"
 	controlplaneexposurewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
 	shootwebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/shoot"
 )
@@ -45,7 +44,6 @@ func WebhookSwitchOptions() *webhookcmd.SwitchOptions {
 	return webhookcmd.NewSwitchOptions(
 		webhookcmd.Switch(extensioncontrolplanewebhook.WebhookName, controlplanewebhook.AddToManager),
 		webhookcmd.Switch(extensioncontrolplanewebhook.ExposureWebhookName, controlplaneexposurewebhook.AddToManager),
-		webhookcmd.Switch(extensioncontrolplanewebhook.BackupWebhookName, controlplanebackupwebhook.AddToManager),
 		webhookcmd.Switch(extensionshootwebhook.WebhookName, shootwebhook.AddToManager),
 	)
 }

@@ -43,6 +43,8 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
+	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
 	"github.com/gardener/gardener/pkg/utils/secrets"
@@ -80,8 +82,8 @@ const (
 
 var controlPlaneSecrets = &secrets.Secrets{
 	CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-		gardencorev1alpha1.SecretNameCACluster: {
-			Name:       gardencorev1alpha1.SecretNameCACluster,
+		v1alpha1constants.SecretNameCACluster: {
+			Name:       v1alpha1constants.SecretNameCACluster,
 			CommonName: "kubernetes",
 			CertType:   secrets.CACert,
 		},
@@ -94,11 +96,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CommonName:   "system:cloud-controller-manager",
 					Organization: []string{user.SystemPrivilegedGroup},
 					CertType:     secrets.ClientCert,
-					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
 				KubeConfigRequest: &secrets.KubeConfigRequest{
 					ClusterName:  clusterName,
-					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -107,11 +109,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CommonName:   "system:group-rolebinding-controller",
 					Organization: []string{user.SystemPrivilegedGroup},
 					CertType:     secrets.ClientCert,
-					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
 				KubeConfigRequest: &secrets.KubeConfigRequest{
 					ClusterName:  clusterName,
-					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -120,7 +122,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CommonName: authNWebhookDeploymentName,
 					DNSNames:   controlplane.DNSNamesForService(authNWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
-					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -129,7 +131,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CommonName: limitValidatingWebhookDeploymentName,
 					DNSNames:   controlplane.DNSNamesForService(limitValidatingWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
-					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -139,11 +141,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					// Groupname of user
 					Organization: []string{accountingExporterName},
 					CertType:     secrets.ClientCert,
-					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
 				KubeConfigRequest: &secrets.KubeConfigRequest{
 					ClusterName:  clusterName,
-					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -152,7 +154,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CommonName: cloudControllerManagerDeploymentName,
 					DNSNames:   controlplane.DNSNamesForService(cloudControllerManagerDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
-					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
 		}
@@ -290,13 +292,18 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, errors.Wrapf(err, "could not decode providerConfig of controlplane '%s'", util.ObjectName(cp))
 	}
 
+	infrastructureConfig := &apismetal.InfrastructureConfig{}
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+	}
+
 	mclient, err := metalclient.NewClient(ctx, vp.client, &cp.Spec.SecretRef)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get CCM chart values
-	chartValues, err := getCCMChartValues(cpConfig, cp, cluster, checksums, scaledDown, mclient)
+	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, cp, cluster, checksums, scaledDown, mclient)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +313,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, mclient)
+	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, infrastructureConfig, mclient)
 	if err != nil {
 		return nil, err
 	}
@@ -390,8 +397,8 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 
 	wanted := &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-			gardencorev1alpha1.SecretNameCACluster: {
-				Name:       gardencorev1alpha1.SecretNameCACluster,
+			v1alpha1constants.SecretNameCACluster: {
+				Name:       v1alpha1constants.SecretNameCACluster,
 				CommonName: "kubernetes",
 				CertType:   secrets.CACert,
 			},
@@ -404,7 +411,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 						CommonName:   "droptailer",
 						Organization: []string{"droptailer-client"},
 						CertType:     secrets.ClientCert,
-						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
@@ -413,7 +420,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 						CommonName:   "droptailer",
 						Organization: []string{"droptailer-server"},
 						CertType:     secrets.ServerCert,
-						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 					},
 				},
 			}
@@ -428,7 +435,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 	if err != nil {
 		return errors.Wrap(err, "could not create shoot kubernetes client")
 	}
-	gcs, err := gardenerkubernetes.NewForConfig(shootConfig, client.Options{})
+	gcs, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(shootConfig))
 	if err != nil {
 		return errors.Wrap(err, "could not create shoot Gardener client")
 	}
@@ -483,14 +490,15 @@ func (vp *valuesProvider) GetStorageClassesChartValues(context.Context, *extensi
 // getCCMChartValues collects and returns the CCM chart values.
 func getCCMChartValues(
 	cpConfig *apismetal.ControlPlaneConfig,
+	infrastructure *apismetal.InfrastructureConfig,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 	checksums map[string]string,
 	scaledDown bool,
 	mclient *metalgo.Driver,
 ) (map[string]interface{}, error) {
-	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	nodeCIDR := cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	projectID := infrastructure.ProjectID
+	nodeCIDR := cluster.Shoot.Spec.Networking.Nodes
 
 	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, nodeCIDR)
 	if err != nil {
@@ -498,19 +506,19 @@ func getCCMChartValues(
 	}
 
 	values := map[string]interface{}{
-		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster.Shoot, scaledDown, 1),
+		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 		"projectID":         projectID,
 		"clusterID":         cluster.Shoot.ObjectMeta.UID,
-		"partitionID":       cluster.Shoot.Spec.Cloud.Metal.Zones[0],
+		"partitionID":       infrastructure.PartitionID,
 		"networkID":         *privateNetwork.ID,
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-		"podNetwork":        extensionscontroller.GetPodNetwork(cluster.Shoot),
+		"podNetwork":        extensionscontroller.GetPodNetwork(cluster),
 		"podAnnotations": map[string]interface{}{
 			"checksum/secret-cloud-controller-manager":        checksums[cloudControllerManagerDeploymentName],
 			"checksum/secret-cloud-controller-manager-server": checksums[cloudControllerManagerServerName],
 			// TODO Use constant from github.com/gardener/gardener/pkg/apis/core/v1alpha1 when available
 			// See https://github.com/gardener/gardener/pull/930
-			"checksum/secret-cloudprovider":            checksums[gardencorev1alpha1.SecretNameCloudProvider],
+			"checksum/secret-cloudprovider":            checksums[v1alpha1constants.SecretNameCloudProvider],
 			"checksum/configmap-cloud-provider-config": checksums[metal.CloudProviderConfigName],
 		},
 	}
@@ -561,10 +569,10 @@ func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *
 	return values, nil
 }
 
-func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
-	partitionID := cluster.Shoot.Spec.Cloud.Metal.Zones[0]
-	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
+	partitionID := infrastructure.PartitionID
+	projectID := infrastructure.ProjectID
 	clusterID := cluster.Shoot.ObjectMeta.UID
 	clusterName := annotations[metal.ShootAnnotationClusterName]
 	tenant := annotations[metal.ShootAnnotationTenant]

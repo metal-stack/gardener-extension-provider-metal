@@ -68,6 +68,11 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		machineImages      []apismetal.MachineImage
 	)
 
+	infrastructureConfig := &apismetal.InfrastructureConfig{}
+	if _, _, err := w.decoder.Decode(w.cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		return err
+	}
+
 	shootVersionMajorMinor, err := util.VersionMajorMinor(w.cluster.Shoot.Spec.Kubernetes.Version)
 	if err != nil {
 		return err
@@ -83,8 +88,8 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
-	projectID := w.cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	nodeCIDR := w.cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	projectID := infrastructureConfig.ProjectID
+	nodeCIDR := w.cluster.Shoot.Spec.Networking.Nodes
 
 	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, nodeCIDR)
 	if err != nil {
