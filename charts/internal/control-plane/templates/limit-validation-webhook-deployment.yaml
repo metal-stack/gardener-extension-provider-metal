@@ -21,6 +21,9 @@ spec:
         networking.gardener.cloud/to-public-networks: allowed
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
+        prometheus.io/scrape: 'true'
+        prometheus.io/path: /metrics
+        prometheus.io/port: '2112'
     spec:
       containers:
         - name: limit-validating-webhook
