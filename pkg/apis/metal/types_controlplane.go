@@ -28,9 +28,20 @@ type ControlPlaneConfig struct {
 	// CloudControllerManager contains configuration settings for the cloud-controller-manager.
 	// +optional
 	CloudControllerManager *CloudControllerManagerConfig
+
+	// TokenIssuer contains configuration settings for the token issuer.
+	TokenIssuer TokenIssuer
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
 type CloudControllerManagerConfig struct {
 	gardenv1beta1.KubernetesConfig
+}
+
+// TokenIssuer for configuration of AuthNWebhook
+type TokenIssuer struct {
+	// IssuerURL the url of the issuer
+	IssuerURL string
+	// ClientId the id of the client
+	ClientID string
 }

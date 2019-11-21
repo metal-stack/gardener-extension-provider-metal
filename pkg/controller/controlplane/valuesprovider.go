@@ -30,6 +30,7 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	metalv1alpha1 "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-pod/metal-go"
 
@@ -550,7 +551,7 @@ func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *
 		return nil, errors.New("tokenissuer-Extension not found")
 	}
 
-	ti := &TokenIssuer{}
+	ti := &metalv1alpha1.TokenIssuer{}
 	err := json.Unmarshal(tokenIssuerPC.Raw, ti)
 	if err != nil {
 		return nil, err
@@ -559,8 +560,8 @@ func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *
 	values := map[string]interface{}{
 		"authn_tenant":             tenant,
 		"authn_clustername":        clusterName,
-		"authn_oidcIssuerUrl":      ti.IssuerUrl,
-		"authn_oidcIssuerClientId": ti.ClientId,
+		"authn_oidcIssuerUrl":      ti.IssuerURL,
+		"authn_oidcIssuerClientId": ti.ClientID,
 		"authn_debug":              "true",
 
 		"grprb_clustername": clusterName,
@@ -610,12 +611,6 @@ func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontrol
 	}
 
 	return values, nil
-}
-
-// Data for configuration of AuthNWebhook
-type TokenIssuer struct {
-	IssuerUrl string `json:"issuerUrl" optional:"false"`
-	ClientId  string `json:"clientId" optional:"false"`
 }
 
 // Data for configuration of IDM-API WebHook (deployment to be done!)
