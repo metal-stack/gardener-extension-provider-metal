@@ -17,7 +17,6 @@ package controlplane
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 
 	"github.com/gardener/gardener-extensions/pkg/util"
@@ -30,7 +29,6 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	metalv1alpha1 "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-pod/metal-go"
 
@@ -43,7 +41,6 @@ import (
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
-	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -309,7 +306,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	authValues, err := getAuthNGroupRoleChartValues(cp, cluster)
+	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -532,30 +529,13 @@ func getCCMChartValues(
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[metal.ShootAnnotationClusterName]
 	tenant := annotations[metal.ShootAnnotationTenant]
 
-	var tokenIssuerPC *gardencorev1alpha1.ProviderConfig
-	for _, ext := range cluster.Shoot.Spec.Extensions {
-
-		if ext.Type == metal.ShootExtensionTypeTokenIssuer {
-			tokenIssuerPC = ext.ProviderConfig
-			break
-		}
-	}
-
-	if tokenIssuerPC == nil {
-		return nil, errors.New("tokenissuer-Extension not found")
-	}
-
-	ti := &metalv1alpha1.TokenIssuer{}
-	err := json.Unmarshal(tokenIssuerPC.Raw, ti)
-	if err != nil {
-		return nil, err
-	}
+	ti := cpConfig.TokenIssuer
 
 	values := map[string]interface{}{
 		"authn_tenant":             tenant,
