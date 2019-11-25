@@ -246,6 +246,7 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
 
 		// droptailer
+		{Type: &corev1.Namespace{}, Name: "firewall"},
 		{Type: &appsv1.Deployment{}, Name: "droptailer"},
 
 		// group rolebinding controller
