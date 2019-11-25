@@ -35,6 +35,9 @@ import (
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -174,20 +177,36 @@ var controlPlaneChart = &chart.Chart{
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
 	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.DroptailerImageName, metal.LimitValidatingWebhookImageName},
 	Objects: []*chart.Object{
+		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
 
+		// authn webhook
 		{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
 		{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2kube-jwt-authn-webhook"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "kube-jwt-authn-webhook-allow-namespace"},
 
-		{Type: &appsv1.Deployment{}, Name: "limit-validating-webhook"},
-		{Type: &corev1.Service{}, Name: "limit-validating-webhook"},
+		// accounting exporter
+		{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
+		{Type: &rbacv1.RoleBinding{}, Name: "accounting-exporter"},
+		{Type: &rbacv1.Role{}, Name: "accounting-exporter"},
 
-		{Type: &corev1.ServiceAccount{}, Name: "group-rolebinding-controller"},
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "group-rolebinding-controller"},
+		// group rolebinding controller
 		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
 
-		{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
+		// limit validation webhook
+		{Type: &appsv1.Deployment{}, Name: "limit-validating-webhook"},
+		{Type: &corev1.Service{}, Name: "limit-validating-webhook"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "limit-validating-webhook-allow-namespace"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2limit-validating-webhook"},
+
+		// network policies
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-vpn"},
 	},
 }
 
@@ -195,23 +214,62 @@ var cpShootChart = &chart.Chart{
 	Name: "shoot-control-plane",
 	Path: filepath.Join(metal.InternalChartsPath, "shoot-control-plane"),
 	Objects: []*chart.Object{
-		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
-
+		// limit validating webhook
 		{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "limit-validating-webhook"},
 
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
+		// metallb
+		{Type: &corev1.Namespace{}, Name: "metallb-system"},
+		{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "speaker"},
+		{Type: &corev1.ServiceAccount{}, Name: "controller"},
+		{Type: &corev1.ServiceAccount{}, Name: "speaker"},
+		{Type: &rbacv1.ClusterRole{}, Name: "metallb-system:controller"},
+		{Type: &rbacv1.ClusterRole{}, Name: "metallb-system:speaker"},
+		{Type: &rbacv1.Role{}, Name: "config-watcher"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "metallb-system:controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "metallb-system:speaker"},
+		{Type: &rbacv1.RoleBinding{}, Name: "config-watcher"},
+		{Type: &appsv1.DaemonSet{}, Name: "speaker"},
+		{Type: &appsv1.Deployment{}, Name: "controller"},
 
+		// network policies
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
+
+		// accounting controller
 		{Type: &rbacv1.ClusterRole{}, Name: "system:accounting-exporter"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:accounting-exporter"},
 
+		// firewall controller
+		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
+
+		// droptailer
 		{Type: &appsv1.Deployment{}, Name: "droptailer"},
+
+		// group rolebinding controller
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
+
+		// ccm
+		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
+		{Type: &rbacv1.ClusterRole{}, Name: "cloud-controller-manager"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "cloud-controller-manager"},
 	},
 }
 
 var storageClassChart = &chart.Chart{
 	Name: "shoot-storageclasses",
 	Path: filepath.Join(metal.InternalChartsPath, "shoot-storageclasses"),
+	Objects: []*chart.Object{
+		{Type: &corev1.Namespace{}, Name: "csi-lvm"},
+		{Type: &storagev1.StorageClass{}, Name: "csi-lvm"},
+		{Type: &corev1.ServiceAccount{}, Name: "csi-lvm-controller"},
+		{Type: &rbacv1.ClusterRole{}, Name: "csi-lvm-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "csi-lvm-controller"},
+		{Type: &appsv1.Deployment{}, Name: "csi-lvm-controller"},
+	},
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
