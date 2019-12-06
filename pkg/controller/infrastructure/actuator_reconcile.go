@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 
 	metalgo "github.com/metal-pod/metal-go"
@@ -34,18 +35,59 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	firewallStatus := infrastructureStatus.Firewall
-	if firewallStatus.Succeeded {
-		return nil
-	}
-
 	mclient, err := metalclient.NewClient(ctx, a.client, &infrastructure.Spec.SecretRef)
 	if err != nil {
 		return err
 	}
 
+	clusterID := cluster.Shoot.Status.TechnicalID
+	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+
+	firewallStatus := infrastructureStatus.Firewall
+
+	if firewallStatus.Succeeded {
+		// verify that the firewall is still there and correctly reconciled
+		machineID := decodeMachineID(firewallStatus.MachineID)
+
+		resp, err := mclient.FirewallFind(&metalgo.FirewallFindRequest{
+			MachineFindRequest: metalgo.MachineFindRequest{
+				ID:                &machineID,
+				AllocationProject: &infrastructureConfig.ProjectID,
+				Tags:              []string{clusterTag},
+			},
+		})
+		if err != nil {
+			return &controllererrors.RequeueAfterError{
+				Cause:        err,
+				RequeueAfter: 30 * time.Second,
+			}
+		}
+
+		if len(resp.Firewalls) > 0 {
+			fw := resp.Firewalls[0]
+			// TODO: in the future we probably want to allow resizing a firewall or updating the machine image
+			// this could go here...
+			if *fw.Size.ID != infrastructureConfig.Firewall.Size {
+				a.logger.Error(fmt.Errorf("firewall size has changed"), "firewall spec has changed, which is not supported", "clusterid", clusterID, "machineid", machineID)
+			}
+			if *fw.Allocation.Image.ID != infrastructureConfig.Firewall.Image {
+				a.logger.Error(fmt.Errorf("firewall image has changed"), "firewall spec has changed, which is not supported", "clusterid", clusterID, "machineid", machineID)
+			}
+			return nil
+		}
+
+		a.logger.Error(err, "firewall does not exist anymore, creating new firewall", "clusterid", clusterID, "machineid", machineID)
+
+		firewallStatus.MachineID = ""
+		firewallStatus.Succeeded = false
+		err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
+		if err != nil {
+			return err
+		}
+	}
+
 	if firewallStatus.MachineID != "" {
-		// firewall was already created
+		// firewall was created, waiting for completion
 		machineID := decodeMachineID(firewallStatus.MachineID)
 
 		resp, err := mclient.FirewallGet(machineID)
@@ -55,7 +97,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 				if e.Code() >= 500 {
 					return &controllererrors.RequeueAfterError{
 						Cause:        e,
-						RequeueAfter: 30 * time.Second,
+						RequeueAfter: 5 * time.Second,
 					}
 				}
 			default:
@@ -79,12 +121,10 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	}
 	// Example values:
 	// cluster.Shoot.Status.TechnicalID  "shoot--dev--johndoe-metal"
-	tid := cluster.Shoot.Status.TechnicalID
-	name := tid + "-firewall-" + uuid.String()[:5]
+	name := clusterID + "-firewall-" + uuid.String()[:5]
 
 	// find private network
-	projectID := infrastructureConfig.ProjectID
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, cluster.Shoot.Spec.Networking.Nodes)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, infrastructureConfig.ProjectID, cluster.Shoot.Spec.Networking.Nodes)
 	if err != nil {
 		return err
 	}
@@ -120,12 +160,13 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 			Name:          name,
 			Hostname:      name,
 			Size:          infrastructureConfig.Firewall.Size,
-			Project:       projectID,
+			Project:       infrastructureConfig.ProjectID,
 			Partition:     infrastructureConfig.PartitionID,
 			Image:         infrastructureConfig.Firewall.Image,
 			SSHPublicKeys: []string{string(infrastructure.Spec.SSHPublicKey)},
 			Networks:      networks,
 			UserData:      firewallUserData,
+			Tags:          []string{clusterTag},
 		},
 	}
 

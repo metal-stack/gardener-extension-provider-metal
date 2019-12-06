@@ -73,6 +73,7 @@ const (
 	ShootAnnotationDescription = "cluster.metal-pod.io/description"
 	ShootAnnotationClusterName = "cluster.metal-pod.io/name"
 	ShootAnnotationTenant      = "cluster.metal-pod.io/tenant"
+	ShootAnnotationClusterID   = "cluster.metal-pod.io/id"
 )
 
 var (
