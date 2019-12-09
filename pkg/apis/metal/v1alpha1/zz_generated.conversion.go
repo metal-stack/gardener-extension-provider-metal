@@ -46,6 +46,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*ConnectorConfig)(nil), (*metal.ConnectorConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ConnectorConfig_To_metal_ConnectorConfig(a.(*ConnectorConfig), b.(*metal.ConnectorConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*metal.ConnectorConfig)(nil), (*ConnectorConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_metal_ConnectorConfig_To_v1alpha1_ConnectorConfig(a.(*metal.ConnectorConfig), b.(*ConnectorConfig), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*ControlPlaneConfig)(nil), (*metal.ControlPlaneConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_ControlPlaneConfig_To_metal_ControlPlaneConfig(a.(*ControlPlaneConfig), b.(*metal.ControlPlaneConfig), scope)
 	}); err != nil {
@@ -76,6 +86,26 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*IAMConfig)(nil), (*metal.IAMConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_IAMConfig_To_metal_IAMConfig(a.(*IAMConfig), b.(*metal.IAMConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*metal.IAMConfig)(nil), (*IAMConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_metal_IAMConfig_To_v1alpha1_IAMConfig(a.(*metal.IAMConfig), b.(*IAMConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*IDMConfig)(nil), (*metal.IDMConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_IDMConfig_To_metal_IDMConfig(a.(*IDMConfig), b.(*metal.IDMConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*metal.IDMConfig)(nil), (*IDMConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_metal_IDMConfig_To_v1alpha1_IDMConfig(a.(*metal.IDMConfig), b.(*IDMConfig), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*InfrastructureConfig)(nil), (*metal.InfrastructureConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_InfrastructureConfig_To_metal_InfrastructureConfig(a.(*InfrastructureConfig), b.(*metal.InfrastructureConfig), scope)
 	}); err != nil {
@@ -96,13 +126,23 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*TokenIssuer)(nil), (*metal.TokenIssuer)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_TokenIssuer_To_metal_TokenIssuer(a.(*TokenIssuer), b.(*metal.TokenIssuer), scope)
+	if err := s.AddGeneratedConversionFunc((*IssuerConfig)(nil), (*metal.IssuerConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_IssuerConfig_To_metal_IssuerConfig(a.(*IssuerConfig), b.(*metal.IssuerConfig), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*metal.TokenIssuer)(nil), (*TokenIssuer)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_metal_TokenIssuer_To_v1alpha1_TokenIssuer(a.(*metal.TokenIssuer), b.(*TokenIssuer), scope)
+	if err := s.AddGeneratedConversionFunc((*metal.IssuerConfig)(nil), (*IssuerConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_metal_IssuerConfig_To_v1alpha1_IssuerConfig(a.(*metal.IssuerConfig), b.(*IssuerConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*NamespaceGroupConfig)(nil), (*metal.NamespaceGroupConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_NamespaceGroupConfig_To_metal_NamespaceGroupConfig(a.(*NamespaceGroupConfig), b.(*metal.NamespaceGroupConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*metal.NamespaceGroupConfig)(nil), (*NamespaceGroupConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_metal_NamespaceGroupConfig_To_v1alpha1_NamespaceGroupConfig(a.(*metal.NamespaceGroupConfig), b.(*NamespaceGroupConfig), scope)
 	}); err != nil {
 		return err
 	}
@@ -139,9 +179,57 @@ func Convert_metal_CloudControllerManagerConfig_To_v1alpha1_CloudControllerManag
 	return autoConvert_metal_CloudControllerManagerConfig_To_v1alpha1_CloudControllerManagerConfig(in, out, s)
 }
 
+func autoConvert_v1alpha1_ConnectorConfig_To_metal_ConnectorConfig(in *ConnectorConfig, out *metal.ConnectorConfig, s conversion.Scope) error {
+	out.IdmApiUrl = in.IdmApiUrl
+	out.IdmApiUser = in.IdmApiUser
+	out.IdmApiPassword = in.IdmApiPassword
+	out.IdmSystemId = in.IdmSystemId
+	out.IdmAccessCode = in.IdmAccessCode
+	out.IdmCustomerId = in.IdmCustomerId
+	out.IdmGroupOU = in.IdmGroupOU
+	out.IdmGroupnameTemplate = in.IdmGroupnameTemplate
+	out.IdmDomainName = in.IdmDomainName
+	out.IdmTenantPrefix = in.IdmTenantPrefix
+	out.IdmSubmitter = in.IdmSubmitter
+	out.IdmJobInfo = in.IdmJobInfo
+	out.IdmReqSystem = in.IdmReqSystem
+	out.IdmReqUser = in.IdmReqUser
+	out.IdmReqEMail = in.IdmReqEMail
+	return nil
+}
+
+// Convert_v1alpha1_ConnectorConfig_To_metal_ConnectorConfig is an autogenerated conversion function.
+func Convert_v1alpha1_ConnectorConfig_To_metal_ConnectorConfig(in *ConnectorConfig, out *metal.ConnectorConfig, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ConnectorConfig_To_metal_ConnectorConfig(in, out, s)
+}
+
+func autoConvert_metal_ConnectorConfig_To_v1alpha1_ConnectorConfig(in *metal.ConnectorConfig, out *ConnectorConfig, s conversion.Scope) error {
+	out.IdmApiUrl = in.IdmApiUrl
+	out.IdmApiUser = in.IdmApiUser
+	out.IdmApiPassword = in.IdmApiPassword
+	out.IdmSystemId = in.IdmSystemId
+	out.IdmAccessCode = in.IdmAccessCode
+	out.IdmCustomerId = in.IdmCustomerId
+	out.IdmGroupOU = in.IdmGroupOU
+	out.IdmGroupnameTemplate = in.IdmGroupnameTemplate
+	out.IdmDomainName = in.IdmDomainName
+	out.IdmTenantPrefix = in.IdmTenantPrefix
+	out.IdmSubmitter = in.IdmSubmitter
+	out.IdmJobInfo = in.IdmJobInfo
+	out.IdmReqSystem = in.IdmReqSystem
+	out.IdmReqUser = in.IdmReqUser
+	out.IdmReqEMail = in.IdmReqEMail
+	return nil
+}
+
+// Convert_metal_ConnectorConfig_To_v1alpha1_ConnectorConfig is an autogenerated conversion function.
+func Convert_metal_ConnectorConfig_To_v1alpha1_ConnectorConfig(in *metal.ConnectorConfig, out *ConnectorConfig, s conversion.Scope) error {
+	return autoConvert_metal_ConnectorConfig_To_v1alpha1_ConnectorConfig(in, out, s)
+}
+
 func autoConvert_v1alpha1_ControlPlaneConfig_To_metal_ControlPlaneConfig(in *ControlPlaneConfig, out *metal.ControlPlaneConfig, s conversion.Scope) error {
 	out.CloudControllerManager = (*metal.CloudControllerManagerConfig)(unsafe.Pointer(in.CloudControllerManager))
-	if err := Convert_v1alpha1_TokenIssuer_To_metal_TokenIssuer(&in.TokenIssuer, &out.TokenIssuer, s); err != nil {
+	if err := Convert_v1alpha1_IAMConfig_To_metal_IAMConfig(&in.IAMConfig, &out.IAMConfig, s); err != nil {
 		return err
 	}
 	return nil
@@ -154,7 +242,7 @@ func Convert_v1alpha1_ControlPlaneConfig_To_metal_ControlPlaneConfig(in *Control
 
 func autoConvert_metal_ControlPlaneConfig_To_v1alpha1_ControlPlaneConfig(in *metal.ControlPlaneConfig, out *ControlPlaneConfig, s conversion.Scope) error {
 	out.CloudControllerManager = (*CloudControllerManagerConfig)(unsafe.Pointer(in.CloudControllerManager))
-	if err := Convert_metal_TokenIssuer_To_v1alpha1_TokenIssuer(&in.TokenIssuer, &out.TokenIssuer, s); err != nil {
+	if err := Convert_metal_IAMConfig_To_v1alpha1_IAMConfig(&in.IAMConfig, &out.IAMConfig, s); err != nil {
 		return err
 	}
 	return nil
@@ -211,6 +299,52 @@ func Convert_metal_FirewallStatus_To_v1alpha1_FirewallStatus(in *metal.FirewallS
 	return autoConvert_metal_FirewallStatus_To_v1alpha1_FirewallStatus(in, out, s)
 }
 
+func autoConvert_v1alpha1_IAMConfig_To_metal_IAMConfig(in *IAMConfig, out *metal.IAMConfig, s conversion.Scope) error {
+	out.IssuerConfig = (*metal.IssuerConfig)(unsafe.Pointer(in.IssuerConfig))
+	out.IdmConfig = (*metal.IDMConfig)(unsafe.Pointer(in.IdmConfig))
+	out.GroupConfig = (*metal.NamespaceGroupConfig)(unsafe.Pointer(in.GroupConfig))
+	return nil
+}
+
+// Convert_v1alpha1_IAMConfig_To_metal_IAMConfig is an autogenerated conversion function.
+func Convert_v1alpha1_IAMConfig_To_metal_IAMConfig(in *IAMConfig, out *metal.IAMConfig, s conversion.Scope) error {
+	return autoConvert_v1alpha1_IAMConfig_To_metal_IAMConfig(in, out, s)
+}
+
+func autoConvert_metal_IAMConfig_To_v1alpha1_IAMConfig(in *metal.IAMConfig, out *IAMConfig, s conversion.Scope) error {
+	out.IssuerConfig = (*IssuerConfig)(unsafe.Pointer(in.IssuerConfig))
+	out.IdmConfig = (*IDMConfig)(unsafe.Pointer(in.IdmConfig))
+	out.GroupConfig = (*NamespaceGroupConfig)(unsafe.Pointer(in.GroupConfig))
+	return nil
+}
+
+// Convert_metal_IAMConfig_To_v1alpha1_IAMConfig is an autogenerated conversion function.
+func Convert_metal_IAMConfig_To_v1alpha1_IAMConfig(in *metal.IAMConfig, out *IAMConfig, s conversion.Scope) error {
+	return autoConvert_metal_IAMConfig_To_v1alpha1_IAMConfig(in, out, s)
+}
+
+func autoConvert_v1alpha1_IDMConfig_To_metal_IDMConfig(in *IDMConfig, out *metal.IDMConfig, s conversion.Scope) error {
+	out.Idmtype = in.Idmtype
+	out.ConnectorConfig = (*metal.ConnectorConfig)(unsafe.Pointer(in.ConnectorConfig))
+	return nil
+}
+
+// Convert_v1alpha1_IDMConfig_To_metal_IDMConfig is an autogenerated conversion function.
+func Convert_v1alpha1_IDMConfig_To_metal_IDMConfig(in *IDMConfig, out *metal.IDMConfig, s conversion.Scope) error {
+	return autoConvert_v1alpha1_IDMConfig_To_metal_IDMConfig(in, out, s)
+}
+
+func autoConvert_metal_IDMConfig_To_v1alpha1_IDMConfig(in *metal.IDMConfig, out *IDMConfig, s conversion.Scope) error {
+	out.Idmtype = in.Idmtype
+	out.ConnectorConfig = (*ConnectorConfig)(unsafe.Pointer(in.ConnectorConfig))
+	return nil
+}
+
+// Convert_metal_IDMConfig_To_v1alpha1_IDMConfig is an autogenerated conversion function.
+func Convert_metal_IDMConfig_To_v1alpha1_IDMConfig(in *metal.IDMConfig, out *IDMConfig, s conversion.Scope) error {
+	return autoConvert_metal_IDMConfig_To_v1alpha1_IDMConfig(in, out, s)
+}
+
 func autoConvert_v1alpha1_InfrastructureConfig_To_metal_InfrastructureConfig(in *InfrastructureConfig, out *metal.InfrastructureConfig, s conversion.Scope) error {
 	if err := Convert_v1alpha1_Firewall_To_metal_Firewall(&in.Firewall, &out.Firewall, s); err != nil {
 		return err
@@ -263,26 +397,54 @@ func Convert_metal_InfrastructureStatus_To_v1alpha1_InfrastructureStatus(in *met
 	return autoConvert_metal_InfrastructureStatus_To_v1alpha1_InfrastructureStatus(in, out, s)
 }
 
-func autoConvert_v1alpha1_TokenIssuer_To_metal_TokenIssuer(in *TokenIssuer, out *metal.TokenIssuer, s conversion.Scope) error {
-	out.IssuerURL = in.IssuerURL
-	out.ClientID = in.ClientID
+func autoConvert_v1alpha1_IssuerConfig_To_metal_IssuerConfig(in *IssuerConfig, out *metal.IssuerConfig, s conversion.Scope) error {
+	out.Url = in.Url
+	out.ClientId = in.ClientId
 	return nil
 }
 
-// Convert_v1alpha1_TokenIssuer_To_metal_TokenIssuer is an autogenerated conversion function.
-func Convert_v1alpha1_TokenIssuer_To_metal_TokenIssuer(in *TokenIssuer, out *metal.TokenIssuer, s conversion.Scope) error {
-	return autoConvert_v1alpha1_TokenIssuer_To_metal_TokenIssuer(in, out, s)
+// Convert_v1alpha1_IssuerConfig_To_metal_IssuerConfig is an autogenerated conversion function.
+func Convert_v1alpha1_IssuerConfig_To_metal_IssuerConfig(in *IssuerConfig, out *metal.IssuerConfig, s conversion.Scope) error {
+	return autoConvert_v1alpha1_IssuerConfig_To_metal_IssuerConfig(in, out, s)
 }
 
-func autoConvert_metal_TokenIssuer_To_v1alpha1_TokenIssuer(in *metal.TokenIssuer, out *TokenIssuer, s conversion.Scope) error {
-	out.IssuerURL = in.IssuerURL
-	out.ClientID = in.ClientID
+func autoConvert_metal_IssuerConfig_To_v1alpha1_IssuerConfig(in *metal.IssuerConfig, out *IssuerConfig, s conversion.Scope) error {
+	out.Url = in.Url
+	out.ClientId = in.ClientId
 	return nil
 }
 
-// Convert_metal_TokenIssuer_To_v1alpha1_TokenIssuer is an autogenerated conversion function.
-func Convert_metal_TokenIssuer_To_v1alpha1_TokenIssuer(in *metal.TokenIssuer, out *TokenIssuer, s conversion.Scope) error {
-	return autoConvert_metal_TokenIssuer_To_v1alpha1_TokenIssuer(in, out, s)
+// Convert_metal_IssuerConfig_To_v1alpha1_IssuerConfig is an autogenerated conversion function.
+func Convert_metal_IssuerConfig_To_v1alpha1_IssuerConfig(in *metal.IssuerConfig, out *IssuerConfig, s conversion.Scope) error {
+	return autoConvert_metal_IssuerConfig_To_v1alpha1_IssuerConfig(in, out, s)
+}
+
+func autoConvert_v1alpha1_NamespaceGroupConfig_To_metal_NamespaceGroupConfig(in *NamespaceGroupConfig, out *metal.NamespaceGroupConfig, s conversion.Scope) error {
+	out.ExcludedNamespaces = in.ExcludedNamespaces
+	out.ExpectedGroupsList = in.ExpectedGroupsList
+	out.NamespaceMaxLength = in.NamespaceMaxLength
+	out.ClusterGroupnameTemplate = in.ClusterGroupnameTemplate
+	out.RoleBindingNameTemplate = in.RoleBindingNameTemplate
+	return nil
+}
+
+// Convert_v1alpha1_NamespaceGroupConfig_To_metal_NamespaceGroupConfig is an autogenerated conversion function.
+func Convert_v1alpha1_NamespaceGroupConfig_To_metal_NamespaceGroupConfig(in *NamespaceGroupConfig, out *metal.NamespaceGroupConfig, s conversion.Scope) error {
+	return autoConvert_v1alpha1_NamespaceGroupConfig_To_metal_NamespaceGroupConfig(in, out, s)
+}
+
+func autoConvert_metal_NamespaceGroupConfig_To_v1alpha1_NamespaceGroupConfig(in *metal.NamespaceGroupConfig, out *NamespaceGroupConfig, s conversion.Scope) error {
+	out.ExcludedNamespaces = in.ExcludedNamespaces
+	out.ExpectedGroupsList = in.ExpectedGroupsList
+	out.NamespaceMaxLength = in.NamespaceMaxLength
+	out.ClusterGroupnameTemplate = in.ClusterGroupnameTemplate
+	out.RoleBindingNameTemplate = in.RoleBindingNameTemplate
+	return nil
+}
+
+// Convert_metal_NamespaceGroupConfig_To_v1alpha1_NamespaceGroupConfig is an autogenerated conversion function.
+func Convert_metal_NamespaceGroupConfig_To_v1alpha1_NamespaceGroupConfig(in *metal.NamespaceGroupConfig, out *NamespaceGroupConfig, s conversion.Scope) error {
+	return autoConvert_metal_NamespaceGroupConfig_To_v1alpha1_NamespaceGroupConfig(in, out, s)
 }
 
 func autoConvert_v1alpha1_WorkerStatus_To_metal_WorkerStatus(in *WorkerStatus, out *metal.WorkerStatus, s conversion.Scope) error {
