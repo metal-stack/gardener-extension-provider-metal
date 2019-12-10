@@ -2,9 +2,12 @@ package infrastructure
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
+	metalgo "github.com/metal-pod/metal-go"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	controllererrors "github.com/gardener/gardener-extensions/pkg/controller/error"
@@ -23,16 +26,35 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		return err
 	}
 
+	clusterID := cluster.Shoot.Status.TechnicalID
+	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+
 	firewallStatus := infrastructureStatus.Firewall
 	if firewallStatus.MachineID != "" {
 		machineID := decodeMachineID(firewallStatus.MachineID)
 		if machineID != "" {
-			_, err = mclient.MachineDelete(machineID)
+			resp, err := mclient.FirewallFind(&metalgo.FirewallFindRequest{
+				MachineFindRequest: metalgo.MachineFindRequest{
+					ID:                &machineID,
+					AllocationProject: &infrastructureConfig.ProjectID,
+					Tags:              []string{clusterTag},
+				},
+			})
 			if err != nil {
-				a.logger.Error(err, "failed to delete firewall", "infrastructure", infrastructure.Name, "firewallID", machineID)
 				return &controllererrors.RequeueAfterError{
 					Cause:        err,
 					RequeueAfter: 30 * time.Second,
+				}
+			}
+
+			if len(resp.Firewalls) > 0 {
+				_, err = mclient.MachineDelete(machineID)
+				if err != nil {
+					a.logger.Error(err, "failed to delete firewall", "infrastructure", infrastructure.Name, "firewallID", machineID)
+					return &controllererrors.RequeueAfterError{
+						Cause:        err,
+						RequeueAfter: 30 * time.Second,
+					}
 				}
 			}
 
@@ -50,7 +72,6 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 
 	projectID := infrastructureConfig.ProjectID
 	nodeCIDR := cluster.Shoot.Spec.Networking.Nodes
-	clusterID := string(cluster.Shoot.ObjectMeta.UID)
 
 	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(mclient, projectID, clusterID)
 	if err != nil {
