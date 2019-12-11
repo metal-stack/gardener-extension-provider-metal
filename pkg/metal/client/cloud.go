@@ -16,7 +16,7 @@ package client
 
 import (
 	"context"
-	cloud "github.com/metal-pod/cloud-go"
+	cloudgo "github.com/metal-pod/cloud-go"
 	cloudclient "github.com/metal-pod/cloud-go/api/client"
 	"github.com/metal-pod/cloud-go/api/client/project"
 	"github.com/metal-pod/cloud-go/api/models"
@@ -38,7 +38,7 @@ func NewCloudClient(ctx context.Context, k8sClient client.Client, secretRef *cor
 
 // NewCloudClientFromCredentials returns a new cloud client with the client constructed from the given credentials.
 func NewCloudClientFromCredentials(credentials *metal.Credentials) (*cloudclient.Cloud, error) {
-	client, err := cloud.NewClient(credentials.CloudAPIURL, credentials.CloudAPIKey, credentials.CloudAPIHMac)
+	client, err := cloudgo.NewClient(credentials.CloudAPIURL, credentials.CloudAPIKey, credentials.CloudAPIHMac)
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +50,10 @@ func GetProjectByID(client *cloudclient.Cloud, projectID string) (*models.V1Proj
 	params := project.NewFindProjectParams().WithID(projectID)
 	resp, err := client.Project.FindProject(params, nil)
 	if err != nil {
+		switch e := err.(type) {
+		case *project.FindProjectDefault:
+			return nil, e
+		}
 		return nil, err
 	}
 	return resp.Payload.Project, nil

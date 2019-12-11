@@ -459,6 +459,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0j
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/metal-pod/cloud-go v0.0.0-20191211135523-d66b35635ded h1:oWlzFJgYm4uKMie8DzmZTYrlgprVJrS47PwQnfjNN8I=
 github.com/metal-pod/cloud-go v0.0.0-20191211135523-d66b35635ded/go.mod h1:CHGvCxkJjKk3coL7X2rDsqHntCFGvldkxSprjvtUTRI=
+github.com/metal-pod/cloud-go v0.0.0-20191211152241-cae6d7fe47d1 h1:eMR4sBxBNC9mb33iZO0A8/VXV/YERmlDBb47AVUX1iI=
+github.com/metal-pod/cloud-go v0.0.0-20191211152241-cae6d7fe47d1/go.mod h1:CHGvCxkJjKk3coL7X2rDsqHntCFGvldkxSprjvtUTRI=
 github.com/metal-pod/machine-controller-manager v0.0.0-20190801141331-4e2b75ebc6c0 h1:FYzoWSsjvMmRcBNlTi7MVHqhYxG8Iggw8798xHT2l28=
 github.com/metal-pod/machine-controller-manager v0.0.0-20190801141331-4e2b75ebc6c0/go.mod h1:djhi17uiXTSKQy6TblgEdRW/PQSGxNL3G1D4tVdhZjI=
 github.com/metal-pod/metal-go v0.0.0-20190708061258-5e4b2ad2be34/go.mod h1:QiBt6D6ecJPk6DQ0WasKUVFHo6XdbcrogP0lcEwqA4Y=
