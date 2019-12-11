@@ -28,6 +28,7 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
+	cloudclient "github.com/metal-pod/cloud-go/api/client"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-pod/metal-go"
@@ -359,6 +360,11 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
+	cclient, err := metalclient.NewCloudClient(ctx, vp.client, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get CCM chart values
 	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, cp, cluster, checksums, scaledDown, mclient)
 	if err != nil {
@@ -370,7 +376,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, infrastructureConfig, mclient)
+	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, infrastructureConfig, mclient, cclient)
 	if err != nil {
 		return nil, err
 	}
@@ -609,7 +615,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	return values, nil
 }
 
-func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver, cclient *cloudclient.Cloud) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	partitionID := infrastructure.PartitionID
 	projectID := infrastructure.ProjectID
@@ -617,7 +623,7 @@ func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster
 	clusterName := annotations[metal.ShootAnnotationClusterName]
 	tenant := annotations[metal.ShootAnnotationTenant]
 
-	project, err := metalclient.GetProjectByID(mclient, projectID)
+	project, err := metalclient.GetProjectByID(cclient, projectID)
 	if err != nil {
 		return nil, err
 	}

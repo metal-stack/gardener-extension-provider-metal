@@ -15,6 +15,7 @@ require (
 	github.com/gobuffalo/packr/v2 v2.1.0
 	github.com/golang/mock v1.3.1
 	github.com/google/uuid v1.1.1
+	github.com/metal-pod/cloud-go v0.0.0-20191211135523-d66b35635ded
 	github.com/metal-pod/metal-go v0.2.0
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0

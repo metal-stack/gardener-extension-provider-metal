@@ -144,12 +144,3 @@ func UpdateIPInCluster(client *metalgo.Driver, ip *models.V1IPResponse, clusterI
 	}
 	return nil
 }
-
-// GetProjectByID returns a project by a given ID
-func GetProjectByID(client *metalgo.Driver, projectID string) (*models.V1ProjectResponse, error) {
-	resp, err := client.ProjectGet(projectID)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Project, nil
-}

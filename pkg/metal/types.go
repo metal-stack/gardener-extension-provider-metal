@@ -43,8 +43,14 @@ const (
 	APIURL = "metalAPIURL"
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"
-	// APIHMac is a constant for the key in a cloud provider secret.
+	// APIHMac is a constant for the hmac in a cloud provider secret.
 	APIHMac = "metalAPIHMac"
+	// CloudAPIURL is a constant for the url of cloud-api.
+	CloudAPIURL = "cloudAPIURL"
+	// CloudAPIKey is a constant for the key in a cloud provider secret.
+	CloudAPIKey = "cloudAPIKey"
+	// CloudAPIHMac is a constant for the hmac in a cloud provider secret.
+	CloudAPIHMac = "cloudAPIHMac"
 	// Region is a constant for the key in a backup secret that holds the AWS region.
 	Region = "region"
 	// BucketName is a constant for the key in a backup secret that holds the bucket name.
@@ -88,4 +94,8 @@ type Credentials struct {
 	MetalAPIURL  string
 	MetalAPIKey  string
 	MetalAPIHMac string
+
+	CloudAPIURL  string
+	CloudAPIKey  string
+	CloudAPIHMac string
 }
