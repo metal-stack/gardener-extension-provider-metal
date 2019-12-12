@@ -1,4 +1,4 @@
 ---
 images: 
-    csi_lvm_controller: image-repository:image-tag
-    csi_lvm_provisioner: image-repository:image-tag
+    csi-lvm-controller: image-repository:image-tag
+    csi-lvm-provisioner: image-repository:image-tag
