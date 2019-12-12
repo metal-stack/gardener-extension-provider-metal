@@ -96,6 +96,11 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
+	clusterID := w.cluster.Shoot.Status.TechnicalID
+	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+	regionTag := fmt.Sprintf("topology.kubernetes.io/region=%s", w.worker.Spec.Region)
+	zoneTag := fmt.Sprintf("topology.kubernetes.io/zone=%s", w.worker.Name)
+
 	for _, pool := range w.worker.Spec.Pools {
 		machineImage, err := w.findMachineImage(pool.MachineImage.Name, pool.MachineImage.Version)
 		if err != nil {
@@ -116,6 +121,10 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			"tags": []string{
 				fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace),
 				"kubernetes.io/role=node",
+				regionTag,
+				zoneTag,
+				fmt.Sprintf("node.kubernetes.io/instance-type=%s", pool.MachineType),
+				clusterTag,
 				fmt.Sprintf("machine.metal-pod.io/project-id=%s", projectID),
 			},
 			"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},
