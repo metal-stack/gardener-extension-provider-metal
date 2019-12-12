@@ -262,8 +262,9 @@ var cpShootChart = &chart.Chart{
 }
 
 var storageClassChart = &chart.Chart{
-	Name: "shoot-storageclasses",
-	Path: filepath.Join(metal.InternalChartsPath, "shoot-storageclasses"),
+	Name:   "shoot-storageclasses",
+	Path:   filepath.Join(metal.InternalChartsPath, "shoot-storageclasses"),
+	Images: []string{metal.CSIControllerImageName, metal.CSIProvisionerImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Namespace{}, Name: "csi-lvm"},
 		{Type: &storagev1.StorageClass{}, Name: "csi-lvm"},

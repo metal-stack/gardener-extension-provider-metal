@@ -97,7 +97,7 @@ spec:
       serviceAccountName: csi-lvm-controller
       containers:
       - name: csi-lvm-controller
-        image: metalpod/csi-lvm-controller:v0.2.2
+        image: {{ .Values.images.csi_lvm_controller }}
         imagePullPolicy: Always
         command:
         - /csi-lvm-controller
@@ -109,7 +109,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: CSI_LVM_PROVISIONER_IMAGE
-          value: "metalpod/csi-lvm-provisioner:v0.2.2"
+          value: {{ .Values.images.csi_lvm_provisioner }}
         - name: CSI_LVM_DEVICE_PATTERN
           # IMPORTANT: you cannot specify a wildcard (*) at any position in the devices grok.
           value: "/dev/nvme[0-9]n[0-9]"

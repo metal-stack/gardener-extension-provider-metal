@@ -38,6 +38,10 @@ const (
 	DroptailerImageName = "droptailer"
 	// LimitValidatingWebhookImageName is the name of the limit validating webhook to deploy to the seed's shoot namespace.
 	LimitValidatingWebhookImageName = "limit-validating-webhook"
+	// CSIControllerImageName is the name of the csi lvm controller to deploy to the seed's shoot namespace.
+	CSIControllerImageName = "csi-lvm-controller"
+	// CSIProvisionerImageName is the name of the csi lvm provisioner to deploy to the seed's shoot namespace.
+	CSIProvisionerImageName = "csi-lvm-provisioner"
 
 	// APIURL is a constant for the url of metal-api.
 	APIURL = "metalAPIURL"
