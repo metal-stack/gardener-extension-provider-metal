@@ -40,7 +40,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	clusterID := cluster.Shoot.Status.TechnicalID
+	clusterID := cluster.Shoot.GetUID()
 	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
 
 	firewallStatus := infrastructureStatus.Firewall
@@ -121,7 +121,8 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	}
 	// Example values:
 	// cluster.Shoot.Status.TechnicalID  "shoot--dev--johndoe-metal"
-	name := clusterID + "-firewall-" + uuid.String()[:5]
+	clusterName := cluster.Shoot.Status.TechnicalID
+	name := clusterName + "-firewall-" + uuid.String()[:5]
 
 	// find private network
 	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, infrastructureConfig.ProjectID, cluster.Shoot.Spec.Networking.Nodes)

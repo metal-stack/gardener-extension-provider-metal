@@ -26,7 +26,7 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		return err
 	}
 
-	clusterID := cluster.Shoot.Status.TechnicalID
+	clusterID := cluster.Shoot.GetUID()
 	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
 
 	firewallStatus := infrastructureStatus.Firewall
