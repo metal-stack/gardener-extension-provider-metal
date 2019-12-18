@@ -99,7 +99,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	clusterID := w.cluster.Shoot.GetUID()
 	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
 	regionTag := fmt.Sprintf("topology.kubernetes.io/region=%s", w.worker.Spec.Region)
-	zoneTag := fmt.Sprintf("topology.kubernetes.io/zone=%s", w.worker.Name)
+	zoneTag := fmt.Sprintf("topology.kubernetes.io/zone=%s", infrastructureConfig.PartitionID)
 
 	for _, pool := range w.worker.Spec.Pools {
 		machineImage, err := w.findMachineImage(pool.MachineImage.Name, pool.MachineImage.Version)
