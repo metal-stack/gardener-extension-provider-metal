@@ -601,13 +601,13 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	clusterName := annotations[metal.ShootAnnotationClusterName]
 	tenant := annotations[metal.ShootAnnotationTenant]
 
-	ti := cpConfig.TokenIssuer
+	ti := cpConfig.IAMConfig.IssuerConfig
 
 	values := map[string]interface{}{
 		"authn_tenant":             tenant,
 		"authn_clustername":        clusterName,
-		"authn_oidcIssuerUrl":      ti.IssuerURL,
-		"authn_oidcIssuerClientId": ti.ClientID,
+		"authn_oidcIssuerUrl":      ti.Url,
+		"authn_oidcIssuerClientId": ti.ClientId,
 		"authn_debug":              "true",
 
 		"grprb_clustername": clusterName,
