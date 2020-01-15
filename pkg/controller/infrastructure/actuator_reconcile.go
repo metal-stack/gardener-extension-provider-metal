@@ -44,6 +44,46 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
 
 	firewallStatus := infrastructureStatus.Firewall
+	var nodeCIDR string
+
+	if infrastructure.Status.NodesCIDR == nil {
+		resp, err := mclient.NetworkFind(&metalgo.NetworkFindRequest{
+			ProjectID:   &infrastructureConfig.ProjectID,
+			PartitionID: &infrastructureConfig.PartitionID,
+			Labels:      map[string]string{metal.ShootAnnotationClusterID: string(clusterID)},
+		})
+		if err != nil {
+			return &controllererrors.RequeueAfterError{
+				Cause:        err,
+				RequeueAfter: 30 * time.Second,
+			}
+		}
+
+		if len(resp.Networks) == 0 {
+			resp, err := mclient.NetworkAllocate(&metalgo.NetworkAllocateRequest{
+				ProjectID:   infrastructureConfig.ProjectID,
+				PartitionID: infrastructureConfig.PartitionID,
+				Name:        cluster.Shoot.GetName(),
+				Description: string(clusterID),
+				Labels:      map[string]string{metal.ShootAnnotationClusterID: string(clusterID)},
+			})
+			if err != nil {
+				return &controllererrors.RequeueAfterError{
+					Cause:        err,
+					RequeueAfter: 30 * time.Second,
+				}
+			}
+
+			nodeCIDR = resp.Network.Prefixes[0]
+		} else {
+			nodeCIDR = resp.Networks[0].Prefixes[0]
+		}
+
+		err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
+		if err != nil {
+			return err
+		}
+	}
 
 	if firewallStatus.Succeeded {
 		// verify that the firewall is still there and correctly reconciled
@@ -80,7 +120,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 
 		firewallStatus.MachineID = ""
 		firewallStatus.Succeeded = false
-		err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
+		err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
 		if err != nil {
 			return err
 		}
@@ -111,7 +151,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		}
 
 		firewallStatus.Succeeded = *resp.Firewall.Allocation.Succeeded
-		return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
+		return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
 	}
 
 	// we need to create a firewall
@@ -125,7 +165,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	name := clusterName + "-firewall-" + uuid.String()[:5]
 
 	// find private network
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, infrastructureConfig.ProjectID, cluster.Shoot.Spec.Networking.Nodes)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, infrastructureConfig.ProjectID, nodeCIDR)
 	if err != nil {
 		return err
 	}
@@ -192,7 +232,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	firewallStatus.MachineID = machineID
 	firewallStatus.Succeeded = true
 
-	return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
+	return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
 }
 
 func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, error) {
