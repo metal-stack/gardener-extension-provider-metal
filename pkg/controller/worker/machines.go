@@ -25,9 +25,9 @@ import (
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 
+	genericworkeractuator "github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-	genericworkeractuator "github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -139,7 +139,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		}
 
 		var (
-			deploymentName = fmt.Sprintf("%s-%s-z%d", w.worker.Namespace, pool.Name, pool.Name)
+			deploymentName = fmt.Sprintf("%s-%s", w.worker.Namespace, pool.Name)
 			className      = fmt.Sprintf("%s-%s", deploymentName, workerPoolHash)
 		)
 
