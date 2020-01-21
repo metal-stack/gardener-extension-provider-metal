@@ -21,15 +21,17 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		return err
 	}
 
+	var (
+		clusterID      = string(cluster.Shoot.GetUID())
+		clusterTag     = fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+		firewallStatus = infrastructureStatus.Firewall
+	)
+
 	mclient, err := metalclient.NewClient(ctx, a.client, &infrastructure.Spec.SecretRef)
 	if err != nil {
 		return err
 	}
 
-	clusterID := string(cluster.Shoot.GetUID())
-	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
-
-	firewallStatus := infrastructureStatus.Firewall
 	if firewallStatus.MachineID != "" {
 		machineID := decodeMachineID(firewallStatus.MachineID)
 		if machineID != "" {
@@ -59,7 +61,7 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 			}
 
 			firewallStatus.MachineID = ""
-			err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
+			err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, infrastructure.Status.NodesCIDR)
 			if err != nil {
 				a.logger.Error(err, "unable to update provider status after firewall deletion", "infrastructure", infrastructure.Name)
 				return &controllererrors.RequeueAfterError{
