@@ -411,8 +411,7 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 }
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
-func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-
+func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, checksums map[string]string) (map[string]interface{}, error) {
 	vp.logger.Info("GetControlPlaneShootChartValues")
 
 	values, err := vp.getControlPlaneShootLimitValidationWebhookChartValues(ctx, cp, cluster)
@@ -564,7 +563,11 @@ func getCCMChartValues(
 	projectID := infrastructure.ProjectID
 	nodeCIDR := cluster.Shoot.Spec.Networking.Nodes
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, nodeCIDR)
+	if nodeCIDR == nil {
+		return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	}
+
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, *nodeCIDR)
 	if err != nil {
 		return nil, err
 	}

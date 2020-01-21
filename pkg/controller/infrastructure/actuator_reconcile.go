@@ -10,6 +10,7 @@ import (
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 
+	metalapi "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	metalgo "github.com/metal-pod/metal-go"
 	metalfirewall "github.com/metal-pod/metal-go/api/client/firewall"
 
@@ -35,15 +36,33 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
+	var (
+		clusterID      = string(cluster.Shoot.GetUID())
+		clusterTag     = fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+		firewallStatus = infrastructureStatus.Firewall
+	)
+
 	mclient, err := metalclient.NewClient(ctx, a.client, &infrastructure.Spec.SecretRef)
 	if err != nil {
 		return err
 	}
 
-	clusterID := cluster.Shoot.GetUID()
-	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+	nodeCIDR, err := a.ensureNodeNetwork(ctx, clusterID, mclient, infrastructure, infrastructureConfig, cluster)
+	if err != nil {
+		return &controllererrors.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
+		}
+	}
 
-	firewallStatus := infrastructureStatus.Firewall
+	infrastructure.Status.NodesCIDR = &nodeCIDR
+	err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
+	if err != nil {
+		return &controllererrors.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
+		}
+	}
 
 	if firewallStatus.Succeeded {
 		// verify that the firewall is still there and correctly reconciled
@@ -80,7 +99,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 
 		firewallStatus.MachineID = ""
 		firewallStatus.Succeeded = false
-		err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
+		err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
 		if err != nil {
 			return err
 		}
@@ -111,7 +130,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		}
 
 		firewallStatus.Succeeded = *resp.Firewall.Allocation.Succeeded
-		return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
+		return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
 	}
 
 	// we need to create a firewall
@@ -125,7 +144,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	name := clusterName + "-firewall-" + uuid.String()[:5]
 
 	// find private network
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, infrastructureConfig.ProjectID, cluster.Shoot.Spec.Networking.Nodes)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, infrastructureConfig.ProjectID, nodeCIDR)
 	if err != nil {
 		return err
 	}
@@ -192,7 +211,45 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	firewallStatus.MachineID = machineID
 	firewallStatus.Succeeded = true
 
-	return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
+	return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
+}
+
+func (a *actuator) ensureNodeNetwork(ctx context.Context, clusterID string, mclient *metalgo.Driver, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, cluster *extensionscontroller.Cluster) (string, error) {
+	if cluster.Shoot.Spec.Networking.Nodes != nil {
+		return *cluster.Shoot.Spec.Networking.Nodes, nil
+	}
+	if infrastructure.Status.NodesCIDR != nil {
+		resp, err := mclient.NetworkFind(&metalgo.NetworkFindRequest{
+			ProjectID:   &infrastructureConfig.ProjectID,
+			PartitionID: &infrastructureConfig.PartitionID,
+			Labels:      map[string]string{metal.ShootAnnotationClusterID: clusterID},
+		})
+		if err != nil {
+			return "", err
+		}
+
+		if len(resp.Networks) != 0 {
+			return *infrastructure.Status.NodesCIDR, nil
+		}
+
+		return "", fmt.Errorf("node network disappeared from cloud provider: %s", *infrastructure.Status.NodesCIDR)
+	}
+
+	resp, err := mclient.NetworkAllocate(&metalgo.NetworkAllocateRequest{
+		ProjectID:   infrastructureConfig.ProjectID,
+		PartitionID: infrastructureConfig.PartitionID,
+		Name:        cluster.Shoot.GetName(),
+		Description: clusterID,
+		Labels:      map[string]string{metal.ShootAnnotationClusterID: clusterID},
+	})
+	if err != nil {
+		return "", err
+	}
+
+	nodeCIDR := resp.Network.Prefixes[0]
+	a.logger.Info("dynamically allocated node network", "nodeCIDR", nodeCIDR)
+
+	return nodeCIDR, nil
 }
 
 func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, error) {

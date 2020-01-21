@@ -20,12 +20,13 @@ import (
 	"path/filepath"
 
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
-	"github.com/gardener/gardener-extensions/pkg/util"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 
+	genericworkeractuator "github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -73,11 +74,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
-	shootVersionMajorMinor, err := util.VersionMajorMinor(w.cluster.Shoot.Spec.Kubernetes.Version)
-	if err != nil {
-		return err
-	}
-
 	credentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, w.client, &w.worker.Spec.SecretRef)
 	if err != nil {
 		return err
@@ -91,7 +87,11 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	projectID := infrastructureConfig.ProjectID
 	nodeCIDR := w.cluster.Shoot.Spec.Networking.Nodes
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, nodeCIDR)
+	if nodeCIDR == nil {
+		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	}
+
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, *nodeCIDR)
 	if err != nil {
 		return err
 	}
@@ -102,6 +102,11 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	zoneTag := fmt.Sprintf("topology.kubernetes.io/zone=%s", infrastructureConfig.PartitionID)
 
 	for _, pool := range w.worker.Spec.Pools {
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster)
+		if err != nil {
+			return err
+		}
+
 		machineImage, err := w.findMachineImage(pool.MachineImage.Name, pool.MachineImage.Version)
 		if err != nil {
 			return err
@@ -134,9 +139,8 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		}
 
 		var (
-			machineClassSpecHash = worker.MachineClassHash(machineClassSpec, shootVersionMajorMinor)
-			deploymentName       = fmt.Sprintf("%s-%s-z", w.worker.Namespace, pool.Name)
-			className            = fmt.Sprintf("%s-%s", deploymentName, machineClassSpecHash)
+			deploymentName = fmt.Sprintf("%s-%s", w.worker.Namespace, pool.Name)
+			className      = fmt.Sprintf("%s-%s", deploymentName, workerPoolHash)
 		)
 
 		machineDeployments = append(machineDeployments, worker.MachineDeployment{
@@ -153,6 +157,10 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		})
 
 		machineClassSpec["name"] = className
+		machineClassSpec["labels"] = map[string]string{
+			v1beta1constants.GardenPurpose: genericworkeractuator.GardenPurposeMachineClass,
+		}
+
 		machineClassSpec["secret"].(map[string]interface{})[metal.APIURL] = credentials.MetalAPIURL
 		machineClassSpec["secret"].(map[string]interface{})[metal.APIKey] = credentials.MetalAPIKey
 		machineClassSpec["secret"].(map[string]interface{})[metal.APIHMac] = credentials.MetalAPIHMac
