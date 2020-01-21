@@ -44,7 +44,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	clusterID := cluster.Shoot.GetUID()
 	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
 
-	nodeCIDR, err := a.ensureNodeNetwork(ctx, string(clusterID), mclient, infrastructure, infrastructureConfig, infrastructureStatus, cluster)
+	nodeCIDR, err := a.ensureNodeNetwork(ctx, string(clusterID), mclient, infrastructure, infrastructureConfig, cluster)
 	if err != nil {
 		return &controllererrors.RequeueAfterError{
 			Cause:        err,
@@ -53,6 +53,16 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	}
 
 	firewallStatus := infrastructureStatus.Firewall
+
+	infrastructure.Status.NodesCIDR = &nodeCIDR
+	err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
+	if err != nil {
+		return &controllererrors.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
+		}
+	}
+
 	if firewallStatus.Succeeded {
 		// verify that the firewall is still there and correctly reconciled
 		machineID := decodeMachineID(firewallStatus.MachineID)
@@ -203,7 +213,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
 }
 
-func (a *actuator) ensureNodeNetwork(ctx context.Context, clusterID string, mclient *metalgo.Driver, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, infrastructureStatus *metalapi.InfrastructureStatus, cluster *extensionscontroller.Cluster) (string, error) {
+func (a *actuator) ensureNodeNetwork(ctx context.Context, clusterID string, mclient *metalgo.Driver, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, cluster *extensionscontroller.Cluster) (string, error) {
 	if cluster.Shoot.Spec.Networking.Nodes != nil {
 		return *cluster.Shoot.Spec.Networking.Nodes, nil
 	}
@@ -236,12 +246,7 @@ func (a *actuator) ensureNodeNetwork(ctx context.Context, clusterID string, mcli
 	}
 
 	nodeCIDR := resp.Network.Prefixes[0]
-
-	infrastructure.Status.NodesCIDR = &nodeCIDR
-	err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, infrastructureStatus.Firewall)
-	if err != nil {
-		return "", err
-	}
+	a.logger.Info("dynamically allocated node network", "nodeCIDR", nodeCIDR)
 
 	return nodeCIDR, nil
 }
