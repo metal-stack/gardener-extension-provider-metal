@@ -29,8 +29,6 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 	clusterID := string(cluster.Shoot.GetUID())
 	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
 
-	nodeCIDR := infrastructure.Status.NodesCIDR
-
 	firewallStatus := infrastructureStatus.Firewall
 	if firewallStatus.MachineID != "" {
 		machineID := decodeMachineID(firewallStatus.MachineID)
@@ -61,7 +59,7 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 			}
 
 			firewallStatus.MachineID = ""
-			err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, nodeCIDR)
+			err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
 			if err != nil {
 				a.logger.Error(err, "unable to update provider status after firewall deletion", "infrastructure", infrastructure.Name)
 				return &controllererrors.RequeueAfterError{
@@ -105,10 +103,10 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		}
 	}
 
-	if nodeCIDR != nil {
-		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(mclient, projectID, *nodeCIDR)
+	if infrastructure.Status.NodesCIDR != nil {
+		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(mclient, projectID, *infrastructure.Status.NodesCIDR)
 		if err != nil {
-			a.logger.Error(err, "failed to query private network", "infrastructure", infrastructure.Name, "nodeCIDR", *nodeCIDR)
+			a.logger.Error(err, "failed to query private network", "infrastructure", infrastructure.Name, "nodeCIDR", *infrastructure.Status.NodesCIDR)
 			return &controllererrors.RequeueAfterError{
 				Cause:        err,
 				RequeueAfter: 30 * time.Second,

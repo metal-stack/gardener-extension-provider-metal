@@ -109,9 +109,8 @@ func (a *actuator) decodeInfrastructure(infrastructure *extensionsv1alpha1.Infra
 	return infrastructureConfig, infrastructureStatus, nil
 }
 
-func (a *actuator) updateProviderStatus(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, status metalapi.FirewallStatus, nodesCIDR *string) error {
+func (a *actuator) updateProviderStatus(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, status metalapi.FirewallStatus) error {
 	return extensionscontroller.TryUpdateStatus(ctx, retry.DefaultBackoff, a.client, infrastructure, func() error {
-		infrastructure.Status.NodesCIDR = nodesCIDR
 		infrastructure.Status.ProviderStatus = &runtime.RawExtension{
 			Object: &metalapi.InfrastructureStatus{
 				TypeMeta: metav1.TypeMeta{
