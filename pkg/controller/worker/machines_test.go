@@ -25,7 +25,7 @@ import (
 	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
 	mockkubernetes "github.com/gardener/gardener-extensions/pkg/mock/gardener/client/kubernetes"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
-	apisaws "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	. "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
@@ -66,13 +66,13 @@ var _ = Describe("Machines", func() {
 
 		Describe("#MachineClassKind", func() {
 			It("should return the correct kind of the machine class", func() {
-				Expect(workerDelegate.MachineClassKind()).To(Equal("AWSMachineClass"))
+				Expect(workerDelegate.MachineClassKind()).To(Equal("metalMachineClass"))
 			})
 		})
 
 		Describe("#MachineClassList", func() {
 			It("should return the correct type for the machine class list", func() {
-				Expect(workerDelegate.MachineClassList()).To(Equal(&machinev1alpha1.AWSMachineClassList{}))
+				Expect(workerDelegate.MachineClassList()).To(Equal(&machinev1alpha1.metalMachineClassList{}))
 			})
 		})
 
@@ -199,10 +199,10 @@ var _ = Describe("Machines", func() {
 						},
 						Region: region,
 						InfrastructureProviderStatus: &runtime.RawExtension{
-							Raw: encode(&apisaws.InfrastructureStatus{
-								VPC: apisaws.VPCStatus{
+							Raw: encode(&apismetal.InfrastructureStatus{
+								VPC: apismetal.VPCStatus{
 									ID: vpcID,
-									Subnets: []apisaws.Subnet{
+									Subnets: []apismetal.Subnet{
 										{
 											ID:      subnetZone1,
 											Purpose: "nodes",
@@ -214,22 +214,22 @@ var _ = Describe("Machines", func() {
 											Zone:    zone2,
 										},
 									},
-									SecurityGroups: []apisaws.SecurityGroup{
+									SecurityGroups: []apismetal.SecurityGroup{
 										{
 											ID:      securityGroupID,
 											Purpose: "nodes",
 										},
 									},
 								},
-								IAM: apisaws.IAM{
-									InstanceProfiles: []apisaws.InstanceProfile{
+								IAM: apismetal.IAM{
+									InstanceProfiles: []apismetal.InstanceProfile{
 										{
 											Name:    instanceProfileName,
 											Purpose: "nodes",
 										},
 									},
 								},
-								EC2: apisaws.EC2{
+								EC2: apismetal.EC2{
 									KeyName: keyName,
 								},
 							}),
@@ -282,7 +282,7 @@ var _ = Describe("Machines", func() {
 				}
 
 				scheme = runtime.NewScheme()
-				_ = apisaws.AddToScheme(scheme)
+				_ = apismetal.AddToScheme(scheme)
 				decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
 
 				workerDelegate = NewWorkerDelegate(c, decoder, machineImageToAMIMapping, chartApplier, "", w, cluster)
@@ -464,7 +464,7 @@ var _ = Describe("Machines", func() {
 				expectGetSecretCallToWork(c, awsAccessKeyID, awsSecretAccessKey)
 
 				w.Spec.InfrastructureProviderStatus = &runtime.RawExtension{
-					Raw: encode(&apisaws.InfrastructureStatus{}),
+					Raw: encode(&apismetal.InfrastructureStatus{}),
 				}
 
 				workerDelegate = NewWorkerDelegate(c, decoder, machineImageToAMIMapping, chartApplier, "", w, cluster)
@@ -478,9 +478,9 @@ var _ = Describe("Machines", func() {
 				expectGetSecretCallToWork(c, awsAccessKeyID, awsSecretAccessKey)
 
 				w.Spec.InfrastructureProviderStatus = &runtime.RawExtension{
-					Raw: encode(&apisaws.InfrastructureStatus{
-						IAM: apisaws.IAM{
-							InstanceProfiles: []apisaws.InstanceProfile{
+					Raw: encode(&apismetal.InfrastructureStatus{
+						IAM: apismetal.IAM{
+							InstanceProfiles: []apismetal.InstanceProfile{
 								{
 									Name:    instanceProfileName,
 									Purpose: "nodes",
@@ -513,18 +513,18 @@ var _ = Describe("Machines", func() {
 				expectGetSecretCallToWork(c, awsAccessKeyID, awsSecretAccessKey)
 
 				w.Spec.InfrastructureProviderStatus = &runtime.RawExtension{
-					Raw: encode(&apisaws.InfrastructureStatus{
-						VPC: apisaws.VPCStatus{
-							Subnets: []apisaws.Subnet{},
-							SecurityGroups: []apisaws.SecurityGroup{
+					Raw: encode(&apismetal.InfrastructureStatus{
+						VPC: apismetal.VPCStatus{
+							Subnets: []apismetal.Subnet{},
+							SecurityGroups: []apismetal.SecurityGroup{
 								{
 									ID:      securityGroupID,
 									Purpose: "nodes",
 								},
 							},
 						},
-						IAM: apisaws.IAM{
-							InstanceProfiles: []apisaws.InstanceProfile{
+						IAM: apismetal.IAM{
+							InstanceProfiles: []apismetal.InstanceProfile{
 								{
 									Name:    instanceProfileName,
 									Purpose: "nodes",

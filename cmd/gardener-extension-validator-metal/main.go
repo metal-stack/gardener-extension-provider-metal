@@ -12,16 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package worker_test
+package main
 
 import (
-	"testing"
+	"github.com/metal-pod/gardener-extension-provider-metal/cmd/gardener-extension-validator-metal/app"
+	"github.com/gardener/gardener-extensions/pkg/controller"
+	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
+	"github.com/gardener/gardener-extensions/pkg/log"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	runtimelog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func TestWorker(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Metal Worker Suite")
+func main() {
+	runtimelog.SetLogger(log.ZapLogger(false))
+	cmd := app.NewValidatorCommand(controller.SetupSignalHandlerContext())
+
+	if err := cmd.Execute(); err != nil {
+		controllercmd.LogErrAndExit(err, "error executing the main command")
+	}
 }

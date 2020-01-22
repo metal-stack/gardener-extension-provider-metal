@@ -101,3 +101,13 @@ start-provider-metal:
 		--webhook-config-server-port=8443 \
 		--webhook-config-mode=url \
 		--webhook-config-url=$(WEBHOOK_CONFIG_URL)
+
+.PHONY: start-validator-metal
+start-validator-metal:
+	@LEADER_ELECTION_NAMESPACE=garden GO111MODULE=on go run \
+		-ldflags $(LD_FLAGS) \
+		-tags netgo \
+		./cmd/gardener-extension-validator-metal \
+		--webhook-config-server-host=0.0.0.0 \
+		--webhook-config-server-port=9443 \
+		--webhook-config-cert-dir=./example/validator-metal-certs
