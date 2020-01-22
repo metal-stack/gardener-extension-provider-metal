@@ -26,7 +26,8 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         command:
-        - /gardener-extension-provider-metal
+        - /gardener-extension-metal-hyper
+        - provider-metal-controller-manager
         - --config-file=/etc/{{ include "name" . }}/config/config.yaml
         - --controlplane-max-concurrent-reconciles={{ .Values.controllers.controlplane.concurrentSyncs }}
         - --infrastructure-max-concurrent-reconciles={{ .Values.controllers.infrastructure.concurrentSyncs }}

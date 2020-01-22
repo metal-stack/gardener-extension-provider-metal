@@ -31,7 +31,7 @@ spec:
         image: {{ include "image" .Values.global.image }}
         imagePullPolicy: {{ .Values.global.image.pullPolicy }}
         command:
-        - /gardener-extension-provider-metal
+        - /gardener-extension-metal-hyper
         - validator-metal
         - --webhook-config-server-port={{ .Values.global.webhookConfig.serverPort }}
         - --webhook-config-cert-dir=/etc/gardener-extensions-validator-metal/srv

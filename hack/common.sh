@@ -45,7 +45,7 @@ function header_text {
 }
 
 SOURCE_TREES=(./pkg/... ./charts/...)
-CMD_TREES=(./cmd/...)
+CMD_TREES=(./cmd/gardener-extension-metal-hyper/...)
 
 VERSIONFILE_VERSION="$(cat "$DIRNAME/../VERSION")"
 VERSION="${VERSION:-${EFFECTIVE_VERSION:-"$VERSIONFILE_VERSION"}}"

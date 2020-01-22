@@ -20,6 +20,6 @@ WORKDIR /
 
 COPY charts /controllers/provider-metal/charts
 
-COPY --from=builder /go/bin/gardener-extension-provider-metal /gardener-extension-provider-metal
+COPY --from=builder /go/bin/gardener-extension-metal-hyper /gardener-extension-metal-hyper
 
-CMD ["/gardener-extension-provider-metal"]
+CMD ["/gardener-extension-metal-hyper"]
