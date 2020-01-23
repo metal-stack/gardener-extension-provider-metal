@@ -16,7 +16,7 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/google/uuid v1.1.1
 	github.com/metal-pod/cloud-go v0.0.0-20191211160716-e58fa1ae107b
-	github.com/metal-pod/metal-go v0.2.1-0.20200115154408-ca6ee37b9635
+	github.com/metal-pod/metal-go v0.2.1-0.20200120090002-c1f47f341bf5 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1
