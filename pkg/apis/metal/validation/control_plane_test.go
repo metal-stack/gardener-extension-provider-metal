@@ -35,7 +35,7 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 		controlPlaneConfig = &apismetal.ControlPlaneConfig{
 			IAMConfig: apismetal.IAMConfig{
 				IssuerConfig: &apismetal.IssuerConfig{
-					Url:      "https://somwhere",
+					Url:      "https://somewhere",
 					ClientId: "abc",
 				},
 				IdmConfig: &apismetal.IDMConfig{
