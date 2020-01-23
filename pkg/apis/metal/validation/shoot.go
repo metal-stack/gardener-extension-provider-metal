@@ -16,6 +16,7 @@ package validation
 
 import (
 	"fmt"
+	"sort"
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/gardener/gardener/pkg/apis/garden"
@@ -45,7 +46,9 @@ func ValidateWorkers(workers []garden.Worker, cloudProfile *gardencorev1beta1.Cl
 
 		wantedImage := worker.Machine.Image.Name + "-" + worker.Machine.Image.Version
 		if !availableImages.Has(wantedImage) {
-			allErrs = append(allErrs, field.Required(fldPath.Index(i).Child("machine.image"), fmt.Sprintf("machine image %s in version %s not offered, available images are: %v", worker.Machine.Image.Name, worker.Machine.Image.Version, availableImages.UnsortedList())))
+			sortedImages := availableImages.List()
+			sort.Strings(sortedImages)
+			allErrs = append(allErrs, field.Required(fldPath.Index(i).Child("machine.image"), fmt.Sprintf("machine image %s in version %s not offered, available images are: %v", worker.Machine.Image.Name, worker.Machine.Image.Version, sortedImages)))
 		}
 	}
 

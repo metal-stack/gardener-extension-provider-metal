@@ -29,7 +29,9 @@ func ValidateControlPlaneConfig(controlPlaneConfig *apismetal.ControlPlaneConfig
 
 	issuer := iam.IssuerConfig
 	issuerPath := iamPath.Child("issuerConfig")
-	if issuer != nil {
+	if issuer == nil {
+		allErrs = append(allErrs, field.Required(issuerPath, "issuer config must be specified"))
+	} else {
 		if issuer.Url == "" {
 			allErrs = append(allErrs, field.Required(issuerPath.Child("url"), "url must be specified"))
 		}
@@ -38,7 +40,23 @@ func ValidateControlPlaneConfig(controlPlaneConfig *apismetal.ControlPlaneConfig
 		}
 	}
 
-	// TODO: Add more tests
+	idmConfig := iam.IdmConfig
+	idmConfigPath := iamPath.Child("idmConfig")
+	if idmConfig == nil {
+		allErrs = append(allErrs, field.Required(idmConfigPath, "idm config must be specified"))
+	} else {
+		if idmConfig.Idmtype == "" {
+			allErrs = append(allErrs, field.Required(idmConfigPath.Child("idmtype"), "idmtype must be specified"))
+		}
+	}
+
+	groupConfig := iam.GroupConfig
+	groupConfigPath := iamPath.Child("groupConfig")
+	if groupConfig != nil {
+		if groupConfig.NamespaceMaxLength <= 0 {
+			allErrs = append(allErrs, field.Required(groupConfigPath.Child("namespaceMaxLength"), "namespaceMaxLength must be a positive integer"))
+		}
+	}
 
 	return allErrs
 }
