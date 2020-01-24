@@ -42,12 +42,13 @@ spec:
         - name: webhook-server
           containerPort: {{ .Values.global.webhookConfig.serverPort }}
           protocol: TCP
-        livenessProbe:
-          httpGet:
-            port: {{ .Values.global.webhookConfig.serverPort }}
-            scheme: HTTPS
-          initialDelaySeconds: 5
-          periodSeconds: 10
+        # FIXME: This is somehow making trouble and leads to shutdown
+        # livenessProbe:
+        #   httpGet:
+        #     port: {{ .Values.global.webhookConfig.serverPort }}
+        #     scheme: HTTPS
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 10
 {{- if .Values.global.resources }}
         resources:
 {{ toYaml .Values.global.resources | nindent 10 }}
