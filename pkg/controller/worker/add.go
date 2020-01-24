@@ -30,7 +30,7 @@ var (
 	DefaultAddOptions = AddOptions{}
 )
 
-// AddOptions are options to apply when adding the AWS worker controller to the manager.
+// AddOptions are options to apply when adding the metal worker controller to the manager.
 type AddOptions struct {
 	// Controller are the controller.Options.
 	Controller controller.Options

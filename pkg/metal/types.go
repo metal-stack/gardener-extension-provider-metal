@@ -55,7 +55,7 @@ const (
 	CloudAPIKey = "cloudAPIKey"
 	// CloudAPIHMac is a constant for the hmac in a cloud provider secret.
 	CloudAPIHMac = "cloudAPIHMac"
-	// Region is a constant for the key in a backup secret that holds the AWS region.
+	// Region is a constant for the key in a backup secret that holds the metal region.
 	Region = "region"
 	// BucketName is a constant for the key in a backup secret that holds the bucket name.
 	// The bucket name is written to the backup secret by Gardener as a temporary solution.

@@ -284,7 +284,7 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, config Accountin
 	}
 }
 
-// valuesProvider is a ValuesProvider that provides AWS-specific values for the 2 charts applied by the generic actuator.
+// valuesProvider is a ValuesProvider that provides metal-specific values for the 2 charts applied by the generic actuator.
 type valuesProvider struct {
 	decoder          runtime.Decoder
 	restConfig       *rest.Config

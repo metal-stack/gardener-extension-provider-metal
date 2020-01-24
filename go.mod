@@ -16,7 +16,7 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/google/uuid v1.1.1
 	github.com/metal-pod/cloud-go v0.0.0-20191211160716-e58fa1ae107b
-	github.com/metal-pod/metal-go v0.2.1-0.20200115154408-ca6ee37b9635
+	github.com/metal-pod/metal-go v0.2.1-0.20200120090002-c1f47f341bf5 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1
@@ -28,6 +28,7 @@ require (
 	k8s.io/apimachinery v0.0.0-20191004074956-c5d2f014d689
 	k8s.io/apiserver v0.0.0-20191010014313-3893be10d307
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
+	k8s.io/component-base v0.0.0-20190918160511-547f6c5d7090
 	k8s.io/kubelet v0.0.0-20190918162654-250a1838aa2c
 	sigs.k8s.io/controller-runtime v0.4.0
 )

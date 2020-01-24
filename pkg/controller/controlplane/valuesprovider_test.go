@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
-	apisaws "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
@@ -49,7 +49,7 @@ var _ = Describe("ValuesProvider", func() {
 
 		// Build scheme
 		scheme = runtime.NewScheme()
-		_      = apisaws.AddToScheme(scheme)
+		_      = apismetal.AddToScheme(scheme)
 
 		cp = &extensionsv1alpha1.ControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
@@ -58,8 +58,8 @@ var _ = Describe("ValuesProvider", func() {
 			},
 			Spec: extensionsv1alpha1.ControlPlaneSpec{
 				ProviderConfig: &runtime.RawExtension{
-					Raw: encode(&apisaws.ControlPlaneConfig{
-						CloudControllerManager: &apisaws.CloudControllerManagerConfig{
+					Raw: encode(&apismetal.ControlPlaneConfig{
+						CloudControllerManager: &apismetal.CloudControllerManagerConfig{
 							KubernetesConfig: gardenv1beta1.KubernetesConfig{
 								FeatureGates: map[string]bool{
 									"CustomResourceValidation": true,
@@ -69,10 +69,10 @@ var _ = Describe("ValuesProvider", func() {
 					}),
 				},
 				InfrastructureProviderStatus: &runtime.RawExtension{
-					Raw: encode(&apisaws.InfrastructureStatus{
-						VPC: apisaws.VPCStatus{
+					Raw: encode(&apismetal.InfrastructureStatus{
+						VPC: apismetal.VPCStatus{
 							ID: "vpc-1234",
-							Subnets: []apisaws.Subnet{
+							Subnets: []apismetal.Subnet{
 								{
 									ID:      "subnet-acbd1234",
 									Purpose: "public",
@@ -90,8 +90,8 @@ var _ = Describe("ValuesProvider", func() {
 			Shoot: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{
 					Cloud: gardenv1beta1.Cloud{
-						AWS: &gardenv1beta1.AWSCloud{
-							Networks: gardenv1beta1.AWSNetworks{
+						metal: &gardenv1beta1.metalCloud{
+							Networks: gardenv1beta1.metalNetworks{
 								K8SNetworks: gardencorev1alpha1.K8SNetworks{
 									Pods: &cidr,
 								},

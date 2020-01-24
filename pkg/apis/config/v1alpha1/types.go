@@ -21,12 +21,12 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ControllerConfiguration defines the configuration for the AWS provider.
+// ControllerConfiguration defines the configuration for the metal provider.
 type ControllerConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// MachineImages is the list of machine images that are understood by the controller. It maps
-	// logical names and versions to AWS-specific identifiers, i.e. AMIs.
+	// logical names and versions to metal-specific identifiers, i.e. AMIs.
 	MachineImages []MachineImage `json:"machineImages,omitempty"`
 	// ETCD is the etcd configuration.
 	ETCD ETCD `json:"etcd"`
