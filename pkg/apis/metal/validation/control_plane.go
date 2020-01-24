@@ -40,16 +40,6 @@ func ValidateControlPlaneConfig(controlPlaneConfig *apismetal.ControlPlaneConfig
 		}
 	}
 
-	idmConfig := iam.IdmConfig
-	idmConfigPath := iamPath.Child("idmConfig")
-	if idmConfig == nil {
-		allErrs = append(allErrs, field.Required(idmConfigPath, "idm config must be specified"))
-	} else {
-		if idmConfig.Idmtype == "" {
-			allErrs = append(allErrs, field.Required(idmConfigPath.Child("idmtype"), "idmtype must be specified"))
-		}
-	}
-
 	groupConfig := iam.GroupConfig
 	groupConfigPath := iamPath.Child("groupConfig")
 	if groupConfig != nil {

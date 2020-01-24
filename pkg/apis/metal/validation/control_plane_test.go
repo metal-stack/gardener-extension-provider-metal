@@ -74,18 +74,6 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 			}))
 		})
 
-		It("should forbid empty idm type", func() {
-			controlPlaneConfig.IAMConfig.IdmConfig.Idmtype = ""
-
-			errorList := ValidateControlPlaneConfig(controlPlaneConfig, field.NewPath("spec"))
-
-			Expect(errorList).To(ConsistOfFields(Fields{
-				"Type":   Equal(field.ErrorTypeRequired),
-				"Field":  Equal("spec.iamconfig.idmConfig.idmtype"),
-				"Detail": Equal("idmtype must be specified"),
-			}))
-		})
-
 		It("should forbid group namespace length of zero", func() {
 			controlPlaneConfig.IAMConfig.GroupConfig = &apismetal.NamespaceGroupConfig{NamespaceMaxLength: 0}
 
