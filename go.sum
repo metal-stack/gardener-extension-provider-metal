@@ -502,6 +502,8 @@ github.com/metal-pod/metal-go v0.2.0 h1:dBUXjYqfaHpfYxkawlwxmRWkgFKUl8NPhzQjdzEM
 github.com/metal-pod/metal-go v0.2.0/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
 github.com/metal-pod/metal-go v0.2.1-0.20200115154408-ca6ee37b9635 h1:hceg8ByO7PThO0gI2rfaNgX6Eh/RifXT6tc0tg8Eyy0=
 github.com/metal-pod/metal-go v0.2.1-0.20200115154408-ca6ee37b9635/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
+github.com/metal-pod/metal-go v0.2.1-0.20200120090002-c1f47f341bf5 h1:/aGHeQeca5ykH3+onheLT8BdQXrsZoDNldVPC4py64M=
+github.com/metal-pod/metal-go v0.2.1-0.20200120090002-c1f47f341bf5/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89 h1:RRVjpKhVGMGoDjadvr0IZWQSPoFvYUp4es7s62zhx8k=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89/go.mod h1:BUuL3n1TYvrGlxfUl2L6zrErSkw1NPchimPfcWMSU1k=
 github.com/mholt/archiver v3.1.1+incompatible/go.mod h1:Dh2dOXnSdiLxRiPoVfIr/fI1TwETms9B8CTWfeh7ROU=
