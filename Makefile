@@ -25,6 +25,8 @@ LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
 
+export CGO_ENABLED := 0
+export GO111MODULE := on
 
 ### Build commands
 
@@ -83,11 +85,6 @@ docker-push:
 
 ### Debug / Development commands
 
-.PHONY: revendor
-revendor:
-	@GO111MODULE=on go mod vendor
-	@GO111MODULE=on go mod tidy
-
 .PHONY: start-provider-metal
 start-provider-metal:
 	@LEADER_ELECTION_NAMESPACE=garden go run \
@@ -104,7 +101,7 @@ start-provider-metal:
 
 .PHONY: start-validator-metal
 start-validator-metal:
-	@LEADER_ELECTION_NAMESPACE=garden GO111MODULE=on go run \
+	@LEADER_ELECTION_NAMESPACE=garden go run \
 		-ldflags $(LD_FLAGS) \
 		-tags netgo \
 		./cmd/gardener-extension-validator-metal \

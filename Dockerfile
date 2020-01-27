@@ -12,7 +12,7 @@ COPY . .
 RUN make VERIFY=$VERIFY all
 
 #############      base                                     #############
-FROM alpine:3.10 AS base
+FROM alpine:3.11 AS base
 
 RUN apk add --update bash curl
 
