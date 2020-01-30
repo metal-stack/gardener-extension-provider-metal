@@ -30,6 +30,8 @@ import (
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	cloudclient "github.com/metal-pod/cloud-go/api/client"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/helper"
+
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-pod/metal-go"
 
@@ -345,15 +347,24 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	checksums map[string]string,
 	scaledDown bool,
 ) (map[string]interface{}, error) {
-	// Decode providerConfig
-	cpConfig := &apismetal.ControlPlaneConfig{}
-	if _, _, err := vp.decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
-		return nil, errors.Wrapf(err, "could not decode providerConfig of controlplane '%s'", util.ObjectName(cp))
-	}
-
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
 	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+	}
+
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	if err != nil {
+		return nil, err
+	}
+
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	cpConfig.IAMConfig, err = helper.MergeIAMConfig(cpConfig.IAMConfig, cloudProfileConfig.IAMConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	mclient, err := metalclient.NewClient(ctx, vp.client, &cp.Spec.SecretRef)

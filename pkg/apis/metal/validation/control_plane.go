@@ -15,17 +15,22 @@
 package validation
 
 import (
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // ValidateControlPlaneConfig validates a ControlPlaneConfig object.
-func ValidateControlPlaneConfig(controlPlaneConfig *apismetal.ControlPlaneConfig, fldPath *field.Path) field.ErrorList {
+func ValidateControlPlaneConfig(controlPlaneConfig *apismetal.ControlPlaneConfig, cloudProfile *gardencorev1beta1.CloudProfile, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	iam := controlPlaneConfig.IAMConfig
 	iamPath := fldPath.Child("iamconfig")
+	if iam == nil {
+		allErrs = append(allErrs, field.Required(iamPath, "iam config must be specified"))
+		return allErrs
+	}
 
 	issuer := iam.IssuerConfig
 	issuerPath := iamPath.Child("issuerConfig")

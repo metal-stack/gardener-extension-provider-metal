@@ -49,8 +49,9 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 	Describe("#ValidateInfrastructureConfigAgainstCloudProfile", func() {
 		var (
-			cloudProfile *gardencorev1beta1.CloudProfile
-			shoot        *garden.Shoot
+			cloudProfile       *gardencorev1beta1.CloudProfile
+			cloudProfileConfig *apismetal.CloudProfileConfig
+			shoot              *garden.Shoot
 		)
 
 		Context("zones validation", func() {
@@ -77,21 +78,58 @@ var _ = Describe("InfrastructureConfig validation", func() {
 						Region: "region-a",
 					},
 				}
+				cloudProfileConfig = &apismetal.CloudProfileConfig{
+					FirewallNetworks: map[string][]string{"partition-a": []string{"internet"}},
+					FirewallImages:   []string{"image"},
+				}
 			})
 
 			It("should pass because zone is configured in CloudProfile", func() {
-				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, &field.Path{})
+				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, &field.Path{})
 
 				Expect(errorList).To(BeEmpty())
 			})
 
 			It("should forbid because zone is not specified in CloudProfile", func() {
 				infrastructureConfig.PartitionID = "not-available"
-				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, field.NewPath("spec"))
+				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))
 
-				Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":  Equal(field.ErrorTypeInvalid),
 					"Field": Equal("spec.partitionID"),
+				}))))
+			})
+
+			It("should forbid firewall image is not specified in CloudProfileConfig", func() {
+				infrastructureConfig.Firewall.Image = "no-image"
+				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Field":  Equal("spec.firewall.image"),
+					"Detail": Equal("supported values: [image]"),
+				}))))
+			})
+
+			It("should forbid because firewall network is not in CloudProfileConfig", func() {
+				infrastructureConfig.Firewall.Networks = []string{"no-network"}
+				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Field":  Equal("spec.firewall.networks[0]"),
+					"Detail": Equal("supported values for partition partition-a: [internet]"),
+				}))))
+			})
+
+			It("should forbid because no firewall networks given", func() {
+				infrastructureConfig.Firewall.Networks = nil
+				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeRequired),
+					"Field":  Equal("spec.firewall.networks"),
+					"Detail": Equal("at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"),
 				}))))
 			})
 		})
