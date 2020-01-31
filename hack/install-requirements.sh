@@ -49,6 +49,6 @@ echo "installing code-generator"
 mkdir -p "$DIRNAME/../vendor/k8s.io/"
 cd "$DIRNAME/../vendor/k8s.io/"
 rm -rf *
-curl -fLs https://github.com/kubernetes/code-generator/archive/v0.16.6.tar.gz | tar -xvzf -
+curl -fLs https://github.com/kubernetes/code-generator/archive/v0.16.6.tar.gz | tar -xzf -
 mv code-generator-0.16.6 code-generator
 cd -
