@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
-	gardencorev1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalgo "github.com/metal-pod/metal-go"
 	"github.com/metal-pod/metal-go/api/models"
@@ -63,16 +62,15 @@ func ReadCredentialsFromSecretRef(ctx context.Context, k8sClient client.Client, 
 	return credentials, nil
 }
 
-// GetPrivateNetworkFromNodeNetwork returns the private network that belongs to the given node network cidr and project.
-func GetPrivateNetworksFromNodeNetwork(client *metalgo.Driver, projectID string, nodeNetworkCIDR *gardencorev1.CIDR) ([]*models.V1NetworkResponse, error) {
-	if nodeNetworkCIDR == nil {
-		return nil, fmt.Errorf("node network cidr is nil")
+// GetPrivateNetworksFromNodeNetwork returns the private network that belongs to the given node network cidr and project.
+func GetPrivateNetworksFromNodeNetwork(client *metalgo.Driver, projectID string, nodeNetworkCIDR string) ([]*models.V1NetworkResponse, error) {
+	if nodeNetworkCIDR == "" {
+		return nil, fmt.Errorf("node network cidr is empty")
 	}
-	prefix := string(*nodeNetworkCIDR)
 
 	networkFindRequest := metalgo.NetworkFindRequest{
 		ProjectID: &projectID,
-		Prefixes:  []string{prefix},
+		Prefixes:  []string{nodeNetworkCIDR},
 	}
 	networkFindResponse, err := client.NetworkFind(&networkFindRequest)
 	if err != nil {
@@ -82,13 +80,13 @@ func GetPrivateNetworksFromNodeNetwork(client *metalgo.Driver, projectID string,
 }
 
 // GetPrivateNetworkFromNodeNetwork returns the private network that belongs to the given node network cidr and project.
-func GetPrivateNetworkFromNodeNetwork(client *metalgo.Driver, projectID string, nodeNetworkCIDR *gardencorev1.CIDR) (*models.V1NetworkResponse, error) {
+func GetPrivateNetworkFromNodeNetwork(client *metalgo.Driver, projectID string, nodeNetworkCIDR string) (*models.V1NetworkResponse, error) {
 	privateNetworks, err := GetPrivateNetworksFromNodeNetwork(client, projectID, nodeNetworkCIDR)
 	if err != nil {
 		return nil, err
 	}
 	if len(privateNetworks) != 1 {
-		return nil, fmt.Errorf("no distinct private network for project id %q and prefix %s found", projectID, string(*nodeNetworkCIDR))
+		return nil, fmt.Errorf("no distinct private network for project id %q and prefix %s found", projectID, nodeNetworkCIDR)
 	}
 	return privateNetworks[0], nil
 }
@@ -145,13 +143,4 @@ func UpdateIPInCluster(client *metalgo.Driver, ip *models.V1IPResponse, clusterI
 		return err
 	}
 	return nil
-}
-
-// GetProjectByID returns a project by a given ID
-func GetProjectByID(client *metalgo.Driver, projectID string) (*models.V1ProjectResponse, error) {
-	resp, err := client.ProjectGet(projectID)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Project, nil
 }

@@ -15,6 +15,14 @@ images:
   sourceRepository: metal-pod/droptailer
   repository: docker.io/metalpod/droptailer-server
   tag: latest
+- name: csi-lvm-controller
+  sourceRepository: github.com/metal-pod/csi-lvm-controller
+  repository: metalpod/csi-lvm-controller
+  tag: v0.2.2
+- name: csi-lvm-provisioner
+  sourceRepository: github.com/metal-pod/csi-lvm-provisioner
+  repository: metalpod/csi-lvm-provisioner
+  tag: v0.2.2
 # can be provided via image override:
 # - name: authn-webhook
 #   sourceRepository:

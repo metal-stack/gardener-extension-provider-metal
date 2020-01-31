@@ -23,5 +23,5 @@ import (
 
 func TestControlplane(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "AWS Controlplane Suite")
+	RunSpecs(t, "Metal Controlplane Suite")
 }

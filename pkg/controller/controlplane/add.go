@@ -86,7 +86,7 @@ type AddOptions struct {
 	// IgnoreOperationAnnotation specifies whether to ignore the operation annotation or not.
 	IgnoreOperationAnnotation bool
 	// ShootWebhooks specifies the list of desired shoot webhooks.
-	ShootWebhooks []admissionregistrationv1beta1.Webhook
+	ShootWebhooks []admissionregistrationv1beta1.MutatingWebhook
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
@@ -98,7 +98,8 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 			storageClassChart, nil, NewValuesProvider(mgr, logger, *AccOpts.config), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 			imagevector.ImageVector(), "", opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger),
 		ControllerOptions: opts.Controller,
-		Predicates:        controlplane.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
+		Predicates:        controlplane.DefaultPredicates(opts.IgnoreOperationAnnotation),
+		Type:              metal.Type,
 	})
 }
 

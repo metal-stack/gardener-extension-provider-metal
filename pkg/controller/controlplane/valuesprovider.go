@@ -17,7 +17,6 @@ package controlplane
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 
 	"github.com/gardener/gardener-extensions/pkg/util"
@@ -29,20 +28,27 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
+	cloudclient "github.com/metal-pod/cloud-go/api/client"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/helper"
+
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-pod/metal-go"
 
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
-	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
+	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
 	"github.com/gardener/gardener/pkg/utils/secrets"
@@ -80,8 +86,8 @@ const (
 
 var controlPlaneSecrets = &secrets.Secrets{
 	CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-		gardencorev1alpha1.SecretNameCACluster: {
-			Name:       gardencorev1alpha1.SecretNameCACluster,
+		v1alpha1constants.SecretNameCACluster: {
+			Name:       v1alpha1constants.SecretNameCACluster,
 			CommonName: "kubernetes",
 			CertType:   secrets.CACert,
 		},
@@ -94,11 +100,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CommonName:   "system:cloud-controller-manager",
 					Organization: []string{user.SystemPrivilegedGroup},
 					CertType:     secrets.ClientCert,
-					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
 				KubeConfigRequest: &secrets.KubeConfigRequest{
 					ClusterName:  clusterName,
-					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -107,11 +113,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CommonName:   "system:group-rolebinding-controller",
 					Organization: []string{user.SystemPrivilegedGroup},
 					CertType:     secrets.ClientCert,
-					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
 				KubeConfigRequest: &secrets.KubeConfigRequest{
 					ClusterName:  clusterName,
-					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -120,7 +126,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CommonName: authNWebhookDeploymentName,
 					DNSNames:   controlplane.DNSNamesForService(authNWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
-					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -129,7 +135,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CommonName: limitValidatingWebhookDeploymentName,
 					DNSNames:   controlplane.DNSNamesForService(limitValidatingWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
-					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -139,11 +145,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					// Groupname of user
 					Organization: []string{accountingExporterName},
 					CertType:     secrets.ClientCert,
-					SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
 				KubeConfigRequest: &secrets.KubeConfigRequest{
 					ClusterName:  clusterName,
-					APIServerURL: gardencorev1alpha1.DeploymentNameKubeAPIServer,
+					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -152,7 +158,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CommonName: cloudControllerManagerDeploymentName,
 					DNSNames:   controlplane.DNSNamesForService(cloudControllerManagerDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
-					SigningCA:  cas[gardencorev1alpha1.SecretNameCACluster],
+					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
 		}
@@ -174,20 +180,36 @@ var controlPlaneChart = &chart.Chart{
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
 	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.DroptailerImageName, metal.LimitValidatingWebhookImageName},
 	Objects: []*chart.Object{
+		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
 
+		// authn webhook
 		{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
 		{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2kube-jwt-authn-webhook"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "kube-jwt-authn-webhook-allow-namespace"},
 
-		{Type: &appsv1.Deployment{}, Name: "limit-validating-webhook"},
-		{Type: &corev1.Service{}, Name: "limit-validating-webhook"},
+		// accounting exporter
+		{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
+		{Type: &rbacv1.RoleBinding{}, Name: "accounting-exporter"},
+		{Type: &rbacv1.Role{}, Name: "accounting-exporter"},
 
-		{Type: &corev1.ServiceAccount{}, Name: "group-rolebinding-controller"},
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "group-rolebinding-controller"},
+		// group rolebinding controller
 		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
 
-		{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
+		// limit validation webhook
+		{Type: &appsv1.Deployment{}, Name: "limit-validating-webhook"},
+		{Type: &corev1.Service{}, Name: "limit-validating-webhook"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "limit-validating-webhook-allow-namespace"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2limit-validating-webhook"},
+
+		// network policies
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-vpn"},
 	},
 }
 
@@ -195,23 +217,64 @@ var cpShootChart = &chart.Chart{
 	Name: "shoot-control-plane",
 	Path: filepath.Join(metal.InternalChartsPath, "shoot-control-plane"),
 	Objects: []*chart.Object{
-		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
-
+		// limit validating webhook
 		{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "limit-validating-webhook"},
 
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
+		// metallb
+		{Type: &corev1.Namespace{}, Name: "metallb-system"},
+		{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "speaker"},
+		{Type: &corev1.ServiceAccount{}, Name: "controller"},
+		{Type: &corev1.ServiceAccount{}, Name: "speaker"},
+		{Type: &rbacv1.ClusterRole{}, Name: "metallb-system:controller"},
+		{Type: &rbacv1.ClusterRole{}, Name: "metallb-system:speaker"},
+		{Type: &rbacv1.Role{}, Name: "config-watcher"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "metallb-system:controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "metallb-system:speaker"},
+		{Type: &rbacv1.RoleBinding{}, Name: "config-watcher"},
+		{Type: &appsv1.DaemonSet{}, Name: "speaker"},
+		{Type: &appsv1.Deployment{}, Name: "controller"},
 
+		// network policies
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
+
+		// accounting controller
 		{Type: &rbacv1.ClusterRole{}, Name: "system:accounting-exporter"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:accounting-exporter"},
 
+		// firewall controller
+		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
+
+		// droptailer
+		{Type: &corev1.Namespace{}, Name: "firewall"},
 		{Type: &appsv1.Deployment{}, Name: "droptailer"},
+
+		// group rolebinding controller
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
+
+		// ccm
+		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
+		{Type: &rbacv1.ClusterRole{}, Name: "cloud-controller-manager"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "cloud-controller-manager"},
 	},
 }
 
 var storageClassChart = &chart.Chart{
-	Name: "shoot-storageclasses",
-	Path: filepath.Join(metal.InternalChartsPath, "shoot-storageclasses"),
+	Name:   "shoot-storageclasses",
+	Path:   filepath.Join(metal.InternalChartsPath, "shoot-storageclasses"),
+	Images: []string{metal.CSIControllerImageName, metal.CSIProvisionerImageName},
+	Objects: []*chart.Object{
+		{Type: &corev1.Namespace{}, Name: "csi-lvm"},
+		{Type: &storagev1.StorageClass{}, Name: "csi-lvm"},
+		{Type: &corev1.ServiceAccount{}, Name: "csi-lvm-controller"},
+		{Type: &rbacv1.ClusterRole{}, Name: "csi-lvm-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "csi-lvm-controller"},
+		{Type: &appsv1.Deployment{}, Name: "csi-lvm-controller"},
+	},
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
@@ -223,7 +286,7 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, config Accountin
 	}
 }
 
-// valuesProvider is a ValuesProvider that provides AWS-specific values for the 2 charts applied by the generic actuator.
+// valuesProvider is a ValuesProvider that provides metal-specific values for the 2 charts applied by the generic actuator.
 type valuesProvider struct {
 	decoder          runtime.Decoder
 	restConfig       *rest.Config
@@ -284,10 +347,24 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	checksums map[string]string,
 	scaledDown bool,
 ) (map[string]interface{}, error) {
-	// Decode providerConfig
-	cpConfig := &apismetal.ControlPlaneConfig{}
-	if _, _, err := vp.decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cpConfig); err != nil {
-		return nil, errors.Wrapf(err, "could not decode providerConfig of controlplane '%s'", util.ObjectName(cp))
+	infrastructureConfig := &apismetal.InfrastructureConfig{}
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+	}
+
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	if err != nil {
+		return nil, err
+	}
+
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	cpConfig.IAMConfig, err = helper.MergeIAMConfig(cpConfig.IAMConfig, cloudProfileConfig.IAMConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	mclient, err := metalclient.NewClient(ctx, vp.client, &cp.Spec.SecretRef)
@@ -295,18 +372,23 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
+	cclient, err := metalclient.NewCloudClient(ctx, vp.client, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get CCM chart values
-	chartValues, err := getCCMChartValues(cpConfig, cp, cluster, checksums, scaledDown, mclient)
+	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, cp, cluster, checksums, scaledDown, mclient)
 	if err != nil {
 		return nil, err
 	}
 
-	authValues, err := getAuthNGroupRoleChartValues(cp, cluster)
+	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster)
 	if err != nil {
 		return nil, err
 	}
 
-	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, mclient)
+	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, infrastructureConfig, mclient, cclient)
 	if err != nil {
 		return nil, err
 	}
@@ -340,8 +422,7 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 }
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
-func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-
+func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, checksums map[string]string) (map[string]interface{}, error) {
 	vp.logger.Info("GetControlPlaneShootChartValues")
 
 	values, err := vp.getControlPlaneShootLimitValidationWebhookChartValues(ctx, cp, cluster)
@@ -390,8 +471,8 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 
 	wanted := &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-			gardencorev1alpha1.SecretNameCACluster: {
-				Name:       gardencorev1alpha1.SecretNameCACluster,
+			v1alpha1constants.SecretNameCACluster: {
+				Name:       v1alpha1constants.SecretNameCACluster,
 				CommonName: "kubernetes",
 				CertType:   secrets.CACert,
 			},
@@ -404,7 +485,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 						CommonName:   "droptailer",
 						Organization: []string{"droptailer-client"},
 						CertType:     secrets.ClientCert,
-						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
@@ -413,7 +494,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 						CommonName:   "droptailer",
 						Organization: []string{"droptailer-server"},
 						CertType:     secrets.ServerCert,
-						SigningCA:    cas[gardencorev1alpha1.SecretNameCACluster],
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 					},
 				},
 			}
@@ -428,7 +509,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 	if err != nil {
 		return errors.Wrap(err, "could not create shoot kubernetes client")
 	}
-	gcs, err := gardenerkubernetes.NewForConfig(shootConfig, client.Options{})
+	gcs, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(shootConfig))
 	if err != nil {
 		return errors.Wrap(err, "could not create shoot Gardener client")
 	}
@@ -483,34 +564,39 @@ func (vp *valuesProvider) GetStorageClassesChartValues(context.Context, *extensi
 // getCCMChartValues collects and returns the CCM chart values.
 func getCCMChartValues(
 	cpConfig *apismetal.ControlPlaneConfig,
+	infrastructure *apismetal.InfrastructureConfig,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 	checksums map[string]string,
 	scaledDown bool,
 	mclient *metalgo.Driver,
 ) (map[string]interface{}, error) {
-	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	nodeCIDR := cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	projectID := infrastructure.ProjectID
+	nodeCIDR := cluster.Shoot.Spec.Networking.Nodes
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, nodeCIDR)
+	if nodeCIDR == nil {
+		return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	}
+
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, *nodeCIDR)
 	if err != nil {
 		return nil, err
 	}
 
 	values := map[string]interface{}{
-		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster.Shoot, scaledDown, 1),
+		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 		"projectID":         projectID,
 		"clusterID":         cluster.Shoot.ObjectMeta.UID,
-		"partitionID":       cluster.Shoot.Spec.Cloud.Metal.Zones[0],
+		"partitionID":       infrastructure.PartitionID,
 		"networkID":         *privateNetwork.ID,
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-		"podNetwork":        extensionscontroller.GetPodNetwork(cluster.Shoot),
+		"podNetwork":        extensionscontroller.GetPodNetwork(cluster),
 		"podAnnotations": map[string]interface{}{
 			"checksum/secret-cloud-controller-manager":        checksums[cloudControllerManagerDeploymentName],
 			"checksum/secret-cloud-controller-manager-server": checksums[cloudControllerManagerServerName],
 			// TODO Use constant from github.com/gardener/gardener/pkg/apis/core/v1alpha1 when available
 			// See https://github.com/gardener/gardener/pull/930
-			"checksum/secret-cloudprovider":            checksums[gardencorev1alpha1.SecretNameCloudProvider],
+			"checksum/secret-cloudprovider":            checksums[v1alpha1constants.SecretNameCloudProvider],
 			"checksum/configmap-cloud-provider-config": checksums[metal.CloudProviderConfigName],
 		},
 	}
@@ -523,35 +609,18 @@ func getCCMChartValues(
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[metal.ShootAnnotationClusterName]
 	tenant := annotations[metal.ShootAnnotationTenant]
 
-	var tokenIssuerPC *gardencorev1alpha1.ProviderConfig
-	for _, ext := range cluster.Shoot.Spec.Extensions {
-
-		if ext.Type == metal.ShootExtensionTypeTokenIssuer {
-			tokenIssuerPC = ext.ProviderConfig
-			break
-		}
-	}
-
-	if tokenIssuerPC == nil {
-		return nil, errors.New("tokenissuer-Extension not found")
-	}
-
-	ti := &TokenIssuer{}
-	err := json.Unmarshal(tokenIssuerPC.Raw, ti)
-	if err != nil {
-		return nil, err
-	}
+	ti := cpConfig.IAMConfig.IssuerConfig
 
 	values := map[string]interface{}{
 		"authn_tenant":             tenant,
 		"authn_clustername":        clusterName,
-		"authn_oidcIssuerUrl":      ti.IssuerUrl,
+		"authn_oidcIssuerUrl":      ti.Url,
 		"authn_oidcIssuerClientId": ti.ClientId,
 		"authn_debug":              "true",
 
@@ -561,15 +630,15 @@ func getAuthNGroupRoleChartValues(cp *extensionsv1alpha1.ControlPlane, cluster *
 	return values, nil
 }
 
-func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver, cclient *cloudclient.Cloud) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
-	partitionID := cluster.Shoot.Spec.Cloud.Metal.Zones[0]
-	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
+	partitionID := infrastructure.PartitionID
+	projectID := infrastructure.ProjectID
 	clusterID := cluster.Shoot.ObjectMeta.UID
 	clusterName := annotations[metal.ShootAnnotationClusterName]
 	tenant := annotations[metal.ShootAnnotationTenant]
 
-	project, err := metalclient.GetProjectByID(mclient, projectID)
+	project, err := metalclient.GetProjectByID(cclient, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -602,12 +671,6 @@ func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontrol
 	}
 
 	return values, nil
-}
-
-// Data for configuration of AuthNWebhook
-type TokenIssuer struct {
-	IssuerUrl string `json:"issuerUrl" optional:"false"`
-	ClientId  string `json:"clientId" optional:"false"`
 }
 
 // Data for configuration of IDM-API WebHook (deployment to be done!)

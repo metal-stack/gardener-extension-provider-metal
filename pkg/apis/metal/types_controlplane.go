@@ -28,6 +28,9 @@ type ControlPlaneConfig struct {
 	// CloudControllerManager contains configuration settings for the cloud-controller-manager.
 	// +optional
 	CloudControllerManager *CloudControllerManagerConfig
+
+	// IAMConfig contains the config for all AuthN/AuthZ related components and overrides the configuration from the cloud profile
+	IAMConfig *IAMConfig
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.

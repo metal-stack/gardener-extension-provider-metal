@@ -20,28 +20,29 @@ import (
 	"path/filepath"
 
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
-	"github.com/gardener/gardener-extensions/pkg/util"
 	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
 
+	genericworkeractuator "github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// MachineClassKind yields the name of the AWS machine class.
+// MachineClassKind yields the name of the metal machine class.
 func (w *workerDelegate) MachineClassKind() string {
 	return "MetalMachineClass"
 }
 
-// MachineClassList yields a newly initialized AWSMachineClassList object.
+// MachineClassList yields a newly initialized MetalMachineClassList object.
 func (w *workerDelegate) MachineClassList() runtime.Object {
 	return &machinev1alpha1.MetalMachineClassList{}
 }
 
-// DeployMachineClasses generates and creates the AWS specific machine classes.
+// DeployMachineClasses generates and creates the metal specific machine classes.
 func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 	if w.machineClasses == nil {
 		if err := w.generateMachineConfig(ctx); err != nil {
@@ -68,8 +69,8 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		machineImages      []apismetal.MachineImage
 	)
 
-	shootVersionMajorMinor, err := util.VersionMajorMinor(w.cluster.Shoot.Spec.Kubernetes.Version)
-	if err != nil {
+	infrastructureConfig := &apismetal.InfrastructureConfig{}
+	if _, _, err := w.decoder.Decode(w.cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return err
 	}
 
@@ -83,16 +84,28 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
-	projectID := w.cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	nodeCIDR := w.cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
+	projectID := infrastructureConfig.ProjectID
+	nodeCIDR := w.cluster.Shoot.Spec.Networking.Nodes
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, nodeCIDR)
+	if nodeCIDR == nil {
+		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	}
+
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, *nodeCIDR)
 	if err != nil {
 		return err
 	}
 
+	clusterID := w.cluster.Shoot.GetUID()
+	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+	regionTag := fmt.Sprintf("topology.kubernetes.io/region=%s", w.worker.Spec.Region)
+	zoneTag := fmt.Sprintf("topology.kubernetes.io/zone=%s", infrastructureConfig.PartitionID)
+
 	for _, pool := range w.worker.Spec.Pools {
-		zoneLen := len(pool.Zones)
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster)
+		if err != nil {
+			return err
+		}
 
 		machineImage, err := w.findMachineImage(pool.MachineImage.Name, pool.MachineImage.Version)
 		if err != nil {
@@ -104,50 +117,55 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			Image:   machineImage,
 		})
 
-		for zoneIndex, zone := range pool.Zones {
-			machineClassSpec := map[string]interface{}{
-				"partition": zone,
-				"size":      pool.MachineType,
-				"project":   projectID,
-				"network":   privateNetwork.ID,
-				"image":     machineImage,
-				"tags": []string{
-					fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace),
-					"kubernetes.io/role=node",
-					fmt.Sprintf("machine.metal-pod.io/project-id=%s", projectID),
-				},
-				"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},
-				"secret": map[string]interface{}{
-					"cloudConfig": string(pool.UserData),
-				},
-			}
-
-			var (
-				machineClassSpecHash = worker.MachineClassHash(machineClassSpec, shootVersionMajorMinor)
-				deploymentName       = fmt.Sprintf("%s-%s-z%d", w.worker.Namespace, pool.Name, zoneIndex+1)
-				className            = fmt.Sprintf("%s-%s", deploymentName, machineClassSpecHash)
-			)
-
-			machineDeployments = append(machineDeployments, worker.MachineDeployment{
-				Name:           deploymentName,
-				ClassName:      className,
-				SecretName:     className,
-				Minimum:        worker.DistributeOverZones(zoneIndex, pool.Minimum, zoneLen),
-				Maximum:        worker.DistributeOverZones(zoneIndex, pool.Maximum, zoneLen),
-				MaxSurge:       worker.DistributePositiveIntOrPercent(zoneIndex, pool.MaxSurge, zoneLen, pool.Maximum),
-				MaxUnavailable: worker.DistributePositiveIntOrPercent(zoneIndex, pool.MaxUnavailable, zoneLen, pool.Minimum),
-				Labels:         pool.Labels,
-				Annotations:    pool.Annotations,
-				Taints:         pool.Taints,
-			})
-
-			machineClassSpec["name"] = className
-			machineClassSpec["secret"].(map[string]interface{})[metal.APIURL] = credentials.MetalAPIURL
-			machineClassSpec["secret"].(map[string]interface{})[metal.APIKey] = credentials.MetalAPIKey
-			machineClassSpec["secret"].(map[string]interface{})[metal.APIHMac] = credentials.MetalAPIHMac
-
-			machineClasses = append(machineClasses, machineClassSpec)
+		machineClassSpec := map[string]interface{}{
+			"partition": infrastructureConfig.PartitionID,
+			"size":      pool.MachineType,
+			"project":   projectID,
+			"network":   privateNetwork.ID,
+			"image":     machineImage,
+			"tags": []string{
+				fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace),
+				"kubernetes.io/role=node",
+				regionTag,
+				zoneTag,
+				fmt.Sprintf("node.kubernetes.io/instance-type=%s", pool.MachineType),
+				clusterTag,
+				fmt.Sprintf("machine.metal-pod.io/project-id=%s", projectID),
+			},
+			"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},
+			"secret": map[string]interface{}{
+				"cloudConfig": string(pool.UserData),
+			},
 		}
+
+		var (
+			deploymentName = fmt.Sprintf("%s-%s", w.worker.Namespace, pool.Name)
+			className      = fmt.Sprintf("%s-%s", deploymentName, workerPoolHash)
+		)
+
+		machineDeployments = append(machineDeployments, worker.MachineDeployment{
+			Name:           deploymentName,
+			ClassName:      className,
+			SecretName:     className,
+			Minimum:        pool.Minimum,
+			Maximum:        pool.Maximum,
+			MaxSurge:       pool.MaxSurge,
+			MaxUnavailable: pool.MaxUnavailable,
+			Labels:         pool.Labels,
+			Annotations:    pool.Annotations,
+			Taints:         pool.Taints,
+		})
+
+		machineClassSpec["name"] = className
+		machineClassSpec["labels"] = map[string]string{
+			v1beta1constants.GardenPurpose: genericworkeractuator.GardenPurposeMachineClass,
+		}
+
+		machineClassSpec["secret"].(map[string]interface{})[metal.APIURL] = credentials.MetalAPIURL
+		machineClassSpec["secret"].(map[string]interface{})[metal.APIKey] = credentials.MetalAPIKey
+		machineClassSpec["secret"].(map[string]interface{})[metal.APIHMac] = credentials.MetalAPIHMac
+
+		machineClasses = append(machineClasses, machineClassSpec)
 	}
 
 	w.machineDeployments = machineDeployments

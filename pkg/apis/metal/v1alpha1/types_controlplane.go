@@ -28,6 +28,9 @@ type ControlPlaneConfig struct {
 	// CloudControllerManager contains configuration settings for the cloud-controller-manager.
 	// +optional
 	CloudControllerManager *CloudControllerManagerConfig `json:"cloudControllerManager,omitempty"`
+
+	// IAMConfig contains the config for all AuthN/AuthZ related components
+	IAMConfig *IAMConfig `json:"iamconfig" optional:"false"`
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.

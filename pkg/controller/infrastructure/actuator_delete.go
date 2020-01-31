@@ -2,9 +2,12 @@ package infrastructure
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
+	metalgo "github.com/metal-pod/metal-go"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	controllererrors "github.com/gardener/gardener-extensions/pkg/controller/error"
@@ -18,26 +21,47 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		return err
 	}
 
+	var (
+		clusterID      = string(cluster.Shoot.GetUID())
+		clusterTag     = fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+		firewallStatus = infrastructureStatus.Firewall
+	)
+
 	mclient, err := metalclient.NewClient(ctx, a.client, &infrastructure.Spec.SecretRef)
 	if err != nil {
 		return err
 	}
 
-	firewallStatus := infrastructureStatus.Firewall
 	if firewallStatus.MachineID != "" {
 		machineID := decodeMachineID(firewallStatus.MachineID)
 		if machineID != "" {
-			_, err = mclient.MachineDelete(machineID)
+			resp, err := mclient.FirewallFind(&metalgo.FirewallFindRequest{
+				MachineFindRequest: metalgo.MachineFindRequest{
+					ID:                &machineID,
+					AllocationProject: &infrastructureConfig.ProjectID,
+					Tags:              []string{clusterTag},
+				},
+			})
 			if err != nil {
-				a.logger.Error(err, "failed to delete firewall", "infrastructure", infrastructure.Name, "firewallID", machineID)
 				return &controllererrors.RequeueAfterError{
 					Cause:        err,
 					RequeueAfter: 30 * time.Second,
 				}
 			}
 
+			if len(resp.Firewalls) > 0 {
+				_, err = mclient.MachineDelete(machineID)
+				if err != nil {
+					a.logger.Error(err, "failed to delete firewall", "infrastructure", infrastructure.Name, "firewallID", machineID)
+					return &controllererrors.RequeueAfterError{
+						Cause:        err,
+						RequeueAfter: 30 * time.Second,
+					}
+				}
+			}
+
 			firewallStatus.MachineID = ""
-			err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus)
+			err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, infrastructure.Status.NodesCIDR)
 			if err != nil {
 				a.logger.Error(err, "unable to update provider status after firewall deletion", "infrastructure", infrastructure.Name)
 				return &controllererrors.RequeueAfterError{
@@ -48,9 +72,7 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		}
 	}
 
-	projectID := cluster.Shoot.Spec.Cloud.Metal.ProjectID
-	nodeCIDR := cluster.Shoot.Spec.Cloud.Metal.Networks.Nodes
-	clusterID := string(cluster.Shoot.ObjectMeta.UID)
+	projectID := infrastructureConfig.ProjectID
 
 	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(mclient, projectID, clusterID)
 	if err != nil {
@@ -83,22 +105,24 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		}
 	}
 
-	privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(mclient, projectID, nodeCIDR)
-	if err != nil {
-		a.logger.Error(err, "failed to query private network", "infrastructure", infrastructure.Name, "nodeCIDR", nodeCIDR)
-		return &controllererrors.RequeueAfterError{
-			Cause:        err,
-			RequeueAfter: 30 * time.Second,
-		}
-	}
-
-	for _, pn := range privateNetworks {
-		_, err := mclient.NetworkFree(*pn.ID)
+	if infrastructure.Status.NodesCIDR != nil {
+		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(mclient, projectID, *infrastructure.Status.NodesCIDR)
 		if err != nil {
-			a.logger.Error(err, "failed to release private network", "infrastructure", infrastructure.Name, "networkID", *pn.ID)
+			a.logger.Error(err, "failed to query private network", "infrastructure", infrastructure.Name, "nodeCIDR", *infrastructure.Status.NodesCIDR)
 			return &controllererrors.RequeueAfterError{
 				Cause:        err,
 				RequeueAfter: 30 * time.Second,
+			}
+		}
+
+		for _, pn := range privateNetworks {
+			_, err := mclient.NetworkFree(*pn.ID)
+			if err != nil {
+				a.logger.Error(err, "failed to release private network", "infrastructure", infrastructure.Name, "networkID", *pn.ID)
+				return &controllererrors.RequeueAfterError{
+					Cause:        err,
+					RequeueAfter: 30 * time.Second,
+				}
 			}
 		}
 	}

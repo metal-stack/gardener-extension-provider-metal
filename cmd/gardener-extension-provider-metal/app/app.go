@@ -80,7 +80,6 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 		controllerSwitches   = metalcmd.ControllerSwitchOptions()
 		webhookServerOptions = &webhookcmd.ServerOptions{
-			CertDir:   "/tmp/cert",
 			Namespace: os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
 		}
 		webhookSwitches = metalcmd.WebhookSwitchOptions()

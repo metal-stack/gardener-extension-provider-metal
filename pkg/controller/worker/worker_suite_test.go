@@ -23,5 +23,5 @@ import (
 
 func TestWorker(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "AWS Worker Suite")
+	RunSpecs(t, "Metal Worker Suite")
 }

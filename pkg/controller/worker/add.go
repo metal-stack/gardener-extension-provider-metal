@@ -30,7 +30,7 @@ var (
 	DefaultAddOptions = AddOptions{}
 )
 
-// AddOptions are options to apply when adding the AWS worker controller to the manager.
+// AddOptions are options to apply when adding the metal worker controller to the manager.
 type AddOptions struct {
 	// Controller are the controller.Options.
 	Controller controller.Options
@@ -54,7 +54,8 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return worker.Add(mgr, worker.AddArgs{
 		Actuator:          NewActuator(opts.MachineImages),
 		ControllerOptions: opts.Controller,
-		Predicates:        worker.DefaultPredicates(metal.Type, opts.IgnoreOperationAnnotation),
+		Predicates:        worker.DefaultPredicates(opts.IgnoreOperationAnnotation),
+		Type:              metal.Type,
 	})
 }
 

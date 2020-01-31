@@ -23,5 +23,5 @@ import (
 
 func TestHelper(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "AWS Config API Helper Suite")
+	RunSpecs(t, "metal Config API Helper Suite")
 }

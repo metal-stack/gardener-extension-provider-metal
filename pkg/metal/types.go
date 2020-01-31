@@ -38,14 +38,24 @@ const (
 	DroptailerImageName = "droptailer"
 	// LimitValidatingWebhookImageName is the name of the limit validating webhook to deploy to the seed's shoot namespace.
 	LimitValidatingWebhookImageName = "limit-validating-webhook"
+	// CSIControllerImageName is the name of the csi lvm controller to deploy to the seed's shoot namespace.
+	CSIControllerImageName = "csi-lvm-controller"
+	// CSIProvisionerImageName is the name of the csi lvm provisioner to deploy to the seed's shoot namespace.
+	CSIProvisionerImageName = "csi-lvm-provisioner"
 
 	// APIURL is a constant for the url of metal-api.
 	APIURL = "metalAPIURL"
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"
-	// APIHMac is a constant for the key in a cloud provider secret.
+	// APIHMac is a constant for the hmac in a cloud provider secret.
 	APIHMac = "metalAPIHMac"
-	// Region is a constant for the key in a backup secret that holds the AWS region.
+	// CloudAPIURL is a constant for the url of cloud-api.
+	CloudAPIURL = "cloudAPIURL"
+	// CloudAPIKey is a constant for the key in a cloud provider secret.
+	CloudAPIKey = "cloudAPIKey"
+	// CloudAPIHMac is a constant for the hmac in a cloud provider secret.
+	CloudAPIHMac = "cloudAPIHMac"
+	// Region is a constant for the key in a backup secret that holds the metal region.
 	Region = "region"
 	// BucketName is a constant for the key in a backup secret that holds the bucket name.
 	// The bucket name is written to the backup secret by Gardener as a temporary solution.
@@ -73,6 +83,7 @@ const (
 	ShootAnnotationDescription = "cluster.metal-pod.io/description"
 	ShootAnnotationClusterName = "cluster.metal-pod.io/name"
 	ShootAnnotationTenant      = "cluster.metal-pod.io/tenant"
+	ShootAnnotationClusterID   = "cluster.metal-pod.io/id"
 )
 
 var (
@@ -87,4 +98,8 @@ type Credentials struct {
 	MetalAPIURL  string
 	MetalAPIKey  string
 	MetalAPIHMac string
+
+	CloudAPIURL  string
+	CloudAPIKey  string
+	CloudAPIHMac string
 }

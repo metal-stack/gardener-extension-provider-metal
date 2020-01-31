@@ -15,7 +15,6 @@
 package metal
 
 import (
-	"errors"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -27,24 +26,12 @@ func ReadCredentialsSecret(secret *corev1.Secret) (*Credentials, error) {
 		return nil, fmt.Errorf("secret does not contain any data")
 	}
 
-	url, ok := secret.Data[APIURL]
-	if !ok {
-		return nil, fmt.Errorf("missing %q field in secret", APIURL)
-	}
-
-	hmac, hmacOK := secret.Data[APIHMac]
-	key, keyOK := secret.Data[APIKey]
-
-	if hmacOK && keyOK {
-		return nil, errors.New("metalAPIHMac and metalAPIKey given, only one allowed")
-	}
-	if !hmacOK && !keyOK {
-		return nil, errors.New("neither metalAPIHMac nor metalAPIKey given")
-	}
-
 	return &Credentials{
-		MetalAPIURL:  string(url),
-		MetalAPIHMac: string(hmac),
-		MetalAPIKey:  string(key),
+		MetalAPIURL:  string(secret.Data[APIURL]),
+		MetalAPIHMac: string(secret.Data[APIHMac]),
+		MetalAPIKey:  string(secret.Data[APIKey]),
+		CloudAPIURL:  string(secret.Data[CloudAPIURL]),
+		CloudAPIHMac: string(secret.Data[CloudAPIHMac]),
+		CloudAPIKey:  string(secret.Data[CloudAPIKey]),
 	}, nil
 }
