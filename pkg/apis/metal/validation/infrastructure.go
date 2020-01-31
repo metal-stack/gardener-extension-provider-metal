@@ -29,7 +29,7 @@ import (
 )
 
 // ValidateInfrastructureConfigAgainstCloudProfile validates the given `InfrastructureConfig` against the given `CloudProfile`.
-func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.InfrastructureConfig, shoot *garden.Shoot, cloudProfile *gardencorev1beta1.CloudProfile, fldPath *field.Path) field.ErrorList {
+func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.InfrastructureConfig, shoot *garden.Shoot, cloudProfile *gardencorev1beta1.CloudProfile, cloudProfileConfig *apismetal.CloudProfileConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	shootRegion := shoot.Spec.Region
@@ -38,6 +38,29 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 			allErrs = append(allErrs, validateInfrastructureConfigZones(infra, region.Zones, fldPath)...)
 			break
 		}
+	}
+
+	firewallPath := fldPath.Child("firewall")
+
+	if len(infra.Firewall.Networks) == 0 {
+		allErrs = append(allErrs, field.Required(firewallPath.Child("networks"), "at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"))
+	}
+
+	if cloudProfileConfig == nil {
+		return allErrs
+	}
+
+	availableFirewallImages := cloudProfileConfig.FirewallImages
+	sort.Strings(availableFirewallImages)
+	found := false
+	for _, image := range availableFirewallImages {
+		if infra.Firewall.Image == image {
+			found = true
+			break
+		}
+	}
+	if !found {
+		allErrs = append(allErrs, field.Invalid(firewallPath.Child("image"), infra.Firewall.Image, fmt.Sprintf("supported values: %v", availableFirewallImages)))
 	}
 
 	return allErrs

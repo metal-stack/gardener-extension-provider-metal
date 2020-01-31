@@ -22,6 +22,7 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/gardener/gardener/pkg/apis/garden"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalvalidation "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -52,7 +53,12 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *garden.Shoot) error {
 		return err
 	}
 
-	if errList := metalvalidation.ValidateInfrastructureConfigAgainstCloudProfile(infraConfig, shoot, cloudProfile, infraConfigFldPath); len(errList) != 0 {
+	cloudProfileConfig, err := helper.DecodeCloudProfileConfig(cloudProfile)
+	if err != nil {
+		return err
+	}
+
+	if errList := metalvalidation.ValidateInfrastructureConfigAgainstCloudProfile(infraConfig, shoot, cloudProfile, cloudProfileConfig, infraConfigFldPath); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 
@@ -68,7 +74,12 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *garden.Shoot) error {
 		return err
 	}
 
-	if errList := metalvalidation.ValidateControlPlaneConfig(controlPlaneConfig, controlPlaneConfigFldPath); len(errList) != 0 {
+	controlPlaneConfig.IAMConfig, err = helper.MergeIAMConfig(controlPlaneConfig.IAMConfig, cloudProfileConfig.IAMConfig)
+	if err != nil {
+		return err
+	}
+
+	if errList := metalvalidation.ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, controlPlaneConfigFldPath); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 

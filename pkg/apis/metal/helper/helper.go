@@ -15,6 +15,7 @@
 package helper
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
@@ -30,4 +31,32 @@ func FindMachineImage(machineImages []metal.MachineImage, name, version string) 
 		}
 	}
 	return nil, fmt.Errorf("no machine image with name %q, version %q found", name, version)
+}
+
+// MergeIAMConfig merges the one iam config into the other
+func MergeIAMConfig(into *metal.IAMConfig, from *metal.IAMConfig) (*metal.IAMConfig, error) {
+	if into == nil && from == nil {
+		return nil, nil
+	}
+
+	if from == nil {
+		copy := *into
+		return &copy, nil
+	}
+
+	if into == nil {
+		copy := *from
+		return &copy, nil
+	}
+
+	merged := *into
+	tmp, err := json.Marshal(from)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(tmp, &merged)
+	if err != nil {
+		return nil, err
+	}
+	return &merged, nil
 }
