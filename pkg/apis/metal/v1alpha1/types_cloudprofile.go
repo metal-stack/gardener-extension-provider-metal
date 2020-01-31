@@ -26,8 +26,8 @@ type CloudProfileConfig struct {
 	metav1.TypeMeta
 	// FirewallImages is a list of available firewall images.
 	FirewallImages []string `json:"firewallImages,omitempty"`
-	// FirewallNetworks contains a list of available networks withing a partition
-	FirewallNetworks map[string][]string `json:"firewallNetworks,omitempty"`
+	// FirewallNetworks contains a map of available networks within a partition
+	FirewallNetworks map[string]map[string]string `json:"firewallNetworks,omitempty"`
 	// IAMConfig contains the config for all AuthN/AuthZ related components, can be overriden in shoots control plane config
 	IAMConfig *IAMConfig `json:"iamconfig" optional:"true"`
 }

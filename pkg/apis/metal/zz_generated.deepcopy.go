@@ -52,15 +52,17 @@ func (in *CloudProfileConfig) DeepCopyInto(out *CloudProfileConfig) {
 	}
 	if in.FirewallNetworks != nil {
 		in, out := &in.FirewallNetworks, &out.FirewallNetworks
-		*out = make(map[string][]string, len(*in))
+		*out = make(map[string]map[string]string, len(*in))
 		for key, val := range *in {
-			var outVal []string
+			var outVal map[string]string
 			if val == nil {
 				(*out)[key] = nil
 			} else {
 				in, out := &val, &outVal
-				*out = make([]string, len(*in))
-				copy(*out, *in)
+				*out = make(map[string]string, len(*in))
+				for key, val := range *in {
+					(*out)[key] = val
+				}
 			}
 			(*out)[key] = outVal
 		}

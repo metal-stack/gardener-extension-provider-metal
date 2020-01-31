@@ -191,7 +191,7 @@ func Convert_metal_CloudControllerManagerConfig_To_v1alpha1_CloudControllerManag
 
 func autoConvert_v1alpha1_CloudProfileConfig_To_metal_CloudProfileConfig(in *CloudProfileConfig, out *metal.CloudProfileConfig, s conversion.Scope) error {
 	out.FirewallImages = *(*[]string)(unsafe.Pointer(&in.FirewallImages))
-	out.FirewallNetworks = *(*map[string][]string)(unsafe.Pointer(&in.FirewallNetworks))
+	out.FirewallNetworks = *(*map[string]map[string]string)(unsafe.Pointer(&in.FirewallNetworks))
 	out.IAMConfig = (*metal.IAMConfig)(unsafe.Pointer(in.IAMConfig))
 	return nil
 }
@@ -203,7 +203,7 @@ func Convert_v1alpha1_CloudProfileConfig_To_metal_CloudProfileConfig(in *CloudPr
 
 func autoConvert_metal_CloudProfileConfig_To_v1alpha1_CloudProfileConfig(in *metal.CloudProfileConfig, out *CloudProfileConfig, s conversion.Scope) error {
 	out.FirewallImages = *(*[]string)(unsafe.Pointer(&in.FirewallImages))
-	out.FirewallNetworks = *(*map[string][]string)(unsafe.Pointer(&in.FirewallNetworks))
+	out.FirewallNetworks = *(*map[string]map[string]string)(unsafe.Pointer(&in.FirewallNetworks))
 	out.IAMConfig = (*IAMConfig)(unsafe.Pointer(in.IAMConfig))
 	return nil
 }

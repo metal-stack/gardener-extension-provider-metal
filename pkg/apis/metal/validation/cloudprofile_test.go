@@ -72,8 +72,8 @@ var _ = Describe("CloudProfileConfig validation", func() {
 		})
 
 		It("should pass properly configures firewall networks", func() {
-			cloudProfileConfig.FirewallNetworks = make(map[string][]string)
-			cloudProfileConfig.FirewallNetworks["partition-b"] = []string{"network-1", "network-2"}
+			cloudProfileConfig.FirewallNetworks = make(map[string]map[string]string)
+			cloudProfileConfig.FirewallNetworks["partition-b"] = map[string]string{"internet": "network-1"}
 
 			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile)
 
@@ -81,8 +81,8 @@ var _ = Describe("CloudProfileConfig validation", func() {
 		})
 
 		It("should prevent mapping firewall networks of partitions that are not configured in zones", func() {
-			cloudProfileConfig.FirewallNetworks = make(map[string][]string)
-			cloudProfileConfig.FirewallNetworks["random-partition"] = []string{"network-1", "network-2"}
+			cloudProfileConfig.FirewallNetworks = make(map[string]map[string]string)
+			cloudProfileConfig.FirewallNetworks["random-partition"] = map[string]string{"internet": "network-1"}
 
 			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile)
 
