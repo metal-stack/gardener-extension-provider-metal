@@ -58,6 +58,9 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *garden.Shoot) error {
 		return err
 	}
 
+	v.Logger.Info("read cloud profile config", "api version", cloudProfileConfig.APIVersion)
+	v.Logger.Info("read cloud profile config", "firewall images", cloudProfileConfig.FirewallImages)
+
 	if errList := metalvalidation.ValidateInfrastructureConfigAgainstCloudProfile(infraConfig, shoot, cloudProfile, cloudProfileConfig, infraConfigFldPath); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
