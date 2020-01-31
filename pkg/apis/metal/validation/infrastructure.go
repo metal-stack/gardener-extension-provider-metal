@@ -63,21 +63,6 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 		allErrs = append(allErrs, field.Invalid(firewallPath.Child("image"), infra.Firewall.Image, fmt.Sprintf("supported values: %v", availableFirewallImages)))
 	}
 
-	partitionNetworks := cloudProfileConfig.FirewallNetworks[infra.PartitionID]
-	sort.Strings(partitionNetworks)
-	for i, network := range infra.Firewall.Networks {
-		found := false
-		for _, partitionNetwork := range partitionNetworks {
-			if network == partitionNetwork {
-				found = true
-				break
-			}
-		}
-		if !found {
-			allErrs = append(allErrs, field.Invalid(firewallPath.Child("networks").Index(i), network, fmt.Sprintf("supported values for partition %s: %v", infra.PartitionID, partitionNetworks)))
-		}
-	}
-
 	return allErrs
 }
 

@@ -111,17 +111,6 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				}))))
 			})
 
-			It("should forbid because firewall network is not in CloudProfileConfig", func() {
-				infrastructureConfig.Firewall.Networks = []string{"no-network"}
-				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))
-
-				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":   Equal(field.ErrorTypeInvalid),
-					"Field":  Equal("spec.firewall.networks[0]"),
-					"Detail": Equal("supported values for partition partition-a: [internet]"),
-				}))))
-			})
-
 			It("should forbid because no firewall networks given", func() {
 				infrastructureConfig.Firewall.Networks = nil
 				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))

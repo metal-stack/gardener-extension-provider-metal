@@ -89,7 +89,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 			Expect(errorList).To(ConsistOfFields(Fields{
 				"Type":   Equal(field.ErrorTypeInvalid),
 				"Field":  Equal("firewallNetworks.random-partition"),
-				"Detail": Equal("the partition of the firewall network must be contained in the configures zones in the cloud profile: [partition-a partition-b partition-c]"),
+				"Detail": Equal("the partition of the firewall network must be contained in the configured zones in the cloud profile: [partition-a partition-b partition-c]"),
 			}))
 		})
 	})
