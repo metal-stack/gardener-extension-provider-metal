@@ -35,13 +35,14 @@ func init() {
 }
 
 // DecodeCloudProfileConfig decodes the cloud profile config
-func DecodeCloudProfileConfig(cp *gardencorev1beta1.ProviderConfig) (*metal.CloudProfileConfig, error) {
+func DecodeCloudProfileConfig(cp *gardencorev1beta1.CloudProfile) (*metal.CloudProfileConfig, error) {
 	cloudProfileConfig := &metal.CloudProfileConfig{}
-	if err := util.Decode(decoder, cp.Raw, cloudProfileConfig); err != nil {
-		return nil, errors.New("could not decode cloud profile config")
+	if cp != nil && cp.Spec.ProviderConfig != nil && cp.Spec.ProviderConfig.Raw != nil {
+		if _, _, err := decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
+			return nil, errors.Wrapf(err, "could not decode providerConfig of cloudProfile for %q", util.ObjectName(cp))
+		}
 	}
-
-	return cloudProfileConfig, nil
+	return nil, fmt.Errorf("provider config is not set on the cloud profile resource")
 }
 
 // InfrastructureConfigFromInfrastructure extracts the InfrastructureConfig from the
