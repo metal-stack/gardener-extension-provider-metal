@@ -15,24 +15,12 @@
 package validator
 
 import (
-	"errors"
-	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-
 	"github.com/gardener/gardener-extensions/pkg/util"
 	"github.com/gardener/gardener/pkg/apis/garden"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
-
-func decodeCloudProfileConfig(decoder runtime.Decoder, cp *gardencorev1beta1.ProviderConfig) (*metal.CloudProfileConfig, error) {
-	cloudProfileConfig := &metal.CloudProfileConfig{}
-	if err := util.Decode(decoder, cp.Raw, cloudProfileConfig); err != nil {
-		return nil, errors.New("could not decode cloud profile config")
-	}
-
-	return cloudProfileConfig, nil
-}
 
 func decodeControlPlaneConfig(decoder runtime.Decoder, cp *garden.ProviderConfig, fldPath *field.Path) (*metal.ControlPlaneConfig, error) {
 	controlPlaneConfig := &metal.ControlPlaneConfig{}

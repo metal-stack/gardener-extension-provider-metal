@@ -7,8 +7,10 @@ import (
 
 	"github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/util"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	api "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/install"
@@ -19,7 +21,7 @@ import (
 )
 
 var (
-	// Scheme is a scheme with the types relevant for OpenStack actuators.
+	// Scheme is a scheme with the types relevant for metal actuators.
 	Scheme *runtime.Scheme
 
 	decoder runtime.Decoder
@@ -30,6 +32,16 @@ func init() {
 	utilruntime.Must(install.AddToScheme(Scheme))
 
 	decoder = serializer.NewCodecFactory(Scheme).UniversalDecoder()
+}
+
+// DecodeCloudProfileConfig decodes the cloud profile config
+func DecodeCloudProfileConfig(cp *gardencorev1beta1.ProviderConfig) (*metal.CloudProfileConfig, error) {
+	cloudProfileConfig := &metal.CloudProfileConfig{}
+	if err := util.Decode(decoder, cp.Raw, cloudProfileConfig); err != nil {
+		return nil, errors.New("could not decode cloud profile config")
+	}
+
+	return cloudProfileConfig, nil
 }
 
 // InfrastructureConfigFromInfrastructure extracts the InfrastructureConfig from the

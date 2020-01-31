@@ -53,7 +53,7 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *garden.Shoot) error {
 		return err
 	}
 
-	cloudProfileConfig, err := decodeCloudProfileConfig(v.decoder, cloudProfile.Spec.ProviderConfig)
+	cloudProfileConfig, err := helper.DecodeCloudProfileConfig(cloudProfile.Spec.ProviderConfig)
 	if err != nil {
 		return err
 	}
