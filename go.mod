@@ -7,7 +7,7 @@ require (
 	github.com/ajeddeloh/yaml v0.0.0-20141224210557-6b16a5714269 // indirect
 	github.com/coreos/container-linux-config-transpiler v0.9.0
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
-	github.com/coreos/ignition v0.33.0 // indirect
+	github.com/coreos/ignition v0.34.0 // indirect
 	github.com/gardener/gardener v0.34.0
 	github.com/gardener/gardener-extensions v1.2.1-0.20200115130121-fabf2e89eae4
 	github.com/gardener/machine-controller-manager v0.25.0
