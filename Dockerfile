@@ -1,13 +1,11 @@
 #############      builder-base                             #############
 FROM golang:1.13 AS builder
 
-COPY ./hack/install-requirements.sh /install-requirements.sh
-COPY ./tools /tools
-
-RUN /install-requirements.sh
-
 WORKDIR /go/src/github.com/metal-pod/gardener-extension-provider-metal
 COPY . .
+
+RUN hack/install-requirements.sh
+
 
 RUN make VERIFY=$VERIFY all
 
