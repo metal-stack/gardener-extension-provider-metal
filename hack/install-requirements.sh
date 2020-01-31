@@ -20,10 +20,10 @@ DIRNAME="$(echo "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd
 cd "$DIRNAME/../tools"
 export GO111MODULE=on
 echo "Installing requirements"
-go get "github.com/gobuffalo/packr/v2/packr2@v2.1.0"
-go get "github.com/onsi/ginkgo/ginkgo@v1.8.0"
-go get "github.com/golang/mock/mockgen@v1.2.0"
-go get "github.com/golangci/golangci-lint/cmd/golangci-lint@692dacb773b703162c091c2d8c59f9cd2d6801db"
+go install "github.com/gobuffalo/packr/v2/packr2"
+go install "github.com/onsi/ginkgo/ginkgo"
+go install "github.com/golang/mock/mockgen"
+go install "github.com/golangci/golangci-lint/cmd/golangci-lint"
 curl -s "https://raw.githubusercontent.com/helm/helm/v2.13.1/scripts/get" | bash -s -- --version 'v2.13.1'
 
 if [[ "$(uname -s)" == *"Darwin"* ]]; then
@@ -44,3 +44,11 @@ $ export PATH=/usr/local/opt/coreutils/libexec/gnubin:\$PATH
 EOM
 fi
 
+# install code-generator which is required for generate-code
+echo "installing code-generator"
+mkdir -p "$DIRNAME/../vendor/k8s.io/"
+cd "$DIRNAME/../vendor/k8s.io/"
+rm -rf *
+curl -fLs https://github.com/kubernetes/code-generator/archive/v0.16.6.tar.gz | tar -xzf -
+mv code-generator-0.16.6 code-generator
+cd -

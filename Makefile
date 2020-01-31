@@ -25,6 +25,8 @@ LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
 
+export CGO_ENABLED := 0
+export GO111MODULE := on
 
 ### Build commands
 
@@ -42,7 +44,11 @@ generate:
 
 .PHONE: generate-in-docker
 generate-in-docker:
-	docker run --rm -it -v $(PWD):/go/src/github.com/metal-pod/gardener-extension-provider-metal golang:1.13 sh -c "cd /go/src/github.com/metal-pod/gardener-extension-provider-metal && ./hack/install-requirements.sh && make generate && chown -R $(shell id -u):$(shell id -g) ."
+	docker run --rm -it -v $(PWD):/go/src/github.com/metal-pod/gardener-extension-provider-metal golang:1.13 \
+		sh -c "cd /go/src/github.com/metal-pod/gardener-extension-provider-metal \
+				&& ./hack/install-requirements.sh \
+				&& make generate \
+				&& chown -R $(shell id -u):$(shell id -g) ."
 
 .PHONY: check
 check:
@@ -83,11 +89,6 @@ docker-push:
 
 ### Debug / Development commands
 
-.PHONY: revendor
-revendor:
-	@GO111MODULE=on go mod vendor
-	@GO111MODULE=on go mod tidy
-
 .PHONY: start-provider-metal
 start-provider-metal:
 	@LEADER_ELECTION_NAMESPACE=garden go run \
@@ -104,7 +105,7 @@ start-provider-metal:
 
 .PHONY: start-validator-metal
 start-validator-metal:
-	@LEADER_ELECTION_NAMESPACE=garden GO111MODULE=on go run \
+	@LEADER_ELECTION_NAMESPACE=garden go run \
 		-ldflags $(LD_FLAGS) \
 		-tags netgo \
 		./cmd/gardener-extension-validator-metal \
