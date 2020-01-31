@@ -19,6 +19,7 @@ import (
 	. "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	. "github.com/gardener/gardener/pkg/utils/validation/gomega"
 
 	. "github.com/onsi/ginkgo"
@@ -29,11 +30,12 @@ import (
 var _ = Describe("ControlPlaneconfig validation", func() {
 	var (
 		controlPlaneConfig *apismetal.ControlPlaneConfig
+		cloudProfile       *gardencorev1beta1.CloudProfile
 	)
 
 	BeforeEach(func() {
 		controlPlaneConfig = &apismetal.ControlPlaneConfig{
-			IAMConfig: apismetal.IAMConfig{
+			IAMConfig: &apismetal.IAMConfig{
 				IssuerConfig: &apismetal.IssuerConfig{
 					Url:      "https://somewhere",
 					ClientId: "abc",
@@ -47,13 +49,25 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 
 	Describe("#ValidateControlPlaneConfig", func() {
 		It("should return no errors for an unchanged config", func() {
-			Expect(ValidateControlPlaneConfig(controlPlaneConfig, field.NewPath("spec"))).To(BeEmpty())
+			Expect(ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))).To(BeEmpty())
+		})
+
+		It("should forbid empty iam config", func() {
+			controlPlaneConfig.IAMConfig = nil
+
+			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
+
+			Expect(errorList).To(ConsistOfFields(Fields{
+				"Type":   Equal(field.ErrorTypeRequired),
+				"Field":  Equal("spec.iamconfig"),
+				"Detail": Equal("iam config must be specified"),
+			}))
 		})
 
 		It("should forbid empty issuer url", func() {
 			controlPlaneConfig.IAMConfig.IssuerConfig.Url = ""
 
-			errorList := ValidateControlPlaneConfig(controlPlaneConfig, field.NewPath("spec"))
+			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
 
 			Expect(errorList).To(ConsistOfFields(Fields{
 				"Type":   Equal(field.ErrorTypeRequired),
@@ -65,7 +79,7 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 		It("should forbid empty client id", func() {
 			controlPlaneConfig.IAMConfig.IssuerConfig.ClientId = ""
 
-			errorList := ValidateControlPlaneConfig(controlPlaneConfig, field.NewPath("spec"))
+			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
 
 			Expect(errorList).To(ConsistOfFields(Fields{
 				"Type":   Equal(field.ErrorTypeRequired),
@@ -77,7 +91,7 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 		It("should forbid group namespace length of zero", func() {
 			controlPlaneConfig.IAMConfig.GroupConfig = &apismetal.NamespaceGroupConfig{NamespaceMaxLength: 0}
 
-			errorList := ValidateControlPlaneConfig(controlPlaneConfig, field.NewPath("spec"))
+			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
 
 			Expect(errorList).To(ConsistOfFields(Fields{
 				"Type":   Equal(field.ErrorTypeRequired),

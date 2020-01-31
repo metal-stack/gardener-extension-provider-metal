@@ -21,6 +21,7 @@ import (
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
 	metalapi "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/pkg/errors"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -94,9 +95,9 @@ func (a *actuator) Delete(ctx context.Context, config *extensionsv1alpha1.Infras
 }
 
 func (a *actuator) decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure) (*metalapi.InfrastructureConfig, *metalapi.InfrastructureStatus, error) {
-	infrastructureConfig := &metalapi.InfrastructureConfig{}
-	if _, _, err := a.decoder.Decode(infrastructure.Spec.ProviderConfig.Raw, nil, infrastructureConfig); err != nil {
-		return nil, nil, fmt.Errorf("could not decode provider config: %+v", err)
+	infrastructureConfig, err := helper.InfrastructureConfigFromInfrastructure(infrastructure)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	infrastructureStatus := &metalapi.InfrastructureStatus{}

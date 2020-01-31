@@ -958,6 +958,7 @@ k8s.io/code-generator v0.0.0-20190311093542-50b561225d70 h1:lgPp615xLHxN84RBd+vi
 k8s.io/code-generator v0.0.0-20190311093542-50b561225d70/go.mod h1:MYiN+ZJZ9HkETbgVZdWw2AsuAi9PZ4V80cwfuf2axe8=
 k8s.io/code-generator v0.0.0-20190713022532-93d7507fc8ff h1:1HU+c0C2+T9QpX3ngxtGQREWlaDnTRw6HuOdtYj231U=
 k8s.io/code-generator v0.0.0-20190713022532-93d7507fc8ff/go.mod h1:mdlckYc+qIcm9LO4wF2aMreloe3RdtmWtJWN0a5jC7w=
+k8s.io/code-generator v0.0.0-20190912054826-cd179ad6a269 h1:d8Fm55A+7HOczX58+x9x+nJnJ1Devt1aCrWVIPaw/Vg=
 k8s.io/code-generator v0.0.0-20190912054826-cd179ad6a269/go.mod h1:V5BD6M4CyaN5m+VthcclXWsVcT1Hu+glwa1bi3MIsyE=
 k8s.io/code-generator v0.16.6 h1:wykZVkEDQd/BcOZxcQMEW6uFgoM4ZmvjIhxkbmEJ3WA=
 k8s.io/code-generator v0.16.6/go.mod h1:2aiDuxDU7RQK2PVypXAXHo6+YwOlF33iezHQbSmKSA4=
