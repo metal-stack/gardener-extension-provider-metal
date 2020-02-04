@@ -22,6 +22,7 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
 	metalapi "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	metalapiv1alpha1 "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 	"github.com/pkg/errors"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -114,12 +115,15 @@ func (a *actuator) updateProviderStatus(ctx context.Context, infrastructure *ext
 	return extensionscontroller.TryUpdateStatus(ctx, retry.DefaultBackoff, a.client, infrastructure, func() error {
 		infrastructure.Status.NodesCIDR = nodeCIDR
 		infrastructure.Status.ProviderStatus = &runtime.RawExtension{
-			Object: &metalapi.InfrastructureStatus{
+			Object: &metalapiv1alpha1.InfrastructureStatus{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: metalapi.SchemeGroupVersion.String(),
+					APIVersion: metalapiv1alpha1.SchemeGroupVersion.String(),
 					Kind:       "InfrastructureStatus",
 				},
-				Firewall: status,
+				Firewall: metalapiv1alpha1.FirewallStatus{
+					Succeeded: status.Succeeded,
+					MachineID: status.MachineID,
+				},
 			},
 		}
 		return nil
