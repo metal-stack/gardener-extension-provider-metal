@@ -24,8 +24,10 @@ import (
 
 func decodeControlPlaneConfig(decoder runtime.Decoder, cp *garden.ProviderConfig, fldPath *field.Path) (*metal.ControlPlaneConfig, error) {
 	controlPlaneConfig := &metal.ControlPlaneConfig{}
-	if err := util.Decode(decoder, cp.Raw, controlPlaneConfig); err != nil {
-		return nil, field.Invalid(fldPath, string(cp.Raw), "isn't a supported version")
+	if cp != nil && cp.Raw != nil {
+		if err := util.Decode(decoder, cp.Raw, controlPlaneConfig); err != nil {
+			return nil, field.Invalid(fldPath, string(cp.Raw), "isn't a supported version")
+		}
 	}
 
 	return controlPlaneConfig, nil
@@ -33,8 +35,10 @@ func decodeControlPlaneConfig(decoder runtime.Decoder, cp *garden.ProviderConfig
 
 func decodeInfrastructureConfig(decoder runtime.Decoder, infra *garden.ProviderConfig, fldPath *field.Path) (*metal.InfrastructureConfig, error) {
 	infraConfig := &metal.InfrastructureConfig{}
-	if err := util.Decode(decoder, infra.Raw, infraConfig); err != nil {
-		return nil, field.Invalid(fldPath, string(infra.Raw), "isn't a supported version")
+	if infra != nil && infra.Raw != nil {
+		if err := util.Decode(decoder, infra.Raw, infraConfig); err != nil {
+			return nil, field.Invalid(fldPath, string(infra.Raw), "isn't a supported version")
+		}
 	}
 
 	return infraConfig, nil
