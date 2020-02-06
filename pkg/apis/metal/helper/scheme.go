@@ -61,14 +61,14 @@ func InfrastructureConfigFromInfrastructure(infra *extensionsv1alpha1.Infrastruc
 // ControlPlaneConfigFromControlPlane extracts the ControlPlaneConfig from the
 // ProviderConfig section of the given ControlPlane.
 func ControlPlaneConfigFromControlPlane(cp *extensionsv1alpha1.ControlPlane) (*api.ControlPlaneConfig, error) {
+	config := &api.ControlPlaneConfig{}
 	if cp.Spec.ProviderConfig != nil && cp.Spec.ProviderConfig.Raw != nil {
-		config := &api.ControlPlaneConfig{}
 		if _, _, err := decoder.Decode(cp.Spec.ProviderConfig.Raw, nil, config); err != nil {
 			return nil, err
 		}
 		return config, nil
 	}
-	return nil, fmt.Errorf("provider config is not set on the control plane resource")
+	return config, nil
 }
 
 // CloudProfileConfigFromCluster decodes the provider specific cloud profile configuration for a cluster

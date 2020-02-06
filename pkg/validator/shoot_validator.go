@@ -65,10 +65,6 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *garden.Shoot) error {
 	// ControlPlaneConfig
 	controlPlaneConfigFldPath := fldPath.Child("controlPlaneConfig")
 
-	if shoot.Spec.Provider.ControlPlaneConfig == nil {
-		return field.Required(infraConfigFldPath, "ControlPlaneConfig must be set for metal shoots")
-	}
-
 	controlPlaneConfig, err := decodeControlPlaneConfig(v.decoder, shoot.Spec.Provider.ControlPlaneConfig, fldPath.Child("controlPlaneConfig"))
 	if err != nil {
 		return err
