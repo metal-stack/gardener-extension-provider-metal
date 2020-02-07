@@ -22,8 +22,8 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/gardener/gardener/pkg/apis/garden"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/helper"
-	metalvalidation "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/validation"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	metalvalidation "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )

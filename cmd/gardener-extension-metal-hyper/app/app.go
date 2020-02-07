@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 
-	providermetal "github.com/metal-pod/gardener-extension-provider-metal/cmd/gardener-extension-provider-metal/app"
-	validatormetal "github.com/metal-pod/gardener-extension-provider-metal/cmd/gardener-extension-validator-metal/app"
+	providermetal "github.com/metal-stack/gardener-extension-provider-metal/cmd/gardener-extension-provider-metal/app"
+	validatormetal "github.com/metal-stack/gardener-extension-provider-metal/cmd/gardener-extension-validator-metal/app"
 
 	"github.com/spf13/cobra"
 )

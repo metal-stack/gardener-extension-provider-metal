@@ -15,8 +15,8 @@
 package helper_test
 
 import (
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
-	. "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config/helper"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/helper"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"

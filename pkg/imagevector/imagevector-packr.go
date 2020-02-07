@@ -5,4 +5,4 @@
 // and any other packr generated files.
 package imagevector
 
-import _ "github.com/metal-pod/gardener-extension-provider-metal/pkg/imagevector/packrd"
+import _ "github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector/packrd"

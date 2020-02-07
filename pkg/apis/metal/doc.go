@@ -17,4 +17,4 @@
 
 //go:generate ../../../hack/generate-code
 
-package metal // import "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+package metal // import "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"

@@ -1,13 +1,13 @@
-module github.com/metal-pod/gardener-extension-provider-metal
+module github.com/metal-stack/gardener-extension-provider-metal
 
-go 1.12
+go 1.13
 
 require (
 	github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083 // indirect
-	github.com/ajeddeloh/yaml v0.0.0-20141224210557-6b16a5714269 // indirect
+	github.com/ajeddeloh/yaml v0.0.0-00010101000000-000000000000 // indirect
 	github.com/coreos/container-linux-config-transpiler v0.9.0
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
-	github.com/coreos/ignition v0.34.0 // indirect
+	github.com/coreos/ignition v0.35.0 // indirect
 	github.com/gardener/gardener v0.34.0
 	github.com/gardener/gardener-extensions v1.2.1-0.20200115130121-fabf2e89eae4
 	github.com/gardener/machine-controller-manager v0.25.0
@@ -16,8 +16,8 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/google/go-cmp v0.3.1
 	github.com/google/uuid v1.1.1
-	github.com/metal-pod/cloud-go v0.0.0-20191211160716-e58fa1ae107b
 	github.com/metal-pod/metal-go v0.2.1-0.20200120090002-c1f47f341bf5
+	github.com/metal-stack/cloud-go v0.1.0
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1

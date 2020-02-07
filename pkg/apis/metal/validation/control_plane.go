@@ -16,7 +16,7 @@ package validation
 
 import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )

@@ -21,7 +21,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	config "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	config "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 

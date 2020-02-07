@@ -21,6 +21,7 @@ source "$DIRNAME/common.sh"
 
 header_text "Install"
 
+VERSION=$(shell git describe --tags --exact-match 2> /dev/null || git symbolic-ref -q --short HEAD || git rev-parse --short HEAD)
 LD_FLAGS="-w -X github.com/gardener/gardener-extensions/pkg/version.Version=$VERSION"
 pwd
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on \

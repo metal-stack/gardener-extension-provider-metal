@@ -22,12 +22,12 @@ import (
 	webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
 	extensioncontrolplanewebhook "github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	extensionshootwebhook "github.com/gardener/gardener-extensions/pkg/webhook/shoot"
-	controlplanecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/controlplane"
-	infrastructurecontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/infrastructure"
-	workercontroller "github.com/metal-pod/gardener-extension-provider-metal/pkg/controller/worker"
-	controlplanewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplane"
-	controlplaneexposurewebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
-	shootwebhook "github.com/metal-pod/gardener-extension-provider-metal/pkg/webhook/shoot"
+	controlplanecontroller "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/controlplane"
+	infrastructurecontroller "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/infrastructure"
+	workercontroller "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/worker"
+	controlplanewebhook "github.com/metal-stack/gardener-extension-provider-metal/pkg/webhook/controlplane"
+	controlplaneexposurewebhook "github.com/metal-stack/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
+	shootwebhook "github.com/metal-stack/gardener-extension-provider-metal/pkg/webhook/shoot"
 )
 
 // ControllerSwitchOptions are the controllercmd.SwitchOptions for the provider controllers.

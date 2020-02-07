@@ -18,9 +18,9 @@ import (
 	"context"
 	"fmt"
 
-	metalinstall "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/install"
-	providermetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/validator"
+	metalinstall "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/install"
+	providermetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/validator"
 	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
 	"github.com/gardener/gardener-extensions/pkg/util"
 	"github.com/gardener/gardener/pkg/apis/core/install"

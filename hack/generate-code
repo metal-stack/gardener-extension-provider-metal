@@ -40,34 +40,34 @@ source "${PROJECT_ROOT}"/hack/code-generator/common.sh
 
 bash "${PROJECT_ROOT}"/vendor/k8s.io/code-generator/generate-internal-groups.sh \
   deepcopy,defaulter \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/client \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/apis \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/apis \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/client \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
   "metal:v1alpha1" \
   -h <(headers)
 
 bash "${PROJECT_ROOT}"/vendor/k8s.io/code-generator/generate-internal-groups.sh \
   conversion \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/client \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/apis \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/apis \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/client \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
   "metal:v1alpha1" \
-  --extra-peer-dirs=github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal,github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
+  --extra-peer-dirs=github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal,github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
   -h <(headers)
 
 bash "${PROJECT_ROOT}"/vendor/k8s.io/code-generator/generate-internal-groups.sh \
   deepcopy,defaulter \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/client/componentconfig \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/apis \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/apis \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/client/componentconfig \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
   "config:v1alpha1" \
   -h <(headers)
 
 bash "${PROJECT_ROOT}"/vendor/k8s.io/code-generator/generate-internal-groups.sh \
   conversion \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/client/componentconfig \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/apis \
-  github.com/metal-pod/gardener-extension-provider-metal/pkg/apis \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/client/componentconfig \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
+  github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
   "config:v1alpha1" \
-  --extra-peer-dirs=github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config,github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config/v1alpha1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
+  --extra-peer-dirs=github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config,github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/v1alpha1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
   -h <(headers)

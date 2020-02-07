@@ -17,7 +17,7 @@ package infrastructure
 import (
 	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
 	"github.com/go-logr/logr"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"

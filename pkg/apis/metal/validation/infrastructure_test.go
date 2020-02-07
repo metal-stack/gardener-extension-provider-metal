@@ -17,8 +17,8 @@ package validation_test
 import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/gardener/gardener/pkg/apis/garden"
-	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	. "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/validation"
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	. "github.com/gardener/gardener/pkg/utils/validation/gomega"

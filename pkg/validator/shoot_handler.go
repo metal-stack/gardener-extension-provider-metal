@@ -19,7 +19,7 @@ import (
 	"net/http"
 
 	"github.com/gardener/gardener-extensions/pkg/util"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	"github.com/gardener/gardener/pkg/apis/garden"
 	"github.com/go-logr/logr"

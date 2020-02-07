@@ -119,6 +119,8 @@ github.com/coreos/ignition v0.33.0 h1:rYJoGv5v/5rCJAzyMaE9gU8pn7w7pv0M4rDzHvDK6T
 github.com/coreos/ignition v0.33.0/go.mod h1:WJQapxzEn9DE0ryxsGvm8QnBajm/XsS/PkrDqSpz+bA=
 github.com/coreos/ignition v0.34.0 h1:r3HQKhQmRDhofcRSFp2fDVB6vhqb9gubEnyjgM+l3GQ=
 github.com/coreos/ignition v0.34.0/go.mod h1:WJQapxzEn9DE0ryxsGvm8QnBajm/XsS/PkrDqSpz+bA=
+github.com/coreos/ignition v0.35.0 h1:UFodoYq1mOPrbEjtxIsZbThcDyQwAI1owczRDqWmKkQ=
+github.com/coreos/ignition v0.35.0/go.mod h1:WJQapxzEn9DE0ryxsGvm8QnBajm/XsS/PkrDqSpz+bA=
 github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
@@ -490,8 +492,9 @@ github.com/mattn/go-ieproxy v0.0.0-20190702010315-6dee0af9227d/go.mod h1:31jz6HN
 github.com/mattn/go-ieproxy v0.0.0-20190805055040-f9202b1cfdeb/go.mod h1:31jz6HNzdxOmlERGGEc4v/dMssOfmp2p5bT/okiKFFc=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
-github.com/metal-pod/cloud-go v0.0.0-20191211160716-e58fa1ae107b h1:neA6WJxHUJtdSK39VtWMZHxUCRzsFPjy7flRYCuzUW8=
 github.com/metal-pod/cloud-go v0.0.0-20191211160716-e58fa1ae107b/go.mod h1:CHGvCxkJjKk3coL7X2rDsqHntCFGvldkxSprjvtUTRI=
+github.com/metal-pod/gardener-extension-provider-metal v0.4.1 h1:fbrwlRGyKhR++MWJXsXA4WZioJnpQsP4dezHGR+8vyo=
+github.com/metal-pod/gardener-extension-provider-metal v0.4.1/go.mod h1:gt704eKtJcMKLmK405WNljgmScSwHb8vNr3p2ca81UA=
 github.com/metal-pod/machine-controller-manager v0.0.0-20190801141331-4e2b75ebc6c0 h1:FYzoWSsjvMmRcBNlTi7MVHqhYxG8Iggw8798xHT2l28=
 github.com/metal-pod/machine-controller-manager v0.0.0-20190801141331-4e2b75ebc6c0/go.mod h1:djhi17uiXTSKQy6TblgEdRW/PQSGxNL3G1D4tVdhZjI=
 github.com/metal-pod/metal-go v0.0.0-20190708061258-5e4b2ad2be34/go.mod h1:QiBt6D6ecJPk6DQ0WasKUVFHo6XdbcrogP0lcEwqA4Y=
@@ -501,6 +504,8 @@ github.com/metal-pod/metal-go v0.2.1-0.20200120090002-c1f47f341bf5 h1:/aGHeQeca5
 github.com/metal-pod/metal-go v0.2.1-0.20200120090002-c1f47f341bf5/go.mod h1:t27h77pANpArsVodEuJIo4HqmjqgRjTpIDgesABlE7I=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89 h1:RRVjpKhVGMGoDjadvr0IZWQSPoFvYUp4es7s62zhx8k=
 github.com/metal-pod/security v0.0.0-20190605103437-319d1b2eca89/go.mod h1:BUuL3n1TYvrGlxfUl2L6zrErSkw1NPchimPfcWMSU1k=
+github.com/metal-stack/cloud-go v0.1.0 h1:qf87JTskI+F8GR8Xn/yaHCHMuSHPG2UxdORTOKxyDUI=
+github.com/metal-stack/cloud-go v0.1.0/go.mod h1:FGODwzvwtrJYDvP1s27KNZa1S1coLbHINrfFqZeFP8c=
 github.com/mholt/archiver v3.1.1+incompatible/go.mod h1:Dh2dOXnSdiLxRiPoVfIr/fI1TwETms9B8CTWfeh7ROU=
 github.com/mitchellh/copystructure v1.0.0 h1:Laisrj+bAB6b/yJwB5Bt3ITZhGJdqmxquMKeZ+mmkFQ=
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=

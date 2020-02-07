@@ -16,12 +16,12 @@ package client
 
 import (
 	"context"
-	cloudgo "github.com/metal-pod/cloud-go"
-	cloudclient "github.com/metal-pod/cloud-go/api/client"
-	"github.com/metal-pod/cloud-go/api/client/project"
-	"github.com/metal-pod/cloud-go/api/models"
+	cloudgo "github.com/metal-stack/cloud-go"
+	cloudclient "github.com/metal-stack/cloud-go/api/client"
+	"github.com/metal-stack/cloud-go/api/client/project"
+	"github.com/metal-stack/cloud-go/api/models"
 
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

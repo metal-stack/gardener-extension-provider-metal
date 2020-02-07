@@ -17,8 +17,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
-	configloader "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config/loader"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	configloader "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/loader"
 
 	"github.com/spf13/pflag"
 )

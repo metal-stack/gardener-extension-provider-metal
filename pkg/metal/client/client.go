@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalgo "github.com/metal-pod/metal-go"
 	"github.com/metal-pod/metal-go/api/models"
 
