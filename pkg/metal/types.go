@@ -26,6 +26,8 @@ const (
 	MachineControllerManagerImageName = "machine-controller-manager"
 	// CCMImageName is the name of the cloud controller manager image.
 	CCMImageName = "metalccm"
+	// ETCDBackupRestoreImageName is the name of the etcd backup and restore image.
+	ETCDBackupRestoreImageName = "etcd-backup-restore"
 	// GroupRolebindingControllerImageName is the name of the GroupRolebindingController image
 	GroupRolebindingControllerImageName = "group-rolebinding-controller"
 	// AccountingExporterImageName is the name of the accounting exporter image
@@ -75,8 +77,8 @@ const (
 	ShootExtensionTypeTokenIssuer = "tokenissuer"
 
 	// Shoot Annotations
-	ShootAnnotationCreatedBy   = "garden.sapcloud.io/createdBy"
-	ShootAnnotationPurpose     = "garden.sapcloud.io/purpose"
+	ShootAnnotationCreatedBy = "garden.sapcloud.io/createdBy"
+	ShootAnnotationPurpose   = "garden.sapcloud.io/purpose"
 	// FIXME: change to metal-stack
 	ShootAnnotationProject     = "cluster.metal-pod.io/project"
 	ShootAnnotationDescription = "cluster.metal-pod.io/description"

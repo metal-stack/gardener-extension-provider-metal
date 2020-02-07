@@ -18,14 +18,14 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	"github.com/gardener/gardener/pkg/apis/garden"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // ValidateWorkers validates the workers of a Shoot.
-func ValidateWorkers(workers []garden.Worker, cloudProfile *gardencorev1beta1.CloudProfile, fldPath *field.Path) field.ErrorList {
+func ValidateWorkers(workers []core.Worker, cloudProfile *gardencorev1beta1.CloudProfile, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	availableImages := sets.NewString()

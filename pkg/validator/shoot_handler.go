@@ -21,7 +21,7 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/util"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
-	"github.com/gardener/gardener/pkg/apis/garden"
+	"github.com/gardener/gardener/pkg/apis/core"
 	"github.com/go-logr/logr"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,7 +39,7 @@ type Shoot struct {
 
 // Handle implements Handler.Handle
 func (v *Shoot) Handle(ctx context.Context, req admission.Request) admission.Response {
-	shoot := &garden.Shoot{}
+	shoot := &core.Shoot{}
 	if err := util.Decode(v.decoder, req.Object.Raw, shoot); err != nil {
 		v.Logger.Error(err, "failed to decode shoot", string(req.Object.Raw))
 		return admission.Errored(http.StatusBadRequest, err)
@@ -56,7 +56,7 @@ func (v *Shoot) Handle(ctx context.Context, req admission.Request) admission.Res
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 	case admissionv1beta1.Update:
-		oldShoot := &garden.Shoot{}
+		oldShoot := &core.Shoot{}
 		if err := util.Decode(v.decoder, req.Object.Raw, oldShoot); err != nil {
 			v.Logger.Error(err, "failed to decode old shoot", string(req.OldObject.Raw))
 			return admission.Errored(http.StatusBadRequest, err)

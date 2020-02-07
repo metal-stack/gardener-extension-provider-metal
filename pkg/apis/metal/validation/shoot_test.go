@@ -16,7 +16,7 @@ package validation_test
 
 import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	"github.com/gardener/gardener/pkg/apis/garden"
+	"github.com/gardener/gardener/pkg/apis/core"
 	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -31,7 +31,7 @@ var _ = Describe("Shoot validation", func() {
 	Describe("#ValidateWorkerConfig", func() {
 		var (
 			cloudProfile *gardencorev1beta1.CloudProfile
-			workers      []garden.Worker
+			workers      []core.Worker
 		)
 
 		BeforeEach(func() {
@@ -52,11 +52,11 @@ var _ = Describe("Shoot validation", func() {
 					},
 				},
 			}
-			workers = []garden.Worker{
+			workers = []core.Worker{
 				{
-					Machine: garden.Machine{
+					Machine: core.Machine{
 						Type: "c1-xlarge-x86",
-						Image: &garden.ShootMachineImage{
+						Image: &core.ShootMachineImage{
 							Name:    "ubuntu",
 							Version: "19.04",
 						},
@@ -72,7 +72,7 @@ var _ = Describe("Shoot validation", func() {
 		})
 
 		It("volume must be nil", func() {
-			workers[0].Volume = &garden.Volume{
+			workers[0].Volume = &core.Volume{
 				Type: strPtr("fancy-storage"),
 			}
 

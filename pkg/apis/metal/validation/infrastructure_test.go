@@ -15,8 +15,8 @@
 package validation_test
 
 import (
+	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	"github.com/gardener/gardener/pkg/apis/garden"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -51,7 +51,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 		var (
 			cloudProfile       *gardencorev1beta1.CloudProfile
 			cloudProfileConfig *apismetal.CloudProfileConfig
-			shoot              *garden.Shoot
+			shoot              *core.Shoot
 		)
 
 		Context("zones validation", func() {
@@ -73,8 +73,8 @@ var _ = Describe("InfrastructureConfig validation", func() {
 						},
 					},
 				}
-				shoot = &garden.Shoot{
-					Spec: garden.ShootSpec{
+				shoot = &core.Shoot{
+					Spec: core.ShootSpec{
 						Region: "region-a",
 					},
 				}

@@ -16,13 +16,13 @@ package validator
 
 import (
 	"github.com/gardener/gardener-extensions/pkg/util"
-	"github.com/gardener/gardener/pkg/apis/garden"
+	"github.com/gardener/gardener/pkg/apis/core"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-func decodeControlPlaneConfig(decoder runtime.Decoder, cp *garden.ProviderConfig, fldPath *field.Path) (*metal.ControlPlaneConfig, error) {
+func decodeControlPlaneConfig(decoder runtime.Decoder, cp *core.ProviderConfig, fldPath *field.Path) (*metal.ControlPlaneConfig, error) {
 	controlPlaneConfig := &metal.ControlPlaneConfig{}
 	if cp != nil && cp.Raw != nil {
 		if err := util.Decode(decoder, cp.Raw, controlPlaneConfig); err != nil {
@@ -33,7 +33,7 @@ func decodeControlPlaneConfig(decoder runtime.Decoder, cp *garden.ProviderConfig
 	return controlPlaneConfig, nil
 }
 
-func decodeInfrastructureConfig(decoder runtime.Decoder, infra *garden.ProviderConfig, fldPath *field.Path) (*metal.InfrastructureConfig, error) {
+func decodeInfrastructureConfig(decoder runtime.Decoder, infra *core.ProviderConfig, fldPath *field.Path) (*metal.InfrastructureConfig, error) {
 	infraConfig := &metal.InfrastructureConfig{}
 	if infra != nil && infra.Raw != nil {
 		if err := util.Decode(decoder, infra.Raw, infraConfig); err != nil {
