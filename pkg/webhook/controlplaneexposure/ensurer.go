@@ -1,4 +1,4 @@
-dpackage controlplaneexposure
+package controlplaneexposure
 
 import (
 	"context"
