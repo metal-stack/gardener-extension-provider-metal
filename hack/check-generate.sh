@@ -92,12 +92,7 @@ if which git &>/dev/null; then
         exit 1
     fi
     generated=true
-    # We are using VERSIONFILE_VERSION since we want to check with respect to
-    # the content of the source state.
-    if ! out=$(VERSION="$VERSIONFILE_VERSION" "$DIRNAME/generate.sh" 2>&1); then
-        echo "Error during calling $DIRNAME/generate.sh: $out"
-        exit 1
-    fi
+
     new_status="$(git status -s)"
 
     if [[ "$old_status" != "$new_status" ]]; then

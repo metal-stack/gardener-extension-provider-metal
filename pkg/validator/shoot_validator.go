@@ -19,16 +19,16 @@ import (
 	"errors"
 	"reflect"
 
+	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	"github.com/gardener/gardener/pkg/apis/garden"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/helper"
-	metalvalidation "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/validation"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	metalvalidation "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-func (v *Shoot) validateShoot(ctx context.Context, shoot *garden.Shoot) error {
+func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 	// Provider validation
 	fldPath := field.NewPath("spec", "provider")
 
@@ -87,7 +87,7 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *garden.Shoot) error {
 	return nil
 }
 
-func (v *Shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *garden.Shoot) error {
+func (v *Shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.Shoot) error {
 	fldPath := field.NewPath("spec", "provider")
 
 	// InfrastructureConfig update

@@ -1,28 +1,24 @@
 images:
 - name: metalccm
-  sourceRepository: docker.io/metalpod/metal-ccm
-  repository: metalpod/metal-ccm
-  tag: latest
+  sourceRepository: github.com/metal-stack/metal-ccm
+  repository: metalstack/metal-ccm
+  tag: v0.3.0
 - name: machine-controller-manager
   sourceRepository: github.com/gardener/machine-controller-manager
   repository: eu.gcr.io/gardener-project/gardener/machine-controller-manager
   tag: "0.19.0-dev"
-- name: etcd-backup-restore
-  sourceRepository: github.com/gardener/etcd-backup-restore
-  repository: eu.gcr.io/gardener-project/gardener/etcdbrctl
-  tag: "0.6.4"
 - name: droptailer
-  sourceRepository: metal-pod/droptailer
-  repository: docker.io/metalpod/droptailer-server
+  sourceRepository: github.com/metal-stack/droptailer
+  repository: metalstack/droptailer-server
   tag: latest
 - name: csi-lvm-controller
-  sourceRepository: github.com/metal-pod/csi-lvm-controller
-  repository: metalpod/csi-lvm-controller
-  tag: v0.2.2
+  sourceRepository: github.com/metal-stack/csi-lvm-controller
+  repository: metalstack/csi-lvm-controller
+  tag: v0.4.0
 - name: csi-lvm-provisioner
-  sourceRepository: github.com/metal-pod/csi-lvm-provisioner
-  repository: metalpod/csi-lvm-provisioner
-  tag: v0.2.2
+  sourceRepository: github.com/metal-stack/csi-lvm-provisioner
+  repository: metalstack/csi-lvm-provisioner
+  tag: v0.4.0
 # can be provided via image override:
 # - name: authn-webhook
 #   sourceRepository:

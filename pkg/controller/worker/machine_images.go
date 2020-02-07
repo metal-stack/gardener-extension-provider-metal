@@ -19,10 +19,10 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener-extensions/pkg/util"
-	confighelper "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config/helper"
-	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	apismetalhelper "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/helper"
-	metalv1alpha1 "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
+	confighelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/helper"
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	apismetalhelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

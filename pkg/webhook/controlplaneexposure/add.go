@@ -18,8 +18,8 @@ import (
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

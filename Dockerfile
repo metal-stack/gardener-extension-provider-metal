@@ -1,10 +1,10 @@
 #############      builder-base                             #############
 FROM golang:1.13 AS builder
 
-WORKDIR /go/src/github.com/metal-pod/gardener-extension-provider-metal
+WORKDIR /go/src/github.com/metal-stack/gardener-extension-provider-metal
 COPY . .
 RUN hack/install-requirements.sh \
- && make VERIFY=$VERIFY all
+    && make VERIFY=$VERIFY all
 
 #############      base                                     #############
 FROM alpine:3.11

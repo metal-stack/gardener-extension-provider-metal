@@ -23,7 +23,7 @@ package v1alpha1
 import (
 	unsafe "unsafe"
 
-	config "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	config "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-pod/metal-go"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"

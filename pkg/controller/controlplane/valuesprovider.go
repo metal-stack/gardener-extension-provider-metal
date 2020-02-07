@@ -28,14 +28,14 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
-	cloudclient "github.com/metal-pod/cloud-go/api/client"
-	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	cloudclient "github.com/metal-stack/cloud-go/api/client"
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
-	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
+	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-pod/metal-go"
 
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"

@@ -20,10 +20,10 @@ import (
 	"path/filepath"
 
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
-	apismetal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	genericworkeractuator "github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -130,6 +130,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				zoneTag,
 				fmt.Sprintf("node.kubernetes.io/instance-type=%s", pool.MachineType),
 				clusterTag,
+				// FIXME: needs to change to metal-stack
 				fmt.Sprintf("machine.metal-pod.io/project-id=%s", projectID),
 			},
 			"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},

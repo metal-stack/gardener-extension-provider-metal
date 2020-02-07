@@ -15,8 +15,8 @@
 package install
 
 import (
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"

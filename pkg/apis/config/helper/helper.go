@@ -17,7 +17,7 @@ package helper
 import (
 	"fmt"
 
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 )
 
 // FindImage takes a list of machine images, and the desired image name and version. It tries

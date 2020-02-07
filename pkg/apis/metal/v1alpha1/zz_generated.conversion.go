@@ -23,8 +23,8 @@ package v1alpha1
 import (
 	unsafe "unsafe"
 
-	config "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
-	metal "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	config "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	metal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -170,7 +170,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1alpha1_CloudControllerManagerConfig_To_metal_CloudControllerManagerConfig(in *CloudControllerManagerConfig, out *metal.CloudControllerManagerConfig, s conversion.Scope) error {
-	out.KubernetesConfig = in.KubernetesConfig
+	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
 	return nil
 }
 
@@ -180,7 +180,7 @@ func Convert_v1alpha1_CloudControllerManagerConfig_To_metal_CloudControllerManag
 }
 
 func autoConvert_metal_CloudControllerManagerConfig_To_v1alpha1_CloudControllerManagerConfig(in *metal.CloudControllerManagerConfig, out *CloudControllerManagerConfig, s conversion.Scope) error {
-	out.KubernetesConfig = in.KubernetesConfig
+	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
 	return nil
 }
 

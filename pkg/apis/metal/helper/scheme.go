@@ -10,9 +10,9 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 
-	api "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	api "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal/install"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/install"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"

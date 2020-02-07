@@ -60,6 +60,7 @@ function cleanup {
 trap cleanup EXIT ERR INT TERM
 
 export HELM_HOME="$temp_helm_home"
+VERSION=$(git describe --abbrev=0 --tags)
 helm init --client-only > /dev/null 2>&1
 helm package "$CHART_DIR" --version "$VERSION" --app-version "$VERSION" --destination "$temp_dir" > /dev/null
 tar -xzm -C "$temp_extract_dir" -f "$temp_dir"/*
@@ -94,7 +95,7 @@ cat <<EOM >> "$DEST"
       chart: $chart
       values:
         image:
-          tag: $VERSION
+          tag: ${VERSION}
 EOM
 
 echo "Successfully generated controller registration at $DEST"

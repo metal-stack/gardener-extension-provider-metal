@@ -18,7 +18,6 @@ IMAGE_PREFIX                := $(REGISTRY)
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 HACK_DIR                    := $(REPO_ROOT)/hack
 HOSTNAME                    := $(shell hostname)
-VERSION                     := $(shell bash -c 'source $(HACK_DIR)/common.sh && echo $$VERSION')
 LD_FLAGS                    := "-w -X github.com/gardener/gardener-extensions/pkg/version.Version=$(IMAGE_TAG)"
 VERIFY                      := true
 LEADER_ELECTION             := false
@@ -44,8 +43,8 @@ generate:
 
 .PHONE: generate-in-docker
 generate-in-docker:
-	docker run --rm -it -v $(PWD):/go/src/github.com/metal-pod/gardener-extension-provider-metal golang:1.13 \
-		sh -c "cd /go/src/github.com/metal-pod/gardener-extension-provider-metal \
+	docker run --rm -it -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.13 \
+		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 				&& ./hack/install-requirements.sh \
 				&& make generate \
 				&& chown -R $(shell id -u):$(shell id -g) ."
@@ -78,13 +77,11 @@ endif
 docker-image:
 	@docker build --no-cache \
 		--build-arg VERIFY=$(VERIFY) \
-		--tag $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(VERSION) \
 		--tag $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(IMAGE_TAG) \
 		--file Dockerfile --memory 6g .
 
 .PHONY: docker-push
 docker-push:
-	@docker push $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(VERSION)
 	@docker push $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(IMAGE_TAG)
 
 ### Debug / Development commands

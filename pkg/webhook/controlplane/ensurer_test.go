@@ -22,7 +22,7 @@ import (
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/test"
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	"github.com/coreos/go-systemd/unit"
 	"github.com/golang/mock/gomock"

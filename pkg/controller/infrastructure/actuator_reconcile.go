@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/metal"
-	metalclient "github.com/metal-pod/gardener-extension-provider-metal/pkg/metal/client"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
-	metalapi "github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/metal"
+	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	metalgo "github.com/metal-pod/metal-go"
 	metalfirewall "github.com/metal-pod/metal-go/api/client/firewall"
 

@@ -20,14 +20,14 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/go-logr/logr"
-	"github.com/metal-pod/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
-	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 )
@@ -61,7 +61,7 @@ func (e *ensurer) EnsureKubeAPIServerService(ctx context.Context, ectx genericmu
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, dep *appsv1.Deployment) error {
 	// Get load balancer address of the kube-apiserver service
-	address, err := kutil.GetLoadBalancerIngress(ctx, e.client, dep.Namespace, v1alpha1constants.DeploymentNameKubeAPIServer)
+	address, err := kutil.GetLoadBalancerIngress(ctx, e.client, dep.Namespace, v1beta1constants.DeploymentNameKubeAPIServer)
 	if err != nil {
 		return errors.Wrap(err, "could not get kube-apiserver service load balancer address")
 	}
@@ -91,7 +91,7 @@ func (e *ensurer) getVolumeClaimTemplate(name string) *corev1.PersistentVolumeCl
 		volumeClaimTemplateName = name
 	)
 
-	if name == v1alpha1constants.StatefulSetNameETCDMain {
+	if name == v1beta1constants.ETCDMain {
 		etcdStorage = *e.etcdStorage
 		volumeClaimTemplateName = controlplane.EtcdMainVolumeClaimTemplateName
 	}
