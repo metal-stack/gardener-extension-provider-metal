@@ -19,15 +19,11 @@ import "path/filepath"
 const (
 	// Name is the name of the Metal provider.
 	Name = "provider-metal"
-	// StorageProviderName is the name of the Metal storage provider.
-	StorageProviderName = "S3"
 
 	// MachineControllerManagerImageName is the name of the MachineControllerManager image.
 	MachineControllerManagerImageName = "machine-controller-manager"
 	// CCMImageName is the name of the cloud controller manager image.
 	CCMImageName = "metalccm"
-	// ETCDBackupRestoreImageName is the name of the etcd backup and restore image.
-	ETCDBackupRestoreImageName = "etcd-backup-restore"
 	// GroupRolebindingControllerImageName is the name of the GroupRolebindingController image
 	GroupRolebindingControllerImageName = "group-rolebinding-controller"
 	// AccountingExporterImageName is the name of the accounting exporter image
@@ -55,30 +51,17 @@ const (
 	CloudAPIKey = "cloudAPIKey"
 	// CloudAPIHMac is a constant for the hmac in a cloud provider secret.
 	CloudAPIHMac = "cloudAPIHMac"
-	// Region is a constant for the key in a backup secret that holds the metal region.
-	Region = "region"
-	// BucketName is a constant for the key in a backup secret that holds the bucket name.
-	// The bucket name is written to the backup secret by Gardener as a temporary solution.
-	// TODO In the future, the bucket name should come from a BackupBucket resource (see https://github.com/gardener/gardener/blob/master/docs/proposals/02-backupinfra.md)
-	BucketName = "bucketName"
-	// SSHKeyName key for accessing SSH key name from outputs in terraform
-	SSHKeyName = "keyName"
 
 	// CloudProviderConfigName is the name of the configmap containing the cloud provider config.
 	CloudProviderConfigName = "cloud-provider-config"
 	// MachineControllerManagerName is a constant for the name of the machine-controller-manager.
 	MachineControllerManagerName = "machine-controller-manager"
-	// BackupSecretName is the name of the secret containing the credentials for storing the backups of Shoot clusters.
-	BackupSecretName = "etcd-backup"
 
 	// AuthN Webhook
 	AuthNWebHookConfigName        = "authn-webhook-config"
 	AuthNWebHookCertName          = "authn-webhook-cert"
 	ShootExtensionTypeTokenIssuer = "tokenissuer"
 
-	// Shoot Annotations
-	ShootAnnotationCreatedBy = "garden.sapcloud.io/createdBy"
-	ShootAnnotationPurpose   = "garden.sapcloud.io/purpose"
 	// FIXME: change to metal-stack
 	ShootAnnotationProject     = "cluster.metal-pod.io/project"
 	ShootAnnotationDescription = "cluster.metal-pod.io/description"
