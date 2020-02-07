@@ -1,4 +1,4 @@
-# Gardener Extension for provider Metal Stack]
+# Gardener Extension for provider Metal Stack
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/metal-stack/gardener-extension-provider-metal)](https://goreportcard.com/report/github.com/metal-stack/gardener-extension-provider-metal)
 
