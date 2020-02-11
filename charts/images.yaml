@@ -14,11 +14,11 @@ images:
 - name: csi-lvm-controller
   sourceRepository: github.com/metal-stack/csi-lvm-controller
   repository: metalstack/csi-lvm-controller
-  tag: v0.4.0
+  tag: v0.4.1
 - name: csi-lvm-provisioner
   sourceRepository: github.com/metal-stack/csi-lvm-provisioner
   repository: metalstack/csi-lvm-provisioner
-  tag: v0.4.0
+  tag: v0.4.1
 # can be provided via image override:
 # - name: authn-webhook
 #   sourceRepository:
