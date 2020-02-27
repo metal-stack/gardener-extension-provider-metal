@@ -260,6 +260,13 @@ var storageClassChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRole{}, Name: "csi-lvm-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "csi-lvm-controller"},
 		{Type: &appsv1.Deployment{}, Name: "csi-lvm-controller"},
+		{Type: &corev1.ServiceAccount{}, Name: "csi-lvm-reviver"},
+		{Type: &rbacv1.Role{}, Name: "csi-lvm-reviver"},
+		{Type: &rbacv1.RoleBinding{}, Name: "csi-lvm-reviver"},
+		{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "csi-lvm-reviver-psp"},
+		{Type: &rbacv1.Role{}, Name: "csi-lvm-reviver-psp"},
+		{Type: &rbacv1.RoleBinding{}, Name: "csi-lvm-reviver-psp"},
+		{Type: &appsv1.DaemonSet{}, Name: "csi-lvm-reviver"},
 	},
 }
 
