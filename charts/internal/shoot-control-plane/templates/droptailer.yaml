@@ -25,7 +25,7 @@ spec:
         networking.gardener.cloud/from-prometheus: allowed
     spec:
       containers:
-      - image: docker.io/metalpod/droptailer:latest
+      - image: metalstack/droptailer:latest
         imagePullPolicy: Always
         name: droptailer
         ports:
