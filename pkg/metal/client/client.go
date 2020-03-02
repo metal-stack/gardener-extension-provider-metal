@@ -21,8 +21,8 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
-	metalgo "github.com/metal-pod/metal-go"
-	"github.com/metal-pod/metal-go/api/models"
+	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-go/api/models"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"

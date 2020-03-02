@@ -19,7 +19,7 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
-	metalgo "github.com/metal-pod/metal-go"
+	metalgo "github.com/metal-stack/metal-go"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 

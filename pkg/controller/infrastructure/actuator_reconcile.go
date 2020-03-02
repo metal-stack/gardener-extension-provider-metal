@@ -11,8 +11,8 @@ import (
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
-	metalgo "github.com/metal-pod/metal-go"
-	metalfirewall "github.com/metal-pod/metal-go/api/client/firewall"
+	metalgo "github.com/metal-stack/metal-go"
+	metalfirewall "github.com/metal-stack/metal-go/api/client/firewall"
 
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	controllererrors "github.com/gardener/gardener-extensions/pkg/controller/error"
