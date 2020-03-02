@@ -5,7 +5,7 @@ metadata:
   labels:
     app: limit-validating-webhook
 webhooks:
-- name: limit-validating-webhook.metal-pod.io
+- name: limit-validating-webhook.metal-stack.io
   clientConfig:
     url: {{ .Values.limitValidatingWebhook_url }}
     caBundle: {{ .Values.limitValidatingWebhook_caBundle }}

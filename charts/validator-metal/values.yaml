@@ -2,7 +2,7 @@ global:
   virtualGarden:
     enabled: false
   image:
-    repository: metalpod/gardener-extension-provider-metal
+    repository: metalstack/gardener-extension-provider-metal
     tag: latest
     pullPolicy: Always
   replicaCount: 1

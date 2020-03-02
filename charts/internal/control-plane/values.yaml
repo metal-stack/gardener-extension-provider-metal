@@ -53,7 +53,7 @@ accex_tenant: someTenant
 accex_clusterID: 123123
 accex_clustername: clustername
 
-accex_accountingsink_url: https://api.metal-pod.io/accounting
+accex_accountingsink_url: https://api.metal-stack.io/accounting
 accex_accountingsink_HMAC: _dummy_
 
 accountingSink:

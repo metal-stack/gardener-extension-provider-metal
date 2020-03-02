@@ -16,6 +16,6 @@ jobs:
       id: tagName
     - name: Build the Docker images
       run: |
-        docker login -u metalpod -p ${{ secrets.DOCKER_HUB_TOKEN }}
+        docker login -u metalstack -p ${{ secrets.DOCKER_HUB_TOKEN }}
         make docker-image
         make docker-push
