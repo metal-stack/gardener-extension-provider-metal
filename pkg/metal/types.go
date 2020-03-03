@@ -31,12 +31,6 @@ const (
 	APIKey = "metalAPIKey"
 	// APIHMac is a constant for the hmac in a cloud provider secret.
 	APIHMac = "metalAPIHMac"
-	// CloudAPIURL is a constant for the url of cloud-api.
-	CloudAPIURL = "cloudAPIURL"
-	// CloudAPIKey is a constant for the key in a cloud provider secret.
-	CloudAPIKey = "cloudAPIKey"
-	// CloudAPIHMac is a constant for the hmac in a cloud provider secret.
-	CloudAPIHMac = "cloudAPIHMac"
 
 	// CloudProviderConfigName is the name of the configmap containing the cloud provider config.
 	CloudProviderConfigName = "cloud-provider-config"
@@ -68,8 +62,4 @@ type Credentials struct {
 	MetalAPIURL  string
 	MetalAPIKey  string
 	MetalAPIHMac string
-
-	CloudAPIURL  string
-	CloudAPIKey  string
-	CloudAPIHMac string
 }

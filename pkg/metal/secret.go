@@ -16,8 +16,5 @@ func ReadCredentialsSecret(secret *corev1.Secret) (*Credentials, error) {
 		MetalAPIURL:  string(secret.Data[APIURL]),
 		MetalAPIHMac: string(secret.Data[APIHMac]),
 		MetalAPIKey:  string(secret.Data[APIKey]),
-		CloudAPIURL:  string(secret.Data[CloudAPIURL]),
-		CloudAPIHMac: string(secret.Data[CloudAPIHMac]),
-		CloudAPIKey:  string(secret.Data[CloudAPIKey]),
 	}, nil
 }
