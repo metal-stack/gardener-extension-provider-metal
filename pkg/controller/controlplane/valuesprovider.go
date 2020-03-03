@@ -14,7 +14,6 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
-	cloudclient "github.com/metal-stack/cloud-go/api/client"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
@@ -365,11 +364,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	cclient, err := metalclient.NewCloudClient(ctx, vp.client, &cp.Spec.SecretRef)
-	if err != nil {
-		return nil, err
-	}
-
 	// Get CCM chart values
 	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, cp, cluster, checksums, scaledDown, mclient)
 	if err != nil {
@@ -381,7 +375,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, infrastructureConfig, mclient, cclient)
+	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, infrastructureConfig, mclient)
 	if err != nil {
 		return nil, err
 	}
@@ -623,7 +617,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	return values, nil
 }
 
-func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver, cclient *cloudclient.Cloud) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	partitionID := infrastructure.PartitionID
 	projectID := infrastructure.ProjectID
@@ -631,10 +625,11 @@ func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster
 	clusterName := annotations[metal.ShootAnnotationClusterName]
 	tenant := annotations[metal.ShootAnnotationTenant]
 
-	project, err := metalclient.GetProjectByID(cclient, projectID)
+	resp, err := mclient.ProjectGet(projectID)
 	if err != nil {
 		return nil, err
 	}
+	project := resp.Project
 
 	values := map[string]interface{}{
 		"accex_partitionID": partitionID,
