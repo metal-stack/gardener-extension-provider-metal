@@ -11,6 +11,8 @@ rules:
   - endpoints
   - replicationcontrollers
   - pods
+  - persistentvolumes
+  - persistentvolumeclaims
   verbs:
   - create
   - delete
@@ -19,15 +21,6 @@ rules:
   - list
   - patch
   - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - persistentvolumes
-  - persistentvolumeclaims
-  verbs:
-  - get
-  - list
   - watch
 - apiGroups:
   - ""

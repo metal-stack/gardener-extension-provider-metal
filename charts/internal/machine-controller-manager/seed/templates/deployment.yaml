@@ -36,9 +36,9 @@ spec:
       serviceAccountName: machine-controller-manager
       terminationGracePeriodSeconds: 5
       containers:
-      - name: machine-controller-manager
+      - name: metal-machine-controller-manager
         image: {{ index .Values.images "machine-controller-manager" }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         command:
         - ./machine-controller-manager
         - --control-kubeconfig=inClusterConfig
@@ -46,7 +46,7 @@ spec:
         - --namespace={{ .Release.Namespace }}
         - --port={{ .Values.metricsPort }}
         - --machine-creation-timeout=20m
-        - --machine-drain-timeout=20m
+        - --machine-drain-timeout=2h
         - --machine-health-timeout=10080m
         - --machine-safety-apiserver-statuscheck-timeout=30s
         - --machine-safety-apiserver-statuscheck-period=1m
@@ -54,7 +54,7 @@ spec:
         - --machine-safety-overshooting-period=1m
         - --safety-up=2
         - --safety-down=1
-        - --v=2
+        - --v=3
         livenessProbe:
           failureThreshold: 3
           httpGet:
@@ -74,7 +74,7 @@ spec:
             cpu: 50m
             memory: 64Mi
           limits:
-            cpu: "2000m"
+            cpu: 350m
             memory: 256Mi
         volumeMounts:
         - mountPath: /var/lib/machine-controller-manager
