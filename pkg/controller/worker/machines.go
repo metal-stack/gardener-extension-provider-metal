@@ -8,7 +8,6 @@ import (
 
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
