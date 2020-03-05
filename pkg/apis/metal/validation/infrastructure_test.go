@@ -203,30 +203,6 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			}))))
 		})
 
-		It("should not allow changing firewall image", func() {
-			newInfrastructureConfig := infrastructureConfig.DeepCopy()
-			newInfrastructureConfig.Firewall.Image = "unknown"
-
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
-
-			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Type":  Equal(field.ErrorTypeInvalid),
-				"Field": Equal("firewall.image"),
-			}))))
-		})
-
-		It("should not allow changing firewall size", func() {
-			newInfrastructureConfig := infrastructureConfig.DeepCopy()
-			newInfrastructureConfig.Firewall.Size = "unknown"
-
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
-
-			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Type":  Equal(field.ErrorTypeInvalid),
-				"Field": Equal("firewall.size"),
-			}))))
-		})
-
 		It("should not allow adding networks", func() {
 			newInfrastructureConfig := infrastructureConfig.DeepCopy()
 			newInfrastructureConfig.Firewall.Networks = append(newInfrastructureConfig.Firewall.Networks, "b")

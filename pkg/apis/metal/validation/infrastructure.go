@@ -101,8 +101,6 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apismetal.Infrastr
 
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.ProjectID, oldConfig.ProjectID, field.NewPath("projectID"))...)
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.PartitionID, oldConfig.PartitionID, field.NewPath("partitionID"))...)
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.Firewall.Image, oldConfig.Firewall.Image, field.NewPath("firewall.image"))...)
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.Firewall.Size, oldConfig.Firewall.Size, field.NewPath("firewall.size"))...)
 
 	var oldNetworks []string
 	for _, network := range oldConfig.Firewall.Networks {

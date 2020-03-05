@@ -83,27 +83,32 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		machineID := decodeMachineID(firewallStatus.MachineID)
 		clusterFirewallAmount := len(resp.Firewalls)
 
+		if clusterFirewallAmount == 0 {
+			a.logger.Error(err, "firewall does not exist anymore, creating new firewall", "clusterid", clusterID, "machineid", machineID)
+		}
 		if clusterFirewallAmount > 1 {
 			return fmt.Errorf("multiple firewalls exist for this cluster, which is currently unsupported. delete these firewalls and try to keep the one with machine id %q", machineID)
 		}
 		if clusterFirewallAmount == 1 {
 			fw := resp.Firewalls[0]
 			if *fw.ID != machineID {
-				a.logger.Info("machine id of this cluster's firewall differs from infrastructure status. leaving as it is, but something unexpected must have happened in the past. if you want to get to a clean state, remove the firewall by hand (causes downtime!) and reconcile infrastructure again", "clusterID", clusterID, "expectedMachineID", machineID, "actualMachineID", *fw.ID)
+				a.logger.Error(fmt.Errorf("machine id of this cluster's firewall differs from infrastructure status"), "leaving as it is, but something unexpected must have happened in the past. if you want to get to a clean state, remove the firewall by hand (causes downtime!) and reconcile infrastructure again", "clusterID", clusterID, "expectedMachineID", machineID, "actualMachineID", *fw.ID)
 			}
-			// TODO: in the future we probably want to allow resizing a firewall or updating the machine image
-			// this could go here...
-			if *fw.Size.ID != infrastructureConfig.Firewall.Size {
-				a.logger.Error(fmt.Errorf("firewall size has changed"), "firewall spec has changed, which is not supported, ignoring...", "clusterid", clusterID, "machineid", machineID)
-			}
-			if *fw.Allocation.Image.ID != infrastructureConfig.Firewall.Image {
-				a.logger.Error(fmt.Errorf("firewall image has changed"), "firewall spec has changed, which is not supported, ignoring...", "clusterid", clusterID, "machineid", machineID)
-			}
-			return nil
-		}
 
-		// there is no firewall anymore
-		a.logger.Error(err, "firewall does not exist anymore, creating new firewall", "clusterid", clusterID, "machineid", machineID)
+			if *fw.Size.ID == infrastructureConfig.Firewall.Size && *fw.Allocation.Image.ID == infrastructureConfig.Firewall.Image {
+				return nil
+			}
+
+			a.logger.Info("firewall spec has changed. deleting old firewall and creating a new one", "clusterid", clusterID, "machineid", machineID)
+
+			_, err = mclient.MachineDelete(*fw.ID)
+			if err != nil {
+				return &controllererrors.RequeueAfterError{
+					Cause:        err,
+					RequeueAfter: 30 * time.Second,
+				}
+			}
+		}
 
 		firewallStatus.MachineID = ""
 		firewallStatus.Succeeded = false
