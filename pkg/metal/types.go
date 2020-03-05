@@ -41,13 +41,6 @@ const (
 	AuthNWebHookConfigName        = "authn-webhook-config"
 	AuthNWebHookCertName          = "authn-webhook-cert"
 	ShootExtensionTypeTokenIssuer = "tokenissuer"
-
-	// FIXME: change to metal-stack
-	ShootAnnotationProject     = "cluster.metal-pod.io/project"
-	ShootAnnotationDescription = "cluster.metal-pod.io/description"
-	ShootAnnotationClusterName = "cluster.metal-pod.io/name"
-	ShootAnnotationTenant      = "cluster.metal-pod.io/tenant"
-	ShootAnnotationClusterID   = "cluster.metal-pod.io/id"
 )
 
 var (

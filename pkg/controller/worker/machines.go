@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"path/filepath"
 
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
@@ -83,7 +84,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	clusterID := w.cluster.Shoot.GetUID()
-	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+	clusterTag := fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
 	regionTag := fmt.Sprintf("topology.kubernetes.io/region=%s", w.worker.Spec.Region)
 	zoneTag := fmt.Sprintf("topology.kubernetes.io/zone=%s", infrastructureConfig.PartitionID)
 
