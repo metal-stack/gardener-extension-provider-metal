@@ -96,6 +96,7 @@ func (v *Shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 	}
 
 	if !reflect.DeepEqual(oldInfraConfig, infraConfig) {
+		v.Logger.Info("differs!")
 		if errList := metalvalidation.ValidateInfrastructureConfigUpdate(oldInfraConfig, infraConfig); len(errList) != 0 {
 			return errList.ToAggregate()
 		}
