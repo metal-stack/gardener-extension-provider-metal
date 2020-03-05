@@ -8,6 +8,7 @@ import (
 
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
@@ -118,7 +119,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 				fmt.Sprintf("node.kubernetes.io/instance-type=%s", pool.MachineType),
 				clusterTag,
 				// FIXME: needs to change to metal-stack
-				fmt.Sprintf("machine.metal-pod.io/project-id=%s", projectID),
+				fmt.Sprintf("%s=%s", tag.MachineProjectID, projectID),
 			},
 			"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},
 			"secret": map[string]interface{}{
