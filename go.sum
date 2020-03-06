@@ -238,6 +238,7 @@ github.com/gardener/gardener v1.0.1-0.20200213093126-7a6123b6ae21/go.mod h1:CP9I
 github.com/gardener/gardener v1.0.4 h1:ChZgQ3NCraQ6WrMuSdawCAHQQ4eOpw5zNxO7u9utMsg=
 github.com/gardener/gardener v1.0.4/go.mod h1:CP9I0tCDVXTLPkJv/jUtXVUh948kSNKEGUg0haLz9gk=
 github.com/gardener/gardener v1.1.1 h1:K8vTZnSuRwEOJ9CTms7JBE+7CUKk+8L/egofUh6XVeU=
+github.com/gardener/gardener v1.1.2 h1:2b/3kB5hISUWy6p21MScs5u3KG4B/XjHTOiPMghXMCM=
 github.com/gardener/gardener-extensions v0.0.0-20190725050243-a80ef643c64b/go.mod h1:uXjtl3KeVdQXuGIP26+84wJY1Kwru67l0FXm7A5DiME=
 github.com/gardener/gardener-extensions v0.0.0-20190820050625-a15de8a82f6b/go.mod h1:q69+1cUGSfQ8gSMWzU7GFz/R8K8MpOLQBT2wJJcCjEA=
 github.com/gardener/gardener-extensions v0.0.0-20190906160200-5c329d46ae81/go.mod h1:OBUAbab8OMm8pvzr/1/cdwIQnQYuMoGDTNR2c+i9nYo=
@@ -633,6 +634,8 @@ github.com/metal-stack/cloud-go v0.1.0 h1:qf87JTskI+F8GR8Xn/yaHCHMuSHPG2UxdORTOK
 github.com/metal-stack/cloud-go v0.1.0/go.mod h1:FGODwzvwtrJYDvP1s27KNZa1S1coLbHINrfFqZeFP8c=
 github.com/metal-stack/metal-go v0.3.1 h1:ytHEhST/kxY4ZxoJB4jCnmBAFZIcW3jUl83V8lLwdls=
 github.com/metal-stack/metal-go v0.3.1/go.mod h1:RuV3BLGDb4eZ1+9eYw2DqQ3FVYmXiRH9JmLrSbqwkW4=
+github.com/metal-stack/metal-go v0.3.2 h1:EhYnQtprFpSYAyBrc72VgL0KxJVAA93FR8gb+Gzv8YA=
+github.com/metal-stack/metal-go v0.3.2/go.mod h1:RuV3BLGDb4eZ1+9eYw2DqQ3FVYmXiRH9JmLrSbqwkW4=
 github.com/metal-stack/metal-lib v0.3.3-0.20200305123033-e73ad372a7cf h1:OXAN5cgypTrBQZ4v6Kn2WzYaPBt7z1ECrQH+jkdyx2o=
 github.com/metal-stack/metal-lib v0.3.3-0.20200305123033-e73ad372a7cf/go.mod h1:11c537QgemtnJB4r35/tocyS4m5QmBqYnCMd6gkyrMU=
 github.com/metal-stack/metal-lib v0.3.3-0.20200306093957-48ff663d3cd9 h1:RWYQZq7ZoE40IYkPBym7eQRZ7EFvH2iMOOZa6QuckFM=

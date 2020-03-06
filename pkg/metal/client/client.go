@@ -23,6 +23,7 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-go/api/models"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -109,7 +110,8 @@ func GetEphemeralIPsFromCluster(client *metalgo.Driver, projectID, clusterID str
 	for _, ip := range ipFindResponse.IPs {
 		clusterCount := 0
 		for _, t := range ip.Tags {
-			if metalgo.TagIsMemberOfCluster(t, clusterID) {
+
+			if isMemberOfCluster(t, clusterID) {
 				clusterCount++
 			}
 		}
@@ -125,11 +127,9 @@ func GetEphemeralIPsFromCluster(client *metalgo.Driver, projectID, clusterID str
 
 // UpdateIPInCluster update the IP in the cluster to have only these tags left which are not from this cluster
 func UpdateIPInCluster(client *metalgo.Driver, ip *models.V1IPResponse, clusterID string) error {
-	clusterTag := metalgo.BuildServiceTagClusterPrefix(clusterID)
-
 	var newTags []string
 	for _, t := range ip.Tags {
-		if strings.HasPrefix(t, clusterTag) {
+		if strings.HasPrefix(t, tag.ClusterServiceFQN+"="+clusterID) {
 			continue
 		}
 		newTags = append(newTags, t)
@@ -143,4 +143,17 @@ func UpdateIPInCluster(client *metalgo.Driver, ip *models.V1IPResponse, clusterI
 		return err
 	}
 	return nil
+}
+
+func isMemberOfCluster(t, clusterID string) bool {
+	if strings.HasPrefix(t, tag.ClusterID) {
+		parts := strings.Split(t, "=")
+		if len(parts) != 2 {
+			return false
+		}
+		if strings.HasPrefix(parts[1], clusterID) {
+			return true
+		}
+	}
+	return false
 }
