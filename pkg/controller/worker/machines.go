@@ -102,7 +102,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		var (
 			metalClusterIDTag      = fmt.Sprintf("%s=%s", metaltag.ClusterID, w.cluster.Shoot.GetUID())
-			metalClusterNameTag    = fmt.Sprintf("%s=%s", metaltag.ClusterName, w.cluster.Shoot.GetClusterName())
+			metalClusterNameTag    = fmt.Sprintf("%s=%s", metaltag.ClusterName, w.worker.Namespace)
 			metalClusterProjectTag = fmt.Sprintf("%s=%s", metaltag.ClusterProject, infrastructureConfig.ProjectID)
 
 			kubernetesClusterTag        = fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace)
