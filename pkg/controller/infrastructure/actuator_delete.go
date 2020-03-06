@@ -3,9 +3,9 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"time"
 
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
 
@@ -23,7 +23,7 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 
 	var (
 		clusterID      = string(cluster.Shoot.GetUID())
-		clusterTag     = fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+		clusterTag     = fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
 		firewallStatus = infrastructureStatus.Firewall
 	)
 

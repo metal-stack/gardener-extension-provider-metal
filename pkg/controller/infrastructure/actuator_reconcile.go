@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -38,7 +38,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 
 	var (
 		clusterID      = string(cluster.Shoot.GetUID())
-		clusterTag     = fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
+		clusterTag     = fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
 		firewallStatus = infrastructureStatus.Firewall
 	)
 
@@ -235,7 +235,7 @@ func (a *actuator) ensureNodeNetwork(ctx context.Context, clusterID string, mcli
 		resp, err := mclient.NetworkFind(&metalgo.NetworkFindRequest{
 			ProjectID:   &infrastructureConfig.ProjectID,
 			PartitionID: &infrastructureConfig.PartitionID,
-			Labels:      map[string]string{metal.ShootAnnotationClusterID: clusterID},
+			Labels:      map[string]string{tag.ClusterID: clusterID},
 		})
 		if err != nil {
 			return "", err
@@ -253,7 +253,7 @@ func (a *actuator) ensureNodeNetwork(ctx context.Context, clusterID string, mcli
 		PartitionID: infrastructureConfig.PartitionID,
 		Name:        cluster.Shoot.GetName(),
 		Description: clusterID,
-		Labels:      map[string]string{metal.ShootAnnotationClusterID: clusterID},
+		Labels:      map[string]string{tag.ClusterID: clusterID},
 	})
 	if err != nil {
 		return "", err

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
+
 	"github.com/gardener/gardener-extensions/pkg/controller/worker"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
@@ -82,11 +84,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
-	clusterID := w.cluster.Shoot.GetUID()
-	clusterTag := fmt.Sprintf("%s=%s", metal.ShootAnnotationClusterID, clusterID)
-	regionTag := fmt.Sprintf("topology.kubernetes.io/region=%s", w.worker.Spec.Region)
-	zoneTag := fmt.Sprintf("topology.kubernetes.io/zone=%s", infrastructureConfig.PartitionID)
-
 	for _, pool := range w.worker.Spec.Pools {
 		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster)
 		if err != nil {
@@ -103,6 +100,18 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			Image:   machineImage,
 		})
 
+		var (
+			metalClusterIDTag      = fmt.Sprintf("%s=%s", metaltag.ClusterID, w.cluster.Shoot.GetUID())
+			metalClusterNameTag    = fmt.Sprintf("%s=%s", metaltag.ClusterName, w.cluster.Shoot.GetClusterName())
+			metalClusterProjectTag = fmt.Sprintf("%s=%s", metaltag.ClusterProject, infrastructureConfig.ProjectID)
+
+			kubernetesClusterTag        = fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace)
+			kubernetesRoleTag           = fmt.Sprintf("kubernetes.io/role=node")
+			kubernetesInstanceTypeTag   = fmt.Sprintf("node.kubernetes.io/instance-type=%s", pool.MachineType)
+			kubernetesTopologyRegionTag = fmt.Sprintf("topology.kubernetes.io/region=%s", w.worker.Spec.Region)
+			kubernetesTopologyZoneTag   = fmt.Sprintf("topology.kubernetes.io/zone=%s", infrastructureConfig.PartitionID)
+		)
+
 		machineClassSpec := map[string]interface{}{
 			"partition": infrastructureConfig.PartitionID,
 			"size":      pool.MachineType,
@@ -110,14 +119,15 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			"network":   privateNetwork.ID,
 			"image":     machineImage,
 			"tags": []string{
-				fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace),
-				"kubernetes.io/role=node",
-				regionTag,
-				zoneTag,
-				fmt.Sprintf("node.kubernetes.io/instance-type=%s", pool.MachineType),
-				clusterTag,
-				// FIXME: needs to change to metal-stack
-				fmt.Sprintf("machine.metal-pod.io/project-id=%s", projectID),
+				kubernetesClusterTag,
+				kubernetesRoleTag,
+				kubernetesInstanceTypeTag,
+				kubernetesTopologyRegionTag,
+				kubernetesTopologyZoneTag,
+
+				metalClusterIDTag,
+				metalClusterNameTag,
+				metalClusterProjectTag,
 			},
 			"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},
 			"secret": map[string]interface{}{

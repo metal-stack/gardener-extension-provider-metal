@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener-extensions/pkg/util"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
@@ -599,8 +600,8 @@ func getCCMChartValues(
 func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
-	clusterName := annotations[metal.ShootAnnotationClusterName]
-	tenant := annotations[metal.ShootAnnotationTenant]
+	clusterName := annotations[tag.ClusterName]
+	tenant := annotations[tag.ClusterTenant]
 
 	ti := cpConfig.IAMConfig.IssuerConfig
 
@@ -622,8 +623,8 @@ func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster
 	partitionID := infrastructure.PartitionID
 	projectID := infrastructure.ProjectID
 	clusterID := cluster.Shoot.ObjectMeta.UID
-	clusterName := annotations[metal.ShootAnnotationClusterName]
-	tenant := annotations[metal.ShootAnnotationTenant]
+	clusterName := annotations[tag.ClusterName]
+	tenant := annotations[tag.ClusterTenant]
 
 	resp, err := mclient.ProjectGet(projectID)
 	if err != nil {

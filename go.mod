@@ -29,7 +29,8 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
 	github.com/jetstack/cert-manager v0.6.2 // indirect
 	github.com/karrick/godirwalk v1.10.12 // indirect
-	github.com/metal-stack/metal-go v0.3.1
+	github.com/metal-stack/metal-go v0.3.2
+	github.com/metal-stack/metal-lib v0.3.3
 	github.com/onsi/ginkgo v1.10.1
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.9.1
