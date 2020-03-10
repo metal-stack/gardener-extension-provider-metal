@@ -355,7 +355,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	cpConfig.IAMConfig, err = helper.MergeIAMConfig(cpConfig.IAMConfig, cloudProfileConfig.IAMConfig)
+	cpConfig.IAMConfig, err = helper.MergeIAMConfig(cloudProfileConfig.IAMConfig, cpConfig.IAMConfig)
 	if err != nil {
 		return nil, err
 	}
