@@ -55,6 +55,8 @@ spec:
           value: k8s
         - name: TENANT
           value: {{ .Values.authn_tenant }}
+        - name: PROVIDERTENANT
+          value: {{ .Values.authn_providerTenant }}
         - name: CLUSTER
           value: {{ .Values.authn_clustername }}
         - name: DEBUG

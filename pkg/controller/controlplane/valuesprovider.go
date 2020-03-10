@@ -271,11 +271,12 @@ var storageClassChart = &chart.Chart{
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(mgr manager.Manager, logger logr.Logger, config AccountingConfig) genericactuator.ValuesProvider {
+func NewValuesProvider(mgr manager.Manager, logger logr.Logger, accConfig AccountingConfig, authConfig AuthConfig) genericactuator.ValuesProvider {
 	return &valuesProvider{
 		mgr:              mgr,
 		logger:           logger.WithName("metal-values-provider"),
-		accountingConfig: config,
+		accountingConfig: accConfig,
+		authConfig:       authConfig,
 	}
 }
 
@@ -286,6 +287,7 @@ type valuesProvider struct {
 	client           client.Client
 	logger           logr.Logger
 	accountingConfig AccountingConfig
+	authConfig       AuthConfig
 	mgr              manager.Manager
 }
 
@@ -371,7 +373,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster)
+	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.authConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -597,7 +599,7 @@ func getCCMChartValues(
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, authConfig AuthConfig) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
@@ -611,6 +613,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 		"authn_oidcIssuerUrl":      ti.Url,
 		"authn_oidcIssuerClientId": ti.ClientId,
 		"authn_debug":              "true",
+		"authn_providerTenant":     authConfig.ProviderTenant,
 
 		"grprb_clustername": clusterName,
 	}

@@ -43,6 +43,9 @@ spec:
 {{- if .Values.accountingSink.Url }}
         - --accounting-url={{ .Values.accountingSink.Url }}
 {{- end }}
+{{- if .Values.authConfig.providerTenant }}
+        - --auth-provider-tenant={{ .Values.authConfig.providerTenant }}
+{{- end }}
         env:
         - name: LEADER_ELECTION_NAMESPACE
           valueFrom:

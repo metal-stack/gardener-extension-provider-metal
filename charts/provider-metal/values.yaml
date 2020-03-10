@@ -57,3 +57,5 @@ gardener:
     provider: metal
 
 accountingSink: {}
+
+authConfig: {}
