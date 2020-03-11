@@ -164,7 +164,7 @@ var configChart = &chart.Chart{
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.DroptailerImageName, metal.LimitValidatingWebhookImageName},
+	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.LimitValidatingWebhookImageName},
 	Objects: []*chart.Object{
 		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
@@ -200,8 +200,9 @@ var controlPlaneChart = &chart.Chart{
 }
 
 var cpShootChart = &chart.Chart{
-	Name: "shoot-control-plane",
-	Path: filepath.Join(metal.InternalChartsPath, "shoot-control-plane"),
+	Name:   "shoot-control-plane",
+	Path:   filepath.Join(metal.InternalChartsPath, "shoot-control-plane"),
+	Images: []string{metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName},
 	Objects: []*chart.Object{
 		// limit validating webhook
 		{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "limit-validating-webhook"},
