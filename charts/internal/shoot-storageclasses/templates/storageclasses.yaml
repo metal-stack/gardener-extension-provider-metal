@@ -119,6 +119,7 @@ spec:
           limits:
             cpu: 20m
             memory: "128Mi"
+      priorityClassName: system-cluster-critical
 ---
 apiVersion: v1
 kind: ServiceAccount

@@ -291,3 +291,4 @@ spec:
         runAsUser: 65534
       serviceAccountName: controller
       terminationGracePeriodSeconds: 0
+      priorityClassName: system-node-critical
