@@ -9,7 +9,7 @@ images:
   tag: "0.26.3"
 - name: droptailer
   sourceRepository: github.com/metal-stack/droptailer
-  repository: metalstack/droptailer-server
+  repository: metalstack/droptailer
   tag: v0.2.1
 - name: csi-lvm-controller
   sourceRepository: github.com/metal-stack/csi-lvm-controller
