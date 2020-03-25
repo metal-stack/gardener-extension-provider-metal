@@ -93,6 +93,11 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
 
 	// activate AuthN Webhook with mounted Webhook-Config
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
+
+	// activate auditlog with mounted auditpolicy
+	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/webhook/config/auditpolicy.yaml")
+	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-path=", "/var/log/audit/kube-apiserver-audit.log")
+
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
