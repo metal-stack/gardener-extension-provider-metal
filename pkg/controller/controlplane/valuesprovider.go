@@ -193,6 +193,7 @@ var controlPlaneChart = &chart.Chart{
 		// network policies
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-http"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-vpn"},
