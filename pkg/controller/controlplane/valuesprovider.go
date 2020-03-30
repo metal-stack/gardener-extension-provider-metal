@@ -158,6 +158,7 @@ var configChart = &chart.Chart{
 	Objects: []*chart.Object{
 		// this config is mounted by the shoot-kube-apiserver at startup and should therefore be deployed before the controlplane
 		{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
+		{Type: &corev1.ConfigMap{}, Name: "auditpolicy-webhook-config"},
 	},
 }
 

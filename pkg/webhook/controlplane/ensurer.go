@@ -76,16 +76,32 @@ var (
 			},
 		},
 	}
+	// config mount for auditpolicy-webhook-config that is specified at kube-apiserver commandline
+	auditpolicyWebhookConfigVolumeMount = corev1.VolumeMount{
+		Name:      metal.AuditpolicyWebHookConfigName,
+		MountPath: "/etc/webhook/config",
+		ReadOnly:  true,
+	}
+	auditpolicyWebhookConfigVolume = corev1.Volume{
+		Name: metal.AuditpolicyWebHookConfigName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditpolicyWebHookConfigName},
+			},
+		},
+	}
 )
 
 func ensureVolumeMounts(c *corev1.Container) {
 	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
 	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
+	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditpolicyWebhookConfigVolumeMount)
 }
 
 func ensureVolumes(ps *corev1.PodSpec) {
 	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
 	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
+	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditpolicyWebhookConfigVolume)
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
