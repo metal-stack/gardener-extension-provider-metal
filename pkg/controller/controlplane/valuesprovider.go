@@ -14,7 +14,6 @@ import (
 	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
-	gardenerextensions "github.com/gardener/gardener/pkg/client/extensions/clientset/versioned"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
@@ -286,14 +285,13 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, accConfig Accoun
 
 // valuesProvider is a ValuesProvider that provides metal-specific values for the 2 charts applied by the generic actuator.
 type valuesProvider struct {
-	decoder                     runtime.Decoder
-	restConfig                  *rest.Config
-	client                      client.Client
-	gardenerExtensionsClientset gardenerextensions.Interface
-	logger                      logr.Logger
-	accountingConfig            AccountingConfig
-	authConfig                  AuthConfig
-	mgr                         manager.Manager
+	decoder          runtime.Decoder
+	restConfig       *rest.Config
+	client           client.Client
+	logger           logr.Logger
+	accountingConfig AccountingConfig
+	authConfig       AuthConfig
+	mgr              manager.Manager
 }
 
 // InjectScheme injects the given scheme into the valuesProvider.
@@ -304,13 +302,6 @@ func (vp *valuesProvider) InjectScheme(scheme *runtime.Scheme) error {
 
 func (vp *valuesProvider) InjectConfig(restConfig *rest.Config) error {
 	vp.restConfig = restConfig
-
-	var err error
-	vp.gardenerExtensionsClientset, err = gardenerextensions.NewForConfig(restConfig)
-	if err != nil {
-		return errors.Wrap(err, "could not create Gardener extensions client")
-	}
-
 	return nil
 }
 
@@ -383,8 +374,8 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
 	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
-	infrastructure, err := vp.gardenerExtensionsClientset.ExtensionsV1alpha1().Infrastructures(cluster.Shoot.Status.TechnicalID).Get(cluster.Shoot.Name, metav1.GetOptions{})
-	if err != nil {
+	infrastructure := &extensionsv1alpha1.Infrastructure{}
+	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
 		return nil, err
 	}
 
