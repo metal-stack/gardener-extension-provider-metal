@@ -46,7 +46,7 @@ const (
 	AuthNWebHookCertName          = "authn-webhook-cert"
 	ShootExtensionTypeTokenIssuer = "tokenissuer"
 	// Auditlog
-	AuditpolicyWebHookConfigName = "auditpolicy-webhook-config"
+	AuditpolicyConfigName = "auditpolicy-config"
 )
 
 var (

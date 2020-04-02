@@ -76,17 +76,17 @@ var (
 			},
 		},
 	}
-	// config mount for auditpolicy-webhook-config that is specified at kube-apiserver commandline
-	auditpolicyWebhookConfigVolumeMount = corev1.VolumeMount{
-		Name:      metal.AuditpolicyWebHookConfigName,
-		MountPath: "/etc/webhook/config",
+	// config mount for auditpolicy-config that is specified at kube-apiserver commandline
+	auditpolicyConfigVolumeMount = corev1.VolumeMount{
+		Name:      metal.AuditpolicyConfigName,
+		MountPath: "/etc/kubernetes/audit",
 		ReadOnly:  true,
 	}
-	auditpolicyWebhookConfigVolume = corev1.Volume{
-		Name: metal.AuditpolicyWebHookConfigName,
+	auditpolicyConfigVolume = corev1.Volume{
+		Name: metal.AuditpolicyConfigName,
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditpolicyWebHookConfigName},
+				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditpolicyConfigName},
 			},
 		},
 	}
@@ -95,13 +95,13 @@ var (
 func ensureVolumeMounts(c *corev1.Container) {
 	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
 	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
-	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditpolicyWebhookConfigVolumeMount)
+	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditpolicyConfigVolumeMount)
 }
 
 func ensureVolumes(ps *corev1.PodSpec) {
 	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
 	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
-	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditpolicyWebhookConfigVolume)
+	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditpolicyConfigVolume)
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
@@ -111,7 +111,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
 
 	// activate auditlog with mounted auditpolicy
-	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/webhook/config/auditpolicy.yaml")
+	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit/auditpolicy.yaml")
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-path=", "/var/log/audit/kube-apiserver-audit.log")
 
 }
