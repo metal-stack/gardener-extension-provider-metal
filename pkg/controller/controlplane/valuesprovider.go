@@ -383,7 +383,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
 	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
-	infrastructure, err := vp.gardenerExtensionsClientset.ExtensionsV1alpha1().Infrastructures(cluster.Seed.Namespace).Get(cluster.Shoot.Name, metav1.GetOptions{})
+	infrastructure, err := vp.gardenerExtensionsClientset.ExtensionsV1alpha1().Infrastructures(cluster.Shoot.Status.TechnicalID).Get(cluster.Shoot.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
