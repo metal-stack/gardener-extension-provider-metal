@@ -1,19 +1,21 @@
-name: Build image from release tag
+name: Docker Image from master
 
 on:
   push:
+    branches:
+      - master
     tags:
-      - "v*"
+      - '*'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Build and push Docker image
+    - uses: actions/checkout@v1
+    - uses: olegtarasov/get-tag@v1
+      id: tagName
+    - name: Build the Docker images
       run: |
-        export GITHUB_TAG_NAME=${GITHUB_REF##*/}
         docker login -u metalstackci -p ${{ secrets.DOCKER_HUB_TOKEN }}
         make docker-image
         make docker-push
