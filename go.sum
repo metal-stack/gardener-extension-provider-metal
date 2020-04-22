@@ -239,6 +239,7 @@ github.com/gardener/gardener v1.0.4 h1:ChZgQ3NCraQ6WrMuSdawCAHQQ4eOpw5zNxO7u9utM
 github.com/gardener/gardener v1.0.4/go.mod h1:CP9I0tCDVXTLPkJv/jUtXVUh948kSNKEGUg0haLz9gk=
 github.com/gardener/gardener v1.1.1 h1:K8vTZnSuRwEOJ9CTms7JBE+7CUKk+8L/egofUh6XVeU=
 github.com/gardener/gardener v1.1.2 h1:2b/3kB5hISUWy6p21MScs5u3KG4B/XjHTOiPMghXMCM=
+github.com/gardener/gardener v1.3.0 h1:3jDKUeU0ysN8LuxVjB4to958nU4BQ7qQD8EiyJk3W8w=
 github.com/gardener/gardener-extensions v0.0.0-20190725050243-a80ef643c64b/go.mod h1:uXjtl3KeVdQXuGIP26+84wJY1Kwru67l0FXm7A5DiME=
 github.com/gardener/gardener-extensions v0.0.0-20190820050625-a15de8a82f6b/go.mod h1:q69+1cUGSfQ8gSMWzU7GFz/R8K8MpOLQBT2wJJcCjEA=
 github.com/gardener/gardener-extensions v0.0.0-20190906160200-5c329d46ae81/go.mod h1:OBUAbab8OMm8pvzr/1/cdwIQnQYuMoGDTNR2c+i9nYo=
