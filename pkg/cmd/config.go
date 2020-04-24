@@ -61,6 +61,11 @@ func (c *Config) ApplyMachineImages(machineImages *[]config.MachineImage) {
 	*machineImages = c.Config.MachineImages
 }
 
+// ApplyETCDStorage sets the given etcd storage configuration to that of this Config.
+func (c *Config) ApplyETCDStorage(etcdStorage *config.ETCDStorage) {
+	*etcdStorage = c.Config.ETCD.Storage
+}
+
 // ApplyAccountingExporterConfig sets the given accounting exporter configuration to that of this Config.
 func (c *Config) ApplyAccountingExporterConfig(accountingExporterConfig *config.AccountingExporterConfiguration) {
 	*accountingExporterConfig = c.Config.AccountingExporter
