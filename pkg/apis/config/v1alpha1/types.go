@@ -14,8 +14,12 @@ type ControllerConfiguration struct {
 	// MachineImages is the list of machine images that are understood by the controller. It maps
 	// logical names and versions to metal-specific identifiers, i.e. AMIs.
 	MachineImages []MachineImage `json:"machineImages,omitempty"`
+
 	// ETCD is the etcd configuration.
 	ETCD ETCD `json:"etcd"`
+
+	// AccountingExporter is the configuration for the accounting exporter
+	AccountingExporter AccountingExporterConfiguration `json:"accountingExporter,omitempty"`
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
@@ -51,4 +55,26 @@ type ETCDBackup struct {
 	// Schedule is the etcd backup schedule.
 	// +optional
 	Schedule *string `json:"schedule,omitempty"`
+}
+
+// AccountingExporterConfiguration contains the configuration for the accounting exporter
+type AccountingExporterConfiguration struct {
+	// Enabled enables the deployment of the accounting exporter when set to true
+	Enabled bool `json:"enabled" `
+	// Client contains the configuration for the accounting exporter client
+	Client AccountingExporterClientConfiguration `json:"clientConfig"`
+}
+
+// AccountingExporterClientConfiguration contains the configuration for the accounting exporter client
+type AccountingExporterClientConfiguration struct {
+	// Hostname is the hostname of the accounting api
+	Hostname string `json:"hostname"`
+	// Port is the port of the accounting api
+	Port int `json:"port"`
+	// CA is the ca certificate used for communicating with the accounting api
+	CA string `json:"ca"`
+	// Cert is the client certificate used for communicating with the accounting api
+	Cert string `json:"cert"`
+	// CertKey is the client certificate key used for communicating with the accounting api
+	CertKey string `json:"certKey"`
 }

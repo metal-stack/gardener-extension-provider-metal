@@ -27,3 +27,11 @@ data:
         capacity: {{ .Values.config.etcd.storage.capacity }}
       backup:
         schedule: {{ .Values.config.etcd.backup.schedule }}
+    accountingExporter:
+      enabled: {{ .Values.config.accountingExporter.enabled }}
+      clientConfig:
+        hostname: {{ .Values.config.accountingExporter.clientConfig.hostname }}
+        port: {{ .Values.config.accountingExporter.clientConfig.port }}
+        ca: {{ .Values.config.accountingExporter.clientConfig.ca }}
+        cert: {{ .Values.config.accountingExporter.clientConfig.cert }}
+        certKey: {{ .Values.config.accountingExporter.clientConfig.certkey }}

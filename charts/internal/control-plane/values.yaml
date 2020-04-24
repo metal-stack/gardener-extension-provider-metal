@@ -46,19 +46,29 @@ authn_debug: true
 #
 # accounting-exporter
 #
-accex_projectID: project-id
-accex_projectname: project-name
-accex_partitionID: partition-id
-accex_tenant: someTenant
-accex_clusterID: 123123
-accex_clustername: clustername
-
-accex_accountingsink_url: https://api.metal-stack.io/accounting
-accex_accountingsink_HMAC: _dummy_
-
-accountingSink:
-  Url: sink-url
-  Hmac: sink-hmac
+accounting_exporter:
+  enabled: true
+  enrichments:
+    project_id: project-id
+    partition_id: partition-id
+    tenant: someTenant
+    cluster_id: 123123
+    cluster_name: clustername
+  accounting_api:
+    hostname: hostname
+    port: 9000
+    ca: |
+      -----BEGIN CERTIFICATE-----
+      ...
+      -----END CERTIFICATE-----
+    cert: |
+      -----BEGIN CERTIFICATE-----
+      ...
+      -----END CERTIFICATE-----
+    certkey: |
+      -----BEGIN RSA PRIVATE KEY-----
+      ...
+      -----END RSA PRIVATE KEY----- 
 
 #
 # limit-validating-webhook
