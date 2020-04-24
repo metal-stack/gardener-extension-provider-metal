@@ -32,9 +32,9 @@ data:
       clientConfig:
         hostname: {{ .Values.config.accountingExporter.clientConfig.hostname }}
         port: {{ .Values.config.accountingExporter.clientConfig.port }}
-        ca: 
+        ca: |
 {{ .Values.config.accountingExporter.clientConfig.ca | indent 10 }}
-        cert: 
+        cert: | 
 {{ .Values.config.accountingExporter.clientConfig.cert | indent 10 }}
-        certKey: 
+        certKey: | 
 {{ .Values.config.accountingExporter.clientConfig.certkey | indent 10 }}
