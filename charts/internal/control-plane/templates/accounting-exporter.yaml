@@ -8,7 +8,7 @@ metadata:
   name: accounting-exporter-tls
   namespace: {{ .Release.Namespace }}
 type: Opaque
-string:
+data:
   ca.pem: {{ required ".Values.accounting_exporter.accounting_api.ca is required" (b64enc .Values.accounting_exporter.accounting_api.ca) }}
   client.pem: {{ required ".Values.accounting_exporter.accounting_api.cert is required" (b64enc .Values.accounting_exporter.accounting_api.cert) }}
   client-key.pem: {{ required ".Values.accounting_exporter.accounting_api.certkey is required" (b64enc .Values.accounting_exporter.accounting_api.certkey) }}
