@@ -370,8 +370,17 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
+	// TODO: this is a workaround to speed things for the time being...
+	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
+	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
+	// therefore, we read it directly from the infrastructure status
+	infrastructure := &extensionsv1alpha1.Infrastructure{}
+	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
+		return nil, err
+	}
+
 	// Get CCM chart values
-	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, cp, cluster, checksums, scaledDown, mclient)
+	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient)
 	if err != nil {
 		return nil, err
 	}
@@ -557,15 +566,16 @@ func (vp *valuesProvider) GetStorageClassesChartValues(context.Context, *extensi
 // getCCMChartValues collects and returns the CCM chart values.
 func getCCMChartValues(
 	cpConfig *apismetal.ControlPlaneConfig,
-	infrastructure *apismetal.InfrastructureConfig,
+	infrastructureConfig *apismetal.InfrastructureConfig,
+	infrastructure *extensionsv1alpha1.Infrastructure,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 	checksums map[string]string,
 	scaledDown bool,
 	mclient *metalgo.Driver,
 ) (map[string]interface{}, error) {
-	projectID := infrastructure.ProjectID
-	nodeCIDR := cluster.Shoot.Spec.Networking.Nodes
+	projectID := infrastructureConfig.ProjectID
+	nodeCIDR := infrastructure.Status.NodesCIDR
 
 	if nodeCIDR == nil {
 		return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
@@ -580,7 +590,7 @@ func getCCMChartValues(
 		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 		"projectID":         projectID,
 		"clusterID":         cluster.Shoot.ObjectMeta.UID,
-		"partitionID":       infrastructure.PartitionID,
+		"partitionID":       infrastructureConfig.PartitionID,
 		"networkID":         *privateNetwork.ID,
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"podNetwork":        extensionscontroller.GetPodNetwork(cluster),
@@ -666,15 +676,4 @@ func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontrol
 	}
 
 	return values, nil
-}
-
-// Data for configuration of IDM-API WebHook (deployment to be done!)
-type UserDirectory struct {
-	IdmApi           string `json:"idmApi" optional:"false"`
-	IdmApiUser       string `json:"idmApiUser" optional:"false"`
-	IdmApiPassword   string `json:"idmApiPassword" optional:"false"`
-	TargetSystemId   string `json:"targetSystemId" optional:"false"`
-	TargetSystemType string `json:"targetSystemType" optional:"false"`
-	AccessCode       string `json:"accessCode" optional:"false"`
-	CustomerId       string `json:"cstomerId" optional:"false"`
 }
