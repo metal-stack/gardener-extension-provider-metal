@@ -1,35 +1,17 @@
+{{- if .Values.accounting_exporter.enabled }}
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+apiVersion: v1
+kind: Secret
 metadata:
-  name: accounting-exporter
+  labels:
+    app: accounting-exporter
+  name: accounting-exporter-tls
   namespace: {{ .Release.Namespace }}
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  - persistentvolumes
-  verbs:
-  - get
-  - list
-  - watch
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: accounting-exporter
-  namespace: {{ .Release.Namespace }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: accounting-exporter
-subjects:
-- apiGroup: rbac.authorization.k8s.io
-  kind: Group
-  name: accounting-exporter
-
+type: Opaque
+data:
+  ca.pem: {{ required ".Values.accounting_exporter.accounting_api.ca is required" (b64enc .Values.accounting_exporter.accounting_api.ca) }}
+  client.pem: {{ required ".Values.accounting_exporter.accounting_api.cert is required" (b64enc .Values.accounting_exporter.accounting_api.cert) }}
+  client-key.pem: {{ required ".Values.accounting_exporter.accounting_api.certkey is required" (b64enc .Values.accounting_exporter.accounting_api.certkey) }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -60,28 +42,32 @@ spec:
         name: accounting-exporter
         env:
         - name: KUBE_COUNTER_PARTITION
-          value: {{ .Values.accex_partitionID }}
+          value: {{ .Values.accounting_exporter.enrichments.partition_id }}
         - name: KUBE_COUNTER_TENANT
-          value: {{ .Values.accex_tenant }}
+          value: {{ .Values.accounting_exporter.enrichments.tenant }}
         - name: KUBE_COUNTER_PROJECT_ID
-          value: {{ .Values.accex_projectID }}
-        - name: KUBE_COUNTER_PROJECT_NAME
-          value: {{ .Values.accex_projectname }}
+          value: {{ .Values.accounting_exporter.enrichments.project_id }}
         - name: KUBE_COUNTER_CLUSTER_ID
-          value: {{ .Values.accex_clusterID}}
+          value: {{ .Values.accounting_exporter.enrichments.cluster_id }}
         - name: KUBE_COUNTER_CLUSTER_NAME
-          value: {{ .Values.accex_clustername}}
+          value: {{ .Values.accounting_exporter.enrichments.cluster_name }}
         - name: KUBE_COUNTER_KUBECONFIG
           value: /var/lib/accounting-exporter/kubeconfig
-        - name: KUBE_COUNTER_SINK_URL
-          value: {{ .Values.accex_accountingsink_url }}
-        - name: KUBE_COUNTER_SINK_HMAC
-          value: {{ .Values.accex_accountingsink_HMAC }}
+        - name: KUBE_COUNTER_ACCOUNTING_API_HOSTNAME
+          value: {{ .Values.accounting_exporter.accounting_api.hostname }}
+        - name: KUBE_COUNTER_ACCOUNTING_API_PORT
+          value: "{{ .Values.accounting_exporter.accounting_api.port }}"
         volumeMounts:
         - name: accounting-exporter
           mountPath: /var/lib/accounting-exporter
+        - mountPath: /certs
+          name: certs
       restartPolicy: Always
       volumes:
       - name: accounting-exporter
         secret:
           secretName: accounting-exporter
+      - name: certs
+        secret:
+          secretName: accounting-exporter-tls
+{{- end }}

@@ -51,11 +51,17 @@ config:
       capacity: 80Gi
     backup:
       schedule: "0 */24 * * *"
-
+  accountingExporter:
+    enabled: false
+    clientConfig:
+      hostname:
+      port:
+      ca:
+      cert:
+      certkey:
+        
 gardener:
   seed:
     provider: metal
-
-accountingSink: {}
 
 authConfig: {}

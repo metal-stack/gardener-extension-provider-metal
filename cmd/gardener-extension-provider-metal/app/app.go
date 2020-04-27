@@ -75,7 +75,6 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			controllercmd.PrefixOption("controlplane-", controlPlaneCtrlOpts),
 			controllercmd.PrefixOption("infrastructure-", infraCtrlOpts),
 			controllercmd.PrefixOption("worker-", &workerCtrlOptsUnprefixed),
-			controllercmd.PrefixOption("accounting-", &metalcontrolplane.AccOpts),
 			controllercmd.PrefixOption("auth-", &metalcontrolplane.AuthOpts),
 			configFileOpts,
 			reconcileOpts,
@@ -164,10 +163,8 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			}
 
 			configFileOpts.Completed().ApplyMachineImages(&metalworker.DefaultAddOptions.MachineImages)
-			// configFileOpts.Completed().ApplyETCDStorage(&metalcontrolplaneexposure.DefaultAddOptions.ETCDStorage)
-			// configFileOpts.Completed().ApplyETCDBackup(&metalcontrolplanebackup.DefaultAddOptions.ETCDBackup)
+			configFileOpts.Completed().ApplyAccountingExporterConfig(&metalcontrolplane.DefaultAddOptions.AccountingExporterConfig)
 			controlPlaneCtrlOpts.Completed().Apply(&metalcontrolplane.DefaultAddOptions.Controller)
-			metalcontrolplane.AccOpts.Completed().Apply(&metalcontrolplane.AccOpts)
 			metalcontrolplane.AuthOpts.Completed().Apply(&metalcontrolplane.AuthOpts)
 			infraCtrlOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.Controller)
 			reconcileOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation)

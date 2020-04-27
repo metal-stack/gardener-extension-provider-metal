@@ -37,12 +37,6 @@ spec:
         - --webhook-config-server-port={{ .Values.webhookConfig.serverPort }}
         - --disable-controllers={{ .Values.disableControllers | join "," }}
         - --disable-webhooks={{ .Values.disableWebhooks | join "," }}
-{{- if .Values.accountingSink.Hmac }}
-        - --accounting-hmac={{ .Values.accountingSink.Hmac }}
-{{- end }}
-{{- if .Values.accountingSink.Url }}
-        - --accounting-url={{ .Values.accountingSink.Url }}
-{{- end }}
 {{- if .Values.authConfig.providerTenant }}
         - --auth-provider-tenant={{ .Values.authConfig.providerTenant }}
 {{- end }}

@@ -31,6 +31,9 @@ type ControllerConfiguration struct {
 
 	// ETCD is the etcd configuration.
 	ETCD ETCD
+
+	// AccountingExporter is the configuration for the accounting exporter
+	AccountingExporter AccountingExporterConfiguration
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
@@ -63,4 +66,26 @@ type ETCDStorage struct {
 type ETCDBackup struct {
 	// Schedule is the etcd backup schedule.
 	Schedule *string
+}
+
+// AccountingExporterConfiguration contains the configuration for the accounting exporter
+type AccountingExporterConfiguration struct {
+	// Enabled enables the deployment of the accounting exporter when set to true
+	Enabled bool
+	// Client contains the configuration for the accounting exporter client
+	Client AccountingExporterClientConfiguration
+}
+
+// AccountingExporterClientConfiguration contains the configuration for the accounting exporter client
+type AccountingExporterClientConfiguration struct {
+	// Hostname is the hostname of the accounting api
+	Hostname string
+	// Port is the port of the accounting api
+	Port int
+	// CA is the ca certificate used for communicating with the accounting api
+	CA string
+	// Cert is the client certificate used for communicating with the accounting api
+	Cert string
+	// CertKey is the client certificate key used for communicating with the accounting api
+	CertKey string
 }

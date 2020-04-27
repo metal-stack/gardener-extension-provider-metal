@@ -15,6 +15,7 @@ import (
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener-extensions/pkg/controller/controlplane/genericactuator"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
@@ -177,9 +178,8 @@ var controlPlaneChart = &chart.Chart{
 		{Type: &networkingv1.NetworkPolicy{}, Name: "kube-jwt-authn-webhook-allow-namespace"},
 
 		// accounting exporter
+		{Type: &corev1.Secret{}, Name: "accounting-exporter-tls"},
 		{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
-		{Type: &rbacv1.RoleBinding{}, Name: "accounting-exporter"},
-		{Type: &rbacv1.Role{}, Name: "accounting-exporter"},
 
 		// group rolebinding controller
 		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
@@ -274,7 +274,7 @@ var storageClassChart = &chart.Chart{
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(mgr manager.Manager, logger logr.Logger, accConfig AccountingConfig, authConfig AuthConfig) genericactuator.ValuesProvider {
+func NewValuesProvider(mgr manager.Manager, logger logr.Logger, accConfig config.AccountingExporterConfiguration, authConfig AuthConfig) genericactuator.ValuesProvider {
 	return &valuesProvider{
 		mgr:              mgr,
 		logger:           logger.WithName("metal-values-provider"),
@@ -289,7 +289,7 @@ type valuesProvider struct {
 	restConfig       *rest.Config
 	client           client.Client
 	logger           logr.Logger
-	accountingConfig AccountingConfig
+	accountingConfig config.AccountingExporterConfiguration
 	authConfig       AuthConfig
 	mgr              manager.Manager
 }
@@ -461,6 +461,9 @@ func (vp *valuesProvider) getControlPlaneShootLimitValidationWebhookChartValues(
 	values := map[string]interface{}{
 		"limitValidatingWebhook_url":      url,
 		"limitValidatingWebhook_caBundle": caBundle,
+		"accounting_exporter": map[string]interface{}{
+			"enabled": vp.accountingConfig.Enabled,
+		},
 	}
 
 	return values, nil
@@ -634,7 +637,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	return values, nil
 }
 
-func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	partitionID := infrastructure.PartitionID
 	projectID := infrastructure.ProjectID
@@ -642,23 +645,24 @@ func getAccountingExporterChartValues(accountingConfig AccountingConfig, cluster
 	clusterName := annotations[tag.ClusterName]
 	tenant := annotations[tag.ClusterTenant]
 
-	resp, err := mclient.ProjectGet(projectID)
-	if err != nil {
-		return nil, err
-	}
-	project := resp.Project
-
 	values := map[string]interface{}{
-		"accex_partitionID": partitionID,
-		"accex_tenant":      tenant,
-		"accex_projectname": project.Name,
-		"accex_projectID":   projectID,
-
-		"accex_clustername": clusterName,
-		"accex_clusterID":   clusterID,
-
-		"accex_accountingsink_url":  accountingConfig.AccountingSinkUrl,
-		"accex_accountingsink_HMAC": accountingConfig.AccountingSinkHmac,
+		"accounting_exporter": map[string]interface{}{
+			"enabled": accountingConfig.Enabled,
+			"enrichments": map[string]interface{}{
+				"partition_id": partitionID,
+				"tenant":       tenant,
+				"project_id":   projectID,
+				"cluster_name": clusterName,
+				"cluster_id":   clusterID,
+			},
+			"accounting_api": map[string]interface{}{
+				"hostname": accountingConfig.Client.Hostname,
+				"port":     accountingConfig.Client.Port,
+				"ca":       accountingConfig.Client.CA,
+				"cert":     accountingConfig.Client.Cert,
+				"certkey":  accountingConfig.Client.CertKey,
+			},
+		},
 	}
 
 	return values, nil
