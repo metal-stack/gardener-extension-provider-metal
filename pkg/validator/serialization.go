@@ -1,7 +1,7 @@
 package validator
 
 import (
-	"github.com/gardener/gardener-extensions/pkg/util"
+	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/gardener/gardener/pkg/apis/core"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"k8s.io/apimachinery/pkg/runtime"

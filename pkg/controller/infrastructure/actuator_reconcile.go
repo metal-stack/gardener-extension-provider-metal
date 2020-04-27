@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 	"time"
+
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/google/uuid"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
@@ -14,8 +15,8 @@ import (
 	metalgo "github.com/metal-stack/metal-go"
 	metalfirewall "github.com/metal-stack/metal-go/api/client/firewall"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
-	controllererrors "github.com/gardener/gardener-extensions/pkg/controller/error"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
 
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 

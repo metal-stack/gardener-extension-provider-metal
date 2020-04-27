@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/metal-stack/gardener-extension-provider-metal/cmd/gardener-extension-provider-metal/app"
-	"github.com/gardener/gardener-extensions/pkg/controller"
 
-	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
+	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
  

@@ -22,7 +22,7 @@ source "$DIRNAME/common.sh"
 header_text "Install"
 
 VERSION=$(git describe --abbrev=0 --tags)
-LD_FLAGS="-w -X github.com/gardener/gardener-extensions/pkg/version.Version=$VERSION"
+LD_FLAGS="-w -X github.com/metal-stack/gardener-extension-provider-metal/pkg/version.Version=$VERSION"
 pwd
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on \
     go install -ldflags "$LD_FLAGS" \

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/gardener/gardener-extensions/pkg/util"
+	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	"github.com/gardener/gardener/pkg/apis/core"

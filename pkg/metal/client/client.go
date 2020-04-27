@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-go/api/models"

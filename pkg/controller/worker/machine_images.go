@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gardener/gardener-extensions/pkg/util"
+	"github.com/gardener/gardener/extensions/pkg/util"
 	confighelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/helper"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	apismetalhelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"

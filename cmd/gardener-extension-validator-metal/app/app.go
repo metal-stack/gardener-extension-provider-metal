@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
+	"github.com/gardener/gardener/extensions/pkg/util"
+	"github.com/gardener/gardener/pkg/apis/core/install"
 	metalinstall "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/install"
 	providermetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/validator"
-	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
-	"github.com/gardener/gardener-extensions/pkg/util"
-	"github.com/gardener/gardener/pkg/apis/core/install"
 
 	"github.com/spf13/cobra"
 	componentbaseconfig "k8s.io/component-base/config"

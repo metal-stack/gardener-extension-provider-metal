@@ -1,7 +1,7 @@
 package infrastructure
 
 import (
-	"github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
+	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 

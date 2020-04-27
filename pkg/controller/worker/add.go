@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"github.com/gardener/gardener-extensions/pkg/controller/worker"
+	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 

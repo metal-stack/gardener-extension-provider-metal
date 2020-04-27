@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
-	"github.com/gardener/gardener-extensions/pkg/util"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
+	mockclient "github.com/gardener/gardener/extensions/pkg/mock/controller-runtime/client"
+	"github.com/gardener/gardener/extensions/pkg/util"
+	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 
 	"github.com/golang/mock/gomock"
@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
-	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
+	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 )
 

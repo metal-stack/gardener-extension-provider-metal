@@ -19,10 +19,10 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/gardener/gardener-extensions/pkg/controller"
-	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
-	"github.com/gardener/gardener-extensions/pkg/controller/worker"
-	webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
+	"github.com/gardener/gardener/extensions/pkg/controller"
+	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
+	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/client"
