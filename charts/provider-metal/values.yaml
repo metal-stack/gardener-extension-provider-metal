@@ -59,9 +59,10 @@ config:
       ca:
       cert:
       certkey:
+  auth:
+    enabled: false
+    providerTenant: provider-tenant
         
 gardener:
   seed:
     provider: metal
-
-authConfig: {}

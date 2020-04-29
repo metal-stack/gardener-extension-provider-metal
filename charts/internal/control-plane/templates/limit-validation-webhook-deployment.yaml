@@ -1,3 +1,5 @@
+{{- if .Values.limitValidatingWebhook.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -39,7 +41,7 @@ spec:
             - -tlsKeyFile=/etc/webhook/certs/limit-validating-webhook-server.key
             - -excludedNamespaces=kube-system
             - -enforceResourceRequests=false
-            - -enforceResourceLimits={{ .Values.lvw_validate }}
+            - -enforceResourceLimits=true
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
@@ -102,3 +104,4 @@ spec:
             role: apiserver
     policyTypes:
     - Egress
+{{- end }}

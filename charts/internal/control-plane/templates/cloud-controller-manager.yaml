@@ -28,16 +28,16 @@ metadata:
     role: cloud-controller-manager
 spec:
   revisionHistoryLimit: 0
-  replicas: {{ .Values.replicas }}
+  replicas: {{ .Values.cloudControllerManager.replicas }}
   selector:
     matchLabels:
       app: kubernetes
       role: cloud-controller-manager
   template:
     metadata:
-{{- if .Values.podAnnotations }}
+{{- if .Values.cloudControllerManager.podAnnotations }}
       annotations:
-{{ toYaml .Values.podAnnotations | indent 8 }}
+{{ toYaml .Values.cloudControllerManager.podAnnotations | indent 8 }}
 {{- end }}
       labels:
         garden.sapcloud.io/role: controlplane
@@ -59,8 +59,8 @@ spec:
         - ./metal-cloud-controller-manager
         - --cloud-provider=metal
         - --allow-untagged-cloud=true
-        - --cluster-cidr={{ .Values.podNetwork }}
-        - --cluster-name={{ .Values.clusterName }}
+        - --cluster-cidr={{ .Values.cloudControllerManager.podNetwork }}
+        - --cluster-name={{ .Values.cloudControllerManager.clusterName }}
         - --concurrent-service-syncs=10
         {{- include "cloud-controller-manager.featureGates" . | trimSuffix "," | indent 8 }}
         - --kubeconfig=/var/lib/cloud-controller-manager/kubeconfig
@@ -78,7 +78,7 @@ spec:
         - --tls-cipher-suites={{ include "kubernetes.tlsCipherSuites" . | replace "\n" "," | trimPrefix "," }}
         - --use-service-account-credentials
         - --v=2
-        {{- range $index, $param := $.Values.additionalParameters }}
+        {{- range $index, $param := $.Values.cloudControllerManager.additionalParameters }}
         - {{ $param }}
         {{- end }}
         env:
@@ -93,13 +93,13 @@ spec:
                 name: cloudprovider
                 key: metalAPIHMac
           - name: METAL_PROJECT_ID
-            value: {{ .Values.projectID }}
+            value: {{ .Values.cloudControllerManager.projectID }}
           - name: METAL_PARTITION_ID
-            value: {{ .Values.partitionID }}
+            value: {{ .Values.cloudControllerManager.partitionID }}
           - name: METAL_NETWORK_ID
-            value: {{ .Values.networkID }}
+            value: {{ .Values.cloudControllerManager.networkID }}
           - name: METAL_CLUSTER_ID
-            value: {{ .Values.clusterID }}
+            value: {{ .Values.cloudControllerManager.clusterID }}
         livenessProbe:
           httpGet:
             path: /healthz
@@ -116,9 +116,9 @@ spec:
           timeoutSeconds: 15
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
-        {{- if .Values.resources }}
+        {{- if .Values.cloudControllerManager.resources }}
         resources:
-{{ toYaml .Values.resources | indent 10 }}
+{{ toYaml .Values.cloudControllerManager.resources | indent 10 }}
         {{- end }}
         volumeMounts:
         - name: cloud-controller-manager

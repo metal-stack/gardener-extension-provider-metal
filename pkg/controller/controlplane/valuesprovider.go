@@ -274,12 +274,11 @@ var storageClassChart = &chart.Chart{
 }
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(mgr manager.Manager, logger logr.Logger, accConfig config.AccountingExporterConfiguration, authConfig AuthConfig) genericactuator.ValuesProvider {
+func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
 	return &valuesProvider{
 		mgr:              mgr,
 		logger:           logger.WithName("metal-values-provider"),
-		accountingConfig: accConfig,
-		authConfig:       authConfig,
+		controllerConfig: controllerConfig,
 	}
 }
 
@@ -289,8 +288,7 @@ type valuesProvider struct {
 	restConfig       *rest.Config
 	client           client.Client
 	logger           logr.Logger
-	accountingConfig config.AccountingExporterConfiguration
-	authConfig       AuthConfig
+	controllerConfig config.ControllerConfiguration
 	mgr              manager.Manager
 }
 
@@ -385,12 +383,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.authConfig)
+	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth)
 	if err != nil {
 		return nil, err
 	}
 
-	accValues, err := getAccountingExporterChartValues(vp.accountingConfig, cluster, infrastructureConfig, mclient)
+	accValues, err := getAccountingExporterChartValues(vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +425,7 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, checksums map[string]string) (map[string]interface{}, error) {
 	vp.logger.Info("GetControlPlaneShootChartValues")
 
-	values, err := vp.getControlPlaneShootLimitValidationWebhookChartValues(ctx, cp, cluster)
+	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cluster)
 	if err != nil {
 		vp.logger.Error(err, "Error getting LimitValidationWebhookChartValues")
 		return nil, err
@@ -441,8 +439,8 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	return values, nil
 }
 
-// GetLimitValidationWebhookChartValues returns the values for the LimitValidationWebhook.
-func (vp *valuesProvider) getControlPlaneShootLimitValidationWebhookChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+// getControlPlaneShootChartValues returns the values for the shoot control plane chart.
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	secretName := limitValidatingWebhookServerName
 	namespace := cluster.Shoot.Status.TechnicalID
 
@@ -459,10 +457,16 @@ func (vp *valuesProvider) getControlPlaneShootLimitValidationWebhookChartValues(
 	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
 
 	values := map[string]interface{}{
-		"limitValidatingWebhook_url":      url,
-		"limitValidatingWebhook_caBundle": caBundle,
-		"accounting_exporter": map[string]interface{}{
-			"enabled": vp.accountingConfig.Enabled,
+		"limitValidatingWebhook": map[string]interface{}{
+			"enabled": vp.controllerConfig.Auth.Enabled,
+			"url":     url,
+			"ca":      caBundle,
+		},
+		"groupRolebindingController": map[string]interface{}{
+			"enabled": vp.controllerConfig.Auth.Enabled,
+		},
+		"accountingExporter": map[string]interface{}{
+			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
 		},
 	}
 
@@ -590,20 +594,20 @@ func getCCMChartValues(
 	}
 
 	values := map[string]interface{}{
-		"replicas":          extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
-		"projectID":         projectID,
-		"clusterID":         cluster.Shoot.ObjectMeta.UID,
-		"partitionID":       infrastructureConfig.PartitionID,
-		"networkID":         *privateNetwork.ID,
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-		"podNetwork":        extensionscontroller.GetPodNetwork(cluster),
-		"podAnnotations": map[string]interface{}{
-			"checksum/secret-cloud-controller-manager":        checksums[cloudControllerManagerDeploymentName],
-			"checksum/secret-cloud-controller-manager-server": checksums[cloudControllerManagerServerName],
-			// TODO Use constant from github.com/gardener/gardener/pkg/apis/core/v1alpha1 when available
-			// See https://github.com/gardener/gardener/pull/930
-			"checksum/secret-cloudprovider":            checksums[v1alpha1constants.SecretNameCloudProvider],
-			"checksum/configmap-cloud-provider-config": checksums[metal.CloudProviderConfigName],
+		"cloudControllerManager": map[string]interface{}{
+			"replicas":    extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+			"projectID":   projectID,
+			"clusterID":   cluster.Shoot.ObjectMeta.UID,
+			"partitionID": infrastructureConfig.PartitionID,
+			"networkID":   *privateNetwork.ID,
+			"podNetwork":  extensionscontroller.GetPodNetwork(cluster),
+			"podAnnotations": map[string]interface{}{
+				"checksum/secret-cloud-controller-manager":        checksums[cloudControllerManagerDeploymentName],
+				"checksum/secret-cloud-controller-manager-server": checksums[cloudControllerManagerServerName],
+				"checksum/secret-cloudprovider":                   checksums[v1alpha1constants.SecretNameCloudProvider],
+				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
+			},
 		},
 	}
 
@@ -615,7 +619,7 @@ func getCCMChartValues(
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, authConfig AuthConfig) (map[string]interface{}, error) {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
@@ -624,14 +628,21 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	ti := cpConfig.IAMConfig.IssuerConfig
 
 	values := map[string]interface{}{
-		"authn_tenant":             tenant,
-		"authn_clustername":        clusterName,
-		"authn_oidcIssuerUrl":      ti.Url,
-		"authn_oidcIssuerClientId": ti.ClientId,
-		"authn_debug":              "true",
-		"authn_providerTenant":     authConfig.ProviderTenant,
+		"authnWebhook": map[string]interface{}{
+			"enabled":        config.Enabled,
+			"tenant":         tenant,
+			"providerTenant": config.ProviderTenant,
+			"clusterName":    clusterName,
+			"oidc": map[string]interface{}{
+				"issuerUrl":      ti.Url,
+				"issuerClientId": ti.ClientId,
+			},
+		},
 
-		"grprb_clustername": clusterName,
+		"groupRolebindingController": map[string]interface{}{
+			"enabled":     config.Enabled,
+			"clusterName": clusterName,
+		},
 	}
 
 	return values, nil
@@ -646,7 +657,7 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 	tenant := annotations[tag.ClusterTenant]
 
 	values := map[string]interface{}{
-		"accounting_exporter": map[string]interface{}{
+		"accountingExporter": map[string]interface{}{
 			"enabled": accountingConfig.Enabled,
 			"enrichments": map[string]interface{}{
 				"partition_id": partitionID,
@@ -655,12 +666,12 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 				"cluster_name": clusterName,
 				"cluster_id":   clusterID,
 			},
-			"accounting_api": map[string]interface{}{
+			"accountingAPI": map[string]interface{}{
 				"hostname": accountingConfig.Client.Hostname,
 				"port":     accountingConfig.Client.Port,
 				"ca":       accountingConfig.Client.CA,
 				"cert":     accountingConfig.Client.Cert,
-				"certkey":  accountingConfig.Client.CertKey,
+				"certKey":  accountingConfig.Client.CertKey,
 			},
 		},
 	}
@@ -669,14 +680,10 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 }
 
 func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-
-	// limit validation deactivated
-	// import helper "github.com/gardener/gardener/pkg/apis/garden/v1beta1/helper"
-	// shootedSeed, err := helper.ReadShootedSeed(cluster.Shoot)
-	// isNormalShoot := shootedSeed == nil || err != nil
-
 	values := map[string]interface{}{
-		"lvw_validate": false,
+		"limitValidatingWebhook": map[string]interface{}{
+			"enabled": false, // TODO: Add to opts
+		},
 	}
 
 	return values, nil

@@ -1,3 +1,4 @@
+{{- if .Values.groupRolebindingController.enabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -28,7 +29,7 @@ spec:
         args:
         - --excludeNamespaces=kube-system,kube-public,kube-node-lease,default
         - --expectedGroupsList=admin,edit,view
-        - --clustername={{ .Values.grprb_clustername }}
+        - --clustername={{ .Values.groupRolebindingController.clusterName }}
         - --kubeconfig=/var/lib/group-rolebinding-controller/kubeconfig
         volumeMounts:
         - name: group-rolebinding-controller
@@ -37,3 +38,4 @@ spec:
       - name: group-rolebinding-controller
         secret:
           secretName: group-rolebinding-controller
+{{- end }}

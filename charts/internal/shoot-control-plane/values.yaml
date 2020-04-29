@@ -1,11 +1,17 @@
 ---
-limitValidatingWebhook_caBundle: ABCDEF
-limitValidatingWebhook_url: https://replace-this-webhook/validate
-
 images: 
     droptailer: image-repository:image-tag
     metallb-speaker: image-repository:image-tag
     metallb-controller: image-repository:image-tag
 
-accounting_exporter:
-    enabled: true
+accountingExporter:
+    enabled: false
+
+groupRolebindingController: 
+    enabled: false
+
+limitValidatingWebhook:
+    enabled: false
+    ca: ABCDEF
+    url: https://replace-this-webhook/validate
+    

@@ -66,9 +66,9 @@ func (c *Config) ApplyETCDStorage(etcdStorage *config.ETCDStorage) {
 	*etcdStorage = c.Config.ETCD.Storage
 }
 
-// ApplyAccountingExporterConfig sets the given accounting exporter configuration to that of this Config.
-func (c *Config) ApplyAccountingExporterConfig(accountingExporterConfig *config.AccountingExporterConfiguration) {
-	*accountingExporterConfig = c.Config.AccountingExporter
+// ApplyControllerConfig sets the given controller configuration to that of this Config.
+func (c *Config) ApplyControllerConfig(controllerConfig *config.ControllerConfiguration) {
+	*controllerConfig = *c.Config
 }
 
 // Options initializes empty config.ControllerConfiguration, applies the set values and returns it.

@@ -18,7 +18,10 @@ type ControllerConfiguration struct {
 	// ETCD is the etcd configuration.
 	ETCD ETCD `json:"etcd"`
 
-	// AccountingExporter is the configuration for the accounting exporter
+	// Auth is configuration for metal stack specific user authentication in the cluster.
+	Auth Auth `json:"auth"`
+
+	// AccountingExporter is the configuration for the accounting exporter.
 	AccountingExporter AccountingExporterConfiguration `json:"accountingExporter,omitempty"`
 }
 
@@ -57,24 +60,32 @@ type ETCDBackup struct {
 	Schedule *string `json:"schedule,omitempty"`
 }
 
-// AccountingExporterConfiguration contains the configuration for the accounting exporter
+// Auth contains the configuration for metal stack specific user authentication in the cluster.
+type Auth struct {
+	// Enabled enables the deployment of metal stack specific cluster authentication when set to true.
+	Enabled bool `json:"enabled"`
+	// ProviderTenant is the name of the provider tenant who has special privileges.
+	ProviderTenant string `json:"providerTenant"`
+}
+
+// AccountingExporterConfiguration contains the configuration for the accounting exporter.
 type AccountingExporterConfiguration struct {
-	// Enabled enables the deployment of the accounting exporter when set to true
-	Enabled bool `json:"enabled" `
-	// Client contains the configuration for the accounting exporter client
+	// Enabled enables the deployment of the accounting exporter when set to true.
+	Enabled bool `json:"enabled"`
+	// Client contains the configuration for the accounting exporter client.
 	Client AccountingExporterClientConfiguration `json:"clientConfig"`
 }
 
-// AccountingExporterClientConfiguration contains the configuration for the accounting exporter client
+// AccountingExporterClientConfiguration contains the configuration for the accounting exporter client.
 type AccountingExporterClientConfiguration struct {
-	// Hostname is the hostname of the accounting api
+	// Hostname is the hostname of the accounting api.
 	Hostname string `json:"hostname"`
-	// Port is the port of the accounting api
+	// Port is the port of the accounting api.
 	Port int `json:"port"`
-	// CA is the ca certificate used for communicating with the accounting api
+	// CA is the ca certificate used for communicating with the accounting api.
 	CA string `json:"ca"`
-	// Cert is the client certificate used for communicating with the accounting api
+	// Cert is the client certificate used for communicating with the accounting api.
 	Cert string `json:"cert"`
-	// CertKey is the client certificate key used for communicating with the accounting api
+	// CertKey is the client certificate key used for communicating with the accounting api.
 	CertKey string `json:"certKey"`
 }
