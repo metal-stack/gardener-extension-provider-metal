@@ -16,6 +16,8 @@ const (
 	AccountingExporterImageName = "accounting-exporter"
 	// AuthNWebhookImageName is the name of the AuthN Webhook configured with the shoot kube-apiserver
 	AuthNWebhookImageName = "authn-webhook"
+	// AuditlogWebhookImageName is the name of the Auditlog Webhook configured with the shoot kube-apiserver
+	AuditlogWebhookImageName = "auditlog-webhook"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
 	DroptailerImageName = "droptailer"
 	// MetallbSpeakerImageName is the name of the metallb speaker to deploy to the shoot.

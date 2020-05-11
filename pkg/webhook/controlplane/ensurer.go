@@ -93,6 +93,10 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
 
 	// activate AuthN Webhook with mounted Webhook-Config
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
+	// activate dynamic auditing
+	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-dynamic-configuration=", "true")
+	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--feature-gates=", "DynamicAuditing=true")
+	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--runtime-config=", "auditregistration.k8s.io/v1alpha1=true")
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.

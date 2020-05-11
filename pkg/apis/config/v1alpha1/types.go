@@ -21,6 +21,9 @@ type ControllerConfiguration struct {
 	// Auth is configuration for metal stack specific user authentication in the cluster.
 	Auth Auth `json:"auth"`
 
+	// Audit contains the configuration for the auditlogging.
+	Audit Audit `json:"audit"`
+
 	// AccountingExporter is the configuration for the accounting exporter.
 	AccountingExporter AccountingExporterConfiguration `json:"accountingExporter,omitempty"`
 }
@@ -66,6 +69,12 @@ type Auth struct {
 	Enabled bool `json:"enabled"`
 	// ProviderTenant is the name of the provider tenant who has special privileges.
 	ProviderTenant string `json:"providerTenant"`
+}
+
+// Audit contains the configuration for the auditlogging.
+type Audit struct {
+	// Enabled enables the deployment of auditlog webhook when set to true.
+	Enabled bool `json:"enabled"`
 }
 
 // AccountingExporterConfiguration contains the configuration for the accounting exporter.

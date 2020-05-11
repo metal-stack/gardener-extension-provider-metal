@@ -66,6 +66,8 @@ const (
 	accountingExporterName               = "accounting-exporter"
 	authNWebhookDeploymentName           = "kube-jwt-authn-webhook"
 	authNWebhookServerName               = "kube-jwt-authn-webhook-server"
+	auditlogWebhookDeploymentName        = "splunk-audit-webhook"
+	auditlogWebhookServerName            = "splunk-audit-webhook-server"
 	droptailerNamespace                  = "firewall"
 	droptailerClientSecretName           = "droptailer-client"
 	droptailerServerSecretName           = "droptailer-server"
@@ -118,6 +120,15 @@ var controlPlaneSecrets = &secrets.Secrets{
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:       auditlogWebhookServerName,
+					CommonName: auditlogWebhookDeploymentName,
+					DNSNames:   controlplane.DNSNamesForService(auditlogWebhookDeploymentName, clusterName),
+					CertType:   secrets.ServerCert,
+					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       limitValidatingWebhookServerName,
 					CommonName: limitValidatingWebhookDeploymentName,
 					DNSNames:   controlplane.DNSNamesForService(limitValidatingWebhookDeploymentName, clusterName),
@@ -159,13 +170,14 @@ var configChart = &chart.Chart{
 	Objects: []*chart.Object{
 		// this config is mounted by the shoot-kube-apiserver at startup and should therefore be deployed before the controlplane
 		{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
+		{Type: &corev1.ConfigMap{}, Name: "auditlog-webhook-config"},
 	},
 }
 
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.LimitValidatingWebhookImageName},
+	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AuditlogWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.LimitValidatingWebhookImageName},
 	Objects: []*chart.Object{
 		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
@@ -176,6 +188,12 @@ var controlPlaneChart = &chart.Chart{
 		{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2kube-jwt-authn-webhook"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "kube-jwt-authn-webhook-allow-namespace"},
+
+		// auditlog webhook
+		{Type: &appsv1.Deployment{}, Name: "splunk-audit-webhook"},
+		{Type: &corev1.Service{}, Name: "splunk-audit-webhook"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "splunk-audit-webhook-allow-apiserver"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2splunk-audit-webhook"},
 
 		// accounting exporter
 		{Type: &corev1.Secret{}, Name: "accounting-exporter-tls"},
@@ -315,9 +333,19 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 
-	values, err := vp.getAuthNConfigValues(ctx, cp, cluster)
+	authValues, err := vp.getAuthNConfigValues(ctx, cp, cluster)
+	if err != nil {
+		return nil, err
+	}
 
-	return values, err
+	auditlogValues, err := vp.getAuditlogConfigValues(ctx, cp, cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	merge(authValues, auditlogValues)
+
+	return authValues, err
 }
 
 func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
@@ -330,6 +358,21 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 
 	values := map[string]interface{}{
 		"authnWebhook_url": url,
+	}
+
+	return values, nil
+}
+
+func (vp *valuesProvider) getAuditlogConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+
+	namespace := cluster.Shoot.Status.TechnicalID
+
+	// this should work as the kube-apiserver is a pod in the same cluster as the auditlog-webhook
+	// example https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit
+	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", auditlogWebhookDeploymentName, namespace)
+
+	values := map[string]interface{}{
+		"auditlogWebhook_url": url,
 	}
 
 	return values, nil
@@ -388,6 +431,11 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
+	auditlogValues, err := getAuditlogChartValues(cpConfig, cluster, vp.controllerConfig.Audit)
+	if err != nil {
+		return nil, err
+	}
+
 	accValues, err := getAccountingExporterChartValues(vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
 	if err != nil {
 		return nil, err
@@ -398,7 +446,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, authValues, accValues, lvwValues)
+	merge(chartValues, authValues, auditlogValues, accValues, lvwValues)
 
 	return chartValues, nil
 }
@@ -642,6 +690,22 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 		"groupRolebindingController": map[string]interface{}{
 			"enabled":     config.Enabled,
 			"clusterName": clusterName,
+		},
+	}
+
+	return values, nil
+}
+
+// returns values for "auditlog-webhook"
+func getAuditlogChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Audit) (map[string]interface{}, error) {
+
+	values := map[string]interface{}{
+		"auditlogWebhook": map[string]interface{}{
+			"enabled": config.Enabled,
+			"splunk-hec-endpoint": map[string]interface{}{
+				"url":   "https://splunk.cns.cloud.fi-ts.io/",
+				"token": "fits_in_hec-cloud-native_TEST_34BC91E8-DFAC-E799-73B9-BF5B8A40611B",
+			},
 		},
 	}
 

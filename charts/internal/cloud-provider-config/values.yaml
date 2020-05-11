@@ -2,3 +2,7 @@
 # AuthN Webhook for shoot kube-apiserver
 #
 authnWebhook_url: https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
+#
+# Auditlog Webhook for shoot kube-apiserver
+#
+auditlogWebhook_url: https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit
