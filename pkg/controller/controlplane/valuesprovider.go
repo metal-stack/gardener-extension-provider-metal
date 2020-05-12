@@ -704,7 +704,7 @@ func getAuditlogChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *ext
 			"enabled": config.Enabled,
 			"splunk-hec-endpoint": map[string]interface{}{
 				"url":   "https://splunk.cns.cloud.fi-ts.io/",
-				"token": "fits_in_hec-cloud-native_TEST_34BC91E8-DFAC-E799-73B9-BF5B8A40611B",
+				"token": "Token_00000000-0000-0000-0000-000000000000",
 			},
 		},
 	}
