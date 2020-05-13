@@ -1,0 +1,132 @@
+{{- if .Values.splunkAuditWebhook.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: auditsink-config
+    namespace: {{ .Release.Namespace }}
+data:
+    auditsink-config.yaml: |
+        ---
+        apiVersion: auditregistration.k8s.io/v1alpha1
+        kind: AuditSink
+        metadata:
+            name: splunk-audit-sink
+        spec:
+            policy:
+                level: Metadata
+                stages:
+                - ResponseComplete
+            webhook:
+                throttle:
+                    qps: 10
+                    burst: 15
+                clientConfig:
+                    url: "{{ .Values.splunkAuditWebhook.splunkAuditWebhookUrl }}"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: splunk-audit-webhook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    k8s-app: splunk-audit-webhook
+spec:
+  selector:
+    matchLabels:
+      k8s-app: splunk-audit-webhook
+  template:
+    metadata:
+      labels:
+        k8s-app: splunk-audit-webhook
+        app: splunk-audit-webhook
+        networking.gardener.cloud/to-dns: allowed
+        networking.gardener.cloud/to-public-networks: allowed
+      annotations:
+          scheduler.alpha.kubernetes.io/critical-pod: ''
+        spec:
+      containers:
+      - name: splunk-audit-webhook
+        image: {{ index .Values.images "splunk-audit-webhook" }}
+        imagePullPolicy: Always
+        restartPolicy: Always
+        env:
+        - name: SPLUNK_AUDIT_WEBHOOK_SERVER_URLS
+          value: {{ .Values.splunkAuditWebhook.splunkHECEndpoint.url }}
+        - name: SPLUNK_AUDIT_WEBHOOK_TOKEN
+          value: {{ .Values.splunkAuditWebhook.splunkHECEndpoint.token }}
+        - name: SPLUNK_AUDIT_WEBHOOK_BIND_ADDR
+          value: "0.0.0.0"
+        - name: SPLUNK_AUDIT_WEBHOOK_INSECURE_CERT
+          value: {{ .Values.splunkAuditWebhook.acceptInsecureCert }}
+          {{- if .Values.splunkAuditWebhook.endpointRequiresClientCert }}
+        - name: SPLUNK_AUDIT_WEBHOOK_CLIENT_TLS_KEY
+          value: /etc/webhook/certs/splunk-client.key
+        - name: SPLUNK_AUDIT_WEBHOOK_CLIENT_TLS_CERT
+          value: /etc/webhook/certs/splunk-client.crt
+          {{- end }}
+        - name: SPLUNK_AUDIT_WEBHOOK_WEBHOOK_TLS_KEY
+          value: /etc/webhook/certs/splunk-audit-webhook-server.key
+        - name: SPLUNK_AUDIT_WEBHOOK_WEBHOOK_TLS_CERT
+          value: /etc/webhook/certs/splunk-audit-webhook-server.crt
+        ports:
+          - containerPort: {{ .Values.splunkAuditWebhook.port }}
+          protocol: TCP
+        volumeMounts:
+          - name: webhook-certs
+            mountPath: /etc/webhook/certs
+            readOnly: true
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: splunk-audit-webhook-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: splunk-audit-webhook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: splunk-audit-webhook
+spec:
+  selector:
+    app: splunk-audit-webhook
+  ports:
+  - port: 443
+    targetPort: {{ .Values.splunkAuditWebhook.port }}
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: splunk-audit-webhook-allow-apiserver
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: splunk-audit-webhook
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: kubernetes
+          role: apiserver
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kubeapi2splunk-audit-webhook
+spec:
+  egress:
+  - ports:
+    - port: 443
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app: splunk-audit-webhook
+  podSelector:
+    matchLabels:
+      app: kubernetes
+      role: apiserver
+  policyTypes:
+  - Egress
+{{- end }}

@@ -62,7 +62,7 @@ config:
   auth:
     enabled: false
     providerTenant: provider-tenant
-  audit:
+  splunkAudit:
     enabled: false
         
 gardener:

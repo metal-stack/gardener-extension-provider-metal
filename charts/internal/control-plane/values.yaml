@@ -5,7 +5,7 @@ featureGates: {}
 images: 
   metalccm: image-repository:image-tag
   authn-webhook: image-repository:image-tag
-  auditlog-webhook: image-repository:image-tag
+  splunk-audit-webhook: image-repository:image-tag
   group-rolebinding-controller: image-repository:image-tag
   accounting-exporter: image-repository:image-tag
   limit-validating-webhook: image-repository:image-tag
@@ -42,12 +42,14 @@ authnWebhook:
     issuerUrl: https://tokenissuer/dex
     issuerClientId: myClientId
 
-auditlogWebhook:
+splunkAuditWebhook:
   enabled: false
   port: 443
-  accept-insecure-cert: false
-  splunk-hec-endpoint:
-    url: https://splunk-hec-endpoint/
+  acceptInsecureCert: false
+  splunkAuditWebhookUrl: https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit
+  endpointRequiresClientCert: false
+  splunkHECEndpoint:
+    url: https://splunk.example.org/
     token: "Token_00000000-0000-0000-0000-000000000000"
 
 

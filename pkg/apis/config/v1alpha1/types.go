@@ -21,8 +21,8 @@ type ControllerConfiguration struct {
 	// Auth is configuration for metal stack specific user authentication in the cluster.
 	Auth Auth `json:"auth"`
 
-	// Audit contains the configuration for the auditlogging.
-	Audit Audit `json:"audit"`
+	// SplunkAudit contains the configuration for auditlogging the kube-apiserver to splunk endpoint via webhook.
+	SplunkAudit SplunkAudit `json:"splunkAudit"`
 
 	// AccountingExporter is the configuration for the accounting exporter.
 	AccountingExporter AccountingExporterConfiguration `json:"accountingExporter,omitempty"`
@@ -71,9 +71,9 @@ type Auth struct {
 	ProviderTenant string `json:"providerTenant"`
 }
 
-// Audit contains the configuration for the auditlogging.
-type Audit struct {
-	// Enabled enables the deployment of auditlog webhook when set to true.
+// SplunkAudit contains the configuration for auditlogging the kube-apiserver to splunk endpoint via webhook.
+type SplunkAudit struct {
+	// Enabled enables the deployment of splunk audit webhook when set to true.
 	Enabled bool `json:"enabled"`
 }
 

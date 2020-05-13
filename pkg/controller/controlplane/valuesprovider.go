@@ -66,8 +66,8 @@ const (
 	accountingExporterName               = "accounting-exporter"
 	authNWebhookDeploymentName           = "kube-jwt-authn-webhook"
 	authNWebhookServerName               = "kube-jwt-authn-webhook-server"
-	auditlogWebhookDeploymentName        = "splunk-audit-webhook"
-	auditlogWebhookServerName            = "splunk-audit-webhook-server"
+	splunkAuditWebhookDeploymentName     = "splunk-audit-webhook"
+	splunkAuditWebhookServerName         = "splunk-audit-webhook-server"
 	droptailerNamespace                  = "firewall"
 	droptailerClientSecretName           = "droptailer-client"
 	droptailerServerSecretName           = "droptailer-server"
@@ -120,9 +120,9 @@ var controlPlaneSecrets = &secrets.Secrets{
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       auditlogWebhookServerName,
-					CommonName: auditlogWebhookDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(auditlogWebhookDeploymentName, clusterName),
+					Name:       splunkAuditWebhookServerName,
+					CommonName: splunkAuditWebhookDeploymentName,
+					DNSNames:   controlplane.DNSNamesForService(splunkAuditWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -170,14 +170,14 @@ var configChart = &chart.Chart{
 	Objects: []*chart.Object{
 		// this config is mounted by the shoot-kube-apiserver at startup and should therefore be deployed before the controlplane
 		{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
-		{Type: &corev1.ConfigMap{}, Name: "auditlog-webhook-config"},
+		{Type: &corev1.ConfigMap{}, Name: "auditsink-config"},
 	},
 }
 
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.AuditlogWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.LimitValidatingWebhookImageName},
+	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.SplunkAuditWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.LimitValidatingWebhookImageName},
 	Objects: []*chart.Object{
 		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
@@ -189,7 +189,7 @@ var controlPlaneChart = &chart.Chart{
 		{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2kube-jwt-authn-webhook"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "kube-jwt-authn-webhook-allow-namespace"},
 
-		// auditlog webhook
+		// splunk audit webhook
 		{Type: &appsv1.Deployment{}, Name: "splunk-audit-webhook"},
 		{Type: &corev1.Service{}, Name: "splunk-audit-webhook"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "splunk-audit-webhook-allow-apiserver"},
@@ -338,12 +338,12 @@ func (vp *valuesProvider) GetConfigChartValues(
 		return nil, err
 	}
 
-	auditlogValues, err := vp.getAuditlogConfigValues(ctx, cp, cluster)
+	splunkAuditValues, err := vp.getSplunkAuditConfigValues(ctx, cp, cluster)
 	if err != nil {
 		return nil, err
 	}
 
-	merge(authValues, auditlogValues)
+	merge(authValues, splunkAuditValues)
 
 	return authValues, err
 }
@@ -363,16 +363,16 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 	return values, nil
 }
 
-func (vp *valuesProvider) getAuditlogConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) getSplunkAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 
 	namespace := cluster.Shoot.Status.TechnicalID
 
-	// this should work as the kube-apiserver is a pod in the same cluster as the auditlog-webhook
+	// this should work as the kube-apiserver is a pod in the same cluster as the splunk-audit-webhook
 	// example https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit
-	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", auditlogWebhookDeploymentName, namespace)
+	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", splunkAuditWebhookDeploymentName, namespace)
 
 	values := map[string]interface{}{
-		"auditlogWebhook_url": url,
+		"splunkAuditWebhookUrl": url,
 	}
 
 	return values, nil
@@ -431,7 +431,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	auditlogValues, err := getAuditlogChartValues(cpConfig, cluster, vp.controllerConfig.Audit)
+	splunkAuditValues, err := getSplunkAuditChartValues(cpConfig, cluster, vp.controllerConfig.SplunkAudit)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +446,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, authValues, auditlogValues, accValues, lvwValues)
+	merge(chartValues, authValues, splunkAuditValues, accValues, lvwValues)
 
 	return chartValues, nil
 }
@@ -696,14 +696,15 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	return values, nil
 }
 
-// returns values for "auditlog-webhook"
-func getAuditlogChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Audit) (map[string]interface{}, error) {
+// returns values for "splunk-audit-webhook"
+func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.SplunkAudit) (map[string]interface{}, error) {
 
 	values := map[string]interface{}{
-		"auditlogWebhook": map[string]interface{}{
+		"splunkAuditWebhook": map[string]interface{}{
 			"enabled": config.Enabled,
-			"splunk-hec-endpoint": map[string]interface{}{
-				"url":   "https://splunk.cns.cloud.fi-ts.io/",
+			"splunkHECEndpoint": map[string]interface{}{
+				// FIXME These values are placeholders for now and need to be retrieved from some form of secret storage.
+				"url":   "https://splunk.example.org/",
 				"token": "Token_00000000-0000-0000-0000-000000000000",
 			},
 		},
