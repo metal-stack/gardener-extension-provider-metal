@@ -62,6 +62,8 @@ config:
   auth:
     enabled: false
     providerTenant: provider-tenant
+  splunkAudit:
+    enabled: false
         
 gardener:
   seed:
