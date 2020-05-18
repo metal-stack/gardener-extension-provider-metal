@@ -27,6 +27,10 @@ images:
   sourceRepository: https://github.com/metallb/metallb
   repository: metallb/controller
   tag: v0.8.3
+- name: splunk-audit-webhook
+  sourceRepository: https://github.com/metal-stack/kubernetes-splunk-audit-webhook
+  repository: metalstack/kubernetes-splunk-audit-webhook
+  tag: v0.1.0
 
 # can be provided via image override:
 # - name: authn-webhook
