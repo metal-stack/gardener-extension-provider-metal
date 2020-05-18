@@ -21,7 +21,7 @@ data:
                     qps: 10
                     burst: 15
                 clientConfig:
-                    url: "{{ .Values.splunkAuditWebhook.splunkAuditWebhookUrl }}"
+                    url: "{{ .Values.splunkAuditWebhook.url }}"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -51,9 +51,9 @@ spec:
         restartPolicy: Always
         env:
         - name: SPLUNK_AUDIT_WEBHOOK_SERVER_URLS
-          value: {{ .Values.splunkAuditWebhook.splunkHECEndpoint.url }}
+          value: {{ .Values.splunkAuditWebhook.hecEndpoint.url }}
         - name: SPLUNK_AUDIT_WEBHOOK_TOKEN
-          value: {{ .Values.splunkAuditWebhook.splunkHECEndpoint.token }}
+          value: {{ .Values.splunkAuditWebhook.hecEndpoint.token }}
         - name: SPLUNK_AUDIT_WEBHOOK_BIND_ADDR
           value: "0.0.0.0"
         - name: SPLUNK_AUDIT_WEBHOOK_INSECURE_CERT

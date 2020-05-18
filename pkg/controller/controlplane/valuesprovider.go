@@ -372,7 +372,7 @@ func (vp *valuesProvider) getSplunkAuditConfigValues(ctx context.Context, cp *ex
 	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", splunkAuditWebhookDeploymentName, namespace)
 
 	values := map[string]interface{}{
-		"splunkAuditWebhookUrl": url,
+		"url": url,
 	}
 
 	return values, nil
@@ -702,7 +702,7 @@ func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *
 	values := map[string]interface{}{
 		"splunkAuditWebhook": map[string]interface{}{
 			"enabled": config.Enabled,
-			"splunkHECEndpoint": map[string]interface{}{
+			"hecEndpoint": map[string]interface{}{
 				// FIXME These values are placeholders for now and need to be retrieved from some form of secret storage.
 				"url":   "https://splunk.example.org/",
 				"token": "Token_00000000-0000-0000-0000-000000000000",
