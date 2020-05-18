@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsscheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -159,6 +160,10 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			}
 
 			if err := metalinstall.AddToScheme(mgr.GetScheme()); err != nil {
+				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
+			}
+
+			if err := druidv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
 				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
 			}
 
