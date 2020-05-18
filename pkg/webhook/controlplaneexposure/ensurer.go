@@ -62,7 +62,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 
 // EnsureETCD ensures that the etcd conform to the provider requirements.
 func (e *ensurer) EnsureETCD(ctx context.Context, ectx genericmutator.EnsurerContext, new, old *druidv1alpha1.Etcd) error {
-	capacity := resource.MustParse("10Gi")
+	capacity := resource.MustParse("16Gi")
 	class := ""
 
 	if new.Name == v1beta1constants.ETCDMain && e.etcdStorage != nil {
