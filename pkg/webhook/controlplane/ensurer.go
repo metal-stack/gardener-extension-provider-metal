@@ -9,6 +9,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	"github.com/go-logr/logr"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,16 +18,18 @@ import (
 )
 
 // NewEnsurer creates a new controlplane ensurer.
-func NewEnsurer(logger logr.Logger) genericmutator.Ensurer {
+func NewEnsurer(logger logr.Logger, controllerConfig config.ControllerConfiguration) genericmutator.Ensurer {
 	return &ensurer{
-		logger: logger.WithName("metal-controlplane-ensurer"),
+		logger:           logger.WithName("metal-controlplane-ensurer"),
+		controllerConfig: controllerConfig,
 	}
 }
 
 type ensurer struct {
 	genericmutator.NoopEnsurer
-	client client.Client
-	logger logr.Logger
+	client           client.Client
+	logger           logr.Logger
+	controllerConfig config.ControllerConfiguration
 }
 
 // InjectClient injects the given client into the ensurer.
@@ -40,7 +43,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		ensureKubeAPIServerCommandLineArgs(c)
+		ensureKubeAPIServerCommandLineArgs(c, e.controllerConfig)
 		ensureVolumeMounts(c)
 		ensureVolumes(ps)
 	}
@@ -88,11 +91,17 @@ func ensureVolumes(ps *corev1.PodSpec) {
 	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
 }
 
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
+func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
 
 	// activate AuthN Webhook with mounted Webhook-Config
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
+	// activate dynamic auditing if enabled
+	if controllerConfig.SplunkAudit.Enabled {
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-dynamic-configuration=", "true")
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--feature-gates=", "DynamicAuditing=true")
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--runtime-config=", "auditregistration.k8s.io/v1alpha1=true")
+	}
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
