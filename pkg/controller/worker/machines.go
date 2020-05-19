@@ -80,7 +80,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := w.client.Get(ctx, kutil.Key(w.cluster.Shoot.Namespace, w.cluster.Shoot.Name), infrastructure); err != nil {
+	if err := w.client.Get(ctx, kutil.Key(w.worker.Namespace, w.cluster.Shoot.Name), infrastructure); err != nil {
 		return err
 	}
 
