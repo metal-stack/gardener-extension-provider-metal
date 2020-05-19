@@ -7,14 +7,17 @@ import (
 
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
 
-	"github.com/gardener/gardener-extensions/pkg/controller/worker"
+	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
-	genericworkeractuator "github.com/gardener/gardener-extensions/pkg/controller/worker/genericactuator"
+	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	"github.com/gardener/gardener/pkg/client/kubernetes"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,7 +40,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 			return err
 		}
 	}
-	return w.seedChartApplier.ApplyChart(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", map[string]interface{}{"machineClasses": w.machineClasses}, nil)
+	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses}))
 }
 
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.
@@ -72,8 +75,17 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
+	// TODO: this is a workaround to speed things for the time being...
+	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
+	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
+	// therefore, we read it directly from the infrastructure status
+	infrastructure := &extensionsv1alpha1.Infrastructure{}
+	if err := w.client.Get(ctx, kutil.Key(w.worker.Namespace, w.cluster.Shoot.Name), infrastructure); err != nil {
+		return err
+	}
+
 	projectID := infrastructureConfig.ProjectID
-	nodeCIDR := w.cluster.Shoot.Spec.Networking.Nodes
+	nodeCIDR := infrastructure.Status.NodesCIDR
 
 	if nodeCIDR == nil {
 		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
@@ -155,7 +167,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		machineClassSpec["name"] = className
 		machineClassSpec["labels"] = map[string]string{
-			v1beta1constants.GardenPurpose: genericworkeractuator.GardenPurposeMachineClass,
+			v1beta1constants.GardenerPurpose: genericworkeractuator.GardenPurposeMachineClass,
 		}
 
 		machineClassSpec["secret"].(map[string]interface{})[metal.APIURL] = credentials.MetalAPIURL

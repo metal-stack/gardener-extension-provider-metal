@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	mockclient "github.com/gardener/gardener-extensions/pkg/mock/controller-runtime/client"
-	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/test"
+	mockclient "github.com/gardener/gardener/extensions/pkg/mock/controller-runtime/client"
+	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/test"
 	gardencorev1alpha1 "github.com/gardener/gardener/pkg/apis/core/v1alpha1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 

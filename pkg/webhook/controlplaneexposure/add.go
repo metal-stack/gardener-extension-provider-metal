@@ -1,9 +1,10 @@
 package controlplaneexposure
 
 import (
-	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
+	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
+	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
+	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
@@ -33,7 +34,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 	return controlplane.Add(mgr, controlplane.AddArgs{
 		Kind:     controlplane.KindSeed,
 		Provider: metal.Type,
-		Types:    []runtime.Object{&corev1.Service{}, &appsv1.Deployment{}, &appsv1.StatefulSet{}},
+		Types:    []runtime.Object{&corev1.Service{}, &appsv1.Deployment{}, &druidv1alpha1.Etcd{}},
 		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDStorage, logger), nil, nil, nil, logger),
 	})
 }

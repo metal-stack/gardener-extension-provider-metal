@@ -1,9 +1,5 @@
+{{- if .Values.authnWebhook.enabled }}
 ---
-#
-# Deployment, deploys webhook in Shoot-Controlplane
-#
-# MUST BE CONFIGURED FOR CLUSTER / TENANT / TRUSTED TOKEN ISSUER
-#
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,31 +32,31 @@ spec:
         image: {{ index .Values.images "authn-webhook" }}
         imagePullPolicy: Always
         ports:
-        - containerPort: {{ .Values.authn_listen_port }}
+        - containerPort: {{ .Values.authnWebhook.port }}
           protocol: TCP
         - containerPort: 2112
           name: monitoring
         env:
         - name: LISTEN
-          value: ":{{ .Values.authn_listen_port }}"
+          value: ":{{ .Values.authnWebhook.port }}"
         - name: TLSCERTFILE
           value: /etc/webhook/certs/kube-jwt-authn-webhook-server.crt
         - name: TLSKEYFILE
           value: /etc/webhook/certs/kube-jwt-authn-webhook-server.key
         - name: ISSUER
-          value: {{ .Values.authn_oidcIssuerUrl }}
+          value: {{ .Values.authnWebhook.oidc.issuerUrl }}
         - name: CLIENTID
-          value: {{ .Values.authn_oidcIssuerClientId }}
+          value: {{ .Values.authnWebhook.oidc.issuerClientId }}
         - name: GROUPSPREFIXTOREMOVE
           value: k8s
         - name: TENANT
-          value: {{ .Values.authn_tenant }}
+          value: {{ .Values.authnWebhook.tenant }}
         - name: PROVIDERTENANT
-          value: {{ .Values.authn_providerTenant }}
+          value: {{ .Values.authnWebhook.providerTenant }}
         - name: CLUSTER
-          value: {{ .Values.authn_clustername }}
+          value: {{ .Values.authnWebhook.clusterName }}
         - name: DEBUG
-          value: {{ quote .Values.authn_debug }}
+          value: {{ quote .Values.authnWebhook.debug }}
         volumeMounts:
         - name: webhook-certs
           mountPath: /etc/webhook/certs
@@ -84,7 +80,7 @@ spec:
     app: kube-jwt-authn-webhook
   ports:
   - port: 443
-    targetPort: {{ .Values.authn_listen_port }}
+    targetPort: {{ .Values.authnWebhook.port }}
 
 ---
 kind: NetworkPolicy
@@ -124,3 +120,4 @@ spec:
             role: apiserver
     policyTypes:
     - Egress
+{{- end }}

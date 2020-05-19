@@ -27,6 +27,11 @@ data:
         capacity: {{ .Values.config.etcd.storage.capacity }}
       backup:
         schedule: {{ .Values.config.etcd.backup.schedule }}
+    auth:
+      enabled: {{ .Values.config.auth.enabled }}
+      providerTenant: {{ .Values.config.auth.providerTenant }}
+    splunkAudit:
+      enabled: {{ .Values.config.splunkAudit.enabled }}
     accountingExporter:
       enabled: {{ .Values.config.accountingExporter.enabled }}
       clientConfig:

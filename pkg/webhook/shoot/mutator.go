@@ -3,7 +3,7 @@ package shoot
 import (
 	"context"
 
-	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
+	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -24,8 +24,8 @@ func NewMutator(logger logr.Logger) extensionswebhook.Mutator {
 	}
 }
 
-func (m *mutator) Mutate(ctx context.Context, obj runtime.Object) error {
-	acc, err := meta.Accessor(obj)
+func (m *mutator) Mutate(ctx context.Context, new, old runtime.Object) error {
+	acc, err := meta.Accessor(new)
 	if err != nil {
 		return errors.Wrapf(err, "could not create accessor during webhook")
 	}
@@ -34,7 +34,7 @@ func (m *mutator) Mutate(ctx context.Context, obj runtime.Object) error {
 		return nil
 	}
 
-	switch x := obj.(type) {
+	switch x := new.(type) {
 	case *appsv1.Deployment:
 		switch x.Name {
 		}

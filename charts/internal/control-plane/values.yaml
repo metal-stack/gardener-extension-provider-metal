@@ -1,60 +1,69 @@
-replicas: 1
+---
 kubernetesVersion: 1.7.5
-projectID: project-id
-partitionID: partition-id
-networkID: network-id
-podNetwork: 192.168.0.0/16
-environment: []
-additionalParameters: []
-podAnnotations: {}
 featureGates: {}
-  # CustomResourceValidation: true
-  # RotateKubeletServerCertificate: false
+
 images: 
   metalccm: image-repository:image-tag
   authn-webhook: image-repository:image-tag
+  splunk-audit-webhook: image-repository:image-tag
   group-rolebinding-controller: image-repository:image-tag
   accounting-exporter: image-repository:image-tag
   limit-validating-webhook: image-repository:image-tag
 
-resources:
-  requests:
-    cpu: 100m
-    memory: 64Mi
-  limits:
-    cpu: 250m
-    memory: 300Mi
+cloudControllerManager:
+  additionalParameters: []
+  podAnnotations: {}
+  replicas: 1
+  podNetwork: 192.168.0.0/16
+  projectID: project-id
+  partitionID: partition-id
+  networkID: network-id
+  clusterID: cluster-id
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 300Mi
 
-#
-# group-rolebinding-controller
-#
-grprb_clustername: clustername
+groupRolebindingController: 
+  enabled: false
+  clusterName: cluster-name
 
-#
-# authn webhook
-#
-authn_tenant: someTenant
-authn_clustername: projectID
+authnWebhook:
+  enabled: false
+  port: 443
+  debug: true
+  tenant: some-tenant
+  providerTenant: provider-tenant
+  clusterName: cluster-name
+  oidc:
+    issuerUrl: https://tokenissuer/dex
+    issuerClientId: myClientId
 
-authn_oidcIssuerUrl: https://tokenissuer/dex
-authn_oidcIssuerClientId: myClientId
-authn_providerTenant: providerTenant
+splunkAuditWebhook:
+  enabled: false
+  port: 443
+  acceptInsecureCert: false
+  url: https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit
+  endpointRequiresClientCert: false
+  hecEndpoint:
+    url: https://splunk.example.org/
+    token: "Token_00000000-0000-0000-0000-000000000000"
 
-authn_listen_port: 443
-authn_debug: true
-
-#
-# accounting-exporter
-#
-accounting_exporter:
-  enabled: true
+limitValidatingWebhook:
+  enabled: false
+    
+accountingExporter:
+  enabled: false
   enrichments:
-    project_id: project-id
-    partition_id: partition-id
-    tenant: someTenant
-    cluster_id: 123123
-    cluster_name: clustername
-  accounting_api:
+    projectID: project-id
+    partitionID: partition-id
+    tenant: some-tenant
+    clusterID: cluster-id
+    cluster_name: cluster-name
+  accountingAPI:
     hostname: hostname
     port: 9000
     ca: |
@@ -65,12 +74,7 @@ accounting_exporter:
       -----BEGIN CERTIFICATE-----
       ...
       -----END CERTIFICATE-----
-    certkey: |
+    certKey: |
       -----BEGIN RSA PRIVATE KEY-----
       ...
       -----END RSA PRIVATE KEY----- 
-
-#
-# limit-validating-webhook
-#
-lvw_validate: false

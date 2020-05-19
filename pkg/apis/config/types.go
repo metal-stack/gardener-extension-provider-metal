@@ -32,6 +32,12 @@ type ControllerConfiguration struct {
 	// ETCD is the etcd configuration.
 	ETCD ETCD
 
+	// Auth is configuration for metal stack specific user authentication in the cluster.
+	Auth Auth
+
+	// SplunkAudit is configuration for auditlogging the kube-apiserver to splunk endpoint via webhook.
+	SplunkAudit SplunkAudit
+
 	// AccountingExporter is the configuration for the accounting exporter
 	AccountingExporter AccountingExporterConfiguration
 }
@@ -66,6 +72,20 @@ type ETCDStorage struct {
 type ETCDBackup struct {
 	// Schedule is the etcd backup schedule.
 	Schedule *string
+}
+
+// Auth contains the configuration for metal stack specific user authentication in the cluster.
+type Auth struct {
+	// Enabled enables the deployment of metal stack specific cluster authentication when set to true.
+	Enabled bool
+	// ProviderTenant is the name of the provider tenant who has special privileges.
+	ProviderTenant string
+}
+
+// SplunkAudit contains the configuration for auditlogging the kube-apiserver to splunk endpoint via webhook.
+type SplunkAudit struct {
+	// Enabled enables the deployment of splunk auditlog webhook when set to true.
+	Enabled bool
 }
 
 // AccountingExporterConfiguration contains the configuration for the accounting exporter

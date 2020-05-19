@@ -1,4 +1,4 @@
-module github.com/gardener/gardener-extensions/tools
+module github.com/gardener/gardener/extensions/tools
 
 go 1.13
 

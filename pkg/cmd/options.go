@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
-	extensionscontrolplanecontroller "github.com/gardener/gardener-extensions/pkg/controller/controlplane"
-	extensionsinfrastructurecontroller "github.com/gardener/gardener-extensions/pkg/controller/infrastructure"
-	extensionsworkercontroller "github.com/gardener/gardener-extensions/pkg/controller/worker"
-	webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
-	extensioncontrolplanewebhook "github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
-	extensionshootwebhook "github.com/gardener/gardener-extensions/pkg/webhook/shoot"
+	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
+	extensionscontrolplanecontroller "github.com/gardener/gardener/extensions/pkg/controller/controlplane"
+	extensionsinfrastructurecontroller "github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
+	extensionsworkercontroller "github.com/gardener/gardener/extensions/pkg/controller/worker"
+	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
+	extensioncontrolplanewebhook "github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
+	extensionshootwebhook "github.com/gardener/gardener/extensions/pkg/webhook/shoot"
 	controlplanecontroller "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/controlplane"
 	infrastructurecontroller "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/infrastructure"
 	workercontroller "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/worker"

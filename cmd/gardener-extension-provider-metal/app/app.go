@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextensionsscheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -17,12 +18,13 @@ import (
 	metalinfrastructure "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/infrastructure"
 	metalworker "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/worker"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	shootcontrolplanewebhook "github.com/metal-stack/gardener-extension-provider-metal/pkg/webhook/controlplane"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/gardener/gardener-extensions/pkg/controller"
-	controllercmd "github.com/gardener/gardener-extensions/pkg/controller/cmd"
-	"github.com/gardener/gardener-extensions/pkg/controller/worker"
-	webhookcmd "github.com/gardener/gardener-extensions/pkg/webhook/cmd"
+	"github.com/gardener/gardener/extensions/pkg/controller"
+	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
+	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -75,7 +77,6 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			controllercmd.PrefixOption("controlplane-", controlPlaneCtrlOpts),
 			controllercmd.PrefixOption("infrastructure-", infraCtrlOpts),
 			controllercmd.PrefixOption("worker-", &workerCtrlOptsUnprefixed),
-			controllercmd.PrefixOption("auth-", &metalcontrolplane.AuthOpts),
 			configFileOpts,
 			reconcileOpts,
 			controllerSwitches,
@@ -162,10 +163,14 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
 			}
 
+			if err := druidv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
+				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
+			}
+
 			configFileOpts.Completed().ApplyMachineImages(&metalworker.DefaultAddOptions.MachineImages)
-			configFileOpts.Completed().ApplyAccountingExporterConfig(&metalcontrolplane.DefaultAddOptions.AccountingExporterConfig)
+			configFileOpts.Completed().ApplyControllerConfig(&metalcontrolplane.DefaultAddOptions.ControllerConfig)
+			configFileOpts.Completed().ApplyControllerConfig(&shootcontrolplanewebhook.DefaultAddOptions.ControllerConfig)
 			controlPlaneCtrlOpts.Completed().Apply(&metalcontrolplane.DefaultAddOptions.Controller)
-			metalcontrolplane.AuthOpts.Completed().Apply(&metalcontrolplane.AuthOpts)
 			infraCtrlOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.Controller)
 			reconcileOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation)
 			reconcileOpts.Completed().Apply(&metalcontrolplane.DefaultAddOptions.IgnoreOperationAnnotation)

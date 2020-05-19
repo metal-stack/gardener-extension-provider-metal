@@ -3,9 +3,8 @@ package controlplane
 import (
 	"context"
 	"encoding/json"
-	"testing"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 

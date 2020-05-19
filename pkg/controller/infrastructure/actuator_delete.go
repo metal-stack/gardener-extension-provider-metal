@@ -3,14 +3,15 @@ package infrastructure
 import (
 	"context"
 	"fmt"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 	"time"
+
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
 
-	extensionscontroller "github.com/gardener/gardener-extensions/pkg/controller"
-	controllererrors "github.com/gardener/gardener-extensions/pkg/controller/error"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 )

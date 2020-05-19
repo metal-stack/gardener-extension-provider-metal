@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"github.com/coreos/go-systemd/unit"
-	extensionswebhook "github.com/gardener/gardener-extensions/pkg/webhook"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane"
-	"github.com/gardener/gardener-extensions/pkg/webhook/controlplane/genericmutator"
+	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
+	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	"github.com/go-logr/logr"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,16 +18,18 @@ import (
 )
 
 // NewEnsurer creates a new controlplane ensurer.
-func NewEnsurer(logger logr.Logger) genericmutator.Ensurer {
+func NewEnsurer(logger logr.Logger, controllerConfig config.ControllerConfiguration) genericmutator.Ensurer {
 	return &ensurer{
-		logger: logger.WithName("metal-controlplane-ensurer"),
+		logger:           logger.WithName("metal-controlplane-ensurer"),
+		controllerConfig: controllerConfig,
 	}
 }
 
 type ensurer struct {
 	genericmutator.NoopEnsurer
-	client client.Client
-	logger logr.Logger
+	client           client.Client
+	logger           logr.Logger
+	controllerConfig config.ControllerConfiguration
 }
 
 // InjectClient injects the given client into the ensurer.
@@ -36,15 +39,15 @@ func (e *ensurer) InjectClient(client client.Client) error {
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, dep *appsv1.Deployment) error {
-	template := &dep.Spec.Template
+func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, new, _ *appsv1.Deployment) error {
+	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		ensureKubeAPIServerCommandLineArgs(c)
+		ensureKubeAPIServerCommandLineArgs(c, e.controllerConfig)
 		ensureVolumeMounts(c)
-		ensureVolumes(ps)
+		ensureVolumes(ps, e.controllerConfig)
 	}
-	return e.ensureChecksumAnnotations(ctx, &dep.Spec.Template, dep.Namespace)
+	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
 
 var (
@@ -83,27 +86,36 @@ func ensureVolumeMounts(c *corev1.Container) {
 	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
 }
 
-func ensureVolumes(ps *corev1.PodSpec) {
-	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
-	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
+func ensureVolumes(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) {
+	if controllerConfig.Auth.Enabled {
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
+	}
 }
 
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
+func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
 
-	// activate AuthN Webhook with mounted Webhook-Config
-	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
+	if controllerConfig.Auth.Enabled {
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
+	}
+
+	if controllerConfig.SplunkAudit.Enabled {
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-dynamic-configuration=", "true")
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--feature-gates=", "DynamicAuditing=true")
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--runtime-config=", "auditregistration.k8s.io/v1alpha1=true")
+	}
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, dep *appsv1.Deployment) error {
-	template := &dep.Spec.Template
+func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, new, _ *appsv1.Deployment) error {
+	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-controller-manager"); c != nil {
 		ensureKubeControllerManagerCommandLineArgs(c)
 	}
 	ensureKubeControllerManagerAnnotations(template)
-	return e.ensureChecksumAnnotations(ctx, &dep.Spec.Template, dep.Namespace)
+	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
 
 func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
@@ -122,13 +134,13 @@ func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev
 }
 
 // EnsureKubeletServiceUnitOptions ensures that the kubelet.service unit options conform to the provider requirements.
-func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, ectx genericmutator.EnsurerContext, opts []*unit.UnitOption) ([]*unit.UnitOption, error) {
-	if opt := extensionswebhook.UnitOptionWithSectionAndName(opts, "Service", "ExecStart"); opt != nil {
+func (e *ensurer) EnsureKubeletServiceUnitOptions(ctx context.Context, ectx genericmutator.EnsurerContext, new, _ []*unit.UnitOption) ([]*unit.UnitOption, error) {
+	if opt := extensionswebhook.UnitOptionWithSectionAndName(new, "Service", "ExecStart"); opt != nil {
 		command := extensionswebhook.DeserializeCommandLine(opt.Value)
 		command = ensureKubeletCommandLineArgs(command)
 		opt.Value = extensionswebhook.SerializeCommandLine(command, 1, " \\\n    ")
 	}
-	return opts, nil
+	return new, nil
 }
 
 func ensureKubeletCommandLineArgs(command []string) []string {
@@ -137,11 +149,11 @@ func ensureKubeletCommandLineArgs(command []string) []string {
 }
 
 // EnsureKubeletConfiguration ensures that the kubelet configuration conforms to the provider requirements.
-func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, ectx genericmutator.EnsurerContext, kubeletConfig *kubeletconfigv1beta1.KubeletConfiguration) error {
+func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, ectx genericmutator.EnsurerContext, new, _ *kubeletconfigv1beta1.KubeletConfiguration) error {
 	// Make sure CSI-related feature gates are not enabled
 	// TODO Leaving these enabled shouldn't do any harm, perhaps remove this code when properly tested?
-	delete(kubeletConfig.FeatureGates, "VolumeSnapshotDataSource")
-	delete(kubeletConfig.FeatureGates, "CSINodeInfo")
-	delete(kubeletConfig.FeatureGates, "CSIDriverRegistry")
+	delete(new.FeatureGates, "VolumeSnapshotDataSource")
+	delete(new.FeatureGates, "CSINodeInfo")
+	delete(new.FeatureGates, "CSIDriverRegistry")
 	return nil
 }
