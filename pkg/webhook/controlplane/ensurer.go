@@ -45,7 +45,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c, e.controllerConfig)
 		ensureVolumeMounts(c)
-		ensureVolumes(ps)
+		ensureVolumes(ps, e.controllerConfig)
 	}
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
@@ -86,17 +86,20 @@ func ensureVolumeMounts(c *corev1.Container) {
 	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
 }
 
-func ensureVolumes(ps *corev1.PodSpec) {
-	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
-	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
+func ensureVolumes(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) {
+	if controllerConfig.Auth.Enabled {
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
+	}
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
 
-	// activate AuthN Webhook with mounted Webhook-Config
-	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
-	// activate dynamic auditing if enabled
+	if controllerConfig.Auth.Enabled {
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
+	}
+
 	if controllerConfig.SplunkAudit.Enabled {
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-dynamic-configuration=", "true")
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--feature-gates=", "DynamicAuditing=true")

@@ -338,13 +338,6 @@ func (vp *valuesProvider) GetConfigChartValues(
 		return nil, err
 	}
 
-	splunkAuditValues, err := vp.getSplunkAuditConfigValues(ctx, cp, cluster)
-	if err != nil {
-		return nil, err
-	}
-
-	merge(authValues, splunkAuditValues)
-
 	return authValues, err
 }
 
@@ -357,22 +350,9 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/authenticate", authNWebhookDeploymentName, namespace)
 
 	values := map[string]interface{}{
-		"authnWebhook_url": url,
-	}
-
-	return values, nil
-}
-
-func (vp *valuesProvider) getSplunkAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-
-	namespace := cluster.Shoot.Status.TechnicalID
-
-	// this should work as the kube-apiserver is a pod in the same cluster as the splunk-audit-webhook
-	// example https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit
-	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", splunkAuditWebhookDeploymentName, namespace)
-
-	values := map[string]interface{}{
-		"url": url,
+		"authnWebhook": map[string]interface{}{
+			"url": url,
+		},
 	}
 
 	return values, nil

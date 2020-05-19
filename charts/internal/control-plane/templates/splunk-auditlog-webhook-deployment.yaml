@@ -43,12 +43,11 @@ spec:
         networking.gardener.cloud/to-public-networks: allowed
       annotations:
           scheduler.alpha.kubernetes.io/critical-pod: ''
-        spec:
+    spec:
       containers:
       - name: splunk-audit-webhook
         image: {{ index .Values.images "splunk-audit-webhook" }}
         imagePullPolicy: Always
-        restartPolicy: Always
         env:
         - name: SPLUNK_AUDIT_WEBHOOK_SERVER_URLS
           value: {{ .Values.splunkAuditWebhook.hecEndpoint.url }}
@@ -70,11 +69,12 @@ spec:
           value: /etc/webhook/certs/splunk-audit-webhook-server.crt
         ports:
           - containerPort: {{ .Values.splunkAuditWebhook.port }}
-          protocol: TCP
+            protocol: TCP
         volumeMounts:
           - name: webhook-certs
             mountPath: /etc/webhook/certs
             readOnly: true
+      restartPolicy: Always
       volumes:
         - name: webhook-certs
           secret:
