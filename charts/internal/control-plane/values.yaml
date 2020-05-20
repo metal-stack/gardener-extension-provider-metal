@@ -62,7 +62,7 @@ accountingExporter:
     partitionID: partition-id
     tenant: some-tenant
     clusterID: cluster-id
-    cluster_name: cluster-name
+    clusterName: cluster-name
   accountingAPI:
     hostname: hostname
     port: 9000

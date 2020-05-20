@@ -724,11 +724,11 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 		"accountingExporter": map[string]interface{}{
 			"enabled": accountingConfig.Enabled,
 			"enrichments": map[string]interface{}{
-				"partition_id": partitionID,
-				"tenant":       tenant,
-				"project_id":   projectID,
-				"cluster_name": clusterName,
-				"cluster_id":   clusterID,
+				"partitionID": partitionID,
+				"tenant":      tenant,
+				"projectID":   projectID,
+				"clusterName": clusterName,
+				"clusterID":   clusterID,
 			},
 			"accountingAPI": map[string]interface{}{
 				"hostname": accountingConfig.Client.Hostname,
