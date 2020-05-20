@@ -381,12 +381,17 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	cpConfig.IAMConfig, err = helper.MergeIAMConfig(cloudProfileConfig.IAMConfig, cpConfig.IAMConfig)
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, cluster.Shoot.Spec.Region)
 	if err != nil {
 		return nil, err
 	}
 
-	mclient, err := metalclient.NewClient(ctx, vp.client, &cp.Spec.SecretRef)
+	cpConfig.IAMConfig, err = helper.MergeIAMConfig(metalControlPlane.IAMConfig, cpConfig.IAMConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
 	if err != nil {
 		return nil, err
 	}

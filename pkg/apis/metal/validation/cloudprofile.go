@@ -35,10 +35,12 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 		}
 	}
 
-	firewallNetworksPath := field.NewPath("firewallNetworks")
-	for partitionID := range cloudProfileConfig.FirewallNetworks {
-		if !availableZones.Has(partitionID) {
-			allErrs = append(allErrs, field.Invalid(firewallNetworksPath.Child(partitionID), partitionID, fmt.Sprintf("the partition of the firewall network must be contained in the configured zones in the cloud profile: %v", availableZones.List())))
+	controlPlanesPath := field.NewPath("metalControlPlanes")
+	for mcpName, mcp := range cloudProfileConfig.MetalControlPlanes {
+		for partitionName := range mcp.Partitions {
+			if !availableZones.Has(partitionName) {
+				allErrs = append(allErrs, field.Invalid(controlPlanesPath.Child(mcpName), partitionName, fmt.Sprintf("the control plane has a partition that is not a configured zone in any of the cloud profile regions: %v", availableZones.List())))
+			}
 		}
 	}
 

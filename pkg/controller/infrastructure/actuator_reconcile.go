@@ -12,6 +12,7 @@ import (
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalgo "github.com/metal-stack/metal-go"
 	metalfirewall "github.com/metal-stack/metal-go/api/client/firewall"
 
@@ -37,13 +38,23 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return err
+	}
+
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, cluster.Shoot.Spec.Region)
+	if err != nil {
+		return err
+	}
+
 	var (
 		clusterID      = string(cluster.Shoot.GetUID())
 		clusterTag     = fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
 		firewallStatus = infrastructureStatus.Firewall
 	)
 
-	mclient, err := metalclient.NewClient(ctx, a.client, &infrastructure.Spec.SecretRef)
+	mclient, err := metalclient.NewClient(ctx, a.client, metalControlPlane.Endpoint, &infrastructure.Spec.SecretRef)
 	if err != nil {
 		return err
 	}

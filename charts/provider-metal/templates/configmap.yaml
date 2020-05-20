@@ -29,11 +29,14 @@ data:
         schedule: {{ .Values.config.etcd.backup.schedule }}
     auth:
       enabled: {{ .Values.config.auth.enabled }}
+{{- if .Values.config.auth.enabled }}
       providerTenant: {{ .Values.config.auth.providerTenant }}
+{{- end }}
     splunkAudit:
       enabled: {{ .Values.config.splunkAudit.enabled }}
     accountingExporter:
       enabled: {{ .Values.config.accountingExporter.enabled }}
+{{- if .Values.config.accountingExporter.enabled }}
       clientConfig:
         hostname: {{ .Values.config.accountingExporter.clientConfig.hostname }}
         port: {{ .Values.config.accountingExporter.clientConfig.port }}
@@ -43,3 +46,4 @@ data:
 {{ .Values.config.accountingExporter.clientConfig.cert | indent 10 }}
         certKey: | 
 {{ .Values.config.accountingExporter.clientConfig.certkey | indent 10 }}
+{{- end }}

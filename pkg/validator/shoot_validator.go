@@ -49,6 +49,11 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 	}
 
 	// ControlPlaneConfig
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, shoot.Spec.Region)
+	if err != nil {
+		return err
+	}
+
 	controlPlaneConfigFldPath := fldPath.Child("controlPlaneConfig")
 
 	controlPlaneConfig, err := decodeControlPlaneConfig(v.decoder, shoot.Spec.Provider.ControlPlaneConfig, fldPath.Child("controlPlaneConfig"))
@@ -56,7 +61,7 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 		return err
 	}
 
-	controlPlaneConfig.IAMConfig, err = helper.MergeIAMConfig(controlPlaneConfig.IAMConfig, cloudProfileConfig.IAMConfig)
+	controlPlaneConfig.IAMConfig, err = helper.MergeIAMConfig(controlPlaneConfig.IAMConfig, metalControlPlane.IAMConfig)
 	if err != nil {
 		return err
 	}

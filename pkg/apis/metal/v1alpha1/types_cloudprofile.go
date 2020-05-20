@@ -10,12 +10,27 @@ import (
 // resource.
 type CloudProfileConfig struct {
 	metav1.TypeMeta
-	// FirewallImages is a list of available firewall images.
-	FirewallImages []string `json:"firewallImages,omitempty"`
-	// FirewallNetworks contains a map of available networks within a partition
-	FirewallNetworks map[string]map[string]string `json:"firewallNetworks,omitempty"`
+
+	// MetalControlPlanes is a map of a control plane name to control plane configuration
+	MetalControlPlanes map[string]MetalControlPlane `json:"metalControlPlanes"`
+}
+
+// MetalControlPlane contains configuration specific for this metal stack control plane
+type MetalControlPlane struct {
+	// Endpoint is the endpoint to the metal-api of the control plane
+	Endpoint string `json:"endpoint"`
 	// IAMConfig contains the config for all AuthN/AuthZ related components, can be overriden in shoots control plane config
 	IAMConfig *IAMConfig `json:"iamconfig" optional:"true"`
+	// Partitions is a map of a region name from the regions defined in the cloud profile to region-specific control plane settings
+	Partitions map[string]Partition `json:"partitions"`
+}
+
+// Partition contains configuration specific for this metal stack control plane partition
+type Partition struct {
+	// FirewallImages is a list of available firewall images in this control plane.
+	FirewallImages []string `json:"firewallImages,omitempty"`
+	// FirewallNetworks contains a map of available networks within
+	FirewallNetworks map[string]string `json:"firewallNetworks,omitempty"`
 }
 
 // IAMConfig contains the config for all AuthN/AuthZ related components

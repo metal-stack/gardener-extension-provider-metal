@@ -60,3 +60,15 @@ func MergeIAMConfig(into *metal.IAMConfig, from *metal.IAMConfig) (*metal.IAMCon
 	}
 	return &merged, nil
 }
+
+// FindMetalControlPlane returns the metal control plane from a given region name
+func FindMetalControlPlane(cloudProfileConfig *metal.CloudProfileConfig, region string) (*metal.MetalControlPlane, *metal.Partition, error) {
+	for _, mcp := range cloudProfileConfig.MetalControlPlanes {
+		for partitionName, p := range mcp.Partitions {
+			if partitionName == region {
+				return &mcp, &p, nil
+			}
+		}
+	}
+	return nil, nil, fmt.Errorf("no metal control plane found for region %s in cloud profile config", region)
+}

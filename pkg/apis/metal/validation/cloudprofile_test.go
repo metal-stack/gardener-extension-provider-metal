@@ -71,25 +71,36 @@ var _ = Describe("CloudProfileConfig validation", func() {
 			Expect(errorList).To(BeEmpty())
 		})
 
-		It("should pass properly configures firewall networks", func() {
-			cloudProfileConfig.FirewallNetworks = make(map[string]map[string]string)
-			cloudProfileConfig.FirewallNetworks["partition-b"] = map[string]string{"internet": "network-1"}
+		It("should pass properly configured control plane partitions", func() {
+			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {},
+					},
+				},
+			}
 
 			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile)
 
 			Expect(errorList).To(BeEmpty())
 		})
 
-		It("should prevent mapping firewall networks of partitions that are not configured in zones", func() {
-			cloudProfileConfig.FirewallNetworks = make(map[string]map[string]string)
-			cloudProfileConfig.FirewallNetworks["random-partition"] = map[string]string{"internet": "network-1"}
+		It("should prevent declaring partitions that are not configured in zones", func() {
+			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"random-partition": {},
+					},
+				},
+			}
 
 			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile)
 
 			Expect(errorList).To(ConsistOfFields(Fields{
-				"Type":   Equal(field.ErrorTypeInvalid),
-				"Field":  Equal("firewallNetworks.random-partition"),
-				"Detail": Equal("the partition of the firewall network must be contained in the configured zones in the cloud profile: [partition-a partition-b partition-c]"),
+				"Type":     Equal(field.ErrorTypeInvalid),
+				"Field":    Equal("metalControlPlanes.prod"),
+				"BadValue": Equal("random-partition"),
+				"Detail":   Equal("the control plane has a partition that is not a configured zone in any of the cloud profile regions: [partition-a partition-b partition-c]"),
 			}))
 		})
 	})

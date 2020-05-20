@@ -12,7 +12,6 @@ data:
   userData: {{ $machineClass.secret.cloudConfig | b64enc }}
   metalAPIKey: {{ $machineClass.secret.metalAPIKey | b64enc }}
   metalAPIHMac: {{ $machineClass.secret.metalAPIHMac | b64enc }}
-  metalAPIURL: {{ $machineClass.secret.metalAPIURL | b64enc }}
 ---
 apiVersion: machine.sapcloud.io/v1alpha1
 kind: MetalMachineClass
@@ -20,6 +19,7 @@ metadata:
   name: {{ $machineClass.name }}
   namespace: {{ $.Release.Namespace }}
 spec:
+  apiURL: {{ $machineClass.apiURL }}
   partition: {{ $machineClass.partition }}
   size: {{ $machineClass.size }}
   image: {{ $machineClass.image }}
