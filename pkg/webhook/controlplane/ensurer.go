@@ -44,7 +44,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c, e.controllerConfig)
-		ensureVolumeMounts(c)
+		ensureVolumeMounts(c, e.controllerConfig)
 		ensureVolumes(ps, e.controllerConfig)
 	}
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
@@ -81,9 +81,11 @@ var (
 	}
 )
 
-func ensureVolumeMounts(c *corev1.Container) {
-	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
-	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
+func ensureVolumeMounts(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
+	if controllerConfig.Auth.Enabled {
+		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
+		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
+	}
 }
 
 func ensureVolumes(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) {

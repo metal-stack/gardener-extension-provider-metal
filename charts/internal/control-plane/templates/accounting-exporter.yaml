@@ -50,7 +50,7 @@ spec:
         - name: KUBE_COUNTER_CLUSTER_ID
           value: {{ .Values.accountingExporter.enrichments.clusterID }}
         - name: KUBE_COUNTER_CLUSTER_NAME
-          value: {{ .Values.accountingExporter.enrichments.cluster_name }}
+          value: {{ .Values.accountingExporter.enrichments.clusterName }}
         - name: KUBE_COUNTER_KUBECONFIG
           value: /var/lib/accounting-exporter/kubeconfig
         - name: KUBE_COUNTER_ACCOUNTING_API_HOSTNAME

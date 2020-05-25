@@ -164,49 +164,20 @@ var controlPlaneSecrets = &secrets.Secrets{
 }
 
 var configChart = &chart.Chart{
-	Name:   "config",
-	Path:   filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
-	Images: []string{},
-	Objects: []*chart.Object{
-		// this config is mounted by the shoot-kube-apiserver at startup and should therefore be deployed before the controlplane
-		{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
-		{Type: &corev1.ConfigMap{}, Name: "auditsink-config"},
-	},
+	Name:    "config",
+	Path:    filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
+	Images:  []string{},
+	Objects: []*chart.Object{},
 }
 
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName, metal.AuthNWebhookImageName, metal.SplunkAuditWebhookImageName, metal.AccountingExporterImageName, metal.GroupRolebindingControllerImageName, metal.LimitValidatingWebhookImageName},
+	Images: []string{metal.CCMImageName},
 	Objects: []*chart.Object{
 		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
-
-		// authn webhook
-		{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
-		{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2kube-jwt-authn-webhook"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "kube-jwt-authn-webhook-allow-namespace"},
-
-		// splunk audit webhook
-		{Type: &appsv1.Deployment{}, Name: "splunk-audit-webhook"},
-		{Type: &corev1.Service{}, Name: "splunk-audit-webhook"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "splunk-audit-webhook-allow-apiserver"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2splunk-audit-webhook"},
-
-		// accounting exporter
-		{Type: &corev1.Secret{}, Name: "accounting-exporter-tls"},
-		{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
-
-		// group rolebinding controller
-		{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
-
-		// limit validation webhook
-		{Type: &appsv1.Deployment{}, Name: "limit-validating-webhook"},
-		{Type: &corev1.Service{}, Name: "limit-validating-webhook"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "limit-validating-webhook-allow-namespace"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2limit-validating-webhook"},
 
 		// network policies
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
@@ -223,9 +194,6 @@ var cpShootChart = &chart.Chart{
 	Path:   filepath.Join(metal.InternalChartsPath, "shoot-control-plane"),
 	Images: []string{metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName},
 	Objects: []*chart.Object{
-		// limit validating webhook
-		{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "limit-validating-webhook"},
-
 		// metallb
 		{Type: &corev1.Namespace{}, Name: "metallb-system"},
 		{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "speaker"},
@@ -247,10 +215,6 @@ var cpShootChart = &chart.Chart{
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
 
-		// accounting controller
-		{Type: &rbacv1.ClusterRole{}, Name: "system:accounting-exporter"},
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:accounting-exporter"},
-
 		// firewall controller
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
@@ -258,9 +222,6 @@ var cpShootChart = &chart.Chart{
 		// droptailer
 		{Type: &corev1.Namespace{}, Name: "firewall"},
 		{Type: &appsv1.Deployment{}, Name: "droptailer"},
-
-		// group rolebinding controller
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
 
 		// ccm
 		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
@@ -293,6 +254,63 @@ var storageClassChart = &chart.Chart{
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
 func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
+	if controllerConfig.Auth.Enabled {
+		configChart.Objects = append(configChart.Objects, []*chart.Object{
+			{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
+		}...)
+		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{
+			metal.AuthNWebhookImageName,
+			metal.GroupRolebindingControllerImageName,
+			metal.LimitValidatingWebhookImageName,
+		}...)
+		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
+			// authn webhook
+			{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
+			{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
+			{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2kube-jwt-authn-webhook"},
+			{Type: &networkingv1.NetworkPolicy{}, Name: "kube-jwt-authn-webhook-allow-namespace"},
+
+			// group rolebinding controller
+			{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
+
+			// limit validation webhook
+			{Type: &appsv1.Deployment{}, Name: "limit-validating-webhook"},
+			{Type: &corev1.Service{}, Name: "limit-validating-webhook"},
+			{Type: &networkingv1.NetworkPolicy{}, Name: "limit-validating-webhook-allow-namespace"},
+			{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2limit-validating-webhook"},
+		}...)
+		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+			// limit validating webhook
+			{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "limit-validating-webhook"},
+			// group rolebinding controller
+			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
+		}...)
+	}
+	if controllerConfig.AccountingExporter.Enabled {
+		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.AccountingExporterImageName}...)
+		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
+			// accounting exporter
+			{Type: &corev1.Secret{}, Name: "accounting-exporter-tls"},
+			{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
+		}...)
+		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+			// accounting controller
+			{Type: &rbacv1.ClusterRole{}, Name: "system:accounting-exporter"},
+			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:accounting-exporter"},
+		}...)
+
+	}
+	if controllerConfig.SplunkAudit.Enabled {
+		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.SplunkAuditWebhookImageName}...)
+		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
+			// splunk audit webhook
+			{Type: &appsv1.Deployment{}, Name: "splunk-audit-webhook"},
+			{Type: &corev1.Service{}, Name: "splunk-audit-webhook"},
+			{Type: &networkingv1.NetworkPolicy{}, Name: "splunk-audit-webhook-allow-apiserver"},
+			{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2splunk-audit-webhook"},
+		}...)
+	}
+
 	return &valuesProvider{
 		mgr:              mgr,
 		logger:           logger.WithName("metal-values-provider"),
@@ -351,7 +369,8 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 
 	values := map[string]interface{}{
 		"authnWebhook": map[string]interface{}{
-			"url": url,
+			"url":     url,
+			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
 	}
 
@@ -710,11 +729,11 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 		"accountingExporter": map[string]interface{}{
 			"enabled": accountingConfig.Enabled,
 			"enrichments": map[string]interface{}{
-				"partition_id": partitionID,
-				"tenant":       tenant,
-				"project_id":   projectID,
-				"cluster_name": clusterName,
-				"cluster_id":   clusterID,
+				"partitionID": partitionID,
+				"tenant":      tenant,
+				"projectID":   projectID,
+				"clusterName": clusterName,
+				"clusterID":   clusterID,
 			},
 			"accountingAPI": map[string]interface{}{
 				"hostname": accountingConfig.Client.Hostname,
