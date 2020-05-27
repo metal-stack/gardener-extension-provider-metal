@@ -46,7 +46,6 @@ require (
 	k8s.io/component-base v0.17.0
 	k8s.io/kubelet v0.16.8
 	sigs.k8s.io/controller-runtime v0.4.0
-	sigs.k8s.io/controller-tools v0.2.4 // indirect
 )
 
 replace (

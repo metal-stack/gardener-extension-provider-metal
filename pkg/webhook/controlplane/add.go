@@ -29,7 +29,7 @@ type AddOptions struct {
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionswebhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
 	fciCodec := controlplane.NewFileContentInlineCodec()
-	return controlplane.Add(mgr, controlplane.AddArgs{
+	return controlplane.New(mgr, controlplane.Args{
 		Kind:     controlplane.KindShoot,
 		Provider: metal.Type,
 		Types:    []runtime.Object{&appsv1.Deployment{}, &extensionsv1alpha1.OperatingSystemConfig{}},

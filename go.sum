@@ -78,6 +78,7 @@ github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdko
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/agnivade/levenshtein v1.0.1/go.mod h1:CURSv5d9Uaml+FovSIICkLbAUZ9S4RqaHDIsdSBg7lM=
+github.com/ahmetb/gen-crd-api-reference-docs v0.1.5 h1:OU+AFpBEhyclrQGx4I6zpCx5WvXiKqvFeeOASOmhKCY=
 github.com/ahmetb/gen-crd-api-reference-docs v0.1.5/go.mod h1:P/XzJ+c2+khJKNKABcm2biRwk2QAuwbLf8DlXuaL7WM=
 github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083 h1:uwcvnXW76Y0rHM+qs7y8iHknWUWXYFNlD6FEVhc47TU=
 github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083/go.mod h1:otnto4/Icqn88WCcM4bhIJNSgsh9VLBuspyyCfvof9c=
@@ -272,6 +273,8 @@ github.com/gardener/gardener v1.4.1 h1:suf9sHKQc3FGJLdssOVpuF4G37piXWn92Eo9CVybD
 github.com/gardener/gardener v1.4.1/go.mod h1:t9oESM37bAMIuezi9I0H0I8+++8jy8BUPitcf4ERRXY=
 github.com/gardener/gardener v1.4.2 h1:DRLeMu9vry6D7D8fKI7S8dOcAyz3uKV3rt44IeJ1G9Q=
 github.com/gardener/gardener v1.5.0 h1:rFnoBqnZqL/POYn6r7dDu7Bpxe9jF4Wj6/9LtsXPWrw=
+github.com/gardener/gardener-extensions v1.6.1 h1:LMN3JpGoqTLP+g5WApw1lHDg3OO9IdySfJRaDy7Jt98=
+github.com/gardener/gardener-extensions v1.6.1/go.mod h1:e2brmmF0Bl4tKn8k1GuyasFUP2K9Edl21Wncifk3Yb8=
 github.com/gardener/gardener-resource-manager v0.0.0-20190802142246-6b2029430332/go.mod h1:kIPm1DlE5jChb4moAseumj1qr+IITKXPJcqyIKJp14Y=
 github.com/gardener/gardener-resource-manager v0.0.0-20190802153254-ea0dc5872b6a h1:8JeTMvqNg9PhDsvSDPnNNpYx4inYbtAAxpL8BJlFHME=
 github.com/gardener/gardener-resource-manager v0.0.0-20190802153254-ea0dc5872b6a/go.mod h1:kIPm1DlE5jChb4moAseumj1qr+IITKXPJcqyIKJp14Y=
@@ -827,10 +830,13 @@ github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFR
 github.com/rogpeppe/go-internal v1.3.2/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
 github.com/rogpeppe/go-internal v1.4.0 h1:LUa41nrWTQNGhzdsZ5lTnkwbNjj6rXTdazA1cSdjkOY=
 github.com/rogpeppe/go-internal v1.4.0/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
+github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
+github.com/russross/blackfriday/v2 v2.0.1 h1:lPqVAte+HuHNfhJ/0LC98ESWRz8afy9tM/0RK8m9o+Q=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
 github.com/sergi/go-diff v1.0.0/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAmXWZgo=
+github.com/shurcooL/sanitized_anchor_name v1.0.0 h1:PdmoCO6wvbs+7yrJyMORt4/BmY5IYyJwS/kOiWx8mHo=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
@@ -979,6 +985,7 @@ golang.org/x/exp v0.0.0-20190306152737-a1d7652674e8/go.mod h1:CJ0aWSM057203Lf6IL
 golang.org/x/exp v0.0.0-20190312203227-4b39c73a6495/go.mod h1:ZjyILWgesfNpC6sMxTJOJm9Kp84zZh5NQWvqDGG3Qr8=
 golang.org/x/exp v0.0.0-20190510132918-efd6b22b2522/go.mod h1:ZjyILWgesfNpC6sMxTJOJm9Kp84zZh5NQWvqDGG3Qr8=
 golang.org/x/exp v0.0.0-20190829153037-c13cbed26979/go.mod h1:86+5VVa7VpoJ4kLfm080zCjGlMRFzhUhsZKEZO7MGek=
+golang.org/x/exp v0.0.0-20191129062945-2f5052295587 h1:5Uz0rkjCFu9BC9gCRN7EkwVvhNyQgGWb8KNJrPwBoHY=
 golang.org/x/exp v0.0.0-20191129062945-2f5052295587/go.mod h1:2RIsYlXP63K8oxa1u096TMicItID8zy7Y6sNkU49FU4=
 golang.org/x/image v0.0.0-20190227222117-0694c2d4d067/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=
 golang.org/x/image v0.0.0-20190802002840-cff245a6509b/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
@@ -1190,8 +1197,10 @@ gomodules.xyz/jsonpatch/v2 v2.0.0 h1:lHNQverf0+Gm1TbSbVIDWVXOhZ2FpZopxRqpr2uIjs4
 gomodules.xyz/jsonpatch/v2 v2.0.0/go.mod h1:IhYNNY4jnS53ZnfE4PAmpKtDpTCj1JFXc+3mwe7XcUU=
 gomodules.xyz/jsonpatch/v2 v2.0.1 h1:xyiBuvkD2g5n7cYzx6u2sxQvsAy4QJsZFCzGVdzOXZ0=
 gomodules.xyz/jsonpatch/v2 v2.0.1/go.mod h1:IhYNNY4jnS53ZnfE4PAmpKtDpTCj1JFXc+3mwe7XcUU=
+gonum.org/v1/gonum v0.0.0-20190331200053-3d26580ed485 h1:OB/uP/Puiu5vS5QMRPrXCDWUPb+kt8f1KW8oQzFejQw=
 gonum.org/v1/gonum v0.0.0-20190331200053-3d26580ed485/go.mod h1:2ltnJ7xHfj0zHS40VVPYEAAMTa3ZGguvHGBSJeRWqE0=
 gonum.org/v1/netlib v0.0.0-20190313105609-8cb42192e0e0/go.mod h1:wa6Ws7BG/ESfp6dHfk7C6KdzKA7wR7u/rKwOGE66zvw=
+gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e h1:jRyg0XfpwWlhEV8mDfdNGBeSJM2fuyh9Yjrnd8kF2Ts=
 gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e/go.mod h1:kS+toOQn6AQKjmKJ7gzohV1XkqsFehRA2FbsbkopSuQ=
 google.golang.org/api v0.0.0-20180910000450-7ca32eb868bf/go.mod h1:4mhQ8q/RsB7i+udVvVy5NUi08OU8ZlA0gRVgrF7VFY0=
 google.golang.org/api v0.0.0-20181030000543-1d582fd0359e/go.mod h1:4mhQ8q/RsB7i+udVvVy5NUi08OU8ZlA0gRVgrF7VFY0=
@@ -1368,6 +1377,7 @@ k8s.io/code-generator v0.0.0-20190912054826-cd179ad6a269/go.mod h1:V5BD6M4CyaN5m
 k8s.io/code-generator v0.16.4/go.mod h1:mJUgkl06XV4kstAnLHAIzJPVCOzVR+ZcfPIv4fUsFCY=
 k8s.io/code-generator v0.16.6 h1:wykZVkEDQd/BcOZxcQMEW6uFgoM4ZmvjIhxkbmEJ3WA=
 k8s.io/code-generator v0.16.6/go.mod h1:2aiDuxDU7RQK2PVypXAXHo6+YwOlF33iezHQbSmKSA4=
+k8s.io/code-generator v0.16.8 h1:R3NoYlz4AoTPvwOoDU0dTNV/P9uY3z8H8nLlz9nOo5M=
 k8s.io/code-generator v0.16.8/go.mod h1:wFdrXdVi/UC+xIfLi+4l9elsTT/uEF61IfcN2wOLULQ=
 k8s.io/code-generator v0.17.0 h1:y+KWtDWNqlJzJu/kUy8goJZO0X71PGIpAHLX8a0JYk0=
 k8s.io/code-generator v0.17.0/go.mod h1:DVmfPQgxQENqDIzVR2ddLXMH34qeszkKSdH/N+s+38s=
