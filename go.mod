@@ -1,6 +1,6 @@
 module github.com/metal-stack/gardener-extension-provider-metal
 
-go 1.13
+go 1.14
 
 require (
 	git.apache.org/thrift.git v0.12.0 // indirect
@@ -14,8 +14,8 @@ require (
 	github.com/coreos/ignition v0.35.0 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/gardener/etcd-backup-restore v0.0.0-20190807103447-4c8bc2972b60 // indirect
-	github.com/gardener/etcd-druid v0.1.12
-	github.com/gardener/gardener v1.3.1
+	github.com/gardener/etcd-druid v0.1.15
+	github.com/gardener/gardener v1.4.1
 	github.com/gardener/machine-controller-manager v0.27.0
 	github.com/go-ini/ini v1.46.0 // indirect
 	github.com/go-logr/logr v0.1.0
@@ -46,11 +46,20 @@ require (
 	k8s.io/component-base v0.17.0
 	k8s.io/kubelet v0.16.8
 	sigs.k8s.io/controller-runtime v0.4.0
+	sigs.k8s.io/controller-tools v0.2.4 // indirect
 )
 
 replace (
 	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd // indirect
 	github.com/gardener/machine-controller-manager => github.com/metal-pod/machine-controller-manager v0.0.0-20190801141331-4e2b75ebc6c0
-	k8s.io/client-go => k8s.io/client-go v0.16.6
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.16.6
+	k8s.io/api => k8s.io/api v0.16.8 // 1.16.8
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.16.8 // 1.16.8
+	k8s.io/apimachinery => k8s.io/apimachinery v0.16.8 // 1.16.8
+	k8s.io/apiserver => k8s.io/apiserver v0.16.8 // 1.16.8
+	k8s.io/client-go => k8s.io/client-go v0.16.8 // 1.16.8
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.16.8 // 1.16.8
+	k8s.io/code-generator => k8s.io/code-generator v0.16.8 // 1.16.8
+	k8s.io/component-base => k8s.io/component-base v0.16.8 // 1.16.8
+	k8s.io/helm => k8s.io/helm v2.13.1+incompatible
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.16.8 // 1.16.8
 )

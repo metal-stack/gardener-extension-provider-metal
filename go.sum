@@ -237,6 +237,8 @@ github.com/gardener/etcd-druid v0.1.1-0.20200206100633-e7606e1225d7 h1:IwaHxO4i5
 github.com/gardener/etcd-druid v0.1.1-0.20200206100633-e7606e1225d7/go.mod h1:65LO3OdFmtbYt8HjgDtlULpDg2oQl3jadBFXzPOYtho=
 github.com/gardener/etcd-druid v0.1.12 h1:tNYlN4tW0/TPVzNQBuB1+kWoVEORrvvR5wcCxFCCvNE=
 github.com/gardener/etcd-druid v0.1.12/go.mod h1:yZrUQY9clD8/ZXK+MmEq8OS1TaKJeipV0u4kHHrwWeY=
+github.com/gardener/etcd-druid v0.1.15 h1:hoFL0zOdRcFTBHhEc+7isHiajkqHIkBFr12MUEMjxvE=
+github.com/gardener/etcd-druid v0.1.15/go.mod h1:BHXG8N04Dl4On7Ie6cErwmpvzncNrmeb+HO7Sqrhf+A=
 github.com/gardener/external-dns-management v0.7.3 h1:SAW9ur2mjZ+x89xbmcplJgqNUmFGYIZLI2E+PaBhhG0=
 github.com/gardener/external-dns-management v0.7.3/go.mod h1:Y3om11E865x4aQ7cmcHjknb8RMgCO153huRb/SvP+9o=
 github.com/gardener/external-dns-management v0.7.5 h1:35NZQBDcqB/ISBgjorcLUu34dW6gBYQt9K1rADZ0S7Y=
@@ -267,6 +269,9 @@ github.com/gardener/gardener v1.3.1 h1:5uCR5rNrhOBrB8urBi/ed1w+GhzxU2qXNDh4cYXfS
 github.com/gardener/gardener v1.3.1/go.mod h1:936P5tQbg6ViiW8BVC9ELM95sFrk4DgobKrxMNtn/LU=
 github.com/gardener/gardener v1.4.0 h1:fWXoaIVH5gP7DdxhkK7RQnreZnySh1G7K5az71ENlwk=
 github.com/gardener/gardener v1.4.1 h1:suf9sHKQc3FGJLdssOVpuF4G37piXWn92Eo9CVybD5U=
+github.com/gardener/gardener v1.4.1/go.mod h1:t9oESM37bAMIuezi9I0H0I8+++8jy8BUPitcf4ERRXY=
+github.com/gardener/gardener v1.4.2 h1:DRLeMu9vry6D7D8fKI7S8dOcAyz3uKV3rt44IeJ1G9Q=
+github.com/gardener/gardener v1.5.0 h1:rFnoBqnZqL/POYn6r7dDu7Bpxe9jF4Wj6/9LtsXPWrw=
 github.com/gardener/gardener-resource-manager v0.0.0-20190802142246-6b2029430332/go.mod h1:kIPm1DlE5jChb4moAseumj1qr+IITKXPJcqyIKJp14Y=
 github.com/gardener/gardener-resource-manager v0.0.0-20190802153254-ea0dc5872b6a h1:8JeTMvqNg9PhDsvSDPnNNpYx4inYbtAAxpL8BJlFHME=
 github.com/gardener/gardener-resource-manager v0.0.0-20190802153254-ea0dc5872b6a/go.mod h1:kIPm1DlE5jChb4moAseumj1qr+IITKXPJcqyIKJp14Y=
@@ -1173,6 +1178,8 @@ golang.org/x/tools v0.0.0-20200213224642-88e652f7a869 h1:DPqS0AlgYBVHhG5jnEVScBX
 golang.org/x/tools v0.0.0-20200213224642-88e652f7a869/go.mod h1:TB2adYChydJhpapKDTa4BR/hXlZSLoq2Wpct/0txZ28=
 golang.org/x/tools v0.0.0-20200408032209-46bd65c8538f h1:rsqLea9h7rgdpXI+GnnbQkptKSzOybXLjn3gqcL2XZ0=
 golang.org/x/tools v0.0.0-20200408032209-46bd65c8538f/go.mod h1:EkVYQZoAsY45+roYkvgYkIh4xh/qjgUK9TdY2XT94GE=
+golang.org/x/tools v0.0.0-20200422205258-72e4a01eba43 h1:Lcsc5ErIWemp8qAbYffG5vPrqjJ0zk82RTFGifeS1Pc=
+golang.org/x/tools v0.0.0-20200422205258-72e4a01eba43/go.mod h1:EkVYQZoAsY45+roYkvgYkIh4xh/qjgUK9TdY2XT94GE=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7 h1:9zdDQZ7Thm29KFXgAX/+yaf3eVbP7djjWp/dXAppNCc=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 h1:/atklqdjdhuosWIl6AIbOeHJjicWYPqR9bpxqxYG2pA=
@@ -1288,6 +1295,7 @@ k8s.io/api v0.0.0-20191010143144-fbf594f18f80/go.mod h1:X3kixOyiuC4u4LU6y2BxLg5t
 k8s.io/api v0.16.4/go.mod h1:AtzMnsR45tccQss5q8RnF+W8L81DH6XwXwo/joEx9u0=
 k8s.io/api v0.16.6 h1:FyTv/Z4RBlddLGJXRjGXE40QtYGHOjdZKRFSW5rU1oE=
 k8s.io/api v0.16.6/go.mod h1:naJcEPKsa3oqutLPPMxA2oLSqV4KxGDLU6IgkqHqgFE=
+k8s.io/api v0.16.8 h1:T72itM0CUT8KHqPAqbjTeSY0n24RyVM71nLiMlq/cAw=
 k8s.io/api v0.16.8/go.mod h1:a8EOdYHO8en+YHhPBLiW5q+3RfHTr7wxTqqp7emJ7PM=
 k8s.io/api v0.17.0 h1:H9d/lw+VkZKEVIUc8F3wgiQ+FUXTTr21M87jXLU7yqM=
 k8s.io/api v0.17.0/go.mod h1:npsyOePkeP0CPwyGfXDHxvypiYMJxBWAMpQxCaJ4ZxI=
@@ -1297,6 +1305,8 @@ k8s.io/apiextensions-apiserver v0.0.0-20190918161926-8f644eb6e783/go.mod h1:xvae
 k8s.io/apiextensions-apiserver v0.16.4/go.mod h1:HYQwjujEkXmQNhap2C9YDdIVOSskGZ3et0Mvjcyjbto=
 k8s.io/apiextensions-apiserver v0.16.6 h1:GuzZMQ2t4vwvBSkprMsQhhlqyYZL2Lge+0+zQhDXV9I=
 k8s.io/apiextensions-apiserver v0.16.6/go.mod h1:WbwakFromAVhfvLITDk5nRf5UJJwazjeZRx+yKeDcY0=
+k8s.io/apiextensions-apiserver v0.16.8 h1:Dei7K1m2c539CYCfpvVPLdRin5CF2C2rbZ0lzuprUFs=
+k8s.io/apiextensions-apiserver v0.16.8/go.mod h1:R989okvPLerXtLjflp2PROO8mNH+rdW9WAxlD/aQcmw=
 k8s.io/apiextensions-apiserver v0.17.0 h1:+XgcGxqaMztkbbvsORgCmHIb4uImHKvTjNyu7b8gRnA=
 k8s.io/apiextensions-apiserver v0.17.0/go.mod h1:XiIFUakZywkUl54fVXa7QTEHcqQz9HG55nHd1DCoHj8=
 k8s.io/apimachinery v0.0.0-20180913025736-6dd46049f395/go.mod h1:ccL7Eh7zubPUSh9A3USN90/OzHNSVN6zxzde07TDCL0=
@@ -1309,6 +1319,7 @@ k8s.io/apimachinery v0.0.0-20191016060620-86f2f1b9c076/go.mod h1:92mWDd8Ji2sw215
 k8s.io/apimachinery v0.16.4/go.mod h1:llRdnznGEAqC3DcNm6yEj472xaFVfLM7hnYofMb12tQ=
 k8s.io/apimachinery v0.16.6 h1:A4RWH7F3jhkD6YyBpsm/2yXiFUEf9fiNqrz7bxZHPMc=
 k8s.io/apimachinery v0.16.6/go.mod h1:mhhO3hoLkWO+2eCvqjPtH2Ly92l9nJDwsswzWKpkN2w=
+k8s.io/apimachinery v0.16.8 h1:wgFRqtel3w3rcclpba+iBkVlKeBlh42OzNp7FalXVCg=
 k8s.io/apimachinery v0.16.8/go.mod h1:Xk2vD2TRRpuWYLQNM6lT9R7DSFZUYG03SarNkbGrnKE=
 k8s.io/apimachinery v0.17.0 h1:xRBnuie9rXcPxUkDizUsGvPf1cnlZCFu210op7J7LJo=
 k8s.io/apimachinery v0.17.0/go.mod h1:b9qmWdKlLuU9EBh+06BtLcSf/Mu89rWL33naRxs1uZg=
@@ -1322,6 +1333,7 @@ k8s.io/apiserver v0.0.0-20191010014313-3893be10d307/go.mod h1:6bqaTSOSJavUIXUtfa
 k8s.io/apiserver v0.16.4/go.mod h1:kbLJOak655g6W7C+muqu1F76u9wnEycfKMqbVaXIdAc=
 k8s.io/apiserver v0.16.6 h1:7woiO69qcmhmTv2lsgAux2nb3bekuyogl3wzRI2HOBA=
 k8s.io/apiserver v0.16.6/go.mod h1:JaDblfPzg2nbxaA0H3PsMgO72QAx2rBoSYwxLEKu5RE=
+k8s.io/apiserver v0.16.8 h1:FTuZF/ENaJYPsSE5bVlziJQZGi9pR6oMOk4CPdF6ClQ=
 k8s.io/apiserver v0.16.8/go.mod h1:FzppK0uWsEZnS/FUCOTLQuMRSItRGYstLxTx4nU1Wc4=
 k8s.io/apiserver v0.17.0 h1:XhUix+FKFDcBygWkQNp7wKKvZL030QUlH1o8vFeSgZA=
 k8s.io/apiserver v0.17.0/go.mod h1:ABM+9x/prjINN6iiffRVNCBR2Wk7uY4z+EtEGZD48cg=
@@ -1334,6 +1346,8 @@ k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90 h1:mLmhKUm1X+pXu0zXMEzNsOF5E
 k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90/go.mod h1:J69/JveO6XESwVgG53q3Uz5OSfgsv4uxpScmmyYOOlk=
 k8s.io/client-go v0.16.6 h1:OR6ZaSlIn9dUdpiN4r5mAvMv5aCupUJUiDJZdrrvmhw=
 k8s.io/client-go v0.16.6/go.mod h1:xIQ44uaAH4SD1EHMtCHsB9By7D0qblbv1ADeGyXpZUQ=
+k8s.io/client-go v0.16.8 h1:CmsQXJpSWq1aUyQ5Lp/rRPiMK2OYfJv32Ftl0D1D42U=
+k8s.io/client-go v0.16.8/go.mod h1:WmPuN0yJTKHXoklExKxzo3jSXmr3EnN+65uaTb5VuNs=
 k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible h1:U5Bt+dab9K8qaUmXINrkXO135kA11/i5Kg1RUydgaMQ=
 k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodBc8nIyt8L5s=
 k8s.io/cluster-bootstrap v0.0.0-20190314002537-50662da99b70/go.mod h1:iBSm2nwo3OaiuW8VDvc3ySDXK5SKfUrxwPvBloKG7zg=
@@ -1366,6 +1380,7 @@ k8s.io/component-base v0.0.0-20190918160511-547f6c5d7090/go.mod h1:933PBGtQFJky3
 k8s.io/component-base v0.16.4/go.mod h1:GYQ+4hlkEwdlpAp59Ztc4gYuFhdoZqiAJD1unYDJ3FM=
 k8s.io/component-base v0.16.6 h1:1qIWVKni+gqRkN8vvaGYJk+R8tRtKDv0XvvDuYEBD1w=
 k8s.io/component-base v0.16.6/go.mod h1:8+4lrSEgLQ9wqOzHVYx4GLSCU6sus8wqg8bfaTdXTwg=
+k8s.io/component-base v0.16.8 h1:R75NRLguyWm3L+Du7umX6Ed1i4myhE4P8SEnzDQWxIE=
 k8s.io/component-base v0.16.8/go.mod h1:Q8UWOWShpP3MZZny4n/15gOncfaaVtc9SbCdkM5MhUE=
 k8s.io/component-base v0.17.0 h1:BnDFcmBDq+RPpxXjmuYnZXb59XNN9CaFrX8ba9+3xrA=
 k8s.io/component-base v0.17.0/go.mod h1:rKuRAokNMY2nn2A6LP/MiwpoaMRHpfRnrPaUJJj1Yoc=
@@ -1377,6 +1392,8 @@ k8s.io/gengo v0.0.0-20190822140433-26a664648505/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8
 k8s.io/gengo v0.0.0-20190826232639-a874a240740c h1:HH5z+xQGPLMQ2MlS+UVaOaSFgaEqGw1Zb007B9yjZEY=
 k8s.io/gengo v0.0.0-20190826232639-a874a240740c/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/helm v2.7.2+incompatible/go.mod h1:LZzlS4LQBHfciFOurYBFkCMTaZ0D1l+p0teMg7TSULI=
+k8s.io/helm v2.13.1+incompatible h1:qt0LBsHQ7uxCtS3F2r3XI0DNm8ml0xQeSJixUorDyn0=
+k8s.io/helm v2.13.1+incompatible/go.mod h1:LZzlS4LQBHfciFOurYBFkCMTaZ0D1l+p0teMg7TSULI=
 k8s.io/helm v2.14.2+incompatible h1:kT4JDDvxvp/AR7sWTuTnv58SzVYP0KHIGFIXThSp7gc=
 k8s.io/helm v2.14.2+incompatible/go.mod h1:LZzlS4LQBHfciFOurYBFkCMTaZ0D1l+p0teMg7TSULI=
 k8s.io/helm v2.16.1+incompatible h1:L+k810plJlaGWEw1EszeT4deK8XVaKxac1oGcuB+WDc=
@@ -1397,6 +1414,8 @@ k8s.io/kube-aggregator v0.0.0-20191004104030-d9d5f0cc7532 h1:ot65OvVdFFN2I3/EjlA
 k8s.io/kube-aggregator v0.0.0-20191004104030-d9d5f0cc7532/go.mod h1:8sbzT4QQKDEmSCIbfqjV0sd97GpUT7A4W626sBiYJmU=
 k8s.io/kube-aggregator v0.16.6 h1:bNwY/t432BgxoL73jEMD5EdZQCUkqw5kwhQxFmxdNss=
 k8s.io/kube-aggregator v0.16.6/go.mod h1:lRjo9e3xeyF8tjkIKEX+pErNOdE4yTazx9VPO6zzdcw=
+k8s.io/kube-aggregator v0.16.8 h1:Z7+kBXA5V/SKINY9W7QBvZn/Orf5jwPAcW4cPJnNxFA=
+k8s.io/kube-aggregator v0.16.8/go.mod h1:l73g+bVdjrgDz9nrISk6AgupGbv1n+4WjTbGaXz/YvI=
 k8s.io/kube-openapi v0.0.0-20180216212618-50ae88d24ede/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=
 k8s.io/kube-openapi v0.0.0-20180731170545-e3762e86a74c/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=
 k8s.io/kube-openapi v0.0.0-20190228160746-b3a7cee44a30/go.mod h1:BXM9ceUBTj2QnfH2MK1odQs778ajze1RxcmP6S8RVVc=
