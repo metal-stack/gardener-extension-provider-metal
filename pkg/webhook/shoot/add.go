@@ -18,20 +18,6 @@ type AddOptions struct{}
 
 var logger = log.Log.WithName("metal-shoot-webhook")
 
-// // AddToManagerWithOptions creates a webhook with the given options and adds it to the manager.
-// func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionswebhook.Webhook, error) {
-// 	logger.Info("Adding webhook to manager")
-// 	return shoot.Add(mgr, shoot.AddArgs{
-// 		Types:   []runtime.Object{&appsv1.Deployment{}},
-// 		Mutator: NewMutator(logger),
-// 	})
-// }
-
-// // AddToManager creates a webhook with the default options and adds it to the manager.
-// func AddToManager(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
-// 	return AddToManagerWithOptions(mgr, DefaultAddOptions)
-// }
-
 // AddToManagerWithOptions creates a webhook with the given options and adds it to the manager.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionswebhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
