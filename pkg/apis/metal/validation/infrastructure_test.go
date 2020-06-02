@@ -67,10 +67,10 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				cloudProfileConfig = &apismetal.CloudProfileConfig{
 					MetalControlPlanes: map[string]apismetal.MetalControlPlane{
 						"prod": {
+							FirewallImages: []string{"image"},
 							Partitions: map[string]apismetal.Partition{
 								"partition-a": {
 									FirewallNetworks: map[string]string{"internet": "partition-a-network"},
-									FirewallImages:   []string{"image"},
 								},
 							},
 						},

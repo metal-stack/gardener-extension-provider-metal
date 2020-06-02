@@ -38,9 +38,7 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 
 	availableFirewallImages := sets.NewString()
 	for _, mcp := range cloudProfileConfig.MetalControlPlanes {
-		for _, partition := range mcp.Partitions {
-			availableFirewallImages.Insert(partition.FirewallImages...)
-		}
+		availableFirewallImages.Insert(mcp.FirewallImages...)
 	}
 
 	found := false

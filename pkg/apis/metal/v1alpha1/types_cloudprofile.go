@@ -23,13 +23,13 @@ type MetalControlPlane struct {
 	IAMConfig *IAMConfig `json:"iamconfig" optional:"true"`
 	// Partitions is a map of a region name from the regions defined in the cloud profile to region-specific control plane settings
 	Partitions map[string]Partition `json:"partitions"`
+	// FirewallImages is a list of available firewall images in this control plane.
+	FirewallImages []string `json:"firewallImages,omitempty"`
 }
 
 // Partition contains configuration specific for this metal stack control plane partition
 type Partition struct {
-	// FirewallImages is a list of available firewall images in this control plane.
-	FirewallImages []string `json:"firewallImages,omitempty"`
-	// FirewallNetworks contains a map of available networks within
+	// FirewallNetworks contains a map of valid networks within this partition
 	FirewallNetworks map[string]string `json:"firewallNetworks,omitempty"`
 }
 

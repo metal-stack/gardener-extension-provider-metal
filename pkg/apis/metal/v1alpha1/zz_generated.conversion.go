@@ -469,6 +469,7 @@ func autoConvert_v1alpha1_MetalControlPlane_To_metal_MetalControlPlane(in *Metal
 	out.Endpoint = in.Endpoint
 	out.IAMConfig = (*metal.IAMConfig)(unsafe.Pointer(in.IAMConfig))
 	out.Partitions = *(*map[string]metal.Partition)(unsafe.Pointer(&in.Partitions))
+	out.FirewallImages = *(*[]string)(unsafe.Pointer(&in.FirewallImages))
 	return nil
 }
 
@@ -481,6 +482,7 @@ func autoConvert_metal_MetalControlPlane_To_v1alpha1_MetalControlPlane(in *metal
 	out.Endpoint = in.Endpoint
 	out.IAMConfig = (*IAMConfig)(unsafe.Pointer(in.IAMConfig))
 	out.Partitions = *(*map[string]Partition)(unsafe.Pointer(&in.Partitions))
+	out.FirewallImages = *(*[]string)(unsafe.Pointer(&in.FirewallImages))
 	return nil
 }
 
@@ -518,7 +520,6 @@ func Convert_metal_NamespaceGroupConfig_To_v1alpha1_NamespaceGroupConfig(in *met
 }
 
 func autoConvert_v1alpha1_Partition_To_metal_Partition(in *Partition, out *metal.Partition, s conversion.Scope) error {
-	out.FirewallImages = *(*[]string)(unsafe.Pointer(&in.FirewallImages))
 	out.FirewallNetworks = *(*map[string]string)(unsafe.Pointer(&in.FirewallNetworks))
 	return nil
 }
@@ -529,7 +530,6 @@ func Convert_v1alpha1_Partition_To_metal_Partition(in *Partition, out *metal.Par
 }
 
 func autoConvert_metal_Partition_To_v1alpha1_Partition(in *metal.Partition, out *Partition, s conversion.Scope) error {
-	out.FirewallImages = *(*[]string)(unsafe.Pointer(&in.FirewallImages))
 	out.FirewallNetworks = *(*map[string]string)(unsafe.Pointer(&in.FirewallNetworks))
 	return nil
 }
