@@ -181,6 +181,10 @@ var controlPlaneChart = &chart.Chart{
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
 
 		// cluster wide network policies
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-https"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-dns"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-ntp"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-vpn"},
 	},
 }
@@ -205,12 +209,18 @@ var cpShootChart = &chart.Chart{
 		{Type: &appsv1.Deployment{}, Name: "controller"},
 
 		// firewall controller
-		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
+		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-controller"},
 
 		// droptailer
 		{Type: &corev1.Namespace{}, Name: "firewall"},
 		{Type: &appsv1.Deployment{}, Name: "droptailer"},
+
+		// cluster wide network policies
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-https"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-dns"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-ntp"},
 
 		// ccm
 		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},

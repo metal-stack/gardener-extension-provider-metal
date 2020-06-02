@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	firewallPolicyControllerName = "firewall-policy-controller"
-	droptailerClientName         = "droptailer"
+	firewallControllerName = "firewall-controller"
+	droptailerClientName   = "droptailer"
 )
 
 func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
@@ -280,9 +280,9 @@ func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context,
 			return []secrets.ConfigInterface{
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         firewallPolicyControllerName,
-						CommonName:   fmt.Sprintf("system:%s", firewallPolicyControllerName),
-						Organization: []string{firewallPolicyControllerName},
+						Name:         firewallControllerName,
+						CommonName:   fmt.Sprintf("system:%s", firewallControllerName),
+						Organization: []string{firewallControllerName},
 						CertType:     secrets.ClientCert,
 						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 					},
@@ -300,7 +300,7 @@ func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context,
 		return "", err
 	}
 
-	kubeconfig, ok := secret[firewallPolicyControllerName].Data["kubeconfig"]
+	kubeconfig, ok := secret[firewallControllerName].Data["kubeconfig"]
 	if !ok {
 		return "", fmt.Errorf("kubeconfig not part of generated firewall policy controller secret")
 	}
@@ -314,7 +314,7 @@ func (a *actuator) renderFirewallUserData(kubeconfig string) (string, error) {
 
 	enabled := true
 	fpcUnit := types.SystemdUnit{
-		Name:    fmt.Sprintf("%s.service", firewallPolicyControllerName),
+		Name:    fmt.Sprintf("%s.service", firewallControllerName),
 		Enable:  enabled,
 		Enabled: &enabled,
 	}
