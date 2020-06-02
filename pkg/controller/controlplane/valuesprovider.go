@@ -53,6 +53,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -179,13 +180,8 @@ var controlPlaneChart = &chart.Chart{
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
 
-		// network policies
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-http"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-vpn"},
+		// cluster wide network policies
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-vpn"},
 	},
 }
 
@@ -207,13 +203,6 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.RoleBinding{}, Name: "config-watcher"},
 		{Type: &appsv1.DaemonSet{}, Name: "speaker"},
 		{Type: &appsv1.Deployment{}, Name: "controller"},
-
-		// network policies
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-http"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
 
 		// firewall controller
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
