@@ -1,7 +1,6 @@
 machineClasses:
 - name: class-1
   partition: nbg-w8101
-  apiURL: https://metal-api
   size: c1-xlarge-x86
   project: gardener-test
   network: private-network-id
@@ -13,3 +12,4 @@ machineClasses:
     cloudConfig: abc
     metalAPIKey: abc
     metalAPIHMac: abc
+    metalAPIURL: abc

@@ -136,7 +136,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		)
 
 		machineClassSpec := map[string]interface{}{
-			"apiURL":    metalControlPlane.Endpoint,
 			"partition": infrastructureConfig.PartitionID,
 			"size":      pool.MachineType,
 			"project":   projectID,
@@ -182,6 +181,9 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			v1beta1constants.GardenerPurpose: genericworkeractuator.GardenPurposeMachineClass,
 		}
 
+		// if we'd move the endpoint out of this secret into the deployment spec (which would be the way to go)
+		// it would roll all worker nodes...
+		machineClassSpec["secret"].(map[string]interface{})["metalAPIURL"] = metalControlPlane.Endpoint
 		machineClassSpec["secret"].(map[string]interface{})[metal.APIKey] = credentials.MetalAPIKey
 		machineClassSpec["secret"].(map[string]interface{})[metal.APIHMac] = credentials.MetalAPIHMac
 
