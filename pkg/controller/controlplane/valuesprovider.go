@@ -425,7 +425,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	}
 
 	// Get CCM chart values
-	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient)
+	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient, metalControlPlane)
 	if err != nil {
 		return nil, err
 	}
@@ -632,6 +632,7 @@ func getCCMChartValues(
 	checksums map[string]string,
 	scaledDown bool,
 	mclient *metalgo.Driver,
+	mcp *apismetal.MetalControlPlane,
 ) (map[string]interface{}, error) {
 	projectID := infrastructureConfig.ProjectID
 	nodeCIDR := infrastructure.Status.NodesCIDR
@@ -654,6 +655,9 @@ func getCCMChartValues(
 			"partitionID": infrastructureConfig.PartitionID,
 			"networkID":   *privateNetwork.ID,
 			"podNetwork":  extensionscontroller.GetPodNetwork(cluster),
+			"metal": map[string]interface{}{
+				"endpoint": mcp.Endpoint,
+			},
 			"podAnnotations": map[string]interface{}{
 				"checksum/secret-cloud-controller-manager":        checksums[cloudControllerManagerDeploymentName],
 				"checksum/secret-cloud-controller-manager-server": checksums[cloudControllerManagerServerName],

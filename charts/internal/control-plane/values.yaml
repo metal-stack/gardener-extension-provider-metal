@@ -19,6 +19,8 @@ cloudControllerManager:
   partitionID: partition-id
   networkID: network-id
   clusterID: cluster-id
+  metal:
+    endpoint: api-url
   resources:
     requests:
       cpu: 100m
