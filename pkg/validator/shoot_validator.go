@@ -48,8 +48,7 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 		return errList.ToAggregate()
 	}
 
-	// ControlPlaneConfig
-	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, shoot.Spec.Region)
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infraConfig.PartitionID)
 	if err != nil {
 		return err
 	}
