@@ -163,9 +163,8 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 	if err != nil {
 		return err
 	}
-	// Example values:
-	// cluster.Shoot.Status.TechnicalID  "shoot--dev--johndoe-metal"
-	clusterName := cluster.Shoot.Status.TechnicalID
+
+	clusterName := cluster.ObjectMeta.Name
 	name := clusterName + "-firewall-" + uuid.String()[:5]
 
 	// find private network
