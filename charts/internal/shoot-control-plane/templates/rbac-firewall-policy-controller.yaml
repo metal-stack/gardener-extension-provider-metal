@@ -8,10 +8,24 @@ rules:
   - ""
   resources:
   - pods
-  - services
   - secrets
+  - services
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs: ["*"]
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
   verbs:
   - get
+  - create
+  - update
   - list
   - watch
 - apiGroups:
@@ -21,6 +35,21 @@ rules:
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - metal-stack.io
+  resources:
+  - networkids
+  - firewalls
+  - firewalls/status
+  - clusterwidenetworkpolicies
+  verbs:
+  - list
+  - get
+  - update
+  - patch
+  - create
+  - delete
   - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
