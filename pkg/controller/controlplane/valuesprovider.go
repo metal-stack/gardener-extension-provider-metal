@@ -216,8 +216,8 @@ var cpShootChart = &chart.Chart{
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
 
 		// firewall controller
-		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
+		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-controller"},
 
 		// droptailer
 		{Type: &corev1.Namespace{}, Name: "firewall"},

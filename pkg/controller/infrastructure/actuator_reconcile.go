@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	firewallPolicyControllerName = "firewall-policy-controller"
+	firewallPolicyControllerName = "firewall-controller"
 	droptailerClientName         = "droptailer"
 )
 
@@ -341,7 +341,7 @@ func (a *actuator) renderFirewallUserData(kubeconfig string) (string, error) {
 	mode := 0600
 	id := 0
 	ignitionFile := types.File{
-		Path:       "/etc/firewall-policy-controller/.kubeconfig",
+		Path:       "/etc/firewall-controller/.kubeconfig",
 		Filesystem: "root",
 		Mode:       &mode,
 		User: &types.FileUser{
