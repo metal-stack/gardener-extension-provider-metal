@@ -10,6 +10,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
@@ -60,8 +61,18 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		machineImages      []apismetal.MachineImage
 	)
 
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(w.cluster)
+	if err != nil {
+		return err
+	}
+
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
 	if _, _, err := w.decoder.Decode(w.cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		return err
+	}
+
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	if err != nil {
 		return err
 	}
 
@@ -70,7 +81,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
-	mclient, err := metalclient.NewClientFromCredentials(credentials)
+	mclient, err := metalclient.NewClientFromCredentials(metalControlPlane.Endpoint, credentials)
 	if err != nil {
 		return err
 	}
@@ -170,7 +181,9 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			v1beta1constants.GardenerPurpose: genericworkeractuator.GardenPurposeMachineClass,
 		}
 
-		machineClassSpec["secret"].(map[string]interface{})[metal.APIURL] = credentials.MetalAPIURL
+		// if we'd move the endpoint out of this secret into the deployment spec (which would be the way to go)
+		// it would roll all worker nodes...
+		machineClassSpec["secret"].(map[string]interface{})["metalAPIURL"] = metalControlPlane.Endpoint
 		machineClassSpec["secret"].(map[string]interface{})[metal.APIKey] = credentials.MetalAPIKey
 		machineClassSpec["secret"].(map[string]interface{})[metal.APIHMac] = credentials.MetalAPIHMac
 

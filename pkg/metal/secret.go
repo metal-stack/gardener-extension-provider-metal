@@ -13,7 +13,6 @@ func ReadCredentialsSecret(secret *corev1.Secret) (*Credentials, error) {
 	}
 
 	return &Credentials{
-		MetalAPIURL:  string(secret.Data[APIURL]),
 		MetalAPIHMac: string(secret.Data[APIHMac]),
 		MetalAPIKey:  string(secret.Data[APIKey]),
 	}, nil

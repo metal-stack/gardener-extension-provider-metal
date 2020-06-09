@@ -7,6 +7,7 @@ import (
 
 	"github.com/metal-stack/metal-lib/pkg/tag"
 
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
 
@@ -22,13 +23,23 @@ func (a *actuator) delete(ctx context.Context, infrastructure *extensionsv1alpha
 		return err
 	}
 
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return err
+	}
+
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	if err != nil {
+		return err
+	}
+
 	var (
 		clusterID      = string(cluster.Shoot.GetUID())
 		clusterTag     = fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
 		firewallStatus = infrastructureStatus.Firewall
 	)
 
-	mclient, err := metalclient.NewClient(ctx, a.client, &infrastructure.Spec.SecretRef)
+	mclient, err := metalclient.NewClient(ctx, a.client, metalControlPlane.Endpoint, &infrastructure.Spec.SecretRef)
 	if err != nil {
 		return err
 	}

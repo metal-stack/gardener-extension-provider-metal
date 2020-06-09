@@ -30,18 +30,18 @@ import (
 )
 
 // NewClient returns a new metal client with the provider credentials from a given secret reference.
-func NewClient(ctx context.Context, k8sClient client.Client, secretRef *corev1.SecretReference) (*metalgo.Driver, error) {
+func NewClient(ctx context.Context, k8sClient client.Client, endpoint string, secretRef *corev1.SecretReference) (*metalgo.Driver, error) {
 	credentials, err := ReadCredentialsFromSecretRef(ctx, k8sClient, secretRef)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewClientFromCredentials(credentials)
+	return NewClientFromCredentials(endpoint, credentials)
 }
 
 // NewClientFromCredentials returns a new metal client with the client constructed from the given credentials.
-func NewClientFromCredentials(credentials *metal.Credentials) (*metalgo.Driver, error) {
-	client, err := metalgo.NewDriver(credentials.MetalAPIURL, credentials.MetalAPIKey, credentials.MetalAPIHMac)
+func NewClientFromCredentials(endpoint string, credentials *metal.Credentials) (*metalgo.Driver, error) {
+	client, err := metalgo.NewDriver(endpoint, credentials.MetalAPIKey, credentials.MetalAPIHMac)
 	if err != nil {
 		return nil, err
 	}

@@ -31,8 +31,6 @@ const (
 	// CSIProvisionerImageName is the name of the csi lvm provisioner to deploy to the seed's shoot namespace.
 	CSIProvisionerImageName = "csi-lvm-provisioner"
 
-	// APIURL is a constant for the url of metal-api.
-	APIURL = "metalAPIURL"
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"
 	// APIHMac is a constant for the hmac in a cloud provider secret.
@@ -58,7 +56,6 @@ var (
 
 // Credentials stores Metal credentials.
 type Credentials struct {
-	MetalAPIURL  string
 	MetalAPIKey  string
 	MetalAPIHMac string
 }

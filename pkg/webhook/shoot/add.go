@@ -3,7 +3,6 @@ package shoot
 import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/extensions/pkg/webhook/shoot"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -22,9 +21,9 @@ var logger = log.Log.WithName("metal-shoot-webhook")
 // AddToManagerWithOptions creates a webhook with the given options and adds it to the manager.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionswebhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
-	return shoot.Add(mgr, shoot.AddArgs{
-		Types:   []runtime.Object{&appsv1.Deployment{}},
-		Mutator: NewMutator(logger),
+	return shoot.New(mgr, shoot.Args{
+		Types:   []runtime.Object{},
+		Mutator: NewMutator(),
 	})
 }
 
