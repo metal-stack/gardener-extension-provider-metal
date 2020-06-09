@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	firewallPolicyControllerName = "firewall-controller"
-	droptailerClientName         = "droptailer"
+	firewallControllerName = "firewall-controller"
+	droptailerClientName   = "droptailer"
 )
 
 func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
@@ -173,7 +173,7 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	kubeconfig, err := a.createFirewallPolicyControllerKubeconfig(ctx, infrastructure, cluster)
+	kubeconfig, err := a.createFirewallControllerKubeconfig(ctx, infrastructure, cluster)
 	if err != nil {
 		return err
 	}
@@ -276,7 +276,7 @@ func (a *actuator) ensureNodeNetwork(ctx context.Context, clusterID string, mcli
 	return nodeCIDR, nil
 }
 
-func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, error) {
+func (a *actuator) createFirewallControllerKubeconfig(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, error) {
 	apiServerURL := fmt.Sprintf("api.%s", *cluster.Shoot.Spec.DNS.Domain)
 	infrastructureSecrets := &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
@@ -290,9 +290,9 @@ func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context,
 			return []secrets.ConfigInterface{
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         firewallPolicyControllerName,
-						CommonName:   fmt.Sprintf("system:%s", firewallPolicyControllerName),
-						Organization: []string{firewallPolicyControllerName},
+						Name:         firewallControllerName,
+						CommonName:   fmt.Sprintf("system:%s", firewallControllerName),
+						Organization: []string{firewallControllerName},
 						CertType:     secrets.ClientCert,
 						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 					},
@@ -310,7 +310,7 @@ func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context,
 		return "", err
 	}
 
-	kubeconfig, ok := secret[firewallPolicyControllerName].Data["kubeconfig"]
+	kubeconfig, ok := secret[firewallControllerName].Data["kubeconfig"]
 	if !ok {
 		return "", fmt.Errorf("kubeconfig not part of generated firewall policy controller secret")
 	}
@@ -324,7 +324,7 @@ func (a *actuator) renderFirewallUserData(kubeconfig string) (string, error) {
 
 	enabled := true
 	fpcUnit := types.SystemdUnit{
-		Name:    fmt.Sprintf("%s.service", firewallPolicyControllerName),
+		Name:    fmt.Sprintf("%s.service", firewallControllerName),
 		Enable:  enabled,
 		Enabled: &enabled,
 	}
