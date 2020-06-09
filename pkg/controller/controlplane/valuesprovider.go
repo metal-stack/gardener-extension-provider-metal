@@ -732,6 +732,10 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 	values := map[string]interface{}{
 		"accountingExporter": map[string]interface{}{
 			"enabled": accountingConfig.Enabled,
+			"networkTraffic": map[string]interface{}{
+				"enabled": accountingConfig.NetworkTraffic.Enabled,
+				"internalNetworks": accountingConfig.NetworkTraffic.InternalNetworks,
+			},
 			"enrichments": map[string]interface{}{
 				"partitionID": partitionID,
 				"tenant":      tenant,

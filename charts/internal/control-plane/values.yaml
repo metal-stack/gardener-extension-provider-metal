@@ -65,6 +65,9 @@ accountingExporter:
     tenant: some-tenant
     clusterID: cluster-id
     clusterName: cluster-name
+  networkTraffic:
+    enabled: false
+    internalNetworks: []
   accountingAPI:
     hostname: hostname
     port: 9000

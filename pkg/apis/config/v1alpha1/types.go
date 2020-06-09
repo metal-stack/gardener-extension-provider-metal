@@ -81,8 +81,18 @@ type SplunkAudit struct {
 type AccountingExporterConfiguration struct {
 	// Enabled enables the deployment of the accounting exporter when set to true.
 	Enabled bool `json:"enabled"`
+	// NetworkTraffic contains the configuration for accounting network traffic
+	NetworkTraffic  AccountingExporterNetworkTrafficConfiguration `json:"networkTraffic"`
 	// Client contains the configuration for the accounting exporter client.
 	Client AccountingExporterClientConfiguration `json:"clientConfig"`
+}
+
+// AccountingExporterClientConfiguration contains the configuration for the network traffic accounting.
+type AccountingExporterNetworkTrafficConfiguration struct {
+	// Enabled enables network traffic accounting of the accounting exporter when set to true.
+	Enabled bool `json:"enabled"`
+	// InternalNetworks defines the networks for the firewall that are considered internal (which can be accounted differently)
+	InternalNetworks []string `json:"internalNetworks"`
 }
 
 // AccountingExporterClientConfiguration contains the configuration for the accounting exporter client.
