@@ -18,12 +18,6 @@ type Firewall struct {
 	Size     string
 	Image    string
 	Networks []string
-	IDS      FirewallIDS
-}
-
-type FirewallIDS struct {
-	// TODO: provide more configuration, e.g. log destination url
-	Enabled bool
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
