@@ -1,84 +1,69 @@
-# these network policies will actually allow workers to join
 ---
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
 metadata:
-  name: egress-allow-dns
-  namespace: kube-system
+  name: allow-to-vpn
+  namespace: firewall
 spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
+  egress:
+  - ports:
+    - port: 4314
+      protocol: UDP
+    - port: 4314
+      protocol: TCP
+    to:
+    - cidr: 0.0.0.0/0
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-dns
+  namespace: firewall
+spec:
   egress:
   - to:
-    - ipBlock:
-        cidr: 0.0.0.0/0
+    - cidr: 0.0.0.0/0
     ports:
     - protocol: UDP
       port: 53
     - protocol: TCP
       port: 53
 ---
-# FIXME remove this rule
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
 metadata:
-  name: egress-allow-any
-  namespace: kube-system
+  name: allow-to-https
+  namespace: firewall
 spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
-  egress:
-  - {}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: egress-allow-https
-  namespace: kube-system
-spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
   egress:
   - to:
-    - ipBlock:
-        cidr: 0.0.0.0/0
+    - cidr: 0.0.0.0/0
     ports:
     - protocol: TCP
       port: 443
 ---
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
 metadata:
-  name: egress-allow-http
-  namespace: kube-system
+  name: allow-to-http
+  namespace: firewall
 spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
   egress:
   - to:
-    - ipBlock:
-        cidr: 0.0.0.0/0
+    - cidr: 0.0.0.0/0
     ports:
     - protocol: TCP
       port: 80
 ---
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
 metadata:
-  name: egress-allow-ntp
-  namespace: kube-system
+  name: allow-to-ntp
+  namespace: firewall
 spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
   egress:
   - to:
-    - ipBlock:
-        cidr: 0.0.0.0/0
+    - cidr: 0.0.0.0/0
     ports:
     - protocol: UDP
       port: 123
