@@ -40,7 +40,7 @@ data:
       firewall:
         enabled: {{ .Values.config.accountingExporter.networkTraffic.enabled }}
         internalNetworks:
-          {{ toYaml .Values.config.accountingExporter.networkTraffic.internalNetworks | indent 10 }}
+{{ toYaml .Values.config.accountingExporter.networkTraffic.internalNetworks | indent 10 }}
       clientConfig:
         hostname: {{ .Values.config.accountingExporter.clientConfig.hostname }}
         port: {{ .Values.config.accountingExporter.clientConfig.port }}
