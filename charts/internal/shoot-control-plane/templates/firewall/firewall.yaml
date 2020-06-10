@@ -12,4 +12,6 @@ metadata:
 spec:
   interval: {{ .Values.firewall.interval }}
   internalprefixes:
+{{- if .Values.firewall.internalPrefixes }}
 {{ toYaml .Values.firewall.internalPrefixes | indent 4 }}
+{{- end }}
