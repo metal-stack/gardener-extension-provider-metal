@@ -15,9 +15,15 @@ type InfrastructureConfig struct {
 }
 
 type Firewall struct {
-	Size     string   `json:"size"`
-	Image    string   `json:"image"`
-	Networks []string `json:"networks"`
+	Size     string      `json:"size"`
+	Image    string      `json:"image"`
+	Networks []string    `json:"networks"`
+	IDS      FirewallIDS `json:"ids"`
+}
+
+type FirewallIDS struct {
+	// TODO: provide more configuration, e.g. log destination url
+	Enabled bool `json:"enabled"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
