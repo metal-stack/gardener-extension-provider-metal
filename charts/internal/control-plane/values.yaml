@@ -2,7 +2,7 @@
 kubernetesVersion: 1.7.5
 featureGates: {}
 
-images: 
+images:
   metalccm: image-repository:image-tag
   authn-webhook: image-repository:image-tag
   splunk-audit-webhook: image-repository:image-tag
@@ -29,7 +29,7 @@ cloudControllerManager:
       cpu: 250m
       memory: 300Mi
 
-groupRolebindingController: 
+groupRolebindingController:
   enabled: false
   clusterName: cluster-name
 
@@ -56,7 +56,7 @@ splunkAuditWebhook:
 
 limitValidatingWebhook:
   enabled: false
-    
+
 accountingExporter:
   enabled: false
   enrichments:
@@ -67,7 +67,6 @@ accountingExporter:
     clusterName: cluster-name
   networkTraffic:
     enabled: false
-    internalNetworks: []
   accountingAPI:
     hostname: hostname
     port: 9000
@@ -82,4 +81,4 @@ accountingExporter:
     certKey: |
       -----BEGIN RSA PRIVATE KEY-----
       ...
-      -----END RSA PRIVATE KEY----- 
+      -----END RSA PRIVATE KEY-----

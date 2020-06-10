@@ -12,5 +12,9 @@ metadata:
   name: firewall
 spec:
   enabled: true
-  interval: 10s
+  interval: {{ .Values.firewall.interval }}
   dryrun: false
+{{- if gt (len .Values.firewall.internalPrefixes) 0 -}}
+  internalprefixes:
+    {{ toYaml .Values.firewall.internalPrefixes | indent 4 }}
+{{- end -}}

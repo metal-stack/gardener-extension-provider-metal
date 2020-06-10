@@ -508,7 +508,15 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	// example https://limit-validating-webhook.shoot--local--myshootname.svc.cluster.local/validate
 	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
 
+	internalPrefixes := []string{}
+	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
+		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
+	}
+
 	values := map[string]interface{}{
+		"firewall": map[string]interface{}{
+			"internalPrefixes": internalPrefixes,
+		},
 		"limitValidatingWebhook": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 			"url":     url,
@@ -734,7 +742,6 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 			"enabled": accountingConfig.Enabled,
 			"networkTraffic": map[string]interface{}{
 				"enabled": accountingConfig.NetworkTraffic.Enabled,
-				"internalNetworks": accountingConfig.NetworkTraffic.InternalNetworks,
 			},
 			"enrichments": map[string]interface{}{
 				"partitionID": partitionID,
