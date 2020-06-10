@@ -13,5 +13,5 @@ spec:
   interval: {{ .Values.firewall.interval }}
 {{- if gt (len .Values.firewall.internalPrefixes) 0 -}}
   internalprefixes:
-    {{ toYaml .Values.firewall.internalPrefixes | indent 4 }}
+{{ toYaml .Values.firewall.internalPrefixes | indent 4 }}
 {{- end -}}
