@@ -711,9 +711,8 @@ func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *
 		"splunkAuditWebhook": map[string]interface{}{
 			"enabled": config.Enabled,
 			"hecEndpoint": map[string]interface{}{
-				// FIXME These values are placeholders for now and need to be retrieved from some form of secret storage.
-				"url":   "https://splunk.example.org/",
-				"token": "Token_00000000-0000-0000-0000-000000000000",
+				"url":   config.HecURL,
+				"token": config.HecToken,
 			},
 		},
 	}

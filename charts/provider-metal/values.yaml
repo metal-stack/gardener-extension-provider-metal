@@ -64,6 +64,8 @@ config:
     providerTenant: provider-tenant
   splunkAudit:
     enabled: false
+    hecURL:
+    hecToken:
         
 gardener:
   seed:

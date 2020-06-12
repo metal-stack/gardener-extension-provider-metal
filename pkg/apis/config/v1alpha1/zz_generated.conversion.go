@@ -347,6 +347,8 @@ func Convert_config_MachineImage_To_v1alpha1_MachineImage(in *config.MachineImag
 
 func autoConvert_v1alpha1_SplunkAudit_To_config_SplunkAudit(in *SplunkAudit, out *config.SplunkAudit, s conversion.Scope) error {
 	out.Enabled = in.Enabled
+	out.HecURL = in.HecURL
+	out.HecToken = in.HecToken
 	return nil
 }
 
@@ -357,6 +359,8 @@ func Convert_v1alpha1_SplunkAudit_To_config_SplunkAudit(in *SplunkAudit, out *co
 
 func autoConvert_config_SplunkAudit_To_v1alpha1_SplunkAudit(in *config.SplunkAudit, out *SplunkAudit, s conversion.Scope) error {
 	out.Enabled = in.Enabled
+	out.HecURL = in.HecURL
+	out.HecToken = in.HecToken
 	return nil
 }
 
