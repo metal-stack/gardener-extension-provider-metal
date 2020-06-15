@@ -13,6 +13,7 @@ import (
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/go-logr/logr"
 
@@ -72,7 +73,7 @@ func (a *actuator) InjectConfig(config *rest.Config) error {
 	return nil
 }
 
-func (a *actuator) decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure) (*metalapi.InfrastructureConfig, *metalapi.InfrastructureStatus, error) {
+func decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, decoder runtime.Decoder) (*metalapi.InfrastructureConfig, *metalapi.InfrastructureStatus, error) {
 	infrastructureConfig, err := helper.InfrastructureConfigFromInfrastructure(infrastructure)
 	if err != nil {
 		return nil, nil, err
@@ -80,7 +81,7 @@ func (a *actuator) decodeInfrastructure(infrastructure *extensionsv1alpha1.Infra
 
 	infrastructureStatus := &metalapi.InfrastructureStatus{}
 	if infrastructure.Status.ProviderStatus != nil {
-		if _, _, err := a.decoder.Decode(infrastructure.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
+		if _, _, err := decoder.Decode(infrastructure.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
 			return nil, nil, fmt.Errorf("could not decode infrastructure status: %+v", err)
 		}
 	}
@@ -91,6 +92,10 @@ func (a *actuator) decodeInfrastructure(infrastructure *extensionsv1alpha1.Infra
 func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string) error {
 	return extensionscontroller.TryUpdateStatus(ctx, retry.DefaultBackoff, c, infrastructure, func() error {
 		infrastructure.Status.ProviderStatus = &runtime.RawExtension{Object: &metalv1alpha1.InfrastructureStatus{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
+				Kind:       "InfrastructureStatus",
+			},
 			Firewall: metalv1alpha1.FirewallStatus{
 				Succeeded: providerStatus.Firewall.Succeeded,
 				MachineID: providerStatus.Firewall.MachineID,
