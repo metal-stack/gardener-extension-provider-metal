@@ -28,8 +28,10 @@ import (
 )
 
 const (
-	firewallPolicyControllerName = "firewall-policy-controller"
-	droptailerClientName         = "droptailer"
+	firewallControllerName = "firewall-controller"
+	// firewallPolicyControllerNameCompatibility TODO can be removed in a future version when all firewalls migrated to firewall-controller
+	firewallPolicyControllerNameCompatibility = "firewall-policy-controller"
+	droptailerClientName                      = "droptailer"
 )
 
 func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
@@ -173,12 +175,12 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	kubeconfig, err := a.createFirewallPolicyControllerKubeconfig(ctx, infrastructure, cluster)
+	kubeconfig, kubeconfigCompatibility, err := a.createFirewallControllerKubeconfig(ctx, infrastructure, cluster)
 	if err != nil {
 		return err
 	}
 
-	firewallUserData, err := a.renderFirewallUserData(kubeconfig)
+	firewallUserData, err := a.renderFirewallUserData(kubeconfig, kubeconfigCompatibility)
 	if err != nil {
 		return err
 	}
@@ -276,7 +278,7 @@ func (a *actuator) ensureNodeNetwork(ctx context.Context, clusterID string, mcli
 	return nodeCIDR, nil
 }
 
-func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, error) {
+func (a *actuator) createFirewallControllerKubeconfig(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, string, error) {
 	apiServerURL := fmt.Sprintf("api.%s", *cluster.Shoot.Spec.DNS.Domain)
 	infrastructureSecrets := &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
@@ -290,9 +292,23 @@ func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context,
 			return []secrets.ConfigInterface{
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         firewallPolicyControllerName,
-						CommonName:   fmt.Sprintf("system:%s", firewallPolicyControllerName),
-						Organization: []string{firewallPolicyControllerName},
+						Name:         firewallControllerName,
+						CommonName:   fmt.Sprintf("system:%s", firewallControllerName),
+						Organization: []string{firewallControllerName},
+						CertType:     secrets.ClientCert,
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+					},
+					KubeConfigRequest: &secrets.KubeConfigRequest{
+						ClusterName:  clusterName,
+						APIServerURL: apiServerURL,
+					},
+				},
+				// TODO: can be removed in a future version
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         firewallPolicyControllerNameCompatibility,
+						CommonName:   fmt.Sprintf("system:%s", firewallPolicyControllerNameCompatibility),
+						Organization: []string{firewallPolicyControllerNameCompatibility},
 						CertType:     secrets.ClientCert,
 						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 					},
@@ -307,24 +323,35 @@ func (a *actuator) createFirewallPolicyControllerKubeconfig(ctx context.Context,
 
 	secret, err := infrastructureSecrets.Deploy(ctx, a.clientset, a.gardenerClientset, infrastructure.Namespace)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	kubeconfig, ok := secret[firewallPolicyControllerName].Data["kubeconfig"]
+	kubeconfig, ok := secret[firewallControllerName].Data["kubeconfig"]
 	if !ok {
-		return "", fmt.Errorf("kubeconfig not part of generated firewall policy controller secret")
+		return "", "", fmt.Errorf("kubeconfig not part of generated firewall controller secret")
 	}
 
-	return string(kubeconfig), nil
+	kubeconfigCompatibility, ok := secret[firewallPolicyControllerNameCompatibility].Data["kubeconfig"]
+	if !ok {
+		return "", "", fmt.Errorf("kubeconfig not part of generated firewall policy controller secret")
+	}
+
+	return string(kubeconfig), string(kubeconfigCompatibility), nil
 }
 
-func (a *actuator) renderFirewallUserData(kubeconfig string) (string, error) {
+func (a *actuator) renderFirewallUserData(kubeconfig, kubeconfigCompatibility string) (string, error) {
 	cfg := types.Config{}
 	cfg.Systemd = types.Systemd{}
 
 	enabled := true
-	fpcUnit := types.SystemdUnit{
-		Name:    fmt.Sprintf("%s.service", firewallPolicyControllerName),
+	fcUnit := types.SystemdUnit{
+		Name:    fmt.Sprintf("%s.service", firewallControllerName),
+		Enable:  enabled,
+		Enabled: &enabled,
+	}
+	// TODO can be removed in a future version
+	fpcUnitCompatibility := types.SystemdUnit{
+		Name:    fmt.Sprintf("%s.service", firewallPolicyControllerNameCompatibility),
 		Enable:  enabled,
 		Enabled: &enabled,
 	}
@@ -334,14 +361,14 @@ func (a *actuator) renderFirewallUserData(kubeconfig string) (string, error) {
 		Enabled: &enabled,
 	}
 
-	cfg.Systemd.Units = append(cfg.Systemd.Units, fpcUnit, dcUnit)
+	cfg.Systemd.Units = append(cfg.Systemd.Units, fcUnit, fpcUnitCompatibility, dcUnit)
 
 	cfg.Storage = types.Storage{}
 
 	mode := 0600
 	id := 0
 	ignitionFile := types.File{
-		Path:       "/etc/firewall-policy-controller/.kubeconfig",
+		Path:       "/etc/firewall-controller/.kubeconfig",
 		Filesystem: "root",
 		Mode:       &mode,
 		User: &types.FileUser{
@@ -354,7 +381,22 @@ func (a *actuator) renderFirewallUserData(kubeconfig string) (string, error) {
 			Inline: string(kubeconfig),
 		},
 	}
-	cfg.Storage.Files = append(cfg.Storage.Files, ignitionFile)
+	// TODO can be removed in a future version
+	ignitionFileCompatibility := types.File{
+		Path:       "/etc/firewall-policy-controller/.kubeconfig",
+		Filesystem: "root",
+		Mode:       &mode,
+		User: &types.FileUser{
+			Id: &id,
+		},
+		Group: &types.FileGroup{
+			Id: &id,
+		},
+		Contents: types.FileContents{
+			Inline: string(kubeconfigCompatibility),
+		},
+	}
+	cfg.Storage.Files = append(cfg.Storage.Files, ignitionFile, ignitionFileCompatibility)
 
 	outCfg, report := types.Convert(cfg, "", nil)
 	if report.IsFatal() {

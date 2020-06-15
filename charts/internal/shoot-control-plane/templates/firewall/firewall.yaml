@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: firewall
+---
+apiVersion: metal-stack.io/v1
+kind: Firewall
+metadata:
+  namespace: firewall
+  name: firewall
+spec:
+  interval: {{ .Values.firewall.interval }}
+{{- if .Values.firewall.internalPrefixes }}
+  internalprefixes:
+{{ toYaml .Values.firewall.internalPrefixes | indent 4 }}
+{{- end }}

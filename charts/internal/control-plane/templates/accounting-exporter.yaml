@@ -57,6 +57,8 @@ spec:
           value: {{ .Values.accountingExporter.accountingAPI.hostname }}
         - name: KUBE_COUNTER_ACCOUNTING_API_PORT
           value: "{{ .Values.accountingExporter.accountingAPI.port }}"
+        - name: KUBE_COUNTER_NETWORK_TRAFFIC_ENABLED
+          value: "{{ .Values.accountingExporter.networkTraffic.enabled }}"
         volumeMounts:
         - name: accounting-exporter
           mountPath: /var/lib/accounting-exporter

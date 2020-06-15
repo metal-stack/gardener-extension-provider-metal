@@ -37,13 +37,17 @@ data:
     accountingExporter:
       enabled: {{ .Values.config.accountingExporter.enabled }}
 {{- if .Values.config.accountingExporter.enabled }}
+      networkTraffic:
+        enabled: {{ .Values.config.accountingExporter.networkTraffic.enabled }}
+        internalNetworks:
+{{ toYaml .Values.config.accountingExporter.networkTraffic.internalNetworks | indent 10 }}
       clientConfig:
         hostname: {{ .Values.config.accountingExporter.clientConfig.hostname }}
         port: {{ .Values.config.accountingExporter.clientConfig.port }}
         ca: |
 {{ .Values.config.accountingExporter.clientConfig.ca | indent 10 }}
-        cert: | 
+        cert: |
 {{ .Values.config.accountingExporter.clientConfig.cert | indent 10 }}
-        certKey: | 
+        certKey: |
 {{ .Values.config.accountingExporter.clientConfig.certkey | indent 10 }}
 {{- end }}

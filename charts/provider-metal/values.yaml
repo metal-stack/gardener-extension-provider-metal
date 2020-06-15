@@ -53,6 +53,9 @@ config:
       schedule: "0 */24 * * *"
   accountingExporter:
     enabled: false
+    networkTraffic:
+      enabled: false
+      internalNetworks: []
     clientConfig:
       hostname:
       port:
