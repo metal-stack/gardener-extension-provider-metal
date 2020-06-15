@@ -8,7 +8,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
-	metalapiv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
+	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 	"github.com/pkg/errors"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -16,7 +16,6 @@ import (
 
 	"github.com/go-logr/logr"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
@@ -73,14 +72,6 @@ func (a *actuator) InjectConfig(config *rest.Config) error {
 	return nil
 }
 
-func (a *actuator) Reconcile(ctx context.Context, config *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
-	return a.reconcile(ctx, config, cluster)
-}
-
-func (a *actuator) Delete(ctx context.Context, config *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
-	return a.delete(ctx, config, cluster)
-}
-
 func (a *actuator) decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure) (*metalapi.InfrastructureConfig, *metalapi.InfrastructureStatus, error) {
 	infrastructureConfig, err := helper.InfrastructureConfigFromInfrastructure(infrastructure)
 	if err != nil {
@@ -97,21 +88,15 @@ func (a *actuator) decodeInfrastructure(infrastructure *extensionsv1alpha1.Infra
 	return infrastructureConfig, infrastructureStatus, nil
 }
 
-func (a *actuator) updateProviderStatus(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, status metalapi.FirewallStatus, nodeCIDR *string) error {
-	return extensionscontroller.TryUpdateStatus(ctx, retry.DefaultBackoff, a.client, infrastructure, func() error {
-		infrastructure.Status.NodesCIDR = nodeCIDR
-		infrastructure.Status.ProviderStatus = &runtime.RawExtension{
-			Object: &metalapiv1alpha1.InfrastructureStatus{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: metalapiv1alpha1.SchemeGroupVersion.String(),
-					Kind:       "InfrastructureStatus",
-				},
-				Firewall: metalapiv1alpha1.FirewallStatus{
-					Succeeded: status.Succeeded,
-					MachineID: status.MachineID,
-				},
+func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string) error {
+	return extensionscontroller.TryUpdateStatus(ctx, retry.DefaultBackoff, c, infrastructure, func() error {
+		infrastructure.Status.ProviderStatus = &runtime.RawExtension{Object: &metalv1alpha1.InfrastructureStatus{
+			Firewall: metalv1alpha1.FirewallStatus{
+				Succeeded: providerStatus.Firewall.Succeeded,
+				MachineID: providerStatus.Firewall.MachineID,
 			},
-		}
+		}}
+		infrastructure.Status.NodesCIDR = nodeCIDR
 		return nil
 	})
 }

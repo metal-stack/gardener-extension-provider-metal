@@ -6,7 +6,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	"github.com/pkg/errors"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/google/uuid"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
@@ -20,12 +25,15 @@ import (
 	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
 
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/secrets"
 
 	"github.com/coreos/container-linux-config-transpiler/config/types"
 )
+
+type firewallReconcileAction string
 
 const (
 	firewallControllerName = "firewall-controller"
@@ -34,8 +42,14 @@ const (
 	droptailerClientName                      = "droptailer"
 )
 
-func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
-	infrastructureConfig, infrastructureStatus, err := a.decodeInfrastructure(infrastructure)
+var (
+	firewallActionRecreate          firewallReconcileAction = "recreate"
+	firewallActionDeleteAndRecreate firewallReconcileAction = "delete"
+	firewallActionDoNothing         firewallReconcileAction = "nothing"
+)
+
+func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
+	internalInfrastructureConfig, internalInfrastructureStatus, err := a.decodeInfrastructure(infrastructure)
 	if err != nil {
 		return err
 	}
@@ -45,122 +59,253 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, internalInfrastructureConfig.PartitionID)
 	if err != nil {
 		return err
 	}
-
-	var (
-		clusterID      = string(cluster.Shoot.GetUID())
-		clusterTag     = fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
-		firewallStatus = infrastructureStatus.Firewall
-	)
 
 	mclient, err := metalclient.NewClient(ctx, a.client, metalControlPlane.Endpoint, &infrastructure.Spec.SecretRef)
 	if err != nil {
 		return err
 	}
 
-	nodeCIDR, err := a.ensureNodeNetwork(ctx, clusterID, mclient, infrastructure, infrastructureConfig, cluster)
+	clientset, err := kubernetes.NewForConfig(a.restConfig)
 	if err != nil {
-		return &controllererrors.RequeueAfterError{
-			Cause:        err,
-			RequeueAfter: 30 * time.Second,
-		}
+		return errors.Wrap(err, "could not create kubernetes clientset")
 	}
 
-	infrastructure.Status.NodesCIDR = &nodeCIDR
-	err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
+	gardenerClientset, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(a.restConfig))
 	if err != nil {
-		return &controllererrors.RequeueAfterError{
-			Cause:        err,
-			RequeueAfter: 30 * time.Second,
-		}
+		return errors.Wrap(err, "could not create gardener clientset")
 	}
 
-	if firewallStatus.Succeeded {
-		// verify that the firewall is still there and correctly reconciled
+	err = reconcileFirewall(
+		ctx,
+		a.logger,
+		a.restConfig,
+		a.client,
+		clientset,
+		gardenerClientset,
+		infrastructure,
+		internalInfrastructureConfig,
+		internalInfrastructureStatus,
+		cluster,
+		mclient,
+	)
+	if err != nil {
+		return err
+	}
 
-		resp, err := mclient.FirewallFind(&metalgo.FirewallFindRequest{
-			MachineFindRequest: metalgo.MachineFindRequest{
-				AllocationProject: &infrastructureConfig.ProjectID,
-				Tags:              []string{clusterTag},
-			},
-		})
+	return nil
+}
+
+func reconcileFirewall(
+	ctx context.Context,
+	logger logr.Logger,
+	restConfig *rest.Config,
+	c client.Client,
+	clientset kubernetes.Interface,
+	gc gardenerkubernetes.Interface,
+	infrastructure *extensionsv1alpha1.Infrastructure,
+	infrastructureConfig *metalapi.InfrastructureConfig,
+	providerStatus *metalapi.InfrastructureStatus,
+	cluster *extensionscontroller.Cluster,
+	mclient *metalgo.Driver,
+) error {
+	var (
+		clusterID  = string(cluster.Shoot.GetUID())
+		clusterTag = fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
+		machineID  = decodeMachineID(providerStatus.Firewall.MachineID)
+	)
+
+	if providerStatus.Firewall.Succeeded {
+		action, err := firewallRequiresRecreation(
+			logger,
+			mclient,
+			clusterTag,
+			clusterID,
+			machineID,
+			infrastructureConfig,
+		)
 		if err != nil {
-			return &controllererrors.RequeueAfterError{
-				Cause:        err,
-				RequeueAfter: 30 * time.Second,
-			}
+			return err
 		}
 
-		machineID := decodeMachineID(firewallStatus.MachineID)
-		clusterFirewallAmount := len(resp.Firewalls)
-
-		if clusterFirewallAmount == 0 {
-			a.logger.Error(err, "firewall does not exist anymore, creating new firewall", "clusterid", clusterID, "machineid", machineID)
-		}
-		if clusterFirewallAmount > 1 {
-			return fmt.Errorf("multiple firewalls exist for this cluster, which is currently unsupported. delete these firewalls and try to keep the one with machine id %q", machineID)
-		}
-		if clusterFirewallAmount == 1 {
-			fw := resp.Firewalls[0]
-			if *fw.ID != machineID {
-				a.logger.Error(fmt.Errorf("machine id of this cluster's firewall differs from infrastructure status"), "leaving as it is, but something unexpected must have happened in the past. if you want to get to a clean state, remove the firewall by hand (causes downtime!) and reconcile infrastructure again", "clusterID", clusterID, "expectedMachineID", machineID, "actualMachineID", *fw.ID)
-			}
-
-			if *fw.Size.ID == infrastructureConfig.Firewall.Size && *fw.Allocation.Image.ID == infrastructureConfig.Firewall.Image {
-				return nil
-			}
-
-			a.logger.Info("firewall spec has changed. deleting old firewall and creating a new one", "clusterid", clusterID, "machineid", machineID)
-
-			_, err = mclient.MachineDelete(*fw.ID)
+		switch action {
+		case firewallActionRecreate:
+		case firewallActionDeleteAndRecreate:
+			err := deleteFirewall(logger, machineID, infrastructureConfig.ProjectID, clusterTag, mclient)
 			if err != nil {
-				return &controllererrors.RequeueAfterError{
+				return err
+			}
+		default:
+			return nil
+		}
+
+		providerStatus.Firewall.MachineID = ""
+		providerStatus.Firewall.Succeeded = false
+		err = updateProviderStatus(ctx, c, infrastructure, providerStatus, infrastructure.Status.NodesCIDR)
+		if err != nil {
+			return err
+		}
+	} else if machineID != "" {
+		succeeded, err := hasFirewallSucceeded(machineID, mclient)
+		if err != nil {
+			return err
+		}
+
+		providerStatus.Firewall.Succeeded = succeeded
+		return updateProviderStatus(ctx, c, infrastructure, providerStatus, infrastructure.Status.NodesCIDR)
+	}
+
+	err := createFirewall(
+		ctx,
+		logger,
+		c,
+		clientset,
+		gc,
+		clusterTag,
+		clusterID,
+		infrastructure,
+		infrastructureConfig,
+		providerStatus,
+		cluster,
+		mclient,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func firewallRequiresRecreation(
+	logger logr.Logger,
+	mclient *metalgo.Driver,
+	clusterTag string,
+	clusterID string,
+	machineID string,
+	infrastructureConfig *metalapi.InfrastructureConfig,
+) (firewallReconcileAction, error) {
+	resp, err := mclient.FirewallFind(&metalgo.FirewallFindRequest{
+		MachineFindRequest: metalgo.MachineFindRequest{
+			AllocationProject: &infrastructureConfig.ProjectID,
+			Tags:              []string{clusterTag},
+		},
+	})
+	if err != nil {
+		return firewallActionDoNothing, &controllererrors.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
+		}
+	}
+
+	clusterFirewallAmount := len(resp.Firewalls)
+	switch clusterFirewallAmount {
+	case 0:
+		logger.Info("firewall does not exist anymore, recreation required", "clusterid", clusterID, "machineid", machineID)
+		return firewallActionRecreate, nil
+	case 1:
+		fw := resp.Firewalls[0]
+		if *fw.ID != machineID {
+			logger.Error(
+				fmt.Errorf("machine id of this cluster's firewall differs from infrastructure status"),
+				"leaving as it is, but something unexpected must have happened in the past. if you want to get to a clean state, remove the firewall by hand (causes downtime!) and reconcile infrastructure again",
+				"clusterID", clusterID,
+				"expectedMachineID", machineID,
+				"actualMachineID", *fw.ID,
+			)
+			return firewallActionDoNothing, nil
+		}
+
+		if fw.Size.ID != nil && *fw.Size.ID != infrastructureConfig.Firewall.Size {
+			logger.Info("firewall size has changed, recreating firewall", "clusterid", clusterID, "machineid", machineID, "current", *fw.Size.ID, "new", infrastructureConfig.Firewall.Size)
+			return firewallActionDeleteAndRecreate, nil
+		}
+
+		if fw.Allocation != nil && fw.Allocation.Image != nil && fw.Allocation.Image.ID != nil && *fw.Allocation.Image.ID != infrastructureConfig.Firewall.Image {
+			want := infrastructureConfig.Firewall.Image
+			image, err := mclient.ImageGetLatest(want)
+			if err != nil {
+				return firewallActionDoNothing, &controllererrors.RequeueAfterError{
 					Cause:        err,
 					RequeueAfter: 30 * time.Second,
 				}
 			}
-		}
 
-		firewallStatus.MachineID = ""
-		firewallStatus.Succeeded = false
-		err = a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
-		if err != nil {
-			return err
-		}
-	}
-
-	if firewallStatus.MachineID != "" {
-		// firewall was created, waiting for completion
-		machineID := decodeMachineID(firewallStatus.MachineID)
-
-		resp, err := mclient.FirewallGet(machineID)
-		if err != nil {
-			switch e := err.(type) {
-			case *metalfirewall.FindFirewallDefault:
-				if e.Code() >= 500 {
-					return &controllererrors.RequeueAfterError{
-						Cause:        e,
-						RequeueAfter: 5 * time.Second,
-					}
-				}
-			default:
-				return e
+			if image.Image != nil && image.Image.ID != nil && *image.Image.ID != *fw.Allocation.Image.ID {
+				logger.Info("firewall image has changed, recreating firewall", "clusterid", clusterID, "machineid", machineID, "current", *fw.Allocation.Image.ID, "new", *image.Image.ID)
+				return firewallActionDeleteAndRecreate, nil
 			}
 		}
 
-		allocation := resp.Firewall.Allocation
-		if allocation == nil {
-			return fmt.Errorf("firewall %q was created but has no allocation", machineID)
-		}
+		return firewallActionDoNothing, nil
+	default:
+		logger.Error(
+			fmt.Errorf("multiple firewalls exist for this cluster, which is currently unsupported. delete these firewalls and try to keep the one with machine id %q", machineID),
+			"clusterID", clusterID,
+			"expectedMachineID", machineID,
+		)
+		return firewallActionDoNothing, nil
+	}
+}
 
-		firewallStatus.Succeeded = *resp.Firewall.Allocation.Succeeded
-		return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
+func hasFirewallSucceeded(
+	machineID string,
+	mclient *metalgo.Driver,
+) (bool, error) {
+	resp, err := mclient.FirewallGet(machineID)
+	if err != nil {
+		switch e := err.(type) {
+		case *metalfirewall.FindFirewallDefault:
+			if e.Code() >= 500 {
+				return false, &controllererrors.RequeueAfterError{
+					Cause:        e,
+					RequeueAfter: 5 * time.Second,
+				}
+			}
+		default:
+			return false, e
+		}
 	}
 
-	// we need to create a firewall
+	if resp.Firewall == nil || resp.Firewall.Allocation == nil || resp.Firewall.Allocation.Succeeded == nil {
+		return false, fmt.Errorf("firewall %q was created but has no allocation", machineID)
+	}
+
+	return *resp.Firewall.Allocation.Succeeded, nil
+}
+
+func createFirewall(
+	ctx context.Context,
+	logger logr.Logger,
+	c client.Client,
+	clientset kubernetes.Interface,
+	gc gardenerkubernetes.Interface,
+	clusterTag string,
+	clusterID string,
+	infrastructure *extensionsv1alpha1.Infrastructure,
+	infrastructureConfig *metalapi.InfrastructureConfig,
+	providerStatus *metalapi.InfrastructureStatus,
+	cluster *extensionscontroller.Cluster,
+	mclient *metalgo.Driver,
+) error {
+	nodeCIDR, err := ensureNodeNetwork(ctx, clusterID, mclient, infrastructure, infrastructureConfig, cluster)
+	if err != nil {
+		return &controllererrors.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
+		}
+	}
+
+	err = updateProviderStatus(ctx, c, infrastructure, providerStatus, &nodeCIDR)
+	if err != nil {
+		return &controllererrors.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
+		}
+	}
+
 	uuid, err := uuid.NewUUID()
 	if err != nil {
 		return err
@@ -175,12 +320,12 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	kubeconfig, kubeconfigCompatibility, err := a.createFirewallControllerKubeconfig(ctx, infrastructure, cluster)
+	kubeconfig, kubeconfigCompatibility, err := createFirewallControllerKubeconfig(ctx, clientset, gc, infrastructure, cluster)
 	if err != nil {
 		return err
 	}
 
-	firewallUserData, err := a.renderFirewallUserData(kubeconfig, kubeconfigCompatibility)
+	firewallUserData, err := renderFirewallUserData(kubeconfig, kubeconfigCompatibility)
 	if err != nil {
 		return err
 	}
@@ -216,11 +361,10 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		},
 	}
 
-	a.logger.Info("create firewall", "name", createRequest.Name)
-
+	logger.Info("create firewall", "name", createRequest.Name)
 	fcr, err := mclient.FirewallCreate(createRequest)
 	if err != nil {
-		a.logger.Error(err, "failed to create firewall", "infrastructure", infrastructure.Name)
+		logger.Error(err, "failed to create firewall", "infrastructure", infrastructure.Name)
 		return &controllererrors.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
@@ -234,13 +378,13 @@ func (a *actuator) reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return fmt.Errorf("firewall %q was created but has no allocation", machineID)
 	}
 
-	firewallStatus.MachineID = machineID
-	firewallStatus.Succeeded = true
+	providerStatus.Firewall.MachineID = machineID
+	providerStatus.Firewall.Succeeded = true
 
-	return a.updateProviderStatus(ctx, infrastructure, infrastructureConfig, firewallStatus, &nodeCIDR)
+	return updateProviderStatus(ctx, c, infrastructure, providerStatus, &nodeCIDR)
 }
 
-func (a *actuator) ensureNodeNetwork(ctx context.Context, clusterID string, mclient *metalgo.Driver, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, cluster *extensionscontroller.Cluster) (string, error) {
+func ensureNodeNetwork(ctx context.Context, clusterID string, mclient *metalgo.Driver, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, cluster *extensionscontroller.Cluster) (string, error) {
 	if cluster.Shoot.Spec.Networking.Nodes != nil {
 		return *cluster.Shoot.Spec.Networking.Nodes, nil
 	}
@@ -273,12 +417,17 @@ func (a *actuator) ensureNodeNetwork(ctx context.Context, clusterID string, mcli
 	}
 
 	nodeCIDR := resp.Network.Prefixes[0]
-	a.logger.Info("dynamically allocated node network", "nodeCIDR", nodeCIDR)
 
 	return nodeCIDR, nil
 }
 
-func (a *actuator) createFirewallControllerKubeconfig(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, string, error) {
+func createFirewallControllerKubeconfig(
+	ctx context.Context,
+	c kubernetes.Interface,
+	gc gardenerkubernetes.Interface,
+	infrastructure *extensionsv1alpha1.Infrastructure,
+	cluster *extensionscontroller.Cluster,
+) (string, string, error) {
 	apiServerURL := fmt.Sprintf("api.%s", *cluster.Shoot.Spec.DNS.Domain)
 	infrastructureSecrets := &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
@@ -321,7 +470,7 @@ func (a *actuator) createFirewallControllerKubeconfig(ctx context.Context, infra
 		},
 	}
 
-	secret, err := infrastructureSecrets.Deploy(ctx, a.clientset, a.gardenerClientset, infrastructure.Namespace)
+	secret, err := infrastructureSecrets.Deploy(ctx, c, gc, infrastructure.Namespace)
 	if err != nil {
 		return "", "", err
 	}
@@ -339,7 +488,7 @@ func (a *actuator) createFirewallControllerKubeconfig(ctx context.Context, infra
 	return string(kubeconfig), string(kubeconfigCompatibility), nil
 }
 
-func (a *actuator) renderFirewallUserData(kubeconfig, kubeconfigCompatibility string) (string, error) {
+func renderFirewallUserData(kubeconfig, kubeconfigCompatibility string) (string, error) {
 	cfg := types.Config{}
 	cfg.Systemd = types.Systemd{}
 
