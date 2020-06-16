@@ -92,3 +92,16 @@ spec:
     - protocol: TCP
       port: 9000
 {{- end }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: egress-allow-accounting-api
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 9000
+      protocol: TCP
+    to:
+    - cidr: 0.0.0.0/0
