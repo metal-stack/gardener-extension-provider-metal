@@ -14,6 +14,12 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - metal-stack.io
+  resources:
+  - firewalls
+  verbs:
+  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
