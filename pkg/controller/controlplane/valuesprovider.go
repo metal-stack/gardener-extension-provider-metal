@@ -562,9 +562,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			ID: &net,
 		})
 		if err != nil {
-			return nil, err
+			vp.logger.Info("could not find network by id for rate limit", "id", &net)
+			continue
 		}
 		if len(resp.Networks) != 1 {
+			vp.logger.Info("network id is ambiguous", "id", &net)
 			continue
 		}
 		n := resp.Networks[0]
