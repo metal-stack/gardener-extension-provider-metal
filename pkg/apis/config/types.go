@@ -92,12 +92,22 @@ type SplunkAudit struct {
 	HecToken string
 }
 
-// AccountingExporterConfiguration contains the configuration for the accounting exporter
+// AccountingExporterConfiguration contains the configuration for the accounting exporter.
 type AccountingExporterConfiguration struct {
-	// Enabled enables the deployment of the accounting exporter when set to true
+	// Enabled enables the deployment of the accounting exporter when set to true.
 	Enabled bool
-	// Client contains the configuration for the accounting exporter client
+	// NetworkTraffic contains the configuration for accounting network traffic
+	NetworkTraffic AccountingExporterNetworkTrafficConfiguration
+	// Client contains the configuration for the accounting exporter client.
 	Client AccountingExporterClientConfiguration
+}
+
+// AccountingExporterClientConfiguration contains the configuration for the network traffic accounting.
+type AccountingExporterNetworkTrafficConfiguration struct {
+	// Enabled enables network traffic accounting of the accounting exporter when set to true.
+	Enabled bool
+	// InternalNetworks defines the networks for the firewall that are considered internal (which can be accounted differently)
+	InternalNetworks []string
 }
 
 // AccountingExporterClientConfiguration contains the configuration for the accounting exporter client

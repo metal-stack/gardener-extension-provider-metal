@@ -1,17 +1,21 @@
 ---
-images: 
+images:
     droptailer: image-repository:image-tag
     metallb-speaker: image-repository:image-tag
     metallb-controller: image-repository:image-tag
 
+firewall:
+    interval: 10s
+    internalPrefixes: []
+    rateLimits: []
+
 accountingExporter:
     enabled: false
 
-groupRolebindingController: 
+groupRolebindingController:
     enabled: false
 
 limitValidatingWebhook:
     enabled: false
     ca: ABCDEF
     url: https://replace-this-webhook/validate
-    

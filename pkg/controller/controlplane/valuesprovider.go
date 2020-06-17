@@ -19,6 +19,7 @@ import (
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
+	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
 
@@ -215,7 +216,19 @@ var cpShootChart = &chart.Chart{
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
 
+		// cluster wide network policies
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-https"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-dns"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-ntp"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-vpn"},
+
 		// firewall controller
+		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-controller"},
+		{Type: &firewallv1.Firewall{}, Name: "firewall"},
+
+		// firewall policy controller TODO can be removed in a future version
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
 
@@ -508,7 +521,68 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	// example https://limit-validating-webhook.shoot--local--myshootname.svc.cluster.local/validate
 	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
 
+	internalPrefixes := []string{}
+	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
+		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
+	}
+
+	infrastructureConfig := &apismetal.InfrastructureConfig{}
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+	}
+
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	if err != nil {
+		return nil, err
+	}
+
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	if err != nil {
+		return nil, err
+	}
+
+	cpConfig.IAMConfig, err = helper.MergeIAMConfig(metalControlPlane.IAMConfig, cpConfig.IAMConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+
+	rateLimits := []map[string]interface{}{}
+	for net, rate := range infrastructureConfig.Firewall.RateLimits {
+		resp, err := mclient.NetworkFind(&metalgo.NetworkFindRequest{
+			ID: &net,
+		})
+		if err != nil {
+			vp.logger.Info("could not find network by id for rate limit", "id", &net)
+			continue
+		}
+		if len(resp.Networks) != 1 {
+			vp.logger.Info("network id is ambiguous", "id", &net)
+			continue
+		}
+		n := resp.Networks[0]
+		iface := fmt.Sprintf("vrf%d", n.Vrf)
+		rl := map[string]interface{}{
+			"interface": iface,
+			"rate":      rate,
+		}
+		rateLimits = append(rateLimits, rl)
+	}
+
 	values := map[string]interface{}{
+		"firewall": map[string]interface{}{
+			"internalPrefixes": internalPrefixes,
+			"rateLimits":       rateLimits,
+		},
 		"limitValidatingWebhook": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 			"url":     url,
@@ -731,6 +805,9 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 	values := map[string]interface{}{
 		"accountingExporter": map[string]interface{}{
 			"enabled": accountingConfig.Enabled,
+			"networkTraffic": map[string]interface{}{
+				"enabled": accountingConfig.NetworkTraffic.Enabled,
+			},
 			"enrichments": map[string]interface{}{
 				"partitionID": partitionID,
 				"tenant":      tenant,

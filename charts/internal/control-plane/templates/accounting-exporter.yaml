@@ -57,6 +57,8 @@ spec:
           value: {{ .Values.accountingExporter.accountingAPI.hostname }}
         - name: KUBE_COUNTER_ACCOUNTING_API_PORT
           value: "{{ .Values.accountingExporter.accountingAPI.port }}"
+        - name: KUBE_COUNTER_NETWORK_TRAFFIC_ENABLED
+          value: "{{ .Values.accountingExporter.networkTraffic.enabled }}"
         volumeMounts:
         - name: accounting-exporter
           mountPath: /var/lib/accounting-exporter
@@ -90,3 +92,16 @@ spec:
     - protocol: TCP
       port: 9000
 {{- end }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: egress-allow-accounting-api
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 9000
+      protocol: TCP
+    to:
+    - cidr: 0.0.0.0/0
