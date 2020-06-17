@@ -82,7 +82,7 @@ type AccountingExporterConfiguration struct {
 	// Enabled enables the deployment of the accounting exporter when set to true.
 	Enabled bool `json:"enabled"`
 	// NetworkTraffic contains the configuration for accounting network traffic
-	NetworkTraffic  AccountingExporterNetworkTrafficConfiguration `json:"networkTraffic"`
+	NetworkTraffic AccountingExporterNetworkTrafficConfiguration `json:"networkTraffic"`
 	// Client contains the configuration for the accounting exporter client.
 	Client AccountingExporterClientConfiguration `json:"clientConfig"`
 }

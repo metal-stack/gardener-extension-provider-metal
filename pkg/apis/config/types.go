@@ -93,7 +93,7 @@ type AccountingExporterConfiguration struct {
 	// Enabled enables the deployment of the accounting exporter when set to true.
 	Enabled bool
 	// NetworkTraffic contains the configuration for accounting network traffic
-	NetworkTraffic  AccountingExporterNetworkTrafficConfiguration
+	NetworkTraffic AccountingExporterNetworkTrafficConfiguration
 	// Client contains the configuration for the accounting exporter client.
 	Client AccountingExporterClientConfiguration
 }

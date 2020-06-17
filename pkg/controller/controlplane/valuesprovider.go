@@ -526,9 +526,60 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
 	}
 
+	infrastructureConfig := &apismetal.InfrastructureConfig{}
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+	}
+
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	if err != nil {
+		return nil, err
+	}
+
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	if err != nil {
+		return nil, err
+	}
+
+	cpConfig.IAMConfig, err = helper.MergeIAMConfig(metalControlPlane.IAMConfig, cpConfig.IAMConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+
+	rateLimits := []map[string]interface{}{}
+	for net, rate := range infrastructureConfig.Firewall.RateLimits {
+		resp, err := mclient.NetworkFind(&metalgo.NetworkFindRequest{
+			ID: &net,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if len(resp.Networks) != 1 {
+			continue
+		}
+		n := resp.Networks[0]
+		iface := fmt.Sprintf("vrf%d", n.Vrf)
+		rl := map[string]interface{}{
+			"interface": iface,
+			"rate":      rate,
+		}
+		rateLimits = append(rateLimits, rl)
+	}
+
 	values := map[string]interface{}{
 		"firewall": map[string]interface{}{
 			"internalPrefixes": internalPrefixes,
+			"rateLimits":       rateLimits,
 		},
 		"limitValidatingWebhook": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
