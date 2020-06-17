@@ -15,9 +15,10 @@ type InfrastructureConfig struct {
 }
 
 type Firewall struct {
-	Size     string   `json:"size"`
-	Image    string   `json:"image"`
-	Networks []string `json:"networks"`
+	Size       string            `json:"size"`
+	Image      string            `json:"image"`
+	Networks   []string          `json:"networks"`
+	RateLimits map[string]uint32 `json:"rateLimits"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
