@@ -1,0 +1,4 @@
+apiVersion: v1
+description: Helm chart for Machine Controller Manager CRDs required by the extension-provider-metal
+name: crds-mcm
+version: 0.1.0
