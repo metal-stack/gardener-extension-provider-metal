@@ -15,5 +15,5 @@ spec:
             burst: 15
         clientConfig:
             url: "{{ .Values.splunkAuditWebhook.url }}"
-            ca: "{{ .Values.splunkAuditWebhook.ca }}"
+            caBundle: "{{ .Values.splunkAuditWebhook.ca }}"
 {{- end }}
