@@ -54,6 +54,8 @@ spec:
         ports:
         - containerPort: 3000
         env:
+        - name: KUBE_COUNTER_BIND_ADDR
+          value: 0.0.0.0
         - name: KUBE_COUNTER_PARTITION
           value: {{ .Values.accountingExporter.enrichments.partitionID }}
         - name: KUBE_COUNTER_TENANT
