@@ -527,7 +527,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	// this should work as the kube-apiserver is a pod in the same cluster as the limit-validating-webhook
 	// example https://limit-validating-webhook.shoot--local--myshootname.svc.cluster.local/validate
 	limitURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
-	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", splunkAuditWebhookDeploymentName, namespace)
+	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", splunkAuditWebhookDeploymentName, namespace)
 
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
