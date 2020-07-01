@@ -75,6 +75,10 @@ type Auth struct {
 type SplunkAudit struct {
 	// Enabled enables the deployment of splunk audit webhook when set to true.
 	Enabled bool `json:"enabled"`
+	// hecURL is the URL of the splunk hec endpoint that receives the audit log data.
+	HecURL string `json:"hecURL"`
+	// hecToken is the token that needs to be sent to the splunk endpoint.
+	HecToken string `json:"hecToken"`
 }
 
 // AccountingExporterConfiguration contains the configuration for the accounting exporter.
