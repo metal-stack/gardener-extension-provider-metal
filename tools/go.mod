@@ -1,6 +1,6 @@
 module github.com/gardener/gardener/extensions/tools
 
-go 1.13
+go 1.14
 
 require (
 	github.com/go-critic/go-critic v0.3.5-0.20190210220443-ee9bf5809ead // indirect

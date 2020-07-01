@@ -1,6 +1,6 @@
 module github.com/metal-stack/gardener-extension-provider-metal
 
-go 1.13
+go 1.14
 
 require (
 	git.apache.org/thrift.git v0.12.0 // indirect
