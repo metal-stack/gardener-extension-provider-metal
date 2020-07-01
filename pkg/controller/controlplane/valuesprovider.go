@@ -518,7 +518,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 	limitCABundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
 
-	secret, err = vp.getSecret(ctx, namespace, splunkAuditWebhookDeploymentName)
+	secret, err = vp.getSecret(ctx, namespace, splunkAuditWebhookServerName)
 	if err != nil {
 		return nil, err
 	}
