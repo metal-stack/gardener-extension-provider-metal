@@ -48,6 +48,7 @@ spec:
       - name: splunk-audit-webhook
         image: {{ index .Values.images "splunk-audit-webhook" }}
         imagePullPolicy: Always
+        enableServiceLinks: False
         env:
         - name: SPLUNK_AUDIT_WEBHOOK_SERVER_URLS
           value: {{ .Values.splunkAuditWebhook.hecEndpoint.url }}

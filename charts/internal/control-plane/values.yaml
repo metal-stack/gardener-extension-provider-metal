@@ -46,7 +46,7 @@ authnWebhook:
 
 splunkAuditWebhook:
   enabled: false
-  port: 443
+  port: 3000
   acceptInsecureCert: false
   url: https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit
   endpointRequiresClientCert: false
