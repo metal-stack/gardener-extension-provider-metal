@@ -91,7 +91,6 @@ spec:
     ports:
     - protocol: TCP
       port: 9000
-{{- end }}
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
@@ -105,3 +104,4 @@ spec:
       protocol: TCP
     to:
     - cidr: 0.0.0.0/0
+{{- end }}

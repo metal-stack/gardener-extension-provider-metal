@@ -1,10 +1,3 @@
-# Namespace is created in the valuesprovider together with the secrets.
-# But we repeat it here for the resource manager.
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: firewall
 ---
 apiVersion: apps/v1
 kind: Deployment

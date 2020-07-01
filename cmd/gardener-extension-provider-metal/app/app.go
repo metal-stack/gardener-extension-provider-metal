@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	apiextensionsscheme "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/scheme"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	metalinstall "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/install"
@@ -19,12 +17,12 @@ import (
 	metalworker "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/worker"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	shootcontrolplanewebhook "github.com/metal-stack/gardener-extension-provider-metal/pkg/webhook/controlplane"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
+	"github.com/gardener/gardener/pkg/client/kubernetes"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -93,60 +91,32 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			}
 
 			if workerReconcileOpts.Completed().DeployCRDs {
-				if err := worker.ApplyMachineResourcesForConfig(ctx, restOpts.Completed().Config); err != nil {
-					controllercmd.LogErrAndExit(err, "Error ensuring the machine CRDs")
-				}
-
-				// FIXME this is a copy of the logic of worker.ApplyMachineResourcesForConfig from gardener/gardener-extension
-				// because there is currently nothing related to metal implemented, and should not.
-				// Refactoring into separate helper required.
-				name := "metal"
-				kind := "Metal"
-				const (
-					machineGroup   = "machine.sapcloud.io"
-					machineVersion = "v1alpha1"
-				)
-				var apiextensionsScheme = runtime.NewScheme()
-
-				utilruntime.Must(apiextensionsscheme.AddToScheme(apiextensionsScheme))
-
-				metalCRD := &apiextensionsv1beta1.CustomResourceDefinition{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: name + "machineclasses.machine.sapcloud.io",
-					},
-					Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-						Group:   machineGroup,
-						Version: machineVersion,
-						Scope:   apiextensionsv1beta1.NamespaceScoped,
-						Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-							Kind:       kind + "MachineClass",
-							Plural:     name + "machineclasses",
-							Singular:   name + "machineclass",
-							ShortNames: []string{name + "cls"},
-						},
-						Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
-							Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
-						},
-					},
-				}
-
-				obj := &apiextensionsv1beta1.CustomResourceDefinition{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: metalCRD.Name,
-					},
-				}
-
-				c, err := client.New(restOpts.Completed().Config, client.Options{Scheme: apiextensionsScheme})
+				ca, err := kubernetes.NewChartApplierForConfig(restOpts.Completed().Config)
 				if err != nil {
-					controllercmd.LogErrAndExit(err, "Error creating k8s client for CRD deployment")
+					controllercmd.LogErrAndExit(err, "Error creating chart renderer")
 				}
 
-				if _, err := controllerutil.CreateOrUpdate(ctx, c, obj, func() error {
-					existingCRD := obj
-					existingCRD.Spec = metalCRD.Spec
+				err = ca.Apply(ctx, filepath.Join(metal.InternalChartsPath, "metal-crds"), "", "metal-crds")
+				if err != nil {
+					controllercmd.LogErrAndExit(err, "Error applying metal-crds chart")
+				}
+
+				c, err := client.New(restOpts.Completed().Config, client.Options{})
+				if err != nil {
+					controllercmd.LogErrAndExit(err, "Error creating k8s client for firewall namespace deployment")
+				}
+
+				// the firewall namespace needs to exist in order to be able to deploy the control plane chart properly
+				namespace := v1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "firewall",
+					},
+				}
+
+				if _, err := controllerutil.CreateOrUpdate(ctx, c, &namespace, func() error {
 					return nil
 				}); err != nil {
-					controllercmd.LogErrAndExit(err, "Error ensuring the metal machine CRDs")
+					controllercmd.LogErrAndExit(err, "Error ensuring the firewall namespace")
 				}
 			}
 
