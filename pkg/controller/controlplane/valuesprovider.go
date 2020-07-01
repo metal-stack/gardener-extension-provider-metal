@@ -373,8 +373,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 }
 
 func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-
-	namespace := cluster.Shoot.Status.TechnicalID
+	namespace := cluster.ObjectMeta.Name
 
 	// this should work as the kube-apiserver is a pod in the same cluster as the kube-jwt-authn-webhook
 	// example https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
@@ -511,20 +510,24 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
 func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-	secretName := limitValidatingWebhookServerName
-	namespace := cluster.Shoot.Status.TechnicalID
+	namespace := cluster.ObjectMeta.Name
 
-	secret, err := vp.getSecret(ctx, namespace, secretName)
+	secret, err := vp.getSecret(ctx, namespace, limitValidatingWebhookServerName)
 	if err != nil {
 		return nil, err
 	}
+	limitCABundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
 
-	// CA-Cert for TLS
-	caBundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
+	secret, err = vp.getSecret(ctx, namespace, splunkAuditWebhookDeploymentName)
+	if err != nil {
+		return nil, err
+	}
+	splunkCABundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
 
 	// this should work as the kube-apiserver is a pod in the same cluster as the limit-validating-webhook
 	// example https://limit-validating-webhook.shoot--local--myshootname.svc.cluster.local/validate
-	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
+	limitURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
+	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", splunkAuditWebhookDeploymentName, namespace)
 
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
@@ -590,14 +593,19 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		},
 		"limitValidatingWebhook": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
-			"url":     url,
-			"ca":      caBundle,
+			"url":     limitURL,
+			"ca":      limitCABundle,
 		},
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
 		"accountingExporter": map[string]interface{}{
 			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
+		},
+		"splunkAuditWebhook": map[string]interface{}{
+			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
+			"url":     splunkURL,
+			"ca":      splunkCABundle,
 		},
 	}
 
