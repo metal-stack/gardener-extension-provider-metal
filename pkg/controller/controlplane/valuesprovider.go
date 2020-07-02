@@ -495,12 +495,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
-	if err != nil {
-		return nil, errors.Wrap(err, "could not create shoot client")
-	}
-
-	err = vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster, shootConfig)
+	err = vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster)
 	if err != nil {
 		vp.logger.Error(err, "error deploying droptailer certs")
 	}
@@ -612,7 +607,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	return values, nil
 }
 
-func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, shootConfig *rest.Config) error {
+func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
 	// TODO: There is actually no nice way to deploy the certs into the shoot when we want to use
 	// the certificate helper functions from Gardener itself...
 	// Maybe we can find a better solution? This is actually only for chart values...
@@ -647,6 +642,11 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 				},
 			}
 		},
+	}
+
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot client")
 	}
 
 	cs, err := kubernetes.NewForConfig(shootConfig)
