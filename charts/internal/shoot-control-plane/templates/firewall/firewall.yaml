@@ -15,3 +15,7 @@ spec:
   internalprefixes:
 {{ toYaml .Values.firewall.internalPrefixes | indent 4 }}
 {{- end }}
+{{- if .Values.firewall.rateLimits }}
+  ratelimits:
+{{ toYaml .Values.firewall.rateLimits | indent 4 }}
+{{- end }}

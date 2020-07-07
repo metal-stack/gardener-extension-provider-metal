@@ -15,9 +15,10 @@ type InfrastructureConfig struct {
 }
 
 type Firewall struct {
-	Size     string
-	Image    string
-	Networks []string
+	Size       string
+	Image      string
+	Networks   []string
+	RateLimits map[string]uint32
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

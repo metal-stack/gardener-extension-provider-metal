@@ -138,6 +138,13 @@ func (in *Firewall) DeepCopyInto(out *Firewall) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.RateLimits != nil {
+		in, out := &in.RateLimits, &out.RateLimits
+		*out = make(map[string]uint32, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 

@@ -40,7 +40,22 @@ spec:
       - image: {{ index .Values.images "accounting-exporter" }}
         imagePullPolicy: Always
         name: accounting-exporter
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+            scheme: HTTP
+          failureThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+            scheme: HTTP
+        ports:
+        - containerPort: 3000
         env:
+        - name: KUBE_COUNTER_BIND_ADDR
+          value: 0.0.0.0
         - name: KUBE_COUNTER_PARTITION
           value: {{ .Values.accountingExporter.enrichments.partitionID }}
         - name: KUBE_COUNTER_TENANT
@@ -91,7 +106,6 @@ spec:
     ports:
     - protocol: TCP
       port: 9000
-{{- end }}
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
@@ -105,3 +119,4 @@ spec:
       protocol: TCP
     to:
     - cidr: 0.0.0.0/0
+{{- end }}

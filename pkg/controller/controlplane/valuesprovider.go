@@ -11,10 +11,11 @@ import (
 
 	"path/filepath"
 
+	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
+
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
-	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
@@ -233,7 +234,6 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
 
 		// droptailer
-		{Type: &corev1.Namespace{}, Name: "firewall"},
 		{Type: &appsv1.Deployment{}, Name: "droptailer"},
 
 		// ccm
@@ -373,8 +373,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 }
 
 func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-
-	namespace := cluster.Shoot.Status.TechnicalID
+	namespace := cluster.ObjectMeta.Name
 
 	// this should work as the kube-apiserver is a pod in the same cluster as the kube-jwt-authn-webhook
 	// example https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
@@ -506,40 +505,102 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
 func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-	secretName := limitValidatingWebhookServerName
-	namespace := cluster.Shoot.Status.TechnicalID
+	namespace := cluster.ObjectMeta.Name
 
-	secret, err := vp.getSecret(ctx, namespace, secretName)
+	secret, err := vp.getSecret(ctx, namespace, limitValidatingWebhookServerName)
 	if err != nil {
 		return nil, err
 	}
+	limitCABundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
 
-	// CA-Cert for TLS
-	caBundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
+	secret, err = vp.getSecret(ctx, namespace, splunkAuditWebhookServerName)
+	if err != nil {
+		return nil, err
+	}
+	splunkCABundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
 
 	// this should work as the kube-apiserver is a pod in the same cluster as the limit-validating-webhook
 	// example https://limit-validating-webhook.shoot--local--myshootname.svc.cluster.local/validate
-	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
+	limitURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
+	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", splunkAuditWebhookDeploymentName, namespace)
 
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
 	}
 
+	infrastructureConfig := &apismetal.InfrastructureConfig{}
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+	}
+
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	if err != nil {
+		return nil, err
+	}
+
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	if err != nil {
+		return nil, err
+	}
+
+	cpConfig.IAMConfig, err = helper.MergeIAMConfig(metalControlPlane.IAMConfig, cpConfig.IAMConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+
+	rateLimits := []map[string]interface{}{}
+	for net, rate := range infrastructureConfig.Firewall.RateLimits {
+		resp, err := mclient.NetworkFind(&metalgo.NetworkFindRequest{
+			ID: &net,
+		})
+		if err != nil {
+			vp.logger.Info("could not find network by id for rate limit", "id", &net)
+			continue
+		}
+		if len(resp.Networks) != 1 {
+			vp.logger.Info("network id is ambiguous", "id", &net)
+			continue
+		}
+		n := resp.Networks[0]
+		iface := fmt.Sprintf("vrf%d", n.Vrf)
+		rl := map[string]interface{}{
+			"interface": iface,
+			"rate":      rate,
+		}
+		rateLimits = append(rateLimits, rl)
+	}
+
 	values := map[string]interface{}{
 		"firewall": map[string]interface{}{
 			"internalPrefixes": internalPrefixes,
+			"rateLimits":       rateLimits,
 		},
 		"limitValidatingWebhook": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
-			"url":     url,
-			"ca":      caBundle,
+			"url":     limitURL,
+			"ca":      limitCABundle,
 		},
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
 		"accountingExporter": map[string]interface{}{
 			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
+		},
+		"splunkAuditWebhook": map[string]interface{}{
+			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
+			"url":     splunkURL,
+			"ca":      splunkCABundle,
 		},
 	}
 
@@ -583,10 +644,11 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 		},
 	}
 
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.Shoot.Status.TechnicalID, client.Options{})
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
 	if err != nil {
 		return errors.Wrap(err, "could not create shoot client")
 	}
+
 	cs, err := kubernetes.NewForConfig(shootConfig)
 	if err != nil {
 		return errors.Wrap(err, "could not create shoot kubernetes client")
@@ -732,9 +794,8 @@ func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *
 		"splunkAuditWebhook": map[string]interface{}{
 			"enabled": config.Enabled,
 			"hecEndpoint": map[string]interface{}{
-				// FIXME These values are placeholders for now and need to be retrieved from some form of secret storage.
-				"url":   "https://splunk.example.org/",
-				"token": "Token_00000000-0000-0000-0000-000000000000",
+				"url":   config.HecURL,
+				"token": config.HecToken,
 			},
 		},
 	}

@@ -1,0 +1,19 @@
+{{- if .Values.splunkAuditWebhook.enabled }}
+---
+apiVersion: auditregistration.k8s.io/v1alpha1
+kind: AuditSink
+metadata:
+    name: splunk-audit-sink
+spec:
+    policy:
+        level: Metadata
+        stages:
+        - ResponseComplete
+    webhook:
+        throttle:
+            qps: 10
+            burst: 15
+        clientConfig:
+            url: "{{ .Values.splunkAuditWebhook.url }}"
+            caBundle: "{{ .Values.splunkAuditWebhook.ca }}"
+{{- end }}

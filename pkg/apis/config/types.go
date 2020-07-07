@@ -86,6 +86,10 @@ type Auth struct {
 type SplunkAudit struct {
 	// Enabled enables the deployment of splunk auditlog webhook when set to true.
 	Enabled bool
+	// hecURL is the URL of the splunk hec endpoint that receives the audit log data.
+	HecURL string
+	// hecToken is the token that needs to be sent to the splunk endpoint.
+	HecToken string
 }
 
 // AccountingExporterConfiguration contains the configuration for the accounting exporter.
@@ -93,7 +97,7 @@ type AccountingExporterConfiguration struct {
 	// Enabled enables the deployment of the accounting exporter when set to true.
 	Enabled bool
 	// NetworkTraffic contains the configuration for accounting network traffic
-	NetworkTraffic  AccountingExporterNetworkTrafficConfiguration
+	NetworkTraffic AccountingExporterNetworkTrafficConfiguration
 	// Client contains the configuration for the accounting exporter client.
 	Client AccountingExporterClientConfiguration
 }
