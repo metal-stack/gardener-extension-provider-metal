@@ -247,6 +247,12 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 
 			currentNetworks := sets.NewString()
 			for _, n := range fw.Allocation.Networks {
+				if *n.Private {
+					continue
+				}
+				if *n.Underlay {
+					continue
+				}
 				currentNetworks.Insert(*n.Networkid)
 			}
 			wantNetworks := sets.NewString()
