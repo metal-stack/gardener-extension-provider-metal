@@ -9,7 +9,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -69,19 +68,7 @@ var (
 )
 
 func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
-	return Reconcile(ctx, a.logger, a.restConfig, a.client, a.decoder, cluster, infrastructure)
-}
-
-func Reconcile(
-	ctx context.Context,
-	logger logr.Logger,
-	restConfig *rest.Config,
-	c client.Client,
-	decoder runtime.Decoder,
-	cluster *extensionscontroller.Cluster,
-	infrastructure *extensionsv1alpha1.Infrastructure,
-) error {
-	internalInfrastructureConfig, internalInfrastructureStatus, err := decodeInfrastructure(infrastructure, decoder)
+	internalInfrastructureConfig, internalInfrastructureStatus, err := decodeInfrastructure(infrastructure, a.decoder)
 	if err != nil {
 		return err
 	}
@@ -96,25 +83,25 @@ func Reconcile(
 		return err
 	}
 
-	mclient, err := metalclient.NewClient(ctx, c, metalControlPlane.Endpoint, &infrastructure.Spec.SecretRef)
+	mclient, err := metalclient.NewClient(ctx, a.client, metalControlPlane.Endpoint, &infrastructure.Spec.SecretRef)
 	if err != nil {
 		return err
 	}
 
-	clientset, err := kubernetes.NewForConfig(restConfig)
+	clientset, err := kubernetes.NewForConfig(a.restConfig)
 	if err != nil {
 		return errors.Wrap(err, "could not create kubernetes clientset")
 	}
 
-	gardenerClientset, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(restConfig))
+	gardenerClientset, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(a.restConfig))
 	if err != nil {
 		return errors.Wrap(err, "could not create gardener clientset")
 	}
 
 	reconciler := &firewallReconciler{
-		logger:               logger,
-		restConfig:           restConfig,
-		c:                    c,
+		logger:               a.logger,
+		restConfig:           a.restConfig,
+		c:                    a.client,
 		clientset:            clientset,
 		gc:                   gardenerClientset,
 		infrastructure:       infrastructure,

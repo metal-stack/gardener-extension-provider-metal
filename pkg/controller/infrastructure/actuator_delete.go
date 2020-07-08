@@ -7,8 +7,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -38,19 +36,7 @@ type firewallDeleter struct {
 }
 
 func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
-	return Delete(ctx, a.logger, a.restConfig, a.client, a.decoder, infrastructure, cluster)
-}
-
-func Delete(
-	ctx context.Context,
-	logger logr.Logger,
-	restConfig *rest.Config,
-	c client.Client,
-	decoder runtime.Decoder,
-	infrastructure *extensionsv1alpha1.Infrastructure,
-	cluster *extensionscontroller.Cluster,
-) error {
-	internalInfrastructureConfig, internalInfrastructureStatus, err := decodeInfrastructure(infrastructure, decoder)
+	internalInfrastructureConfig, internalInfrastructureStatus, err := decodeInfrastructure(infrastructure, a.decoder)
 	if err != nil {
 		return err
 	}
@@ -65,14 +51,14 @@ func Delete(
 		return err
 	}
 
-	mclient, err := metalclient.NewClient(ctx, c, metalControlPlane.Endpoint, &infrastructure.Spec.SecretRef)
+	mclient, err := metalclient.NewClient(ctx, a.client, metalControlPlane.Endpoint, &infrastructure.Spec.SecretRef)
 	if err != nil {
 		return err
 	}
 
 	deleter := &firewallDeleter{
-		logger:               logger,
-		c:                    c,
+		logger:               a.logger,
+		c:                    a.client,
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
 		providerStatus:       internalInfrastructureStatus,
