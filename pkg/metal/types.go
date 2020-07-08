@@ -41,10 +41,22 @@ const (
 	// MachineControllerManagerName is a constant for the name of the machine-controller-manager.
 	MachineControllerManagerName = "machine-controller-manager"
 
-	// AuthN Webhook
-	AuthNWebHookConfigName        = "authn-webhook-config"
-	AuthNWebHookCertName          = "authn-webhook-cert"
-	ShootExtensionTypeTokenIssuer = "tokenissuer"
+	AuthNWebHookConfigName               = "authn-webhook-config"
+	AuthNWebHookCertName                 = "authn-webhook-cert"
+	ShootExtensionTypeTokenIssuer        = "tokenissuer"
+	DroptailerNamespace                  = "firewall"
+	DroptailerClientSecretName           = "droptailer-client"
+	DroptailerServerSecretName           = "droptailer-server"
+	CloudControllerManagerDeploymentName = "cloud-controller-manager"
+	CloudControllerManagerServerName     = "cloud-controller-manager-server"
+	GroupRolebindingControllerName       = "group-rolebinding-controller"
+	LimitValidatingWebhookDeploymentName = "limit-validating-webhook"
+	LimitValidatingWebhookServerName     = "limit-validating-webhook-server"
+	AccountingExporterName               = "accounting-exporter"
+	AuthNWebhookDeploymentName           = "kube-jwt-authn-webhook"
+	AuthNWebhookServerName               = "kube-jwt-authn-webhook-server"
+	SplunkAuditWebhookDeploymentName     = "splunk-audit-webhook"
+	SplunkAuditWebhookServerName         = "splunk-audit-webhook-server"
 )
 
 var (
