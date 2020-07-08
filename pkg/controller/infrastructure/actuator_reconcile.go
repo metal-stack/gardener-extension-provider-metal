@@ -143,14 +143,14 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 
 	switch action {
 	case firewallActionDoNothing:
-		r.logger.Info("firewall reconciled, nothing to be done", "cluster", r.clusterID, "machine-id", r.providerStatus.Firewall.MachineID)
+		r.logger.Info("firewall reconciled, nothing to be done", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.providerStatus.Firewall.MachineID)
 		return nil
 	case firewallActionCreate:
 		err := createFirewall(ctx, r)
 		if err != nil {
 			return err
 		}
-		r.logger.Info("firewall created", "cluster", r.clusterID, "machine-id", r.providerStatus.Firewall.MachineID)
+		r.logger.Info("firewall created", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.providerStatus.Firewall.MachineID)
 		return nil
 	case firewallActionUpdateCreationProgress:
 		succeeded, err := hasFirewallSucceeded(r.machineID, r.mclient)
@@ -158,7 +158,7 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 			return err
 		}
 
-		r.logger.Info("firewall creation in progress", "cluster", r.clusterID, "succeeded", succeeded)
+		r.logger.Info("firewall creation in progress", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "succeeded", succeeded)
 		r.providerStatus.Firewall.Succeeded = succeeded
 		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, r.infrastructure.Status.NodesCIDR)
 	case firewallActionRecreate:
@@ -166,24 +166,24 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 		if err != nil {
 			return err
 		}
-		r.logger.Info("firewall removed from status", "cluster", r.clusterID)
+		r.logger.Info("firewall removed from status", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.machineID)
 		err = createFirewall(ctx, r)
 		if err != nil {
 			return err
 		}
-		r.logger.Info("firewall created", "cluster", r.clusterID, "machine-id", r.providerStatus.Firewall.MachineID)
+		r.logger.Info("firewall created", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.providerStatus.Firewall.MachineID)
 		return nil
 	case firewallActionDeleteAndRecreate:
 		err := deleteFirewallFromStatus(ctx, r)
 		if err != nil {
 			return err
 		}
-		r.logger.Info("firewall removed from status", "cluster", r.clusterID, "machine-id", r.machineID)
+		r.logger.Info("firewall removed from status", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.machineID)
 		err = deleteFirewall(r.logger, r.machineID, r.infrastructureConfig.ProjectID, r.clusterTag, r.mclient)
 		if err != nil {
 			return err
 		}
-		r.logger.Info("firewall deleted", "cluster", r.clusterID, "machine-id", r.machineID)
+		r.logger.Info("firewall deleted", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.machineID)
 		err = createFirewall(ctx, r)
 		if err != nil {
 			return err
