@@ -188,6 +188,7 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 		if err != nil {
 			return err
 		}
+		r.logger.Info("firewall created", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.providerStatus.Firewall.MachineID)
 		return nil
 	default:
 		return fmt.Errorf("unsupported firewall reconcile action: %s", action)
