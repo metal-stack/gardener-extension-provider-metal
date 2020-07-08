@@ -224,8 +224,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 
 			if fw.Size.ID != nil && *fw.Size.ID != r.infrastructureConfig.Firewall.Size {
 				r.logger.Info("firewall size has changed", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Size.ID, "new", r.infrastructureConfig.Firewall.Size)
-				// FIXME: Comment in when tested thoroughly
-				// return firewallActionDeleteAndRecreate, nil
+				return firewallActionDeleteAndRecreate, nil
 			}
 
 			if fw.Allocation != nil && fw.Allocation.Image != nil && fw.Allocation.Image.ID != nil && *fw.Allocation.Image.ID != r.infrastructureConfig.Firewall.Image {
@@ -240,8 +239,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 
 				if image.Image != nil && image.Image.ID != nil && *image.Image.ID != *fw.Allocation.Image.ID {
 					r.logger.Info("firewall image has changed", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Allocation.Image.ID, "new", *image.Image.ID)
-					// FIXME: Comment in when tested thoroughly
-					// return firewallActionDeleteAndRecreate, nil
+					return firewallActionDeleteAndRecreate, nil
 				}
 			}
 
@@ -261,8 +259,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 			}
 			if !currentNetworks.Equal(wantNetworks) {
 				r.logger.Info("firewall networks have changed", "clusterid", r.clusterID, "machineid", r.machineID, "current", currentNetworks.List(), "new", wantNetworks.List())
-				// FIXME: Comment in when tested thoroughly
-				// return firewallActionDeleteAndRecreate, nil
+				return firewallActionDeleteAndRecreate, nil
 			}
 
 			return firewallActionDoNothing, nil
