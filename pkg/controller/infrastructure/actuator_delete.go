@@ -167,8 +167,12 @@ func deleteFirewall(logger logr.Logger, machineID string, projectID string, clus
 		}
 	}
 
-	if len(firewalls) > 0 {
-		if *firewalls[0].ID != machineID {
+	switch len(firewalls) {
+	case 0:
+		return nil
+	case 1:
+		actualID := *firewalls[0].ID
+		if actualID != machineID {
 			return fmt.Errorf("firewall from provider status does not match actual cluster firewall, can't do anything")
 		}
 
@@ -180,7 +184,8 @@ func deleteFirewall(logger logr.Logger, machineID string, projectID string, clus
 				RequeueAfter: 30 * time.Second,
 			}
 		}
+		return nil
+	default:
+		return fmt.Errorf("multiple firewalls exist for this cluster, which should not happen. please delete firewalls manually.")
 	}
-
-	return nil
 }
