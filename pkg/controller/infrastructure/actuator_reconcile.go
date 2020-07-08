@@ -143,12 +143,14 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 
 	switch action {
 	case firewallActionDoNothing:
+		r.logger.Info("firewall reconciled, nothing to be done", "cluster", r.clusterID, "machine-id", r.providerStatus.Firewall.MachineID)
 		return nil
 	case firewallActionCreate:
 		err := createFirewall(ctx, r)
 		if err != nil {
 			return err
 		}
+		r.logger.Info("firewall created", "cluster", r.clusterID, "machine-id", r.providerStatus.Firewall.MachineID)
 		return nil
 	case firewallActionUpdateCreationProgress:
 		succeeded, err := hasFirewallSucceeded(r.machineID, r.mclient)
@@ -156,6 +158,7 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 			return err
 		}
 
+		r.logger.Info("firewall creation in progress", "cluster", r.clusterID, "succeeded", succeeded)
 		r.providerStatus.Firewall.Succeeded = succeeded
 		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, r.infrastructure.Status.NodesCIDR)
 	case firewallActionRecreate:
@@ -163,20 +166,24 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 		if err != nil {
 			return err
 		}
+		r.logger.Info("firewall removed from status", "cluster", r.clusterID)
 		err = createFirewall(ctx, r)
 		if err != nil {
 			return err
 		}
+		r.logger.Info("firewall created", "cluster", r.clusterID, "machine-id", r.providerStatus.Firewall.MachineID)
 		return nil
 	case firewallActionDeleteAndRecreate:
 		err := deleteFirewallFromStatus(ctx, r)
 		if err != nil {
 			return err
 		}
+		r.logger.Info("firewall removed from status", "cluster", r.clusterID, "machine-id", r.machineID)
 		err = deleteFirewall(r.logger, r.machineID, r.infrastructureConfig.ProjectID, r.clusterTag, r.mclient)
 		if err != nil {
 			return err
 		}
+		r.logger.Info("firewall deleted", "cluster", r.clusterID, "machine-id", r.machineID)
 		err = createFirewall(ctx, r)
 		if err != nil {
 			return err
@@ -216,8 +223,9 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 			}
 
 			if fw.Size.ID != nil && *fw.Size.ID != r.infrastructureConfig.Firewall.Size {
-				r.logger.Info("firewall size has changed, recreating firewall", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Size.ID, "new", r.infrastructureConfig.Firewall.Size)
-				return firewallActionDeleteAndRecreate, nil
+				r.logger.Info("firewall size has changed", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Size.ID, "new", r.infrastructureConfig.Firewall.Size)
+				// FIXME: Comment in when tested thoroughly
+				// return firewallActionDeleteAndRecreate, nil
 			}
 
 			if fw.Allocation != nil && fw.Allocation.Image != nil && fw.Allocation.Image.ID != nil && *fw.Allocation.Image.ID != r.infrastructureConfig.Firewall.Image {
@@ -231,7 +239,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 				}
 
 				if image.Image != nil && image.Image.ID != nil && *image.Image.ID != *fw.Allocation.Image.ID {
-					r.logger.Info("firewall image has changed, recreating firewall", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Allocation.Image.ID, "new", *image.Image.ID)
+					r.logger.Info("firewall image has changed", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Allocation.Image.ID, "new", *image.Image.ID)
 					// FIXME: Comment in when tested thoroughly
 					// return firewallActionDeleteAndRecreate, nil
 				}
@@ -246,7 +254,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 				wantNetworks.Insert(n)
 			}
 			if !currentNetworks.Equal(wantNetworks) {
-				r.logger.Info("firewall networks have changed, recreating firewall", "clusterid", r.clusterID, "machineid", r.machineID, "current", currentNetworks.List(), "new", wantNetworks.List())
+				r.logger.Info("firewall networks have changed", "clusterid", r.clusterID, "machineid", r.machineID, "current", currentNetworks.List(), "new", wantNetworks.List())
 				// FIXME: Comment in when tested thoroughly
 				// return firewallActionDeleteAndRecreate, nil
 			}
@@ -365,12 +373,10 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 		},
 	}
 
-	r.logger.Info("create firewall", "name", createRequest.Name)
 	fcr, err := r.mclient.FirewallCreate(createRequest)
 	if err != nil {
-		r.logger.Error(err, "failed to create firewall", "infrastructure", r.infrastructure.Name)
 		return &controllererrors.RequeueAfterError{
-			Cause:        err,
+			Cause:        errors.Wrap(err, "failed to create firewall"),
 			RequeueAfter: 30 * time.Second,
 		}
 	}

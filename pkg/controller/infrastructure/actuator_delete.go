@@ -93,13 +93,13 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		if err != nil {
 			return err
 		}
+		d.logger.Info("firewall deleted", "clusterTag", d.clusterTag, "machineid", d.machineID)
 
 		d.providerStatus.Firewall.MachineID = ""
 		err = updateProviderStatus(ctx, d.c, d.infrastructure, d.providerStatus, d.infrastructure.Status.NodesCIDR)
 		if err != nil {
 			return err
 		}
-
 	}
 
 	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(d.mclient, d.projectID, d.clusterID)
@@ -176,7 +176,6 @@ func deleteFirewall(logger logr.Logger, machineID string, projectID string, clus
 			return fmt.Errorf("firewall from provider status does not match actual cluster firewall, can't do anything")
 		}
 
-		logger.Info("deleting firewall", "clusterTag", clusterTag, "machineid", machineID)
 		_, err = mclient.MachineDelete(machineID)
 		if err != nil {
 			return &controllererrors.RequeueAfterError{
