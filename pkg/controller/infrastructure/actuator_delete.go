@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -80,7 +79,7 @@ func Delete(
 		cluster:              cluster,
 		mclient:              mclient,
 		clusterID:            string(cluster.Shoot.GetUID()),
-		clusterTag:           fmt.Sprintf("%s=%s", tag.ClusterID, string(cluster.Shoot.GetUID())),
+		clusterTag:           ClusterTag(string(cluster.Shoot.GetUID())),
 		machineID:            decodeMachineID(internalInfrastructureStatus.Firewall.MachineID),
 		projectID:            internalInfrastructureConfig.ProjectID,
 	}

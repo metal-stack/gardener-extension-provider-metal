@@ -10,6 +10,7 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,9 +61,11 @@ const (
 )
 
 var (
-	firewallActionRecreate          firewallReconcileAction = "recreate"
-	firewallActionDeleteAndRecreate firewallReconcileAction = "delete"
-	firewallActionDoNothing         firewallReconcileAction = "nothing"
+	firewallActionRecreate               firewallReconcileAction = "recreate"
+	firewallActionDeleteAndRecreate      firewallReconcileAction = "delete"
+	firewallActionDoNothing              firewallReconcileAction = "nothing"
+	firewallActionUpdateCreationProgress firewallReconcileAction = "update-creation-progress"
+	firewallActionCreate                 firewallReconcileAction = "create"
 )
 
 func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
@@ -120,7 +123,7 @@ func Reconcile(
 		cluster:              cluster,
 		mclient:              mclient,
 		clusterID:            string(cluster.Shoot.GetUID()),
-		clusterTag:           fmt.Sprintf("%s=%s", tag.ClusterID, string(cluster.Shoot.GetUID())),
+		clusterTag:           ClusterTag(string(cluster.Shoot.GetUID())),
 		machineID:            decodeMachineID(internalInfrastructureStatus.Firewall.MachineID),
 	}
 
@@ -133,38 +136,21 @@ func Reconcile(
 }
 
 func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
-	var (
-		firewallInProgress = r.machineID != "" && !r.providerStatus.Firewall.Succeeded
-	)
-
-	if r.providerStatus.Firewall.Succeeded {
-		action, err := firewallNextAction(ctx, r)
-		if err != nil {
-			return err
-		}
-
-		switch action {
-		case firewallActionDoNothing:
-			return nil
-		case firewallActionRecreate:
-		case firewallActionDeleteAndRecreate:
-			err := deleteFirewall(r.logger, r.machineID, r.infrastructureConfig.ProjectID, r.clusterTag, r.mclient)
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("unsupported firewall action: %s", action)
-		}
-
-		r.providerStatus.Firewall.MachineID = ""
-		r.providerStatus.Firewall.Succeeded = false
-		err = updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, r.infrastructure.Status.NodesCIDR)
-		if err != nil {
-			return err
-		}
+	action, err := firewallNextAction(ctx, r)
+	if err != nil {
+		return err
 	}
 
-	if firewallInProgress {
+	switch action {
+	case firewallActionDoNothing:
+		return nil
+	case firewallActionCreate:
+		err := createFirewall(ctx, r)
+		if err != nil {
+			return err
+		}
+		return nil
+	case firewallActionUpdateCreationProgress:
 		succeeded, err := hasFirewallSucceeded(r.machineID, r.mclient)
 		if err != nil {
 			return err
@@ -172,73 +158,116 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 
 		r.providerStatus.Firewall.Succeeded = succeeded
 		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, r.infrastructure.Status.NodesCIDR)
+	case firewallActionRecreate:
+		err := deleteFirewallFromStatus(ctx, r)
+		if err != nil {
+			return err
+		}
+		err = createFirewall(ctx, r)
+		if err != nil {
+			return err
+		}
+		return nil
+	case firewallActionDeleteAndRecreate:
+		err := deleteFirewallFromStatus(ctx, r)
+		if err != nil {
+			return err
+		}
+		err = deleteFirewall(r.logger, r.machineID, r.infrastructureConfig.ProjectID, r.clusterTag, r.mclient)
+		if err != nil {
+			return err
+		}
+		err = createFirewall(ctx, r)
+		if err != nil {
+			return err
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported firewall reconcile action: %s", action)
 	}
-
-	err := createFirewall(ctx, r)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallReconcileAction, error) {
-	firewalls, err := metalclient.FindClusterFirewalls(r.mclient, r.clusterTag, r.infrastructureConfig.ProjectID)
-	if err != nil {
-		return firewallActionDoNothing, &controllererrors.RequeueAfterError{
-			Cause:        err,
-			RequeueAfter: 30 * time.Second,
-		}
-	}
-
-	clusterFirewallAmount := len(firewalls)
-	switch clusterFirewallAmount {
-	case 0:
-		r.logger.Info("firewall does not exist anymore, recreation required", "clusterid", r.clusterID, "machineid", r.machineID)
-		return firewallActionRecreate, nil
-	case 1:
-		fw := firewalls[0]
-		if *fw.ID != r.machineID {
-			r.logger.Error(
-				fmt.Errorf("machine id of this cluster's firewall differs from infrastructure status"),
-				"leaving as it is, but something unexpected must have happened in the past. if you want to get to a clean state, remove the firewall by hand (causes downtime!) and reconcile infrastructure again",
-				"clusterID", r.clusterID,
-				"expectedMachineID", r.machineID,
-				"actualMachineID", *fw.ID,
-			)
-			return firewallActionDoNothing, nil
+	if r.providerStatus.Firewall.Succeeded {
+		firewalls, err := metalclient.FindClusterFirewalls(r.mclient, r.clusterTag, r.infrastructureConfig.ProjectID)
+		if err != nil {
+			return firewallActionDoNothing, &controllererrors.RequeueAfterError{
+				Cause:        err,
+				RequeueAfter: 30 * time.Second,
+			}
 		}
 
-		if fw.Size.ID != nil && *fw.Size.ID != r.infrastructureConfig.Firewall.Size {
-			r.logger.Info("firewall size has changed, recreating firewall", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Size.ID, "new", r.infrastructureConfig.Firewall.Size)
-			return firewallActionDeleteAndRecreate, nil
-		}
+		clusterFirewallAmount := len(firewalls)
+		switch clusterFirewallAmount {
+		case 0:
+			r.logger.Info("firewall does not exist anymore, recreation required", "clusterid", r.clusterID, "machineid", r.machineID)
+			return firewallActionRecreate, nil
+		case 1:
+			fw := firewalls[0]
+			if *fw.ID != r.machineID {
+				r.logger.Error(
+					fmt.Errorf("machine id of this cluster's firewall differs from infrastructure status"),
+					"leaving as it is, but something unexpected must have happened in the past. if you want to get to a clean state, remove the firewall by hand (causes downtime!) and reconcile infrastructure again",
+					"clusterID", r.clusterID,
+					"expectedMachineID", r.machineID,
+					"actualMachineID", *fw.ID,
+				)
+				return firewallActionDoNothing, nil
+			}
 
-		if fw.Allocation != nil && fw.Allocation.Image != nil && fw.Allocation.Image.ID != nil && *fw.Allocation.Image.ID != r.infrastructureConfig.Firewall.Image {
-			want := r.infrastructureConfig.Firewall.Image
-			image, err := r.mclient.ImageGetLatest(want)
-			if err != nil {
-				return firewallActionDoNothing, &controllererrors.RequeueAfterError{
-					Cause:        err,
-					RequeueAfter: 30 * time.Second,
+			if fw.Size.ID != nil && *fw.Size.ID != r.infrastructureConfig.Firewall.Size {
+				r.logger.Info("firewall size has changed, recreating firewall", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Size.ID, "new", r.infrastructureConfig.Firewall.Size)
+				return firewallActionDeleteAndRecreate, nil
+			}
+
+			if fw.Allocation != nil && fw.Allocation.Image != nil && fw.Allocation.Image.ID != nil && *fw.Allocation.Image.ID != r.infrastructureConfig.Firewall.Image {
+				want := r.infrastructureConfig.Firewall.Image
+				image, err := r.mclient.ImageGetLatest(want)
+				if err != nil {
+					return firewallActionDoNothing, &controllererrors.RequeueAfterError{
+						Cause:        err,
+						RequeueAfter: 30 * time.Second,
+					}
+				}
+
+				if image.Image != nil && image.Image.ID != nil && *image.Image.ID != *fw.Allocation.Image.ID {
+					r.logger.Info("firewall image has changed, recreating firewall", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Allocation.Image.ID, "new", *image.Image.ID)
+					// FIXME: Comment in when tested thoroughly
+					// return firewallActionDeleteAndRecreate, nil
 				}
 			}
 
-			if image.Image != nil && image.Image.ID != nil && *image.Image.ID != *fw.Allocation.Image.ID {
-				r.logger.Info("firewall image has changed, recreating firewall", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Allocation.Image.ID, "new", *image.Image.ID)
-				return firewallActionDeleteAndRecreate, nil
+			currentNetworks := sets.NewString()
+			for _, n := range fw.Allocation.Networks {
+				currentNetworks.Insert(*n.Networkid)
 			}
-		}
+			wantNetworks := sets.NewString()
+			for _, n := range r.infrastructureConfig.Firewall.Networks {
+				wantNetworks.Insert(n)
+			}
+			if !currentNetworks.Equal(wantNetworks) {
+				r.logger.Info("firewall networks have changed, recreating firewall", "clusterid", r.clusterID, "machineid", r.machineID, "current", currentNetworks.List(), "new", wantNetworks.List())
+				// FIXME: Comment in when tested thoroughly
+				// return firewallActionDeleteAndRecreate, nil
+			}
 
-		return firewallActionDoNothing, nil
-	default:
-		r.logger.Error(
-			fmt.Errorf("multiple firewalls exist for this cluster, which is currently unsupported. delete these firewalls and try to keep the one with machine id %q", r.machineID),
-			"clusterID", r.clusterID,
-			"expectedMachineID", r.machineID,
-		)
-		return firewallActionDoNothing, nil
+			return firewallActionDoNothing, nil
+		default:
+			r.logger.Error(
+				fmt.Errorf("multiple firewalls exist for this cluster, which is currently unsupported. delete these firewalls and try to keep the one with machine id %q", r.machineID),
+				"clusterID", r.clusterID,
+				"expectedMachineID", r.machineID,
+			)
+			return firewallActionDoNothing, nil
+		}
 	}
+
+	firewallInProgress := r.machineID != "" && !r.providerStatus.Firewall.Succeeded
+	if firewallInProgress {
+		return firewallActionUpdateCreationProgress, nil
+	}
+
+	return firewallActionCreate, nil
 }
 
 func hasFirewallSucceeded(machineID string, mclient *metalgo.Driver) (bool, error) {
@@ -265,7 +294,7 @@ func hasFirewallSucceeded(machineID string, mclient *metalgo.Driver) (bool, erro
 }
 
 func createFirewall(ctx context.Context, r *firewallReconciler) error {
-	nodeCIDR, err := ensureNodeNetwork(ctx, r.clusterID, r.mclient, r.infrastructure, r.infrastructureConfig, r.cluster)
+	nodeCIDR, err := ensureNodeNetwork(ctx, r)
 	if err != nil {
 		return &controllererrors.RequeueAfterError{
 			Cause:        err,
@@ -295,7 +324,7 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 		return err
 	}
 
-	kubeconfig, kubeconfigCompatibility, err := createFirewallControllerKubeconfig(ctx, r.clientset, r.gc, r.infrastructure, r.cluster)
+	kubeconfig, kubeconfigCompatibility, err := createFirewallControllerKubeconfig(ctx, r)
 	if err != nil {
 		return err
 	}
@@ -359,33 +388,33 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 	return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
 }
 
-func ensureNodeNetwork(ctx context.Context, clusterID string, mclient *metalgo.Driver, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *metalapi.InfrastructureConfig, cluster *extensionscontroller.Cluster) (string, error) {
-	if cluster.Shoot.Spec.Networking.Nodes != nil {
-		return *cluster.Shoot.Spec.Networking.Nodes, nil
+func ensureNodeNetwork(ctx context.Context, r *firewallReconciler) (string, error) {
+	if r.cluster.Shoot.Spec.Networking.Nodes != nil {
+		return *r.cluster.Shoot.Spec.Networking.Nodes, nil
 	}
-	if infrastructure.Status.NodesCIDR != nil {
-		resp, err := mclient.NetworkFind(&metalgo.NetworkFindRequest{
-			ProjectID:   &infrastructureConfig.ProjectID,
-			PartitionID: &infrastructureConfig.PartitionID,
-			Labels:      map[string]string{tag.ClusterID: clusterID},
+	if r.infrastructure.Status.NodesCIDR != nil {
+		resp, err := r.mclient.NetworkFind(&metalgo.NetworkFindRequest{
+			ProjectID:   &r.infrastructureConfig.ProjectID,
+			PartitionID: &r.infrastructureConfig.PartitionID,
+			Labels:      map[string]string{tag.ClusterID: r.clusterID},
 		})
 		if err != nil {
 			return "", err
 		}
 
 		if len(resp.Networks) != 0 {
-			return *infrastructure.Status.NodesCIDR, nil
+			return *r.infrastructure.Status.NodesCIDR, nil
 		}
 
-		return "", fmt.Errorf("node network disappeared from cloud provider: %s", *infrastructure.Status.NodesCIDR)
+		return "", fmt.Errorf("node network disappeared from cloud provider: %s", *r.infrastructure.Status.NodesCIDR)
 	}
 
-	resp, err := mclient.NetworkAllocate(&metalgo.NetworkAllocateRequest{
-		ProjectID:   infrastructureConfig.ProjectID,
-		PartitionID: infrastructureConfig.PartitionID,
-		Name:        cluster.Shoot.GetName(),
-		Description: clusterID,
-		Labels:      map[string]string{tag.ClusterID: clusterID},
+	resp, err := r.mclient.NetworkAllocate(&metalgo.NetworkAllocateRequest{
+		ProjectID:   r.infrastructureConfig.ProjectID,
+		PartitionID: r.infrastructureConfig.PartitionID,
+		Name:        r.cluster.Shoot.GetName(),
+		Description: r.clusterID,
+		Labels:      map[string]string{tag.ClusterID: r.clusterID},
 	})
 	if err != nil {
 		return "", err
@@ -396,14 +425,8 @@ func ensureNodeNetwork(ctx context.Context, clusterID string, mclient *metalgo.D
 	return nodeCIDR, nil
 }
 
-func createFirewallControllerKubeconfig(
-	ctx context.Context,
-	c kubernetes.Interface,
-	gc gardenerkubernetes.Interface,
-	infrastructure *extensionsv1alpha1.Infrastructure,
-	cluster *extensionscontroller.Cluster,
-) (string, string, error) {
-	apiServerURL := fmt.Sprintf("api.%s", *cluster.Shoot.Spec.DNS.Domain)
+func createFirewallControllerKubeconfig(ctx context.Context, r *firewallReconciler) (string, string, error) {
+	apiServerURL := fmt.Sprintf("api.%s", *r.cluster.Shoot.Spec.DNS.Domain)
 	infrastructureSecrets := &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
 			v1alpha1constants.SecretNameCACluster: {
@@ -445,7 +468,7 @@ func createFirewallControllerKubeconfig(
 		},
 	}
 
-	secret, err := infrastructureSecrets.Deploy(ctx, c, gc, infrastructure.Namespace)
+	secret, err := infrastructureSecrets.Deploy(ctx, r.clientset, r.gc, r.infrastructure.Namespace)
 	if err != nil {
 		return "", "", err
 	}
@@ -533,4 +556,18 @@ func renderFirewallUserData(kubeconfig, kubeconfigCompatibility string) (string,
 	}
 
 	return string(userData), nil
+}
+
+func deleteFirewallFromStatus(ctx context.Context, r *firewallReconciler) error {
+	r.providerStatus.Firewall.MachineID = ""
+	r.providerStatus.Firewall.Succeeded = false
+	err := updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, r.infrastructure.Status.NodesCIDR)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ClusterTag(clusterID string) string {
+	return fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
 }
