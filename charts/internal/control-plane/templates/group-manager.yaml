@@ -1,0 +1,179 @@
+{{- if .Values.groupManager.enabled }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: idm-certificates
+type: Opaque
+data:
+  ca.pem: {{ required ".Values.groupManager.tls.ca is required" (b64enc .Values.groupManager.tls.ca) }}
+  clientcertificate.pem: {{ required ".Values.groupManager.tls.cert is required" (b64enc .Values.groupManager.tls.cert) }}
+  clientkey.pem: {{ required ".Values.groupManager.tls.certKey is required" (b64enc .Values.groupManager.tls.certKey) }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: idm-user
+type: Opaque
+data:
+  password: {{ b64enc .Values.groupManager.idmPassword }}
+  username: {{ b64enc .Values.groupManager.idmUser }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: group-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: group-manager
+  template:
+    metadata:
+      labels:
+        app: group-manager
+        networking.gardener.cloud/from-prometheus: allowed
+        networking.gardener.cloud/to-dns: allowed
+        networking.gardener.cloud/to-public-networks: allowed
+        networking.gardener.cloud/to-shoot-apiserver: allowed
+    spec:
+      containers:
+      - name: group-rolebinding-controller
+        image: {{ index .Values.images "group-rolebinding-controller" }}
+        imagePullPolicy: Always
+        args:
+        - --excludeNamespaces={{ .Values.groupManager.excludeNamespaces }}
+        - --expectedGroupsList=admin,edit,view
+        - --clustername={{ .Values.groupManager.clusterName }}
+        - --kubeconfig=/var/lib/group-rolebinding-controller/kubeconfig
+        - {{` --clusterGroupnameTemplate="oidc:{{ .Namespace }}-{{ .Group }}" `}}
+        - {{` --roleBindingNameTemplate="oidc-{{ .Namespace }}-{{ .Group }}" `}}
+        - --webhookURL=http://localhost:9000
+        - --providerWebhookURL=http://localhost:9001
+        - --providerOperated={{ .Values.groupManager.providerOperated }}
+        volumeMounts:
+        - mountPath: /var/lib/group-rolebinding-controller
+          name: group-rolebinding-controller
+      - name: group-webhook-provider
+        image: {{ index .Values.images "group-manager" }}
+        imagePullPolicy: Always
+        env:
+        - name: LISTEN
+          value: :9001
+        - name: IDMAPIURL
+          value: {{ .Values.groupManager.idmProviderSettings.apiURL }}
+        - name: IDMUSER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: idm-user
+        - name: IDMPASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: idm-user
+        - name: SUBMITTER
+          value: {{ .Values.groupManager.idmProviderSettings.owner }}
+        - name: JOBINFO
+          value: {{ .Values.groupManager.idmProviderSettings.jobInfo }}
+        - name: DOMAINNAME
+          value: {{ .Values.groupManager.idmProviderSettings.domainName }}
+        - name: TSID
+          value: {{ .Values.groupManager.idmProviderSettings.targetSystemID }}
+        - name: TSTYPE
+          value: {{ .Values.groupManager.idmProviderSettings.type }}
+        - name: REQSYSTEM
+          value: {{ .Values.groupManager.idmProviderSettings.requestSystem }}
+        - name: REQUSERID
+          value: {{ .Values.groupManager.idmProviderSettings.owner }}
+        - name: REQEMAIL
+          value: {{ .Values.groupManager.idmProviderSettings.requestEMail }}
+        - name: ACCESSCODE
+          value: {{ .Values.groupManager.idmProviderSettings.accessCode }}
+        - name: CUSTOMERID
+          value: {{ .Values.groupManager.idmProviderSettings.customerID }}
+        - name: GROUPOU
+          value: {{ .Values.groupManager.idmProviderSettings.group }}
+        - name: IDMGROUPNAMETEMPLATE
+          value: {{ .Values.groupManager.idmProviderSettings.groupNameTemplate }}
+        - name: IDMTENANTPREFIX
+          value: {{ .Values.groupManager.providerTenant }}
+        - name: CLIENTCERTPATH
+          value: /etc/idm/ssl/clientcertificate.pem
+        - name: CLIENTKEYCERTPATH
+          value: /etc/idm/ssl/clientkey.pem
+        - name: CLIENTCACERTPATH
+          value: /etc/idm/ssl/ca.pem
+        ports:
+        - containerPort: 9001
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /etc/idm/ssl
+          name: idm-ssl
+          readOnly: true
+      - name: group-webhook-tenant
+        image: {{ index .Values.images "group-manager" }}
+        imagePullPolicy: Always
+        env:
+        - name: LISTEN
+          value: :9000
+        - name: IDMAPIURL
+          value: {{ .Values.groupManager.idmTenantSettings.apiURL }}
+        - name: IDMUSER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: idm-user
+        - name: IDMPASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: idm-user
+        - name: SUBMITTER
+          value: {{ .Values.groupManager.idmTenantSettings.owner }}
+        - name: JOBINFO
+          value: {{ .Values.groupManager.idmTenantSettings.jobInfo }}
+        - name: DOMAINNAME
+          value: {{ .Values.groupManager.idmTenantSettings.domainName }}
+        - name: TSID
+          value: {{ .Values.groupManager.idmTenantSettings.targetSystemID }}
+        - name: TSTYPE
+          value: {{ .Values.groupManager.idmTenantSettings.type }}
+        - name: REQSYSTEM
+          value: {{ .Values.groupManager.idmTenantSettings.requestSystem }}
+        - name: REQUSERID
+          value: {{ .Values.groupManager.idmTenantSettings.owner }}
+        - name: REQEMAIL
+          value: {{ .Values.groupManager.idmTenantSettings.requestEMail }}
+        - name: ACCESSCODE
+          value: {{ .Values.groupManager.idmTenantSettings.accessCode }}
+        - name: CUSTOMERID
+          value: {{ .Values.groupManager.idmTenantSettings.customerID }}
+        - name: GROUPOU
+          value: {{ .Values.groupManager.idmTenantSettings.group }}
+        - name: IDMGROUPNAMETEMPLATE
+          value: {{ .Values.groupManager.idmTenantSettings.groupNameTemplate }}
+        - name: IDMTENANTPREFIX
+          value: {{ .Values.groupManager.idmTenantSettings.tenantPrefix }}
+        - name: CLIENTCERTPATH
+          value: /etc/idm/ssl/clientcertificate.pem
+        - name: CLIENTKEYCERTPATH
+          value: /etc/idm/ssl/clientkey.pem
+        - name: CLIENTCACERTPATH
+          value: /etc/idm/ssl/ca.pem
+        ports:
+        - containerPort: 9000
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /etc/idm/ssl
+          name: idm-ssl
+          readOnly: true
+      restartPolicy: Always
+      volumes:
+      - name: group-rolebinding-controller
+        secret:
+          secretName: group-rolebinding-controller
+      - name: idm-ssl
+        secret:
+          secretName: idm-certificates
+{{- end }}

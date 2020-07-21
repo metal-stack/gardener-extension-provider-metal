@@ -7,6 +7,7 @@ images:
   authn-webhook: image-repository:image-tag
   splunk-audit-webhook: image-repository:image-tag
   group-rolebinding-controller: image-repository:image-tag
+  group-manager: image-repository:image-tag
   accounting-exporter: image-repository:image-tag
   limit-validating-webhook: image-repository:image-tag
 
@@ -29,9 +30,54 @@ cloudControllerManager:
       cpu: 250m
       memory: 300Mi
 
-groupRolebindingController:
+groupManager:
   enabled: false
+  excludeNamespaces: kube-system,kube-public,kube-node-lease,default
   clusterName: cluster-name
+  providerOperated: true
+  providerTenant: provider-tenant
+  idmPassword:
+  idmUser:
+  tls:
+    ca: |
+      -----BEGIN CERTIFICATE-----
+      ...
+      -----END CERTIFICATE-----
+    cert: |
+      -----BEGIN CERTIFICATE-----
+      ...
+      -----END CERTIFICATE-----
+    certKey: |
+      -----BEGIN RSA PRIVATE KEY-----
+      ...
+      -----END RSA PRIVATE KEY-----
+  idmProviderSettings:
+    apiURL: https://idm
+    owner: owner-id
+    jobInfo: cloud native
+    domainName: ""
+    targetSystemID: id
+    type: AD
+    requestSystem: ""
+    requestEMail: ""
+    accessCode: ""
+    customerID: ""
+    group: ""
+    groupNameTemplate: '{{ .TenantPrefix }}{{ .Type }}_Srv_Appk8s-{{ .Clustername }}-{{ .Namespace }}-{{ .Group }}_Full'
+  idmTenantSettings:
+    apiURL: https://idm
+    owner: owner-id
+    jobInfo: cloud native
+    domainName: ""
+    targetSystemID: id
+    type: AD
+    requestSystem: ""
+    requestEMail: ""
+    accessCode: ""
+    customerID: ""
+    group: ""
+    groupNameTemplate: 'cn={{ .TenantPrefix }}_k8s-{{ .Clustername }}-{{ .Namespace }}-{{ .Group }}'
+    tenantPrefix: ""
 
 authnWebhook:
   enabled: false

@@ -12,6 +12,8 @@ const (
 	CCMImageName = "metalccm"
 	// GroupRolebindingControllerImageName is the name of the GroupRolebindingController image
 	GroupRolebindingControllerImageName = "group-rolebinding-controller"
+	// GroupManagerImageName is the name of the GroupManager image
+	GroupManagerImageName = "group-manager"
 	// AccountingExporterImageName is the name of the accounting exporter image
 	AccountingExporterImageName = "accounting-exporter"
 	// AuthNWebhookImageName is the name of the AuthN Webhook configured with the shoot kube-apiserver

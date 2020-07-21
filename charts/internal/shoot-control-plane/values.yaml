@@ -12,7 +12,7 @@ firewall:
 accountingExporter:
     enabled: false
 
-groupRolebindingController:
+groupManager:
     enabled: false
 
 limitValidatingWebhook:

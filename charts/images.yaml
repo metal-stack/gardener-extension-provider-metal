@@ -41,6 +41,10 @@ images:
 #   sourceRepository:
 #   repository:
 #   tag:
+# - name: group-manager
+#   sourceRepository:
+#   repository:
+#   tag:
 # - name: accounting-exporter
 #   sourceRepository:
 #   repository:

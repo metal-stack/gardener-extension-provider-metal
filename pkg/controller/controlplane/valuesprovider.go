@@ -62,7 +62,7 @@ import (
 const (
 	cloudControllerManagerDeploymentName = "cloud-controller-manager"
 	cloudControllerManagerServerName     = "cloud-controller-manager-server"
-	groupRolebindingControllerName       = "group-rolebinding-controller"
+	groupManagerName                     = "group-manager"
 	limitValidatingWebhookDeploymentName = "limit-validating-webhook"
 	limitValidatingWebhookServerName     = "limit-validating-webhook-server"
 	accountingExporterName               = "accounting-exporter"
@@ -100,8 +100,8 @@ var controlPlaneSecrets = &secrets.Secrets{
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         groupRolebindingControllerName,
-					CommonName:   "system:group-rolebinding-controller",
+					Name:         groupManagerName,
+					CommonName:   "system:group-manager",
 					Organization: []string{user.SystemPrivilegedGroup},
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
@@ -274,6 +274,7 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{
 			metal.AuthNWebhookImageName,
 			metal.GroupRolebindingControllerImageName,
+			metal.GroupManagerImageName,
 			metal.LimitValidatingWebhookImageName,
 		}...)
 		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
@@ -283,8 +284,8 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2kube-jwt-authn-webhook"},
 			{Type: &networkingv1.NetworkPolicy{}, Name: "kube-jwt-authn-webhook-allow-namespace"},
 
-			// group rolebinding controller
-			{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
+			// group manager
+			{Type: &appsv1.Deployment{}, Name: "group-manager"},
 
 			// limit validation webhook
 			{Type: &appsv1.Deployment{}, Name: "limit-validating-webhook"},
@@ -295,8 +296,8 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 			// limit validating webhook
 			{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "limit-validating-webhook"},
-			// group rolebinding controller
-			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
+			// group manager
+			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-manager"},
 		}...)
 	}
 	if controllerConfig.AccountingExporter.Enabled {
@@ -591,7 +592,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			"url":     limitURL,
 			"ca":      limitCABundle,
 		},
-		"groupRolebindingController": map[string]interface{}{
+		"groupManager": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
 		"accountingExporter": map[string]interface{}{
@@ -757,9 +758,8 @@ func getCCMChartValues(
 	return values, nil
 }
 
-// returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
+// returns values for "authn-webhook" and "group-manager" that are thematically related
 func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth) (map[string]interface{}, error) {
-
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
 	tenant := annotations[tag.ClusterTenant]
@@ -778,9 +778,47 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 			},
 		},
 
-		"groupRolebindingController": map[string]interface{}{
-			"enabled":     config.Enabled,
-			"clusterName": clusterName,
+		"groupManager": map[string]interface{}{
+			"enabled":          config.Enabled,
+			"clusterName":      clusterName,
+			"providerOperated": true, // TODO
+			"providerTenant":   config.ProviderTenant,
+			"idmPassword":      "", // TODO
+			"idmUser":          "", // TODO
+			"tls": map[string]interface{}{
+				"ca":      "", // TODO
+				"cert":    "", // TODO
+				"certKey": "", // TODO
+			},
+			"idmProviderSettings": map[string]interface{}{
+				"apiURL":            "", // TODO
+				"owner":             "", // TODO
+				"jobInfo":           "", // TODO
+				"domainName":        "", // TODO
+				"targetSystemID":    "", // TODO
+				"type":              "", // TODO
+				"requestSystem":     "", // TODO
+				"requestEMail":      "", // TODO
+				"accessCode":        "", // TODO
+				"customerID":        "", // TODO
+				"group":             "", // TODO
+				"groupNameTemplate": "", // TODO
+			},
+			"idmTenantSettings": map[string]interface{}{
+				"apiURL":            "", // TODO
+				"owner":             "", // TODO (contained in garden.sapcloud.io/owner annotation)
+				"jobInfo":           "", // TODO
+				"domainName":        "", // TODO
+				"targetSystemID":    "", // TODO
+				"type":              "", // TODO
+				"requestSystem":     "", // TODO
+				"requestEMail":      "", // TODO (contained in garden.sapcloud.io/owner annotation)
+				"accessCode":        "", // TODO
+				"customerID":        "", // TODO
+				"group":             "", // TODO
+				"groupNameTemplate": "", // TODO
+				"tenantPrefix":      tenant,
+			},
 		},
 	}
 
