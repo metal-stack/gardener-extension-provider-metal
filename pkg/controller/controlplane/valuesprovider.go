@@ -30,6 +30,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
+	storagev1beta1 "k8s.io/api/storage/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -243,11 +244,13 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "cloud-controller-manager"},
 	},
 }
-
 var storageClassChart = &chart.Chart{
-	Name:   "shoot-storageclasses",
-	Path:   filepath.Join(metal.InternalChartsPath, "shoot-storageclasses"),
-	Images: []string{metal.CSIControllerImageName, metal.CSIProvisionerImageName},
+	Name: "shoot-storageclasses",
+	Path: filepath.Join(metal.InternalChartsPath, "shoot-storageclasses"),
+	Images: []string{metal.CSIControllerImageName, metal.CSIProvisionerImageName,
+		metal.CSIPluginImageName, metal.CSIPluginProvisionerImageName,
+		metal.CSIExternalAttacherImageName, metal.CSIExternalProvisionerImageName, metal.CSIExternalResizerImageName,
+		metal.CSIExternalNodeDriverRegistrarImageName, metal.CSIExternalLivenessImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Namespace{}, Name: "csi-lvm"},
 		{Type: &storagev1.StorageClass{}, Name: "csi-lvm"},
@@ -262,6 +265,28 @@ var storageClassChart = &chart.Chart{
 		{Type: &rbacv1.Role{}, Name: "csi-lvm-reviver-psp"},
 		{Type: &rbacv1.RoleBinding{}, Name: "csi-lvm-reviver-psp"},
 		{Type: &appsv1.DaemonSet{}, Name: "csi-lvm-reviver"},
+
+		{Type: &storagev1beta1.CSIDriver{}, Name: "lvm.csi.metal-stack.io"},
+
+		{Type: &storagev1.StorageClass{}, Name: "csi-driver-lvm-linear"},
+		{Type: &storagev1.StorageClass{}, Name: "csi-driver-lvm-mirror"},
+		{Type: &storagev1.StorageClass{}, Name: "csi-driver-lvm-striped"},
+
+		{Type: &corev1.ServiceAccount{}, Name: "csi-driver-lvm-controller"},
+		{Type: &rbacv1.ClusterRole{}, Name: "csi-driver-lvm-controller"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "csi-driver-lvm-controller"},
+		{Type: &rbacv1.Role{}, Name: "csi-driver-lvm-controller"},
+		{Type: &rbacv1.RoleBinding{}, Name: "csi-driver-lvm-controller"},
+		{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "csi-driver-lvm-controller"},
+		{Type: &appsv1.StatefulSet{}, Name: "csi-driver-lvm-controller"},
+
+		{Type: &corev1.ServiceAccount{}, Name: "csi-driver-lvm-plugin"},
+		{Type: &rbacv1.ClusterRole{}, Name: "csi-driver-lvm-plugin"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "csi-driver-lvm-plugin"},
+		{Type: &rbacv1.Role{}, Name: "csi-driver-lvm-plugin"},
+		{Type: &rbacv1.RoleBinding{}, Name: "csi-driver-lvm-plugin"},
+		{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "csi-driver-lvm-plugin"},
+		{Type: &appsv1.DaemonSet{}, Name: "csi-driver-lvm-plugin"},
 	},
 }
 

@@ -26,10 +26,25 @@ const (
 	MetallbControllerImageName = "metallb-controller"
 	// LimitValidatingWebhookImageName is the name of the limit validating webhook to deploy to the seed's shoot namespace.
 	LimitValidatingWebhookImageName = "limit-validating-webhook"
-	// CSIControllerImageName is the name of the csi lvm controller to deploy to the seed's shoot namespace.
+	// CSIControllerImageName is the name of the csi lvm controller to deploy to the shoot.
 	CSIControllerImageName = "csi-lvm-controller"
-	// CSIProvisionerImageName is the name of the csi lvm provisioner to deploy to the seed's shoot namespace.
+	// CSIProvisionerImageName is the name of the csi lvm provisioner to deploy to the shoot.
 	CSIProvisionerImageName = "csi-lvm-provisioner"
+
+	// CSIPluginImageName is the name of the csi-driver-lvm plugin to deploy to the shoot.
+	CSIPluginImageName = "csi-lvmplugin"
+	// CSIPluginProvisionerImageName is the name of the csi-driver-lvm provisioner to deploy to the shoot.
+	CSIPluginProvisionerImageName = "csi-lvmplugin-provisioner"
+	// CSIExternalAttacherImageName is the name of the csi-attacher image to deploy to the shoot.
+	CSIExternalAttacherImageName = "csi-attacher"
+	// CSIExternalProvisionerImageName is the name of the csi-provisioner image to deploy to the shoot.
+	CSIExternalProvisionerImageName = "csi-provisioner"
+	// CSIExternalNodeDriverRegistrarImageName is the name of the csi node-driver to deploy to the shoot.
+	CSIExternalNodeDriverRegistrarImageName = "csi-node-driver-registrar"
+	// CSIExternalResizerImageName is the name of the csi-resizer image to deploy to the shoot.
+	CSIExternalResizerImageName = "csi-resizer"
+	// CSIExternalLivenessImageName is the name of the csi-driver-lvm provisioner to deploy to the shoot.
+	CSIExternalLivenessImageName = "csi-livenessprobe"
 
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"
