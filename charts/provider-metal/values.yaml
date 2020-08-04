@@ -67,6 +67,7 @@ config:
     providerTenant: provider-tenant
   splunkAudit:
     enabled: false
+    host:
     hecURL:
     hecToken:
         

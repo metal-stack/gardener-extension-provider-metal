@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -447,7 +448,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	splunkAuditValues, err := getSplunkAuditChartValues(cpConfig, cluster, vp.controllerConfig.SplunkAudit)
+	splunkAuditValues, err := getSplunkAuditChartValues(cpConfig, cluster, infrastructureConfig, vp.controllerConfig.SplunkAudit)
 	if err != nil {
 		return nil, err
 	}
@@ -788,11 +789,17 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 }
 
 // returns values for "splunk-audit-webhook"
-func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.SplunkAudit) (map[string]interface{}, error) {
+func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, config config.SplunkAudit) (map[string]interface{}, error) {
+	annotations := cluster.Shoot.GetAnnotations()
+	host := []string{}
+	host = append(host, annotations[tag.ClusterTenant])
+	host = append(host, infrastructure.ProjectID)
+	host = append(host, annotations[tag.ClusterName])
 
 	values := map[string]interface{}{
 		"splunkAuditWebhook": map[string]interface{}{
 			"enabled": config.Enabled,
+			"host":    strings.Join(host, "-"),
 			"hecEndpoint": map[string]interface{}{
 				"url":   config.HecURL,
 				"token": config.HecToken,
