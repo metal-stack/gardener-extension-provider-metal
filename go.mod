@@ -56,15 +56,15 @@ require (
 replace (
 	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd // indirect
 	github.com/gardener/machine-controller-manager => github.com/metal-stack/machine-controller-manager v0.26.1-0.20200306160031-6be3c8ee6d66
-	k8s.io/api => k8s.io/api v0.17.11 // 1.16.8
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.11 // 1.16.8
-	k8s.io/apimachinery => k8s.io/apimachinery v0.17.11 // 1.16.8
-	k8s.io/apiserver => k8s.io/apiserver v0.17.11 // 1.16.8
-	k8s.io/client-go => k8s.io/client-go v0.17.11 // 1.16.8
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.17.11 // 1.16.8
-	k8s.io/code-generator => k8s.io/code-generator v0.17.11 // 1.16.8
-	k8s.io/component-base => k8s.io/component-base v0.17.11 // 1.16.8
+	k8s.io/api => k8s.io/api v0.17.11
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.11
+	k8s.io/apimachinery => k8s.io/apimachinery v0.17.11
+	k8s.io/apiserver => k8s.io/apiserver v0.17.11
+	k8s.io/client-go => k8s.io/client-go v0.17.11
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.17.11
+	k8s.io/code-generator => k8s.io/code-generator v0.17.11
+	k8s.io/component-base => k8s.io/component-base v0.17.11
 	k8s.io/helm => k8s.io/helm v2.13.1+incompatible
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.17.11 // 1.16.8
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.17.11
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.4.0
 )
