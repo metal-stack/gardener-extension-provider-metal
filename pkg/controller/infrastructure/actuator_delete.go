@@ -90,7 +90,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 
 	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(d.mclient, d.projectID, d.clusterID)
 	if err != nil {
-		d.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID, "error", err)
+		d.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
 		return &controllererrors.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
@@ -100,7 +100,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	for _, ip := range ipsToFree {
 		_, err := d.mclient.IPFree(*ip.Ipaddress)
 		if err != nil {
-			d.logger.Error(err, "failed to release ephemeral cluster ip", "infrastructure", d.infrastructure.Name, "ip", *ip.Ipaddress, "error", err)
+			d.logger.Error(err, "failed to release ephemeral cluster ip", "infrastructure", d.infrastructure.Name, "ip", *ip.Ipaddress)
 			return &controllererrors.RequeueAfterError{
 				Cause:        err,
 				RequeueAfter: 30 * time.Second,
@@ -111,7 +111,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	for _, ip := range ipsToUpdate {
 		err := metalclient.UpdateIPInCluster(d.mclient, ip, d.clusterID)
 		if err != nil {
-			d.logger.Error(err, "failed to remove cluster tags from ip which is member of other clusters", "infrastructure", d.infrastructure.Name, "ip", *ip.Ipaddress, "error", err)
+			d.logger.Error(err, "failed to remove cluster tags from ip which is member of other clusters", "infrastructure", d.infrastructure.Name, "ip", *ip.Ipaddress)
 			return &controllererrors.RequeueAfterError{
 				Cause:        err,
 				RequeueAfter: 30 * time.Second,
@@ -122,7 +122,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	if d.infrastructure.Status.NodesCIDR != nil {
 		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.mclient, d.projectID, *d.infrastructure.Status.NodesCIDR)
 		if err != nil {
-			d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", *d.infrastructure.Status.NodesCIDR, "error", err)
+			d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", *d.infrastructure.Status.NodesCIDR)
 			return &controllererrors.RequeueAfterError{
 				Cause:        err,
 				RequeueAfter: 30 * time.Second,
@@ -132,7 +132,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		for _, pn := range privateNetworks {
 			_, err := d.mclient.NetworkFree(*pn.ID)
 			if err != nil {
-				d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID, "error", err)
+				d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID)
 				return &controllererrors.RequeueAfterError{
 					Cause:        err,
 					RequeueAfter: 30 * time.Second,
