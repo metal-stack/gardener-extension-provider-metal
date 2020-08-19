@@ -241,7 +241,6 @@ github.com/emicklei/go-restful v2.9.6+incompatible h1:tfrHha8zJ01ywiOEC1miGY8st1
 github.com/emicklei/go-restful v2.9.6+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/emicklei/go-restful v2.11.2+incompatible h1:Z4Z0K2AuOw+QtgwkkJnwpT165MBr12qS8rnBwjP/Pzs=
 github.com/emicklei/go-restful v2.11.2+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
-github.com/emicklei/go-restful v2.12.0+incompatible h1:SIvoTSbsMEwuM3dzFirLwKc4BH6VXP5CNf+G1FfJVr4=
 github.com/emicklei/go-restful v2.12.0+incompatible/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/emicklei/go-restful-openapi v1.2.0/go.mod h1:cy7o3Ge8ZWZ5E90mpEY81sJZZFs2pkuYcLvfngYy1l0=
 github.com/emicklei/go-restful-openapi v1.4.1 h1:SocVTIQWnXyit4dotTrwmncBAjtRaBmfcHjo3XGcCm4=
@@ -816,6 +815,8 @@ github.com/metal-stack/metal-go v0.3.1 h1:ytHEhST/kxY4ZxoJB4jCnmBAFZIcW3jUl83V8l
 github.com/metal-stack/metal-go v0.3.1/go.mod h1:RuV3BLGDb4eZ1+9eYw2DqQ3FVYmXiRH9JmLrSbqwkW4=
 github.com/metal-stack/metal-go v0.3.2 h1:EhYnQtprFpSYAyBrc72VgL0KxJVAA93FR8gb+Gzv8YA=
 github.com/metal-stack/metal-go v0.3.2/go.mod h1:RuV3BLGDb4eZ1+9eYw2DqQ3FVYmXiRH9JmLrSbqwkW4=
+github.com/metal-stack/metal-go v0.7.5 h1:Yfr3o/3TxnLgb+DFjzec20zc+qYR1Pv+eE8GyyuwYy8=
+github.com/metal-stack/metal-go v0.7.5/go.mod h1:m6C449pxIMkm44zBfd1llx+BHzrY1ylfUxdLlleTwmk=
 github.com/metal-stack/metal-go v0.7.8 h1:sAKF3CAnaRR83dCU18lhDlB9VS5veQg62Fy3DQBcMko=
 github.com/metal-stack/metal-go v0.7.8/go.mod h1:m6C449pxIMkm44zBfd1llx+BHzrY1ylfUxdLlleTwmk=
 github.com/metal-stack/metal-lib v0.3.3-0.20200305123033-e73ad372a7cf h1:OXAN5cgypTrBQZ4v6Kn2WzYaPBt7z1ECrQH+jkdyx2o=

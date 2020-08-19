@@ -30,9 +30,9 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
 	github.com/jetstack/cert-manager v0.6.2 // indirect
-	github.com/metal-stack/firewall-controller v0.1.5
+	github.com/metal-stack/firewall-controller v0.1.0
 	github.com/metal-stack/metal-go v0.7.8
-	github.com/metal-stack/metal-lib v0.5.0
+	github.com/metal-stack/metal-lib v0.3.3
 	github.com/onsi/ginkgo v1.12.3
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
