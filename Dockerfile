@@ -7,7 +7,7 @@ RUN hack/install-requirements.sh \
     && make VERIFY=$VERIFY all
 
 #############      base                                     #############
-FROM alpine:3.11
+FROM alpine:3.12
 RUN apk add --update bash curl
 WORKDIR /
 COPY charts /controllers/provider-metal/charts

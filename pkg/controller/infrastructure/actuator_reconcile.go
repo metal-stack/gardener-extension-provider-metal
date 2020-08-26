@@ -186,6 +186,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 	if r.providerStatus.Firewall.Succeeded {
 		firewalls, err := metalclient.FindClusterFirewalls(r.mclient, r.clusterTag, r.infrastructureConfig.ProjectID)
 		if err != nil {
+			r.logger.Error(err, "firewalls not found", "clustertag", r.clusterTag, "projectid", r.infrastructureConfig.ProjectID)
 			return firewallActionDoNothing, &controllererrors.RequeueAfterError{
 				Cause:        err,
 				RequeueAfter: 30 * time.Second,
@@ -219,6 +220,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 				want := r.infrastructureConfig.Firewall.Image
 				image, err := r.mclient.ImageGetLatest(want)
 				if err != nil {
+					r.logger.Error(err, "firewall latest image not found", "clustertag", r.clusterTag, "projectid", r.infrastructureConfig.ProjectID, "image", want)
 					return firewallActionDoNothing, &controllererrors.RequeueAfterError{
 						Cause:        err,
 						RequeueAfter: 30 * time.Second,
@@ -295,6 +297,7 @@ func hasFirewallSucceeded(machineID string, mclient *metalgo.Driver) (bool, erro
 func createFirewall(ctx context.Context, r *firewallReconciler) error {
 	nodeCIDR, err := ensureNodeNetwork(ctx, r)
 	if err != nil {
+		r.logger.Error(err, "firewalls node network", "nodecidr", nodeCIDR)
 		return &controllererrors.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
@@ -303,6 +306,7 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 
 	err = updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
 	if err != nil {
+		r.logger.Error(err, "firewalls update provider status", "nodecidr", nodeCIDR)
 		return &controllererrors.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
@@ -366,6 +370,7 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 
 	fcr, err := r.mclient.FirewallCreate(createRequest)
 	if err != nil {
+		r.logger.Error(err, "firewalls create")
 		return &controllererrors.RequeueAfterError{
 			Cause:        errors.Wrap(err, "failed to create firewall"),
 			RequeueAfter: 30 * time.Second,

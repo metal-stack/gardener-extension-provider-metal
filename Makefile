@@ -29,7 +29,7 @@ generate:
 
 .PHONE: generate-in-docker
 generate-in-docker:
-	docker run --rm -it -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.13 \
+	docker run --rm -it -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.14 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 				&& ./hack/install-requirements.sh \
 				&& make generate \
