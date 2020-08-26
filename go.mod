@@ -50,6 +50,6 @@ replace (
 	k8s.io/code-generator => k8s.io/code-generator v0.16.8 // 1.16.8
 	k8s.io/component-base => k8s.io/component-base v0.16.8 // 1.16.8
 	k8s.io/helm => k8s.io/helm v2.13.1+incompatible
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.16.8 // 1.16.8
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.17.11
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.4.0
 )
