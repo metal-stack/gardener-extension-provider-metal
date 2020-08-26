@@ -14,7 +14,6 @@ import (
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"github.com/gardener/gardener/extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -115,7 +114,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       authNWebhookServerName,
 					CommonName: authNWebhookDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(authNWebhookDeploymentName, clusterName),
+					DNSNames:   kutil.DNSNamesForService(authNWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -124,7 +123,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       splunkAuditWebhookServerName,
 					CommonName: splunkAuditWebhookDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(splunkAuditWebhookDeploymentName, clusterName),
+					DNSNames:   kutil.DNSNamesForService(splunkAuditWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -133,7 +132,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       limitValidatingWebhookServerName,
 					CommonName: limitValidatingWebhookDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(limitValidatingWebhookDeploymentName, clusterName),
+					DNSNames:   kutil.DNSNamesForService(limitValidatingWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -156,7 +155,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       cloudControllerManagerServerName,
 					CommonName: cloudControllerManagerDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(cloudControllerManagerDeploymentName, clusterName),
+					DNSNames:   kutil.DNSNamesForService(cloudControllerManagerDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
