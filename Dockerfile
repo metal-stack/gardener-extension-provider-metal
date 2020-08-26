@@ -1,13 +1,14 @@
 #############      builder-base                             #############
-FROM golang:1.13 AS builder
+FROM golang:1.15 AS builder
 
 WORKDIR /go/src/github.com/metal-stack/gardener-extension-provider-metal
 COPY . .
 RUN hack/install-requirements.sh \
     && make VERIFY=$VERIFY all
 
+
 #############      base                                     #############
-FROM alpine:3.11
+FROM alpine:3.12
 RUN apk add --update bash curl
 WORKDIR /
 COPY charts /controllers/provider-metal/charts

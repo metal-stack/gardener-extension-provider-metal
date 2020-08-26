@@ -23,6 +23,10 @@ format:
 clean:
 	@./hack/clean.sh
 
+.PHONY: vendor
+vendor:
+	@go mod vendor
+
 .PHONY: generate
 generate:
 	@./hack/generate.sh
@@ -52,9 +56,9 @@ install:
 
 .PHONY: all
 ifeq ($(VERIFY),true)
-all: verify generate install
+all: vendor verify generate install
 else
-all: generate install
+all: vendor generate install
 endif
 
 ### Docker commands

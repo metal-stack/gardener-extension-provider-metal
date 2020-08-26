@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	mockclient "github.com/gardener/gardener/extensions/pkg/mock/controller-runtime/client"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
+	mockclient "github.com/gardener/gardener/pkg/mock/controller-runtime/client"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 
 	"github.com/golang/mock/gomock"
