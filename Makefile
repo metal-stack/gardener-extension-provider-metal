@@ -23,15 +23,20 @@ format:
 clean:
 	@./hack/clean.sh
 
+.PHONY: vendor
+vendor:
+	@go mod vendor
+
 .PHONY: generate
 generate:
 	@./hack/generate.sh
 
 .PHONE: generate-in-docker
 generate-in-docker:
-	docker run --rm -it -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.14 \
+	docker run --rm -it -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.15 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 				&& ./hack/install-requirements.sh \
+				&& make vendor \
 				&& make generate \
 				&& chown -R $(shell id -u):$(shell id -g) ."
 
@@ -52,9 +57,9 @@ install:
 
 .PHONY: all
 ifeq ($(VERIFY),true)
-all: verify generate install
+all: vendor verify generate install
 else
-all: generate install
+all: vendor generate install
 endif
 
 ### Docker commands
