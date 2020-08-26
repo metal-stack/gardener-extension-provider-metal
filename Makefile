@@ -45,6 +45,11 @@ start-validator-metal:
 # Rules related to binary build, Docker image build and release #
 #################################################################
 
+.PHONY: install
+install: revendor
+	@LD_FLAGS="-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(VERSION)" \
+	$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/install.sh ./...
+
 .PHONY: docker-image
 docker-image:
 	@docker build --no-cache \

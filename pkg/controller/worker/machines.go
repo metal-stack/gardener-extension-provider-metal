@@ -19,7 +19,9 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+
+	// FIXME: How to do this?
+	// machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -31,7 +33,8 @@ func (w *workerDelegate) MachineClassKind() string {
 
 // MachineClassList yields a newly initialized MetalMachineClassList object.
 func (w *workerDelegate) MachineClassList() runtime.Object {
-	return &machinev1alpha1.MetalMachineClassList{}
+	return nil
+	// return &machinev1alpha1.MetalMachineClassList{}
 }
 
 // DeployMachineClasses generates and creates the metal specific machine classes.
