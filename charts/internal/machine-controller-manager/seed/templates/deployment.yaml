@@ -5,7 +5,7 @@ metadata:
   name: machine-controller-manager
   namespace: {{ .Release.Namespace }}
   labels:
-    garden.sapcloud.io/role: controlplane
+    gardener.cloud/role: controlplane
     app: kubernetes
     role: machine-controller-manager
 spec:
@@ -23,7 +23,7 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
       labels:
-        garden.sapcloud.io/role: controlplane
+        gardener.cloud/role: controlplane
         app: kubernetes
         role: machine-controller-manager
         networking.gardener.cloud/to-dns: allowed
@@ -32,11 +32,40 @@ spec:
         networking.gardener.cloud/to-seed-apiserver: allowed
         networking.gardener.cloud/to-shoot-apiserver: allowed
         networking.gardener.cloud/from-prometheus: allowed
+{{- if .Values.podLabels }}
+{{ toYaml .Values.podLabels | indent 8 }}
+{{- end }}
     spec:
       serviceAccountName: machine-controller-manager
       terminationGracePeriodSeconds: 5
       containers:
-      - name: metal-machine-controller-manager
+      - name: machine-controller-manager-provider-metal
+        image: {{ index .Values.images "machine-controller-manager-provider-metal" }}
+        imagePullPolicy: IfNotPresent
+        command:
+        - ./machine-controller
+        - --control-kubeconfig=inClusterConfig
+        - --target-kubeconfig=/var/lib/machine-controller-manager/kubeconfig
+        - --namespace={{ .Release.Namespace }}
+        - --port={{ .Values.metricsPort2 }}
+        - --v=3
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: {{ .Values.metricsPort2 }}
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/lib/machine-controller-manager
+          name: machine-controller-manager
+          readOnly: true
+      - name: machine-controller-manager
         image: {{ index .Values.images "machine-controller-manager" }}
         imagePullPolicy: IfNotPresent
         command:
@@ -74,8 +103,8 @@ spec:
             cpu: 50m
             memory: 64Mi
           limits:
-            cpu: 350m
-            memory: 256Mi
+            cpu: "3"
+            memory: 3000Mi
         volumeMounts:
         - mountPath: /var/lib/machine-controller-manager
           name: machine-controller-manager

@@ -6,9 +6,9 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/gardener/gardener/extensions/pkg/controller"
-	"github.com/gardener/gardener/extensions/pkg/util"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	api "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
@@ -39,7 +39,7 @@ func DecodeCloudProfileConfig(cloudProfile *gardencorev1beta1.CloudProfile) (*ap
 	if cloudProfile != nil && cloudProfile.Spec.ProviderConfig != nil && cloudProfile.Spec.ProviderConfig.Raw != nil {
 		cloudProfileConfig = &api.CloudProfileConfig{}
 		if _, _, err := decoder.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
-			return nil, errors.Wrapf(err, "could not decode providerConfig of cloudProfile for %q", util.ObjectName(cloudProfile))
+			return nil, errors.Wrapf(err, "could not decode providerConfig of cloudProfile for %q", kutil.ObjectName(cloudProfile))
 		}
 	}
 	return cloudProfileConfig, nil
@@ -77,7 +77,7 @@ func CloudProfileConfigFromCluster(cluster *controller.Cluster) (*api.CloudProfi
 	if cluster != nil && cluster.CloudProfile != nil && cluster.CloudProfile.Spec.ProviderConfig != nil && cluster.CloudProfile.Spec.ProviderConfig.Raw != nil {
 		cloudProfileConfig = &api.CloudProfileConfig{}
 		if _, _, err := decoder.Decode(cluster.CloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
-			return nil, errors.Wrapf(err, "could not decode providerConfig of cloudProfile for '%s'", util.ObjectName(cluster.CloudProfile))
+			return nil, errors.Wrapf(err, "could not decode providerConfig of cloudProfile for '%s'", kutil.ObjectName(cluster.CloudProfile))
 		}
 	}
 	return cloudProfileConfig, nil

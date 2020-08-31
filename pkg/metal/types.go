@@ -8,6 +8,8 @@ const (
 
 	// MachineControllerManagerImageName is the name of the MachineControllerManager image.
 	MachineControllerManagerImageName = "machine-controller-manager"
+	// MCMProviderMetalImageName is the name of the metal provider plugin image.
+	MCMProviderMetalImageName = "machine-controller-manager-provider-metal"
 	// CCMImageName is the name of the cloud controller manager image.
 	CCMImageName = "metalccm"
 	// GroupRolebindingControllerImageName is the name of the GroupRolebindingController image
