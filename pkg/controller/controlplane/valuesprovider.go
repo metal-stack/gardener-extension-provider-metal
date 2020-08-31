@@ -97,7 +97,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.AuthNWebhookServerName,
 					CommonName: metal.AuthNWebhookDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(metal.AuthNWebhookDeploymentName, clusterName),
+					DNSNames:   kutil.DNSNamesForService(metal.AuthNWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -106,7 +106,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.SplunkAuditWebhookServerName,
 					CommonName: metal.SplunkAuditWebhookDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(metal.SplunkAuditWebhookDeploymentName, clusterName),
+					DNSNames:   kutil.DNSNamesForService(metal.SplunkAuditWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -115,7 +115,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.LimitValidatingWebhookServerName,
 					CommonName: metal.LimitValidatingWebhookDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(metal.LimitValidatingWebhookDeploymentName, clusterName),
+					DNSNames:   kutil.DNSNamesForService(metal.LimitValidatingWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -138,7 +138,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.CloudControllerManagerServerName,
 					CommonName: metal.CloudControllerManagerDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(metal.CloudControllerManagerDeploymentName, clusterName),
+					DNSNames:   kutil.DNSNamesForService(metal.CloudControllerManagerDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},

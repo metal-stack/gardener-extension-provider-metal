@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	configloader "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/loader"
 
@@ -76,4 +77,11 @@ func (c *Config) Options() config.ControllerConfiguration {
 	var cfg config.ControllerConfiguration
 	c.Apply(&cfg)
 	return cfg
+}
+
+// ApplyHealthCheckConfig applies the HealthCheckConfig to the config
+func (c *Config) ApplyHealthCheckConfig(config *healthcheckconfig.HealthCheckConfig) {
+	if c.Config.HealthCheckConfig != nil {
+		*config = *c.Config.HealthCheckConfig
+	}
 }
