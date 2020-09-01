@@ -2,8 +2,6 @@ package validation
 
 import (
 	"fmt"
-	"reflect"
-	"sort"
 
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -105,20 +103,8 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apismetal.Infrastr
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.ProjectID, oldConfig.ProjectID, field.NewPath("projectID"))...)
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.PartitionID, oldConfig.PartitionID, field.NewPath("partitionID"))...)
 
-	var oldNetworks []string
-	for _, network := range oldConfig.Firewall.Networks {
-		oldNetworks = append(oldNetworks, network)
-	}
-	var newNetworks []string
-	for _, network := range newConfig.Firewall.Networks {
-		newNetworks = append(newNetworks, network)
-	}
-
-	sort.Strings(oldNetworks)
-	sort.Strings(newNetworks)
-
-	if !reflect.DeepEqual(oldNetworks, newNetworks) {
-		allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.Firewall.Networks, oldConfig.Firewall.Networks, field.NewPath("firewall.networks"))...)
+	if len(newConfig.Firewall.Networks) == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("firewall.networks"), "at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"))
 	}
 
 	return allErrs
