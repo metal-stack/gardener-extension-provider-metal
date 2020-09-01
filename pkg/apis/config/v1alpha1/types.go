@@ -3,6 +3,8 @@ package v1alpha1
 import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	healthcheckconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config/v1alpha1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -26,6 +28,10 @@ type ControllerConfiguration struct {
 
 	// AccountingExporter is the configuration for the accounting exporter.
 	AccountingExporter AccountingExporterConfiguration `json:"accountingExporter,omitempty"`
+
+	// HealthCheckConfig is the config for the health check controller
+	// +optional
+	HealthCheckConfig *healthcheckconfigv1alpha1.HealthCheckConfig `json:"healthCheckConfig,omitempty"`
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
