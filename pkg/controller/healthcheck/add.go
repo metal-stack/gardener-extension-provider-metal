@@ -54,7 +54,7 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 			},
 			{
 				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
-				HealthCheck:   general.NewSeedDeploymentHealthChecker("accounting-exporter"),
+				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.AccountingExporterName),
 				PreCheckFunc:  accountingPreCheck,
 			},
 			{
