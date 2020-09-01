@@ -14,11 +14,6 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
-)
-
-var (
-	logger = log.Log.WithName("metal-worker-controller")
 )
 
 // GetMachineImages returns the used machine images for the `Worker` resource.

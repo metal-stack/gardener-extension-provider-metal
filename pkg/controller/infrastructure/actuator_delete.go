@@ -57,6 +57,7 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 	}
 
 	deleter := &firewallDeleter{
+		ctx:                  ctx,
 		logger:               a.logger,
 		c:                    a.client,
 		infrastructure:       infrastructure,
