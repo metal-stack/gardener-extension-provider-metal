@@ -18,7 +18,7 @@ var (
 	mcmChart = &chart.Chart{
 		Name:   metal.MachineControllerManagerName,
 		Path:   filepath.Join(metal.InternalChartsPath, metal.MachineControllerManagerName, "seed"),
-		Images: []string{metal.MachineControllerManagerImageName},
+		Images: []string{metal.MachineControllerManagerImageName, metal.MCMProviderMetalImageName},
 		Objects: []*chart.Object{
 			{Type: &appsv1.Deployment{}, Name: metal.MachineControllerManagerName},
 			{Type: &corev1.Service{}, Name: metal.MachineControllerManagerName},

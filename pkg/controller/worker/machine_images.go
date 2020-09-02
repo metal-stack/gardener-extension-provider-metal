@@ -4,20 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gardener/gardener/extensions/pkg/util"
 	confighelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/helper"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	apismetalhelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
-)
-
-var (
-	logger = log.Log.WithName("metal-worker-controller")
 )
 
 // GetMachineImages returns the used machine images for the `Worker` resource.
@@ -62,7 +58,7 @@ func (w *workerDelegate) findMachineImage(name, version string) (string, error) 
 	if providerStatus := w.worker.Status.ProviderStatus; providerStatus != nil {
 		workerStatus := &apismetal.WorkerStatus{}
 		if _, _, err := w.decoder.Decode(providerStatus.Raw, nil, workerStatus); err != nil {
-			return "", errors.Wrapf(err, "could not decode worker status of worker '%s'", util.ObjectName(w.worker))
+			return "", errors.Wrapf(err, "could not decode worker status of worker '%s'", kutil.ObjectName(w.worker))
 		}
 
 		machineImage, err := apismetalhelper.FindMachineImage(workerStatus.MachineImages, name, version)

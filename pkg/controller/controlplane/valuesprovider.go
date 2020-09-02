@@ -15,7 +15,6 @@ import (
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"github.com/gardener/gardener/extensions/pkg/controller/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -59,23 +58,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Object names
-const (
-	cloudControllerManagerDeploymentName = "cloud-controller-manager"
-	cloudControllerManagerServerName     = "cloud-controller-manager-server"
-	groupRolebindingControllerName       = "group-rolebinding-controller"
-	limitValidatingWebhookDeploymentName = "limit-validating-webhook"
-	limitValidatingWebhookServerName     = "limit-validating-webhook-server"
-	accountingExporterName               = "accounting-exporter"
-	authNWebhookDeploymentName           = "kube-jwt-authn-webhook"
-	authNWebhookServerName               = "kube-jwt-authn-webhook-server"
-	splunkAuditWebhookDeploymentName     = "splunk-audit-webhook"
-	splunkAuditWebhookServerName         = "splunk-audit-webhook-server"
-	droptailerNamespace                  = "firewall"
-	droptailerClientSecretName           = "droptailer-client"
-	droptailerServerSecretName           = "droptailer-server"
-)
-
 var controlPlaneSecrets = &secrets.Secrets{
 	CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
 		v1alpha1constants.SecretNameCACluster: {
@@ -88,7 +70,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 		return []secrets.ConfigInterface{
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         cloudControllerManagerDeploymentName,
+					Name:         metal.CloudControllerManagerDeploymentName,
 					CommonName:   "system:cloud-controller-manager",
 					Organization: []string{user.SystemPrivilegedGroup},
 					CertType:     secrets.ClientCert,
@@ -101,7 +83,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         groupRolebindingControllerName,
+					Name:         metal.GroupRolebindingControllerName,
 					CommonName:   "system:group-rolebinding-controller",
 					Organization: []string{user.SystemPrivilegedGroup},
 					CertType:     secrets.ClientCert,
@@ -114,37 +96,37 @@ var controlPlaneSecrets = &secrets.Secrets{
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       authNWebhookServerName,
-					CommonName: authNWebhookDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(authNWebhookDeploymentName, clusterName),
+					Name:       metal.AuthNWebhookServerName,
+					CommonName: metal.AuthNWebhookDeploymentName,
+					DNSNames:   kutil.DNSNamesForService(metal.AuthNWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       splunkAuditWebhookServerName,
-					CommonName: splunkAuditWebhookDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(splunkAuditWebhookDeploymentName, clusterName),
+					Name:       metal.SplunkAuditWebhookServerName,
+					CommonName: metal.SplunkAuditWebhookDeploymentName,
+					DNSNames:   kutil.DNSNamesForService(metal.SplunkAuditWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       limitValidatingWebhookServerName,
-					CommonName: limitValidatingWebhookDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(limitValidatingWebhookDeploymentName, clusterName),
+					Name:       metal.LimitValidatingWebhookServerName,
+					CommonName: metal.LimitValidatingWebhookDeploymentName,
+					DNSNames:   kutil.DNSNamesForService(metal.LimitValidatingWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       accountingExporterName,
+					Name:       metal.AccountingExporterName,
 					CommonName: "system:accounting-exporter",
 					// Groupname of user
-					Organization: []string{accountingExporterName},
+					Organization: []string{metal.AccountingExporterName},
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -155,9 +137,9 @@ var controlPlaneSecrets = &secrets.Secrets{
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       cloudControllerManagerServerName,
-					CommonName: cloudControllerManagerDeploymentName,
-					DNSNames:   controlplane.DNSNamesForService(cloudControllerManagerDeploymentName, clusterName),
+					Name:       metal.CloudControllerManagerServerName,
+					CommonName: metal.CloudControllerManagerDeploymentName,
+					DNSNames:   kutil.DNSNamesForService(metal.CloudControllerManagerDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -378,7 +360,7 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 
 	// this should work as the kube-apiserver is a pod in the same cluster as the kube-jwt-authn-webhook
 	// example https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
-	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/authenticate", authNWebhookDeploymentName, namespace)
+	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/authenticate", metal.AuthNWebhookDeploymentName, namespace)
 
 	values := map[string]interface{}{
 		"authnWebhook": map[string]interface{}{
@@ -508,13 +490,13 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	secret, err := vp.getSecret(ctx, namespace, limitValidatingWebhookServerName)
+	secret, err := vp.getSecret(ctx, namespace, metal.LimitValidatingWebhookServerName)
 	if err != nil {
 		return nil, err
 	}
 	limitCABundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
 
-	secret, err = vp.getSecret(ctx, namespace, splunkAuditWebhookServerName)
+	secret, err = vp.getSecret(ctx, namespace, metal.SplunkAuditWebhookServerName)
 	if err != nil {
 		return nil, err
 	}
@@ -522,8 +504,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	// this should work as the kube-apiserver is a pod in the same cluster as the limit-validating-webhook
 	// example https://limit-validating-webhook.shoot--local--myshootname.svc.cluster.local/validate
-	limitURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", limitValidatingWebhookDeploymentName, namespace)
-	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", splunkAuditWebhookDeploymentName, namespace)
+	limitURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", metal.LimitValidatingWebhookDeploymentName, namespace)
+	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", metal.SplunkAuditWebhookDeploymentName, namespace)
 
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
@@ -625,7 +607,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 			return []secrets.ConfigInterface{
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         droptailerClientSecretName,
+						Name:         metal.DroptailerClientSecretName,
 						CommonName:   "droptailer",
 						Organization: []string{"droptailer-client"},
 						CertType:     secrets.ClientCert,
@@ -634,7 +616,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 				},
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         droptailerServerSecretName,
+						Name:         metal.DroptailerServerSecretName,
 						CommonName:   "droptailer",
 						Organization: []string{"droptailer-server"},
 						CertType:     secrets.ServerCert,
@@ -659,12 +641,12 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 		return errors.Wrap(err, "could not create shoot Gardener client")
 	}
 
-	_, err = cs.CoreV1().Namespaces().Get(droptailerNamespace, metav1.GetOptions{})
+	_, err = cs.CoreV1().Namespaces().Get(metal.DroptailerNamespace, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			ns := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: droptailerNamespace,
+					Name: metal.DroptailerNamespace,
 				},
 			}
 			_, err := cs.CoreV1().Namespaces().Create(ns)
@@ -676,7 +658,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 		}
 	}
 
-	_, err = wanted.Deploy(ctx, cs, gcs, droptailerNamespace)
+	_, err = wanted.Deploy(ctx, cs, gcs, metal.DroptailerNamespace)
 	if err != nil {
 		return errors.Wrap(err, "could not deploy droptailer secrets to shoot cluster")
 	}
@@ -743,8 +725,8 @@ func getCCMChartValues(
 				"endpoint": mcp.Endpoint,
 			},
 			"podAnnotations": map[string]interface{}{
-				"checksum/secret-cloud-controller-manager":        checksums[cloudControllerManagerDeploymentName],
-				"checksum/secret-cloud-controller-manager-server": checksums[cloudControllerManagerServerName],
+				"checksum/secret-cloud-controller-manager":        checksums[metal.CloudControllerManagerDeploymentName],
+				"checksum/secret-cloud-controller-manager-server": checksums[metal.CloudControllerManagerServerName],
 				"checksum/secret-cloudprovider":                   checksums[v1alpha1constants.SecretNameCloudProvider],
 				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
 			},

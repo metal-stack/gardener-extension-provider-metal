@@ -211,27 +211,16 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			}))))
 		})
 
-		It("should not allow adding networks", func() {
-			newInfrastructureConfig := infrastructureConfig.DeepCopy()
-			newInfrastructureConfig.Firewall.Networks = append(newInfrastructureConfig.Firewall.Networks, "b")
-
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
-
-			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Type":  Equal(field.ErrorTypeInvalid),
-				"Field": Equal("firewall.networks"),
-			}))))
-		})
-
-		It("should not allow removing networks", func() {
+		It("should not allow removing all networks", func() {
 			newInfrastructureConfig := infrastructureConfig.DeepCopy()
 			newInfrastructureConfig.Firewall.Networks = []string{}
 
 			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
 
 			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Type":  Equal(field.ErrorTypeInvalid),
-				"Field": Equal("firewall.networks"),
+				"Type":   Equal(field.ErrorTypeRequired),
+				"Field":  Equal("firewall.networks"),
+				"Detail": Equal("at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"),
 			}))))
 		})
 

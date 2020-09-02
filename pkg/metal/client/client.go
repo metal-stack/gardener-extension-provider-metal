@@ -157,3 +157,16 @@ func isMemberOfCluster(t, clusterID string) bool {
 	}
 	return false
 }
+
+func FindClusterFirewalls(client *metalgo.Driver, clusterTag, projectID string) ([]*models.V1FirewallResponse, error) {
+	resp, err := client.FirewallFind(&metalgo.FirewallFindRequest{
+		MachineFindRequest: metalgo.MachineFindRequest{
+			AllocationProject: &projectID,
+			Tags:              []string{clusterTag},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.Firewalls, nil
+}

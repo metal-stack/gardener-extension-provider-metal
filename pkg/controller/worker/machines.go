@@ -19,6 +19,7 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,12 +27,12 @@ import (
 
 // MachineClassKind yields the name of the metal machine class.
 func (w *workerDelegate) MachineClassKind() string {
-	return "MetalMachineClass"
+	return "MachineClass"
 }
 
 // MachineClassList yields a newly initialized MetalMachineClassList object.
 func (w *workerDelegate) MachineClassList() runtime.Object {
-	return &machinev1alpha1.MetalMachineClassList{}
+	return &machinev1alpha1.MachineClassList{}
 }
 
 // DeployMachineClasses generates and creates the metal specific machine classes.
@@ -129,7 +130,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			metalClusterProjectTag = fmt.Sprintf("%s=%s", metaltag.ClusterProject, infrastructureConfig.ProjectID)
 
 			kubernetesClusterTag        = fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace)
-			kubernetesRoleTag           = fmt.Sprintf("kubernetes.io/role=node")
+			kubernetesRoleTag           = "kubernetes.io/role=node"
 			kubernetesInstanceTypeTag   = fmt.Sprintf("node.kubernetes.io/instance-type=%s", pool.MachineType)
 			kubernetesTopologyRegionTag = fmt.Sprintf("topology.kubernetes.io/region=%s", w.worker.Spec.Region)
 			kubernetesTopologyZoneTag   = fmt.Sprintf("topology.kubernetes.io/zone=%s", infrastructureConfig.PartitionID)
