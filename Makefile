@@ -10,6 +10,12 @@ LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
 
+ifeq ($(CI),true)
+  DOCKER_TTY_ARG=""
+else
+  DOCKER_TTY_ARG=t
+endif
+
 export CGO_ENABLED := 0
 export GO111MODULE := on
 
@@ -84,7 +90,7 @@ revendor:
 .PHONY: clean
 clean:
 	@$(shell find ./example -type f -name "controller-registration.yaml" -exec rm '{}' \;)
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/clean.sh ./cmd/... ./pkg/... ./test/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/clean.sh ./cmd/... ./pkg/...
 
 .PHONY: check-generate
 check-generate:
@@ -92,28 +98,34 @@ check-generate:
 
 .PHONY: check
 check:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/... ./test/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/...
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-charts.sh ./charts
 
 .PHONY: generate
 generate:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/... ./test/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONE: generate-in-docker
 generate-in-docker: revendor
 	echo $(shell git describe --abbrev=0 --tags) > VERSION
-	docker run --rm -it -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.15 \
+	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.15 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 				&& make install-requirements generate \
 				&& chown -R $(shell id -u):$(shell id -g) ."
 
 .PHONY: format
 format:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/format.sh ./cmd ./pkg ./test
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/format.sh ./cmd ./pkg
 
 .PHONY: test
 test:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test.sh --skipPackage test/e2e/networkpolicies,test/integration -r ./cmd/... ./pkg/... ./test/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test.sh --skipPackage test/e2e/networkpolicies,test/integration -r ./cmd/... ./pkg/...
+
+.PHONE: test-in-docker
+test-in-docker: revendor
+	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.15 \
+		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
+				&& make install-requirements check test"
 
 .PHONY: test-cov
 test-cov:
@@ -125,5 +137,3 @@ test-clean:
 
 .PHONY: verify
 verify: check format test
-
-.PHONY: verify-extended

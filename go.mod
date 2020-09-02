@@ -19,6 +19,7 @@ require (
 	github.com/golang/mock v1.4.4-0.20200731163441-8734ec565a4d
 	github.com/google/go-cmp v0.5.2
 	github.com/google/uuid v1.1.1
+	github.com/imdario/mergo v0.3.8
 	github.com/metal-stack/firewall-controller v0.1.8
 	github.com/metal-stack/metal-go v0.8.3
 	github.com/metal-stack/metal-lib v0.5.0
