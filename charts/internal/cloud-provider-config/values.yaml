@@ -2,3 +2,7 @@
 authnWebhook: 
     enabled: false
     url: https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
+
+splunkAuditWebhook:
+    enabled: false
+    url: https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit

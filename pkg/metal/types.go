@@ -59,6 +59,7 @@ const (
 	AuthNWebhookServerName               = "kube-jwt-authn-webhook-server"
 	SplunkAuditWebhookDeploymentName     = "splunk-audit-webhook"
 	SplunkAuditWebhookServerName         = "splunk-audit-webhook-server"
+	SplunkAuditWebHookConfigName         = "splunk-audit-webhook-config"
 )
 
 var (

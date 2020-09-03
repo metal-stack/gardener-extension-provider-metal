@@ -297,6 +297,9 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 
 	}
 	if controllerConfig.SplunkAudit.Enabled {
+		configChart.Objects = append(configChart.Objects, []*chart.Object{
+			{Type: &corev1.ConfigMap{}, Name: "splunk-audit-webhook-config"},
+		}...)
 		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.SplunkAuditWebhookImageName}...)
 		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
 			// splunk audit webhook
