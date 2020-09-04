@@ -80,11 +80,11 @@ func TestMergeIAMConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			want, err := MergeIAMConfig(tt.args.into, tt.args.from)
+			got, err := MergeIAMConfig(tt.args.into, tt.args.from)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("MergeIAMConfig() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if diff := cmp.Diff(want, tt.want); diff != "" {
+			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("MergeIAMConfig() mismatch (-want +got):\n%s", diff)
 			}
 		})
