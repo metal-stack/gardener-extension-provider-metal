@@ -19,8 +19,3 @@ limitValidatingWebhook:
     enabled: false
     ca: ABCDEF
     url: https://replace-this-webhook/validate
-
-splunkAuditWebhook:
-    enabled: false
-    url: https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit
-    ca: ABCDEF
