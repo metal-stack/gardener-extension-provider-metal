@@ -15,8 +15,9 @@
 package helper
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"github.com/imdario/mergo"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 )
@@ -50,14 +51,11 @@ func MergeIAMConfig(into *metal.IAMConfig, from *metal.IAMConfig) (*metal.IAMCon
 	}
 
 	merged := *into
-	tmp, err := json.Marshal(from)
+	err := mergo.Merge(&merged, from, mergo.WithOverride)
 	if err != nil {
 		return nil, err
 	}
-	err = json.Unmarshal(tmp, &merged)
-	if err != nil {
-		return nil, err
-	}
+
 	return &merged, nil
 }
 
