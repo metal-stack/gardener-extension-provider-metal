@@ -23,6 +23,8 @@ package v1alpha1
 import (
 	unsafe "unsafe"
 
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
+	configv1alpha1 "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config/v1alpha1"
 	config "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	conversion "k8s.io/apimachinery/pkg/conversion"
@@ -257,6 +259,7 @@ func autoConvert_v1alpha1_ControllerConfiguration_To_config_ControllerConfigurat
 	if err := Convert_v1alpha1_AccountingExporterConfiguration_To_config_AccountingExporterConfiguration(&in.AccountingExporter, &out.AccountingExporter, s); err != nil {
 		return err
 	}
+	out.HealthCheckConfig = (*healthcheckconfig.HealthCheckConfig)(unsafe.Pointer(in.HealthCheckConfig))
 	return nil
 }
 
@@ -279,6 +282,7 @@ func autoConvert_config_ControllerConfiguration_To_v1alpha1_ControllerConfigurat
 	if err := Convert_config_AccountingExporterConfiguration_To_v1alpha1_AccountingExporterConfiguration(&in.AccountingExporter, &out.AccountingExporter, s); err != nil {
 		return err
 	}
+	out.HealthCheckConfig = (*configv1alpha1.HealthCheckConfig)(unsafe.Pointer(in.HealthCheckConfig))
 	return nil
 }
 

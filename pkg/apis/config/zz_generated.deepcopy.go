@@ -21,6 +21,7 @@ limitations under the License.
 package config
 
 import (
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -108,6 +109,11 @@ func (in *ControllerConfiguration) DeepCopyInto(out *ControllerConfiguration) {
 	out.Auth = in.Auth
 	out.SplunkAudit = in.SplunkAudit
 	in.AccountingExporter.DeepCopyInto(&out.AccountingExporter)
+	if in.HealthCheckConfig != nil {
+		in, out := &in.HealthCheckConfig, &out.HealthCheckConfig
+		*out = new(healthcheckconfig.HealthCheckConfig)
+		**out = **in
+	}
 	return
 }
 
