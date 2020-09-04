@@ -23,7 +23,7 @@ data:
           - 'system:kube-proxy'
         verbs:
           - watch
-    
+
       - level: None
         resources:
           - group: ""
@@ -34,7 +34,7 @@ data:
           - 'system:nodes'
         verbs:
           - get
-    
+
       - level: None
         namespaces:
           - kube-system
@@ -49,7 +49,7 @@ data:
         verbs:
           - get
           - update
-    
+
       - level: None
         resources:
           - group: ""
@@ -61,7 +61,7 @@ data:
           - 'system:apiserver'
         verbs:
           - get
-    
+
       # Don't log HPA fetching metrics.
       - level: None
         resources:
@@ -71,21 +71,21 @@ data:
         verbs:
           - get
           - list
-    
+
       # Don't log these read-only URLs.
       - level: None
         nonResourceURLs:
           - '/healthz*'
           - /version
           - '/swagger*'
-    
+
       # Don't log events requests.
       - level: None
         resources:
           - group: ""
             resources:
               - events
-    
+
       # node and pod status calls from nodes are high-volume and can be large, don't log responses for expected updates from nodes
       - level: Request
         omitStages:
@@ -102,7 +102,7 @@ data:
         verbs:
           - update
           - patch
-    
+
       - level: Request
         omitStages:
           - RequestReceived
@@ -116,7 +116,7 @@ data:
         verbs:
           - update
           - patch
-    
+
       # deletecollection calls can be large, don't log responses for expected namespace deletions
       - level: Request
         omitStages:
@@ -125,7 +125,7 @@ data:
           - 'system:serviceaccount:kube-system:namespace-controller'
         verbs:
           - deletecollection
-    
+
       # Secrets, ConfigMaps, and TokenReviews can contain sensitive & binary data,
       # so only log at the Metadata level.
       - level: Metadata
@@ -166,7 +166,7 @@ data:
           - get
           - list
           - watch
-    
+
       # Default level for known APIs
       - level: RequestResponse
         omitStages:
@@ -190,7 +190,7 @@ data:
           - group: scheduling.k8s.io
           - group: settings.k8s.io
           - group: storage.k8s.io
-          
+
       # Default level for all other requests.
       - level: Metadata
         omitStages:
@@ -202,17 +202,17 @@ data:
     clusters:
       - cluster:
           server: "{{ .Values.splunkAuditWebhook.url }}"
+          certificate-authority: "/etc/splunkauditwebhook/certs/ca.crt"
         name: splunk-audit-webhook
     contexts:
       - context:
           cluster: splunk-audit-webhook
-          user: audit-webhook-backend
-        name: default-context
-    current-context: default-context
+          user: splunk-audit-apiserver
+        name: splunk-audit-webhook
+    current-context: splunk-audit-webhook
     preferences: {}
     users:
-    - name: audit-webhook-backend
+    - name: splunk-audit-apiserver
       user:
-        username: NN
-        password: 
+        token: "secret"
 {{- end }}

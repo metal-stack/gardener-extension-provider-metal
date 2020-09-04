@@ -93,6 +93,20 @@ var (
 			},
 		},
 	}
+	// cert mount "splunk-audit-webhook-server" that is referenced from the aplunk-audit-webhook-config
+	splunkAuditWebhookCertVolumeMount = corev1.VolumeMount{
+		Name:      metal.SplunkAuditWebHookCertName,
+		MountPath: "/etc/splunkauditwebhook/certs",
+		ReadOnly:  true,
+	}
+	splunkAuditWebhookCertVolume = corev1.Volume{
+		Name: metal.SplunkAuditWebHookCertName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: "splunk-audit-webhook-server",
+			},
+		},
+	}
 )
 
 func ensureVolumeMounts(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
@@ -102,6 +116,7 @@ func ensureVolumeMounts(c *corev1.Container, controllerConfig config.ControllerC
 	}
 	if controllerConfig.SplunkAudit.Enabled {
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, splunkAuditWebhookConfigVolumeMount)
+		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, splunkAuditWebhookCertVolumeMount)
 	}
 }
 
@@ -112,6 +127,7 @@ func ensureVolumes(ps *corev1.PodSpec, controllerConfig config.ControllerConfigu
 	}
 	if controllerConfig.SplunkAudit.Enabled {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, splunkAuditWebhookConfigVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, splunkAuditWebhookCertVolume)
 	}
 }
 
