@@ -46,7 +46,7 @@ spec:
         - name: SPLUNK_AUDIT_WEBHOOK_WEBHOOK_TLS_CERT
           value: /etc/webhook/certs/splunk-audit-webhook-server.crt
         - name: SPLUNK_AUDIT_WEBHOOK_HOST
-          value: {{ .Values.splunkAuditWebhook.host }}
+          value: {{ .Values.splunkAuditWebhook.srcHost }}
         - name: SPLUNK_AUDIT_WEBHOOK_LOG_LEVEL
           value: "info"
         ports:

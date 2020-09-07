@@ -35,7 +35,6 @@ data:
     splunkAudit:
       enabled: {{ .Values.config.splunkAudit.enabled }}
 {{- if .Values.config.splunkAudit.enabled }}
-      host: {{ .Values.config.splunkAudit.host }}
       hecURL: {{ .Values.config.splunkAudit.hecURL }}
       hecToken: {{ .Values.config.splunkAudit.hecToken }}
 {{- end }}

@@ -93,7 +93,7 @@ var (
 			},
 		},
 	}
-	// cert mount "splunk-audit-webhook-server" that is referenced from the aplunk-audit-webhook-config
+	// cert mount "splunk-audit-webhook-server" that is referenced from the splunk-audit-webhook-config
 	splunkAuditWebhookCertVolumeMount = corev1.VolumeMount{
 		Name:      metal.SplunkAuditWebHookCertName,
 		MountPath: "/etc/splunkauditwebhook/certs",

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -799,16 +798,17 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 
 // returns values for "splunk-audit-webhook"
 func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, config config.SplunkAudit) (map[string]interface{}, error) {
-	annotations := cluster.Shoot.GetAnnotations()
-	host := []string{}
-	host = append(host, annotations[tag.ClusterTenant])
-	host = append(host, infrastructure.ProjectID)
-	host = append(host, annotations[tag.ClusterName])
+	var srcHost string
+	if cluster.Shoot.Spec.DNS != nil && cluster.Shoot.Spec.DNS.Domain != nil {
+		srcHost = *cluster.Shoot.Spec.DNS.Domain
+	} else {
+		return nil, fmt.Errorf("shoot does not have a DNS domain, which is required for splunk logging")
+	}
 
 	values := map[string]interface{}{
 		"splunkAuditWebhook": map[string]interface{}{
 			"enabled": config.Enabled,
-			"host":    strings.Join(host, "-"),
+			"srcHost": srcHost,
 			"hecEndpoint": map[string]interface{}{
 				"url":   config.HecURL,
 				"token": config.HecToken,
