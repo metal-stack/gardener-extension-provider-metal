@@ -141,7 +141,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig co
 	if controllerConfig.SplunkAudit.Enabled {
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/splunkauditwebhook/config/audit-policy.yaml")
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-webhook-config-file=", "/etc/splunkauditwebhook/config/splunk-audit-webhook-kubeconfig")
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-webhook-batch-max-size=", "5") // To not exceed the splunk hec endpoint maximum event size. Maybe make it configurable? CHECKME
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-webhook-batch-max-size=", "4") // To not exceed the splunk hec endpoint maximum event size. Maybe make it configurable? CHECKME
 	}
 }
 
