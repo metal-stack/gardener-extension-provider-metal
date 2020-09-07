@@ -296,6 +296,9 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 
 	}
 	if controllerConfig.SplunkAudit.Enabled {
+		configChart.Objects = append(configChart.Objects, []*chart.Object{
+			{Type: &corev1.ConfigMap{}, Name: "splunk-audit-webhook-config"},
+		}...)
 		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.SplunkAuditWebhookImageName}...)
 		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
 			// splunk audit webhook
@@ -351,7 +354,14 @@ func (vp *valuesProvider) GetConfigChartValues(
 		return nil, err
 	}
 
-	return authValues, err
+	splunkAuditValues, err := vp.getSplunkAuditConfigValues(ctx, cp, cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	merge(authValues, splunkAuditValues)
+
+	return authValues, nil
 }
 
 func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
@@ -365,6 +375,23 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 		"authnWebhook": map[string]interface{}{
 			"url":     url,
 			"enabled": vp.controllerConfig.Auth.Enabled,
+		},
+	}
+
+	return values, nil
+}
+
+func (vp *valuesProvider) getSplunkAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+	namespace := cluster.ObjectMeta.Name
+
+	// this should work as the kube-apiserver is a pod in the same cluster as the splunk-audit-webhook
+	// example https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit
+	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", metal.SplunkAuditWebhookDeploymentName, namespace)
+
+	values := map[string]interface{}{
+		"splunkAuditWebhook": map[string]interface{}{
+			"url":     url,
+			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
 		},
 	}
 
@@ -429,7 +456,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	splunkAuditValues, err := getSplunkAuditChartValues(cpConfig, cluster, vp.controllerConfig.SplunkAudit)
+	splunkAuditValues, err := getSplunkAuditChartValues(cpConfig, cluster, infrastructureConfig, vp.controllerConfig.SplunkAudit)
 	if err != nil {
 		return nil, err
 	}
@@ -770,11 +797,18 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 }
 
 // returns values for "splunk-audit-webhook"
-func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.SplunkAudit) (map[string]interface{}, error) {
+func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, config config.SplunkAudit) (map[string]interface{}, error) {
+	var srcHost string
+	if cluster.Shoot.Spec.DNS != nil && cluster.Shoot.Spec.DNS.Domain != nil {
+		srcHost = *cluster.Shoot.Spec.DNS.Domain
+	} else {
+		return nil, fmt.Errorf("shoot does not have a DNS domain, which is required for splunk logging")
+	}
 
 	values := map[string]interface{}{
 		"splunkAuditWebhook": map[string]interface{}{
 			"enabled": config.Enabled,
+			"srcHost": srcHost,
 			"hecEndpoint": map[string]interface{}{
 				"url":   config.HecURL,
 				"token": config.HecToken,

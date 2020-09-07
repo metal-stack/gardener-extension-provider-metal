@@ -1,27 +1,4 @@
 {{- if .Values.splunkAuditWebhook.enabled }}
-apiVersion: v1
-kind: ConfigMap
-metadata:
-    name: auditsink-config
-    namespace: {{ .Release.Namespace }}
-data:
-    auditsink-config.yaml: |
-        ---
-        apiVersion: auditregistration.k8s.io/v1alpha1
-        kind: AuditSink
-        metadata:
-            name: splunk-audit-sink
-        spec:
-            policy:
-                level: Metadata
-                stages:
-                - ResponseComplete
-            webhook:
-                throttle:
-                    qps: 10
-                    burst: 15
-                clientConfig:
-                    url: "{{ .Values.splunkAuditWebhook.url }}"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -68,6 +45,10 @@ spec:
           value: /etc/webhook/certs/splunk-audit-webhook-server.key
         - name: SPLUNK_AUDIT_WEBHOOK_WEBHOOK_TLS_CERT
           value: /etc/webhook/certs/splunk-audit-webhook-server.crt
+        - name: SPLUNK_AUDIT_WEBHOOK_HOST
+          value: {{ .Values.splunkAuditWebhook.srcHost }}
+        - name: SPLUNK_AUDIT_WEBHOOK_LOG_LEVEL
+          value: "info"
         ports:
           - containerPort: {{ .Values.splunkAuditWebhook.port }}
             protocol: TCP

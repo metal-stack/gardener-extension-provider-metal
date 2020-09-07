@@ -49,6 +49,7 @@ splunkAuditWebhook:
   port: 3000
   acceptInsecureCert: false
   endpointRequiresClientCert: false
+  srcHost: "source host domain"
   hecEndpoint:
     url: https://splunk.example.org/
     token: "Token_00000000-0000-0000-0000-000000000000"
