@@ -97,6 +97,8 @@ spec:
             value: {{ .Values.cloudControllerManager.networkID }}
           - name: METAL_CLUSTER_ID
             value: {{ .Values.cloudControllerManager.clusterID }}
+          - name: METAL_DEFAULT_EXTERNAL_NETWORK_ID
+            value: {{ .Values.cloudControllerManager.defaultExternalNetwork }}
         livenessProbe:
           httpGet:
             path: /healthz

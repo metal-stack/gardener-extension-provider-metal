@@ -738,15 +738,37 @@ func getCCMChartValues(
 		return nil, err
 	}
 
+	var defaultExternalNetwork string
+	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
+		defaultExternalNetwork = *cpConfig.CloudControllerManager.DefaultExternalNetwork
+	} else {
+		for _, networkID := range infrastructureConfig.Firewall.Networks {
+			resp, err := mclient.NetworkGet(networkID)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not retrieve network for finding default external network for metal-ccm deployment")
+			}
+			for k := range resp.Network.Labels {
+				if k == tag.NetworkDefaultExternal {
+					defaultExternalNetwork = networkID
+					break
+				}
+			}
+			if defaultExternalNetwork == "" {
+				return nil, fmt.Errorf("unable to find a default external network for metal-ccm deployment")
+			}
+		}
+	}
+
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"cloudControllerManager": map[string]interface{}{
-			"replicas":    extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
-			"projectID":   projectID,
-			"clusterID":   cluster.Shoot.ObjectMeta.UID,
-			"partitionID": infrastructureConfig.PartitionID,
-			"networkID":   *privateNetwork.ID,
-			"podNetwork":  extensionscontroller.GetPodNetwork(cluster),
+			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
+			"projectID":              projectID,
+			"clusterID":              cluster.Shoot.ObjectMeta.UID,
+			"partitionID":            infrastructureConfig.PartitionID,
+			"networkID":              *privateNetwork.ID,
+			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
+			"defaultExternalNetwork": defaultExternalNetwork,
 			"metal": map[string]interface{}{
 				"endpoint": mcp.Endpoint,
 			},

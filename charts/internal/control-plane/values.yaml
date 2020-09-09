@@ -19,6 +19,7 @@ cloudControllerManager:
   partitionID: partition-id
   networkID: network-id
   clusterID: cluster-id
+  defaultExternalNetwork: external-network-id
   metal:
     endpoint: api-url
   resources:

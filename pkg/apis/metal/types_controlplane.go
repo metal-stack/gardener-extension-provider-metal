@@ -22,4 +22,8 @@ type ControlPlaneConfig struct {
 type CloudControllerManagerConfig struct {
 	// FeatureGates contains information about enabled feature gates.
 	FeatureGates map[string]bool
+	// DefaultExternalNetwork explicitly defines the network from which the CCM allocates IPs for services of type load balancer
+	// If not defined, it will use the first network with the default external network tag from the infrastructure firewall networks
+	// +optional
+	DefaultExternalNetwork *string
 }
