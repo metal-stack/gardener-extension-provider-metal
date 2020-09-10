@@ -743,7 +743,7 @@ func getCCMChartValues(
 		defaultExternalNetwork = *cpConfig.CloudControllerManager.DefaultExternalNetwork
 		resp, err := mclient.NetworkGet(defaultExternalNetwork)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("could not retrieve network user-given default external network: %s", defaultExternalNetwork))
+			return nil, errors.Wrap(err, fmt.Sprintf("could not retrieve user-given default external network: %s", defaultExternalNetwork))
 		}
 
 		if resp.Network.Projectid != "" && resp.Network.Projectid != infrastructureConfig.ProjectID {
