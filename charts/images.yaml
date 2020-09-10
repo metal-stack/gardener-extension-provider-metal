@@ -2,7 +2,7 @@ images:
 - name: metalccm
   sourceRepository: github.com/metal-stack/metal-ccm
   repository: metalstack/metal-ccm
-  tag: v0.3.0
+  tag: v0.5.0
 - name: machine-controller-manager
   sourceRepository: github.com/gardener/machine-controller-manager
   repository: eu.gcr.io/gardener-project/gardener/machine-controller-manager
