@@ -741,6 +741,18 @@ func getCCMChartValues(
 	var defaultExternalNetwork string
 	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
 		defaultExternalNetwork = *cpConfig.CloudControllerManager.DefaultExternalNetwork
+		resp, err := mclient.NetworkGet(defaultExternalNetwork)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not retrieve network for finding default external network for metal-ccm deployment")
+		}
+
+		if resp.Network.Projectid != "" && resp.Network.Projectid != infrastructureConfig.ProjectID {
+			return nil, fmt.Errorf("cannot define default external network of another project")
+		}
+
+		if (resp.Network.Underlay != nil && *resp.Network.Underlay) || (resp.Network.Privatesuper != nil && *resp.Network.Privatesuper) {
+			return nil, fmt.Errorf("cannot declare underlay or private super networks as default external network")
+		}
 	} else {
 		for _, networkID := range infrastructureConfig.Firewall.Networks {
 			resp, err := mclient.NetworkGet(networkID)
