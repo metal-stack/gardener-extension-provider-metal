@@ -191,6 +191,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 
 func autoConvert_v1alpha1_CloudControllerManagerConfig_To_metal_CloudControllerManagerConfig(in *CloudControllerManagerConfig, out *metal.CloudControllerManagerConfig, s conversion.Scope) error {
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
+	out.DefaultExternalNetwork = (*string)(unsafe.Pointer(in.DefaultExternalNetwork))
 	return nil
 }
 
@@ -201,6 +202,7 @@ func Convert_v1alpha1_CloudControllerManagerConfig_To_metal_CloudControllerManag
 
 func autoConvert_metal_CloudControllerManagerConfig_To_v1alpha1_CloudControllerManagerConfig(in *metal.CloudControllerManagerConfig, out *CloudControllerManagerConfig, s conversion.Scope) error {
 	out.FeatureGates = *(*map[string]bool)(unsafe.Pointer(&in.FeatureGates))
+	out.DefaultExternalNetwork = (*string)(unsafe.Pointer(in.DefaultExternalNetwork))
 	return nil
 }
 
