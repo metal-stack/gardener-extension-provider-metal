@@ -23,4 +23,8 @@ type CloudControllerManagerConfig struct {
 	// FeatureGates contains information about enabled feature gates.
 	// +optional
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
+	// DefaultExternalNetwork explicitly defines the network from which the CCM allocates IPs for services of type load balancer
+	// If not defined, it will use the first network with the default external network tag from the infrastructure firewall networks
+	// +optional
+	DefaultExternalNetwork *string `json:"defaultExternalNetwork" optional:"true"`
 }

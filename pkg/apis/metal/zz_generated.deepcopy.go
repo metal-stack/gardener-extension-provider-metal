@@ -34,6 +34,11 @@ func (in *CloudControllerManagerConfig) DeepCopyInto(out *CloudControllerManager
 			(*out)[key] = val
 		}
 	}
+	if in.DefaultExternalNetwork != nil {
+		in, out := &in.DefaultExternalNetwork, &out.DefaultExternalNetwork
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 
