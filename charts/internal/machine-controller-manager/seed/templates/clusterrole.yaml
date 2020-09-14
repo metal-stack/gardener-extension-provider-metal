@@ -13,6 +13,8 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - nodes
+  - nodes/status
   - configmaps
   - secrets
   - endpoints

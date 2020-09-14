@@ -13,7 +13,7 @@ require (
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
 	github.com/gardener/etcd-druid v0.3.0
 	github.com/gardener/gardener v1.8.2
-	github.com/gardener/machine-controller-manager v0.33.0
+	github.com/gardener/machine-controller-manager v0.34.0
 	github.com/go-logr/logr v0.1.0
 	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/golang/mock v1.4.4
