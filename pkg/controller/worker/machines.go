@@ -4,14 +4,18 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
+	"github.com/pkg/errors"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/controllerutils"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
+	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
@@ -21,8 +25,11 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-
+	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MachineClassKind yields the name of the metal machine class.
@@ -35,6 +42,69 @@ func (w *workerDelegate) MachineClassList() runtime.Object {
 	return &machinev1alpha1.MachineClassList{}
 }
 
+func (w *workerDelegate) cleanupOldMachineClasses(ctx context.Context, namespace string, machineClassList runtime.Object, wantedMachineDeployments worker.MachineDeployments) error {
+	if err := w.client.List(ctx, machineClassList, client.InNamespace(namespace)); err != nil {
+		return err
+	}
+
+	return meta.EachListItem(machineClassList, func(machineClass runtime.Object) error {
+		var (
+			// we cannot take the finalizer name directly from the machine-controller-manager dependency because the binary would not build anymore
+			deleteFinalizerName = "machine.sapcloud.io/machine-controller-manager"
+		)
+
+		oldClass := machineClass.(*metalv1alpha1.MetalMachineClass)
+
+		// we can already set a deletion timestamp
+		if err := w.client.Delete(ctx, machineClass); err != nil {
+			return err
+		}
+
+		// the machine controller manager does not know the metalmachineclass and cannot do the cleanup after migration
+		// therefore, we need to check if the migration was done and then remove the resources by removing the finalizer from our end
+		if controllerutils.HasFinalizer(oldClass, deleteFinalizerName) {
+			var newClass machinev1alpha1.MachineClass
+			err := w.client.Get(ctx, types.NamespacedName{Name: oldClass.Name, Namespace: oldClass.Namespace}, &newClass)
+			if err != nil {
+				w.logger.Info("cannot remove old metal machine classes by now, new class not yet created")
+				return &controllererrors.RequeueAfterError{
+					Cause:        err,
+					RequeueAfter: 30 * time.Second,
+				}
+			}
+
+			machines := &machinev1alpha1.MachineList{}
+			if err := w.client.List(ctx, machines, client.InNamespace(namespace)); err != nil {
+				return err
+			}
+			err = meta.EachListItem(machines, func(machineObject runtime.Object) error {
+				machine := machineObject.(*machinev1alpha1.Machine)
+				w.logger.Info("checking if machine was migrated", "machine", machine.Name)
+				if machine.Spec.Class.Kind != w.MachineClassKind() {
+					return fmt.Errorf("cannot remove old metal machine classes by now, machine not yet migrated to new machine class")
+				}
+				return nil
+			})
+			if err != nil {
+				w.logger.Info(err.Error())
+				return &controllererrors.RequeueAfterError{
+					Cause:        err,
+					RequeueAfter: 30 * time.Second,
+				}
+			}
+
+			w.logger.Info("all machines were migrated to new machine class, removing finalizer from old machine class...")
+
+			err = controllerutils.RemoveFinalizer(ctx, w.client, oldClass, deleteFinalizerName)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
 // DeployMachineClasses generates and creates the metal specific machine classes.
 func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 	if w.machineClasses == nil {
@@ -42,6 +112,12 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// Delete any older version machine class CRs.
+	if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
+		return errors.Wrapf(err, "cleaning up older version of metal machine class CRs failed")
+	}
+
 	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses}))
 }
 

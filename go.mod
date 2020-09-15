@@ -21,10 +21,11 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/imdario/mergo v0.3.8
 	github.com/metal-stack/firewall-controller v0.1.8
+	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.3
 	github.com/metal-stack/metal-go v0.8.3
 	github.com/metal-stack/metal-lib v0.6.1
-	github.com/onsi/ginkgo v1.14.0
-	github.com/onsi/gomega v1.10.1
+	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5

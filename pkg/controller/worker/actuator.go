@@ -12,6 +12,7 @@ import (
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gardener "github.com/gardener/gardener/pkg/client/kubernetes"
@@ -57,6 +58,10 @@ func NewActuator(machineImages []config.MachineImage) worker.Actuator {
 }
 
 func (d *delegateFactory) InjectScheme(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(metalv1alpha1.SchemeGroupVersion,
+		&metalv1alpha1.MetalMachineClass{},
+		&metalv1alpha1.MetalMachineClassList{},
+	)
 	d.scheme = scheme
 	d.decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
 	return nil
@@ -89,6 +94,7 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 	}
 
 	return NewWorkerDelegate(
+		d.logger,
 		d.client,
 		d.scheme,
 		d.decoder,
@@ -103,6 +109,8 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 }
 
 type workerDelegate struct {
+	logger logr.Logger
+
 	client  client.Client
 	scheme  *runtime.Scheme
 	decoder runtime.Decoder
@@ -121,6 +129,7 @@ type workerDelegate struct {
 
 // NewWorkerDelegate creates a new context for a worker reconciliation.
 func NewWorkerDelegate(
+	logger logr.Logger,
 	client client.Client,
 	scheme *runtime.Scheme,
 	decoder runtime.Decoder,
@@ -133,6 +142,7 @@ func NewWorkerDelegate(
 	cluster *extensionscontroller.Cluster,
 ) genericactuator.WorkerDelegate {
 	return &workerDelegate{
+		logger:  logger,
 		client:  client,
 		scheme:  scheme,
 		decoder: decoder,

@@ -71,6 +71,8 @@ spec:
         command:
         - ./machine-controller-manager
         - --control-kubeconfig=inClusterConfig
+        # this flag does not work for metal-stack because we never were officially in-tree
+        # - --delete-migrated-machine-class=true
         - --target-kubeconfig=/var/lib/machine-controller-manager/kubeconfig
         - --namespace={{ .Release.Namespace }}
         - --port={{ .Values.metricsPort }}
