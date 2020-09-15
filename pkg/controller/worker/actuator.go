@@ -94,6 +94,7 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 	}
 
 	return NewWorkerDelegate(
+		d.logger,
 		d.client,
 		d.scheme,
 		d.decoder,
@@ -108,6 +109,8 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 }
 
 type workerDelegate struct {
+	logger logr.Logger
+
 	client  client.Client
 	scheme  *runtime.Scheme
 	decoder runtime.Decoder
@@ -126,6 +129,7 @@ type workerDelegate struct {
 
 // NewWorkerDelegate creates a new context for a worker reconciliation.
 func NewWorkerDelegate(
+	logger logr.Logger,
 	client client.Client,
 	scheme *runtime.Scheme,
 	decoder runtime.Decoder,
@@ -138,6 +142,7 @@ func NewWorkerDelegate(
 	cluster *extensionscontroller.Cluster,
 ) genericactuator.WorkerDelegate {
 	return &workerDelegate{
+		logger:  logger,
 		client:  client,
 		scheme:  scheme,
 		decoder: decoder,
