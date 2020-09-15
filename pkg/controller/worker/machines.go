@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/pkg/errors"
@@ -14,6 +15,7 @@ import (
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
+	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
@@ -65,7 +67,10 @@ func (w *workerDelegate) cleanupOldMachineClasses(ctx context.Context, namespace
 			err := w.client.Get(ctx, types.NamespacedName{Name: oldClass.Name, Namespace: oldClass.Namespace}, &newClass)
 			if err != nil {
 				w.logger.Info("cannot remove old metal machine classes by now, new class not yet created")
-				return nil
+				return &controllererrors.RequeueAfterError{
+					Cause:        err,
+					RequeueAfter: 30 * time.Second,
+				}
 			}
 
 			machines := &machinev1alpha1.MachineList{}
@@ -82,8 +87,13 @@ func (w *workerDelegate) cleanupOldMachineClasses(ctx context.Context, namespace
 			})
 			if err != nil {
 				w.logger.Info(err.Error())
-				return nil
+				return &controllererrors.RequeueAfterError{
+					Cause:        err,
+					RequeueAfter: 30 * time.Second,
+				}
 			}
+
+			w.logger.Info("all machines were migrated to new machine class, removing finalizer from old machine class...")
 
 			err = controllerutils.RemoveFinalizer(ctx, w.client, oldClass, deleteFinalizerName)
 			if err != nil {
