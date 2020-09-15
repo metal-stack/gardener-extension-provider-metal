@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
+	"github.com/pkg/errors"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -21,8 +22,10 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-
+	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MachineClassKind yields the name of the metal machine class.
@@ -35,6 +38,21 @@ func (w *workerDelegate) MachineClassList() runtime.Object {
 	return &machinev1alpha1.MachineClassList{}
 }
 
+// cleanupOldMachineClasses sets deletionTimestamp any older version machine class CRs.
+func (w *workerDelegate) cleanupOldMachineClasses(ctx context.Context, namespace string, machineClassList runtime.Object, wantedMachineDeployments worker.MachineDeployments) error {
+	if err := w.client.List(ctx, machineClassList, client.InNamespace(namespace)); err != nil {
+		return err
+	}
+
+	return meta.EachListItem(machineClassList, func(machineClass runtime.Object) error {
+		if err := w.client.Delete(ctx, machineClass); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
 // DeployMachineClasses generates and creates the metal specific machine classes.
 func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 	if w.machineClasses == nil {
@@ -42,6 +60,12 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// Delete any older version machine class CRs.
+	if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
+		return errors.Wrapf(err, "cleaning up older version of metal machine class CRs failed")
+	}
+
 	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses}))
 }
 

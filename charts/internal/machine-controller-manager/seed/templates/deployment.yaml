@@ -71,6 +71,7 @@ spec:
         command:
         - ./machine-controller-manager
         - --control-kubeconfig=inClusterConfig
+        - --delete-migrated-machine-class=true
         - --target-kubeconfig=/var/lib/machine-controller-manager/kubeconfig
         - --namespace={{ .Release.Namespace }}
         - --port={{ .Values.metricsPort }}
