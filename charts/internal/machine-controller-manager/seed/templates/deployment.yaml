@@ -46,6 +46,12 @@ spec:
         - ./machine-controller
         - --control-kubeconfig=inClusterConfig
         - --target-kubeconfig=/var/lib/machine-controller-manager/kubeconfig
+        - --machine-creation-timeout=20m
+        - --machine-drain-timeout=2h
+        - --machine-health-timeout=10080m
+        - --machine-safety-apiserver-statuscheck-timeout=30s
+        - --machine-safety-apiserver-statuscheck-period=1m
+        - --machine-safety-orphan-vms-period=30m
         - --namespace={{ .Release.Namespace }}
         - --port={{ .Values.metricsPort2 }}
         - --v=3
