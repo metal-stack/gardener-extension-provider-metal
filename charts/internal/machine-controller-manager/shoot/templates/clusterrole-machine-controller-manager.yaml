@@ -8,12 +8,12 @@ rules:
   - ""
   resources:
   - nodes
+  - nodes/status
   - endpoints
   - replicationcontrollers
   - pods
   - persistentvolumes
   - persistentvolumeclaims
-  - secrets
   verbs:
   - create
   - delete
