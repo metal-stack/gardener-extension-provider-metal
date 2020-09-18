@@ -354,10 +354,8 @@ func (in *Partition) DeepCopyInto(out *Partition) {
 	*out = *in
 	if in.FirewallNetworks != nil {
 		in, out := &in.FirewallNetworks, &out.FirewallNetworks
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	return
 }

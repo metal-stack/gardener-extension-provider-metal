@@ -70,7 +70,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 							FirewallImages: []string{"image"},
 							Partitions: map[string]apismetal.Partition{
 								"partition-a": {
-									FirewallNetworks: map[string]string{"internet": "partition-a-network"},
+									FirewallNetworks: []string{"internet"},
 								},
 							},
 						},
