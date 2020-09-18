@@ -6,6 +6,7 @@ import (
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -48,6 +49,20 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 	}
 	if !found {
 		allErrs = append(allErrs, field.Invalid(firewallPath.Child("image"), infra.Firewall.Image, fmt.Sprintf("supported values: %v", availableFirewallImages.List())))
+	}
+
+	_, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, infra.PartitionID)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("partitionID"), infra.PartitionID, "cloud profile does not define the given shoot partition"))
+	} else {
+		if len(partition.FirewallNetworks) > 0 {
+			// only do this validation when a user defines partition firewall networks in the cloud profile
+			availableFirewallNetworks := sets.NewString()
+			availableFirewallNetworks.Insert(partition.FirewallNetworks...)
+			if !availableFirewallNetworks.HasAll(infra.Firewall.Networks...) {
+				allErrs = append(allErrs, field.Invalid(firewallPath.Child("networks"), infra.Firewall.Networks, fmt.Sprintf("only following firewall networks are allowd: %v", availableFirewallNetworks.List())))
+			}
+		}
 	}
 
 	return allErrs
@@ -97,14 +112,30 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.E
 }
 
 // ValidateInfrastructureConfigUpdate validates a InfrastructureConfig object.
-func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apismetal.InfrastructureConfig) field.ErrorList {
+func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apismetal.InfrastructureConfig, cloudProfileConfig *apismetal.CloudProfileConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.ProjectID, oldConfig.ProjectID, field.NewPath("projectID"))...)
 	allErrs = append(allErrs, apivalidation.ValidateImmutableField(newConfig.PartitionID, oldConfig.PartitionID, field.NewPath("partitionID"))...)
 
+	firewallPath := field.NewPath("firewall")
+
 	if len(newConfig.Firewall.Networks) == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("firewall.networks"), "at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"))
+		allErrs = append(allErrs, field.Required(firewallPath.Child("networks"), "at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"))
+	}
+
+	_, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, newConfig.PartitionID)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("partitionID"), newConfig.PartitionID, "cloud profile does not define the given shoot partition"))
+	} else {
+		if len(partition.FirewallNetworks) > 0 {
+			// only do this validation when a user defines partition firewall networks in the cloud profile
+			availableFirewallNetworks := sets.NewString()
+			availableFirewallNetworks.Insert(partition.FirewallNetworks...)
+			if !availableFirewallNetworks.HasAll(newConfig.Firewall.Networks...) {
+				allErrs = append(allErrs, field.Invalid(firewallPath.Child("networks"), newConfig.Firewall.Networks, fmt.Sprintf("only following firewall networks are allowd: %v", availableFirewallNetworks.List())))
+			}
+		}
 	}
 
 	return allErrs
