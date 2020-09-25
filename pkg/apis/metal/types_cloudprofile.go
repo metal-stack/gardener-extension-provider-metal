@@ -28,10 +28,7 @@ type MetalControlPlane struct {
 }
 
 // Partition contains configuration specific for this metal stack control plane partition
-type Partition struct {
-	// FirewallNetworks contains a list of valid networks within this partition, leave empty to allow users to freely choose firewall networks
-	FirewallNetworks []string
-}
+type Partition struct{}
 
 // IAMConfig contains the config for all AuthN/AuthZ related components
 type IAMConfig struct {

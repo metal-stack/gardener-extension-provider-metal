@@ -51,18 +51,9 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 		allErrs = append(allErrs, field.Invalid(firewallPath.Child("image"), infra.Firewall.Image, fmt.Sprintf("supported values: %v", availableFirewallImages.List())))
 	}
 
-	_, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, infra.PartitionID)
+	_, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infra.PartitionID)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("partitionID"), infra.PartitionID, "cloud profile does not define the given shoot partition"))
-	} else {
-		if len(partition.FirewallNetworks) > 0 {
-			// only do this validation when a user defines partition firewall networks in the cloud profile
-			availableFirewallNetworks := sets.NewString()
-			availableFirewallNetworks.Insert(partition.FirewallNetworks...)
-			if !availableFirewallNetworks.HasAll(infra.Firewall.Networks...) {
-				allErrs = append(allErrs, field.Invalid(firewallPath.Child("networks"), infra.Firewall.Networks, fmt.Sprintf("only following firewall networks are allowd: %v", availableFirewallNetworks.List())))
-			}
-		}
 	}
 
 	return allErrs
@@ -124,18 +115,9 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apismetal.Infrastr
 		allErrs = append(allErrs, field.Required(firewallPath.Child("networks"), "at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"))
 	}
 
-	_, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, newConfig.PartitionID)
+	_, _, err := helper.FindMetalControlPlane(cloudProfileConfig, newConfig.PartitionID)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("partitionID"), newConfig.PartitionID, "cloud profile does not define the given shoot partition"))
-	} else {
-		if len(partition.FirewallNetworks) > 0 {
-			// only do this validation when a user defines partition firewall networks in the cloud profile
-			availableFirewallNetworks := sets.NewString()
-			availableFirewallNetworks.Insert(partition.FirewallNetworks...)
-			if !availableFirewallNetworks.HasAll(newConfig.Firewall.Networks...) {
-				allErrs = append(allErrs, field.Invalid(firewallPath.Child("networks"), newConfig.Firewall.Networks, fmt.Sprintf("only following firewall networks are allowd: %v", availableFirewallNetworks.List())))
-			}
-		}
 	}
 
 	return allErrs

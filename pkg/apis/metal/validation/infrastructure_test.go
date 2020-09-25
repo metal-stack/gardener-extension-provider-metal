@@ -69,9 +69,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 						"prod": {
 							FirewallImages: []string{"image"},
 							Partitions: map[string]apismetal.Partition{
-								"partition-a": {
-									FirewallNetworks: []string{"internet"},
-								},
+								"partition-a": {},
 							},
 						},
 					},
@@ -103,46 +101,6 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					"Field":  Equal("spec.firewall.image"),
 					"Detail": Equal("supported values: [image]"),
 				}))))
-			})
-
-			It("should forbid because no firewall networks given", func() {
-				infrastructureConfig.Firewall.Networks = nil
-				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))
-
-				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":   Equal(field.ErrorTypeRequired),
-					"Field":  Equal("spec.firewall.networks"),
-					"Detail": Equal("at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"),
-				}))))
-			})
-
-			It("should forbid arbitrary firewall networks if configured in cloud profile", func() {
-				infrastructureConfig.Firewall.Networks = []string{"internet", "something"}
-				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))
-
-				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":   Equal(field.ErrorTypeInvalid),
-					"Field":  Equal("spec.firewall.networks"),
-					"Detail": Equal("only following firewall networks are allowd: [internet]"),
-				}))))
-			})
-
-			It("should allow all firewall networks if not configured in cloud profile", func() {
-				infrastructureConfig.Firewall.Networks = []string{"internet", "something"}
-				cpc := &apismetal.CloudProfileConfig{
-					MetalControlPlanes: map[string]apismetal.MetalControlPlane{
-						"prod": {
-							FirewallImages: []string{"image"},
-							Partitions: map[string]apismetal.Partition{
-								"partition-a": {},
-							},
-						},
-					},
-				}
-
-				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cpc, field.NewPath("spec"))
-
-				Expect(errorList).To(BeEmpty())
 			})
 		})
 	})
@@ -221,9 +179,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					"prod": {
 						FirewallImages: []string{"image"},
 						Partitions: map[string]apismetal.Partition{
-							"partition-a": {
-								FirewallNetworks: []string{"internet"},
-							},
+							"partition-a": {},
 						},
 					},
 				},
@@ -269,62 +225,6 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				"Field":  Equal("firewall.networks"),
 				"Detail": Equal("at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"),
 			}))))
-		})
-
-		It("should not allow adding arbitrary firewall networks if configured in cloud profile", func() {
-			newInfrastructureConfig := infrastructureConfig.DeepCopy()
-			newInfrastructureConfig.Firewall.Networks = []string{"internet", "something-new"}
-
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, cloudProfileConfig)
-
-			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Type":   Equal(field.ErrorTypeInvalid),
-				"Field":  Equal("firewall.networks"),
-				"Detail": Equal("only following firewall networks are allowd: [internet]"),
-			}))))
-		})
-
-		It("should allow arbitrary firewall networks if not configured in cloud profile", func() {
-			newInfrastructureConfig := infrastructureConfig.DeepCopy()
-			newInfrastructureConfig.Firewall.Networks = []string{"internet", "something-new"}
-
-			cpc := &apismetal.CloudProfileConfig{
-				MetalControlPlanes: map[string]apismetal.MetalControlPlane{
-					"prod": {
-						FirewallImages: []string{"image"},
-						Partitions: map[string]apismetal.Partition{
-							"partition-a": {},
-						},
-					},
-				},
-			}
-
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, cpc)
-
-			Expect(errorList).To(BeEmpty())
-		})
-
-		It("order of networks does not matter", func() {
-			infrastructureConfig.Firewall.Networks = []string{"a", "b"}
-			newInfrastructureConfig := infrastructureConfig.DeepCopy()
-			newInfrastructureConfig.Firewall.Networks = []string{"b", "a"}
-
-			cpc := &apismetal.CloudProfileConfig{
-				MetalControlPlanes: map[string]apismetal.MetalControlPlane{
-					"prod": {
-						FirewallImages: []string{"image"},
-						Partitions: map[string]apismetal.Partition{
-							"partition-a": {
-								FirewallNetworks: []string{"a", "b"},
-							},
-						},
-					},
-				},
-			}
-
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, cpc)
-
-			Expect(errorList).To(BeEmpty())
 		})
 	})
 
