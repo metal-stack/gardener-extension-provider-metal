@@ -69,9 +69,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 						"prod": {
 							FirewallImages: []string{"image"},
 							Partitions: map[string]apismetal.Partition{
-								"partition-a": {
-									FirewallNetworks: map[string]string{"internet": "partition-a-network"},
-								},
+								"partition-a": {},
 							},
 						},
 					},
@@ -102,17 +100,6 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					"Type":   Equal(field.ErrorTypeInvalid),
 					"Field":  Equal("spec.firewall.image"),
 					"Detail": Equal("supported values: [image]"),
-				}))))
-			})
-
-			It("should forbid because no firewall networks given", func() {
-				infrastructureConfig.Firewall.Networks = nil
-				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))
-
-				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":   Equal(field.ErrorTypeRequired),
-					"Field":  Equal("spec.firewall.networks"),
-					"Detail": Equal("at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"),
 				}))))
 			})
 		})
@@ -183,17 +170,33 @@ var _ = Describe("InfrastructureConfig validation", func() {
 	})
 
 	Describe("#ValidateInfrastructureConfigUpdate", func() {
+		var (
+			cloudProfileConfig *apismetal.CloudProfileConfig
+		)
+		BeforeEach(func() {
+			cloudProfileConfig = &apismetal.CloudProfileConfig{
+				MetalControlPlanes: map[string]apismetal.MetalControlPlane{
+					"prod": {
+						FirewallImages: []string{"image"},
+						Partitions: map[string]apismetal.Partition{
+							"partition-a": {},
+						},
+					},
+				},
+			}
+		})
+
 		It("should return no errors for an unchanged config", func() {
-			Expect(ValidateInfrastructureConfigUpdate(infrastructureConfig, infrastructureConfig)).To(BeEmpty())
+			Expect(ValidateInfrastructureConfigUpdate(infrastructureConfig, infrastructureConfig, cloudProfileConfig)).To(BeEmpty())
 		})
 
 		It("should not allow changing partition", func() {
 			newInfrastructureConfig := infrastructureConfig.DeepCopy()
 			newInfrastructureConfig.PartitionID = "unknown"
 
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, cloudProfileConfig)
 
-			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+			Expect(errorList).To(ContainElements(PointTo(MatchFields(IgnoreExtras, Fields{
 				"Type":  Equal(field.ErrorTypeInvalid),
 				"Field": Equal("partitionID"),
 			}))))
@@ -203,7 +206,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			newInfrastructureConfig := infrastructureConfig.DeepCopy()
 			newInfrastructureConfig.ProjectID = "unknown"
 
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, cloudProfileConfig)
 
 			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
 				"Type":  Equal(field.ErrorTypeInvalid),
@@ -215,23 +218,13 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			newInfrastructureConfig := infrastructureConfig.DeepCopy()
 			newInfrastructureConfig.Firewall.Networks = []string{}
 
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
+			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig, cloudProfileConfig)
 
 			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
 				"Type":   Equal(field.ErrorTypeRequired),
 				"Field":  Equal("firewall.networks"),
 				"Detail": Equal("at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"),
 			}))))
-		})
-
-		It("order of networks does not matter", func() {
-			infrastructureConfig.Firewall.Networks = []string{"a", "b"}
-			newInfrastructureConfig := infrastructureConfig.DeepCopy()
-			newInfrastructureConfig.Firewall.Networks = []string{"b", "a"}
-
-			errorList := ValidateInfrastructureConfigUpdate(infrastructureConfig, newInfrastructureConfig)
-
-			Expect(errorList).To(BeEmpty())
 		})
 	})
 

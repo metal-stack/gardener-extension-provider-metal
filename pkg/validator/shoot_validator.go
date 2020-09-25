@@ -99,8 +99,18 @@ func (v *Shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 		return err
 	}
 
+	cloudProfile := &gardencorev1beta1.CloudProfile{}
+	if err := v.client.Get(ctx, kutil.Key(shoot.Spec.CloudProfileName), cloudProfile); err != nil {
+		return err
+	}
+
+	cloudProfileConfig, err := helper.DecodeCloudProfileConfig(cloudProfile)
+	if err != nil {
+		return err
+	}
+
 	if !reflect.DeepEqual(oldInfraConfig, infraConfig) {
-		if errList := metalvalidation.ValidateInfrastructureConfigUpdate(oldInfraConfig, infraConfig); len(errList) != 0 {
+		if errList := metalvalidation.ValidateInfrastructureConfigUpdate(oldInfraConfig, infraConfig, cloudProfileConfig); len(errList) != 0 {
 			return errList.ToAggregate()
 		}
 	}

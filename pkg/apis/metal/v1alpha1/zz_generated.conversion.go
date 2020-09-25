@@ -524,7 +524,6 @@ func Convert_metal_NamespaceGroupConfig_To_v1alpha1_NamespaceGroupConfig(in *met
 }
 
 func autoConvert_v1alpha1_Partition_To_metal_Partition(in *Partition, out *metal.Partition, s conversion.Scope) error {
-	out.FirewallNetworks = *(*map[string]string)(unsafe.Pointer(&in.FirewallNetworks))
 	return nil
 }
 
@@ -534,7 +533,6 @@ func Convert_v1alpha1_Partition_To_metal_Partition(in *Partition, out *metal.Par
 }
 
 func autoConvert_metal_Partition_To_v1alpha1_Partition(in *metal.Partition, out *Partition, s conversion.Scope) error {
-	out.FirewallNetworks = *(*map[string]string)(unsafe.Pointer(&in.FirewallNetworks))
 	return nil
 }
 
