@@ -121,9 +121,9 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 		}
 	}
 
-	ootDeployment := false
-	if workerConfig.FeatureGates.MachineControllerManagerOOT != nil {
-		ootDeployment = *workerConfig.FeatureGates.MachineControllerManagerOOT
+	ootDeployment, err := w.isOOTDeployment()
+	if err != nil {
+		return err
 	}
 
 	if ootDeployment {
