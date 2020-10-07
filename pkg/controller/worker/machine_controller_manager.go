@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	"github.com/pkg/errors"
 
 	"github.com/gardener/gardener/pkg/utils/chart"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
@@ -43,16 +45,56 @@ func (w *workerDelegate) GetMachineControllerManagerChartValues(ctx context.Cont
 		return nil, err
 	}
 
+	workerConfig := &apismetal.WorkerConfig{}
+	if w.worker.Spec.ProviderConfig != nil {
+		if _, _, err := w.decoder.Decode(w.worker.Spec.ProviderConfig.Raw, nil, workerConfig); err != nil {
+			return nil, errors.Wrapf(err, "could not decode providerConfig of worker")
+		}
+	}
+
+	ootDeployment := false
+	if workerConfig.FeatureGates.MachineControllerManagerOOT != nil {
+		ootDeployment = *workerConfig.FeatureGates.MachineControllerManagerOOT
+	}
+
+	if !ootDeployment {
+		err := w.checkNotAlreadyMigrated(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return map[string]interface{}{
 		"providerName": metal.Name,
 		"namespace": map[string]interface{}{
 			"uid": namespace.UID,
 		},
+		"deployOOT": ootDeployment,
 	}, nil
 }
 
 func (w *workerDelegate) GetMachineControllerManagerShootChartValues(ctx context.Context) (map[string]interface{}, error) {
+	workerConfig := &apismetal.WorkerConfig{}
+	if w.worker.Spec.ProviderConfig != nil {
+		if _, _, err := w.decoder.Decode(w.worker.Spec.ProviderConfig.Raw, nil, workerConfig); err != nil {
+			return nil, errors.Wrapf(err, "could not decode providerConfig of worker")
+		}
+	}
+
+	ootDeployment := false
+	if workerConfig.FeatureGates.MachineControllerManagerOOT != nil {
+		ootDeployment = *workerConfig.FeatureGates.MachineControllerManagerOOT
+	}
+
+	if !ootDeployment {
+		err := w.checkNotAlreadyMigrated(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return map[string]interface{}{
 		"providerName": metal.Name,
+		"deployOOT":    ootDeployment,
 	}, nil
 }

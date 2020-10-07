@@ -43,6 +43,7 @@ func (w *workerDelegate) MachineClassList() runtime.Object {
 }
 
 func (w *workerDelegate) cleanupOldMachineClasses(ctx context.Context, namespace string, machineClassList runtime.Object, wantedMachineDeployments worker.MachineDeployments) error {
+
 	if err := w.client.List(ctx, machineClassList, client.InNamespace(namespace)); err != nil {
 		return err
 	}
@@ -113,12 +114,47 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 		}
 	}
 
-	// Delete any older version machine class CRs.
-	if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
-		return errors.Wrapf(err, "cleaning up older version of metal machine class CRs failed")
+	workerConfig := &apismetal.WorkerConfig{}
+	if w.worker.Spec.ProviderConfig != nil {
+		if _, _, err := w.decoder.Decode(w.worker.Spec.ProviderConfig.Raw, nil, workerConfig); err != nil {
+			return errors.Wrapf(err, "could not decode providerConfig of worker")
+		}
 	}
 
-	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses}))
+	ootDeployment := false
+	if workerConfig.FeatureGates.MachineControllerManagerOOT != nil {
+		ootDeployment = *workerConfig.FeatureGates.MachineControllerManagerOOT
+	}
+
+	if ootDeployment {
+		// Delete any older version machine class CRs.
+		if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
+			return errors.Wrapf(err, "cleaning up older version of metal machine class CRs failed")
+		}
+	} else {
+		err := w.checkNotAlreadyMigrated(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	values := kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses, "deployOOT": ootDeployment})
+
+	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", values)
+}
+
+func (w *workerDelegate) checkNotAlreadyMigrated(ctx context.Context) error {
+	machines := &machinev1alpha1.MachineList{}
+	if err := w.client.List(ctx, machines, client.InNamespace(w.worker.Namespace)); err != nil {
+		return err
+	}
+	return meta.EachListItem(machines, func(machineObject runtime.Object) error {
+		machine := machineObject.(*machinev1alpha1.Machine)
+		if machine.Spec.Class.Kind == w.MachineClassKind() {
+			return fmt.Errorf("cannot use legacy deployment method of MCM because machines were already migrated (at least partly), please enable worker feature gate for MCM OOT")
+		}
+		return nil
+	})
 }
 
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.

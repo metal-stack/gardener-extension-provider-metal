@@ -13,3 +13,5 @@ machineClasses:
     metalAPIKey: abc
     metalAPIHMac: abc
     metalAPIURL: abc
+
+deployOOT: false
