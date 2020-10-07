@@ -34,7 +34,10 @@ import (
 // MachineClassKind yields the name of the metal machine class.
 func (w *workerDelegate) MachineClassKind() string {
 	ootDeployment, err := w.isOOTDeployment()
-	if err != nil && ootDeployment {
+	if err != nil {
+		w.logger.Error(err, "could not determine if oot control plane feature gate is set, defaulting to old MCM deployment type")
+	}
+	if ootDeployment {
 		return "MachineClass"
 	}
 	return "MetalMachineClass"
@@ -43,7 +46,10 @@ func (w *workerDelegate) MachineClassKind() string {
 // MachineClassList yields a newly initialized MetalMachineClassList object.
 func (w *workerDelegate) MachineClassList() runtime.Object {
 	ootDeployment, err := w.isOOTDeployment()
-	if err != nil && ootDeployment {
+	if err != nil {
+		w.logger.Error(err, "could not determine if oot control plane feature gate is set, defaulting to old MCM deployment type")
+	}
+	if ootDeployment {
 		return &machinev1alpha1.MachineClassList{}
 	}
 	return &metalv1alpha1.MetalMachineClassList{}
@@ -134,7 +140,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 			}
 		}()
 	} else {
-		err := w.checkNotAlreadyMigrated(ctx)
+		err := w.errorWhenAlreadyMigrated(ctx)
 		if err != nil {
 			return err
 		}
@@ -145,7 +151,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", values)
 }
 
-func (w *workerDelegate) checkNotAlreadyMigrated(ctx context.Context) error {
+func (w *workerDelegate) errorWhenAlreadyMigrated(ctx context.Context) error {
 	machines := &machinev1alpha1.MachineList{}
 	if err := w.client.List(ctx, machines, client.InNamespace(w.worker.Namespace)); err != nil {
 		return err

@@ -51,7 +51,7 @@ func (w *workerDelegate) GetMachineControllerManagerChartValues(ctx context.Cont
 	}
 
 	if !ootDeployment {
-		err := w.checkNotAlreadyMigrated(ctx)
+		err := w.errorWhenAlreadyMigrated(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +88,7 @@ func (w *workerDelegate) GetMachineControllerManagerShootChartValues(ctx context
 	}
 
 	if !ootDeployment {
-		err := w.checkNotAlreadyMigrated(ctx)
+		err := w.errorWhenAlreadyMigrated(ctx)
 		if err != nil {
 			return nil, err
 		}
