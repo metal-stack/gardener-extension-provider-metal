@@ -43,7 +43,11 @@ func (w *workerDelegate) MachineClassKind() string {
 
 // MachineClassList yields a newly initialized MetalMachineClassList object.
 func (w *workerDelegate) MachineClassList() runtime.Object {
-	return &machinev1alpha1.MachineClassList{}
+	ootDeployment, err := w.isOOTDeployment()
+	if err != nil && ootDeployment {
+		return &machinev1alpha1.MachineClassList{}
+	}
+	return &metalv1alpha1.MetalMachineClassList{}
 }
 
 func (w *workerDelegate) cleanupOldMachineClasses(ctx context.Context, namespace string, machineClassList runtime.Object, wantedMachineDeployments worker.MachineDeployments) error {
