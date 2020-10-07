@@ -38,7 +38,7 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
       - name: metal-machine-controller-manager
-        image: {{ index .Values.images "machine-controller-manager" }}
+        image: registry.fi-ts.io/gardener/machine-controller-manager:metal
         imagePullPolicy: IfNotPresent
         command:
         - ./machine-controller-manager
