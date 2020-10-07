@@ -114,13 +114,6 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 		}
 	}
 
-	workerConfig := &apismetal.WorkerConfig{}
-	if w.worker.Spec.ProviderConfig != nil {
-		if _, _, err := w.decoder.Decode(w.worker.Spec.ProviderConfig.Raw, nil, workerConfig); err != nil {
-			return errors.Wrapf(err, "could not decode providerConfig of worker")
-		}
-	}
-
 	ootDeployment, err := w.isOOTDeployment()
 	if err != nil {
 		return err

@@ -67,29 +67,21 @@ func (w *workerDelegate) GetMachineControllerManagerChartValues(ctx context.Cont
 }
 
 func (w *workerDelegate) isOOTDeployment() (bool, error) {
-	for _, pool := range w.worker.Spec.Pools {
-		workerConfig := &apismetal.WorkerConfig{}
-		if pool.ProviderConfig != nil {
-			if _, _, err := w.decoder.Decode(pool.ProviderConfig.Raw, nil, workerConfig); err != nil {
-				return false, errors.Wrapf(err, "could not decode providerConfig of worker pool")
-			}
-		}
-
-		if workerConfig.FeatureGates.MachineControllerManagerOOT != nil && *workerConfig.FeatureGates.MachineControllerManagerOOT {
-			return true, nil
+	controlPlaneConfig := &apismetal.ControlPlaneConfig{}
+	if w.cluster != nil && w.cluster.Shoot != nil && w.cluster.Shoot.Spec.Provider.ControlPlaneConfig != nil {
+		if _, _, err := w.decoder.Decode(w.cluster.Shoot.Spec.Provider.ControlPlaneConfig.Raw, nil, controlPlaneConfig); err != nil {
+			return false, errors.Wrapf(err, "could not decode providerConfig of control plane")
 		}
 	}
+
+	if controlPlaneConfig.FeatureGates.MachineControllerManagerOOT != nil && *controlPlaneConfig.FeatureGates.MachineControllerManagerOOT {
+		return true, nil
+	}
+
 	return false, nil
 }
 
 func (w *workerDelegate) GetMachineControllerManagerShootChartValues(ctx context.Context) (map[string]interface{}, error) {
-	workerConfig := &apismetal.WorkerConfig{}
-	if w.worker.Spec.ProviderConfig != nil {
-		if _, _, err := w.decoder.Decode(w.worker.Spec.ProviderConfig.Raw, nil, workerConfig); err != nil {
-			return nil, errors.Wrapf(err, "could not decode providerConfig of worker")
-		}
-	}
-
 	ootDeployment, err := w.isOOTDeployment()
 	if err != nil {
 		return nil, err

@@ -7,23 +7,6 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// WorkerConfig contains configuration settings for the worker nodes.
-type WorkerConfig struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// FeatureGates contains feature gates for metal stack worker machines.
-	FeatureGates WorkerFeatures `json:"featureGates,omitempty"`
-}
-
-// WorkerFeatures contains feature gates for metal stack worker machines.
-type WorkerFeatures struct {
-	// MachineControllerManagerOOT enables the deployment of the out-of-tree machine controller manager.
-	// Once enabled this cannot be taken back.
-	// This will become default at some point in the future.
-	// +optional
-	MachineControllerManagerOOT *bool `json:"machineControllerManagerOOT,omitempty"`
-}
-
 // WorkerStatus contains information about created worker resources.
 type WorkerStatus struct {
 	metav1.TypeMeta `json:",inline"`
