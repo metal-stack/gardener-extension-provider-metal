@@ -56,7 +56,6 @@ func (w *workerDelegate) MachineClassList() runtime.Object {
 }
 
 func (w *workerDelegate) cleanupOldMachineClasses(ctx context.Context, namespace string, machineClassList runtime.Object, wantedMachineDeployments worker.MachineDeployments) error {
-
 	if err := w.client.List(ctx, machineClassList, client.InNamespace(namespace)); err != nil {
 		return err
 	}
@@ -134,11 +133,9 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 
 	if ootDeployment {
 		// Delete any older version machine class CRs.
-		defer func() {
-			if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
-				w.logger.Info("unable to cleanup old metal machine classes by now, retrying later...", "error", err)
-			}
-		}()
+		if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
+			w.logger.Info("unable to cleanup old metal machine classes by now, retrying later...", "error", err)
+		}
 	} else {
 		err := w.errorWhenAlreadyMigrated(ctx)
 		if err != nil {
