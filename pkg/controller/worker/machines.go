@@ -7,6 +7,7 @@ import (
 	"time"
 
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
+	"github.com/pkg/errors"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -134,11 +135,9 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 
 	if ootDeployment {
 		// Delete any older version machine class CRs.
-		defer func() {
-			if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
-				w.logger.Error(err, "cleaning up older version of metal machine class CRs failed")
-			}
-		}()
+		if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
+			return errors.Wrapf(err, "cleaning up older version of metal machine class CRs failed")
+		}
 	} else {
 		err := w.errorWhenAlreadyMigrated(ctx)
 		if err != nil {
