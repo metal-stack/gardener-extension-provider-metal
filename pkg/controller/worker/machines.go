@@ -136,7 +136,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 		// Delete any older version machine class CRs.
 		defer func() {
 			if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
-				w.logger.Error(err, "unable to cleanup old metal machine classes by now, retrying later...")
+				w.logger.Info("unable to cleanup old metal machine classes by now, retrying later...", "error", err)
 			}
 		}()
 	} else {
