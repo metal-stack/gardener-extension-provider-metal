@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	"github.com/pkg/errors"
 
 	"github.com/gardener/gardener/pkg/utils/chart"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
@@ -43,16 +45,57 @@ func (w *workerDelegate) GetMachineControllerManagerChartValues(ctx context.Cont
 		return nil, err
 	}
 
+	ootDeployment, err := w.isOOTDeployment()
+	if err != nil {
+		return nil, err
+	}
+
+	if !ootDeployment {
+		err := w.errorWhenAlreadyMigrated(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return map[string]interface{}{
 		"providerName": metal.Name,
 		"namespace": map[string]interface{}{
 			"uid": namespace.UID,
 		},
+		"deployOOT": ootDeployment,
 	}, nil
 }
 
+func (w *workerDelegate) isOOTDeployment() (bool, error) {
+	controlPlaneConfig := &apismetal.ControlPlaneConfig{}
+	if w.cluster != nil && w.cluster.Shoot != nil && w.cluster.Shoot.Spec.Provider.ControlPlaneConfig != nil {
+		if _, _, err := w.decoder.Decode(w.cluster.Shoot.Spec.Provider.ControlPlaneConfig.Raw, nil, controlPlaneConfig); err != nil {
+			return false, errors.Wrapf(err, "could not decode providerConfig of control plane")
+		}
+	}
+
+	if controlPlaneConfig.FeatureGates.MachineControllerManagerOOT != nil && *controlPlaneConfig.FeatureGates.MachineControllerManagerOOT {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func (w *workerDelegate) GetMachineControllerManagerShootChartValues(ctx context.Context) (map[string]interface{}, error) {
+	ootDeployment, err := w.isOOTDeployment()
+	if err != nil {
+		return nil, err
+	}
+
+	if !ootDeployment {
+		err := w.errorWhenAlreadyMigrated(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return map[string]interface{}{
 		"providerName": metal.Name,
+		"deployOOT":    ootDeployment,
 	}, nil
 }

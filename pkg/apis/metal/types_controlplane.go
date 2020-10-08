@@ -16,6 +16,18 @@ type ControlPlaneConfig struct {
 
 	// IAMConfig contains the config for all AuthN/AuthZ related components and overrides the configuration from the cloud profile
 	IAMConfig *IAMConfig
+
+	// FeatureGates contains feature gates for the control plane.
+	FeatureGates ControlPlaneFeatures
+}
+
+// ControlPlaneFeatures contains feature gates for the control plane.
+type ControlPlaneFeatures struct {
+	// MachineControllerManagerOOT enables the deployment of the out-of-tree machine controller manager.
+	// Once enabled this cannot be taken back.
+	// This will become default at some point in the future.
+	// +optional
+	MachineControllerManagerOOT *bool
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.

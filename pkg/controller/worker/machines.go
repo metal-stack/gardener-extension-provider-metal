@@ -7,7 +7,6 @@ import (
 	"time"
 
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
-	"github.com/pkg/errors"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -34,12 +33,26 @@ import (
 
 // MachineClassKind yields the name of the metal machine class.
 func (w *workerDelegate) MachineClassKind() string {
-	return "MachineClass"
+	ootDeployment, err := w.isOOTDeployment()
+	if err != nil {
+		w.logger.Error(err, "could not determine if oot control plane feature gate is set, defaulting to old MCM deployment type")
+	}
+	if ootDeployment {
+		return "MachineClass"
+	}
+	return "MetalMachineClass"
 }
 
 // MachineClassList yields a newly initialized MetalMachineClassList object.
 func (w *workerDelegate) MachineClassList() runtime.Object {
-	return &machinev1alpha1.MachineClassList{}
+	ootDeployment, err := w.isOOTDeployment()
+	if err != nil {
+		w.logger.Error(err, "could not determine if oot control plane feature gate is set, defaulting to old MCM deployment type")
+	}
+	if ootDeployment {
+		return &machinev1alpha1.MachineClassList{}
+	}
+	return &metalv1alpha1.MetalMachineClassList{}
 }
 
 func (w *workerDelegate) cleanupOldMachineClasses(ctx context.Context, namespace string, machineClassList runtime.Object, wantedMachineDeployments worker.MachineDeployments) error {
@@ -80,7 +93,7 @@ func (w *workerDelegate) cleanupOldMachineClasses(ctx context.Context, namespace
 			err = meta.EachListItem(machines, func(machineObject runtime.Object) error {
 				machine := machineObject.(*machinev1alpha1.Machine)
 				w.logger.Info("checking if machine was migrated", "machine", machine.Name)
-				if machine.Spec.Class.Kind != w.MachineClassKind() {
+				if machine.Spec.Class.Kind != "MachineClass" {
 					return fmt.Errorf("cannot remove old metal machine classes by now, machine not yet migrated to new machine class")
 				}
 				return nil
@@ -113,12 +126,40 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 		}
 	}
 
-	// Delete any older version machine class CRs.
-	if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
-		return errors.Wrapf(err, "cleaning up older version of metal machine class CRs failed")
+	ootDeployment, err := w.isOOTDeployment()
+	if err != nil {
+		return err
 	}
 
-	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses}))
+	if ootDeployment {
+		// Delete any older version machine class CRs.
+		if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
+			w.logger.Info("unable to cleanup old metal machine classes by now, retrying later...", "error", err)
+		}
+	} else {
+		err := w.errorWhenAlreadyMigrated(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	values := kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses, "deployOOT": ootDeployment})
+
+	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", values)
+}
+
+func (w *workerDelegate) errorWhenAlreadyMigrated(ctx context.Context) error {
+	machines := &machinev1alpha1.MachineList{}
+	if err := w.client.List(ctx, machines, client.InNamespace(w.worker.Namespace)); err != nil {
+		return err
+	}
+	return meta.EachListItem(machines, func(machineObject runtime.Object) error {
+		machine := machineObject.(*machinev1alpha1.Machine)
+		if machine.Spec.Class.Kind == "MachineClass" {
+			return fmt.Errorf("cannot use legacy deployment method of MCM because machines were already migrated (at least partly), please enable worker feature gate for MCM OOT")
+		}
+		return nil
+	})
 }
 
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.
