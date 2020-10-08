@@ -134,7 +134,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 	if ootDeployment {
 		// Delete any older version machine class CRs.
 		if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
-			w.logger.Info("unable to cleanup old metal machine classes by now, retrying later...", "error", err)
+			return fmt.Errorf("migration from MCM to OOT approach still pending: %v", err)
 		}
 	} else {
 		err := w.errorWhenAlreadyMigrated(ctx)
