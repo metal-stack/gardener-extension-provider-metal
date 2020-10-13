@@ -765,9 +765,9 @@ func getCCMChartValues(
 					break
 				}
 			}
-			if defaultExternalNetwork == "" {
-				return nil, fmt.Errorf("unable to find a default external network for metal-ccm deployment")
-			}
+		}
+		if defaultExternalNetwork == "" {
+			return nil, fmt.Errorf("unable to find a default external network for metal-ccm deployment")
 		}
 	}
 
