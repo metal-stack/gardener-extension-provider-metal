@@ -11,10 +11,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Check (lint) and Test
-      run: |
-        make test-in-docker
-    - name: Build and push Docker image
+    - name: Lint, Test, Build and push Docker image
       run: |
         docker login -u ${{ secrets.DOCKER_HUB_USER }} -p ${{ secrets.DOCKER_HUB_TOKEN }}
         export GITHUB_TAG_NAME=${GITHUB_HEAD_REF##*/}
