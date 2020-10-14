@@ -57,7 +57,7 @@ install: revendor
 	$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/install.sh ./...
 
 .PHONY: docker-image
-docker-image:
+docker-image: revendor
 	@docker build --no-cache \
 		--build-arg VERIFY=$(VERIFY) \
 		--tag $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(IMAGE_TAG) \
