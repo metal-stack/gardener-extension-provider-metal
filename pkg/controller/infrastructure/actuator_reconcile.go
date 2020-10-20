@@ -235,9 +235,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 
 			currentNetworks := sets.NewString()
 			for _, n := range fw.Allocation.Networks {
-				// better would be to test for Privateprimary, but this has a migration problem:
-				// old machines will have set Privateprimary to false even when it is their private primary network!
-				if *n.Private && !*n.Shared {
+				if n.Networktype.Name == "privateprimaryunshared" || n.Networktype.Name == "privateprimaryshared" {
 					continue
 				}
 				if *n.Underlay {
