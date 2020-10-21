@@ -21,6 +21,7 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalgo "github.com/metal-stack/metal-go"
 	metalfirewall "github.com/metal-stack/metal-go/api/client/firewall"
+	mn "github.com/metal-stack/metal-lib/pkg/net"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
@@ -235,7 +236,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 
 			currentNetworks := sets.NewString()
 			for _, n := range fw.Allocation.Networks {
-				if n.Networktype.Name == "privateprimaryunshared" || n.Networktype.Name == "privateprimaryshared" {
+				if *n.Networktype == mn.PrivatePrimaryUnshared || *n.Networktype == mn.PrivatePrimaryShared {
 					continue
 				}
 				if *n.Underlay {
