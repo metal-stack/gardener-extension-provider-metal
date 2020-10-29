@@ -21,8 +21,6 @@ import (
 	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	. "github.com/gardener/gardener/pkg/utils/validation/gomega"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -96,7 +94,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 
 			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile)
 
-			Expect(errorList).To(ConsistOfFields(Fields{
+			Expect(errorList).To(ConsistOf(Fields{
 				"Type":     Equal(field.ErrorTypeInvalid),
 				"Field":    Equal("metalControlPlanes.prod"),
 				"BadValue": Equal("random-partition"),

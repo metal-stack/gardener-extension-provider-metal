@@ -313,3 +313,32 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 	return nil
 }
+
+func (w *workerDelegate) CleanupMachineDependencies(context.Context) error {
+	// FIXME implement
+	return nil
+}
+
+func (w *workerDelegate) DeployMachineDependencies(context.Context) error {
+	// FIXME implement
+	return nil
+}
+
+// UpdateMachineImagesStatus updates the machine image status
+// with the used machine images for the `Worker` resource.
+func (w *workerDelegate) UpdateMachineImagesStatus(ctx context.Context) error {
+	if w.machineImages == nil {
+		if err := w.generateMachineConfig(ctx); err != nil {
+			return err
+		}
+	}
+
+	// Decode the current worker provider status.
+	workerStatus, err := w.decodeWorkerProviderStatus(ctx)
+	if err != nil {
+		return err
+	}
+
+	workerStatus.MachineImages = w.machineImages
+	return w.updateWorkerProviderStatus(ctx, workerStatus)
+}

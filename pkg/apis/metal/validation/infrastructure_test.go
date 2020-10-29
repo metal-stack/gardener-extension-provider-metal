@@ -7,8 +7,6 @@ import (
 	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	. "github.com/gardener/gardener/pkg/utils/validation/gomega"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -112,7 +110,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig)
 
-				Expect(errorList).To(ConsistOfFields(Fields{
+				Expect(errorList).To(ConsistOf(Fields{
 					"Type":   Equal(field.ErrorTypeRequired),
 					"Field":  Equal("partitionID"),
 					"Detail": Equal("partitionID must be specified"),
@@ -124,7 +122,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig)
 
-				Expect(errorList).To(ConsistOfFields(Fields{
+				Expect(errorList).To(ConsistOf(Fields{
 					"Type":   Equal(field.ErrorTypeRequired),
 					"Field":  Equal("projectID"),
 					"Detail": Equal("projectID must be specified"),
@@ -136,7 +134,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig)
 
-				Expect(errorList).To(ConsistOfFields(Fields{
+				Expect(errorList).To(ConsistOf(Fields{
 					"Type":   Equal(field.ErrorTypeRequired),
 					"Field":  Equal("firewall.image"),
 					"Detail": Equal("firewall image must be specified"),
@@ -148,7 +146,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig)
 
-				Expect(errorList).To(ConsistOfFields(Fields{
+				Expect(errorList).To(ConsistOf(Fields{
 					"Type":   Equal(field.ErrorTypeRequired),
 					"Field":  Equal("firewall.size"),
 					"Detail": Equal("firewall size must be specified"),
@@ -160,7 +158,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 
 				errorList := ValidateInfrastructureConfig(infrastructureConfig)
 
-				Expect(errorList).To(ConsistOfFields(Fields{
+				Expect(errorList).To(ConsistOf(Fields{
 					"Type":   Equal(field.ErrorTypeRequired),
 					"Field":  Equal("firewall.networks[1]"),
 					"Detail": Equal("firewall network must not be an empty string"),

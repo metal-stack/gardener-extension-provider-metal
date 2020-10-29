@@ -6,7 +6,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	. "github.com/gardener/gardener/pkg/utils/validation/gomega"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,7 +42,7 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 
 			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
 
-			Expect(errorList).To(ConsistOfFields(Fields{
+			Expect(errorList).To(ConsistOf(Fields{
 				"Type":   Equal(field.ErrorTypeRequired),
 				"Field":  Equal("spec.iamconfig"),
 				"Detail": Equal("iam config must be specified"),
@@ -55,7 +54,7 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 
 			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
 
-			Expect(errorList).To(ConsistOfFields(Fields{
+			Expect(errorList).To(ConsistOf(Fields{
 				"Type":   Equal(field.ErrorTypeRequired),
 				"Field":  Equal("spec.iamconfig.issuerConfig.url"),
 				"Detail": Equal("url must be specified"),
@@ -67,7 +66,7 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 
 			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
 
-			Expect(errorList).To(ConsistOfFields(Fields{
+			Expect(errorList).To(ConsistOf(Fields{
 				"Type":   Equal(field.ErrorTypeRequired),
 				"Field":  Equal("spec.iamconfig.issuerConfig.clientId"),
 				"Detail": Equal("clientId must be specified"),
@@ -79,7 +78,7 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 
 			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
 
-			Expect(errorList).To(ConsistOfFields(Fields{
+			Expect(errorList).To(ConsistOf(Fields{
 				"Type":   Equal(field.ErrorTypeRequired),
 				"Field":  Equal("spec.iamconfig.groupConfig.namespaceMaxLength"),
 				"Detail": Equal("namespaceMaxLength must be a positive integer"),
