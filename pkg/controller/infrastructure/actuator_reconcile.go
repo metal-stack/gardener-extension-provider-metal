@@ -255,12 +255,13 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 
 			return firewallActionDoNothing, nil
 		default:
+			err := fmt.Errorf("multiple firewalls exist for this cluster, which is currently unsupported. delete these firewalls and try to keep the one with machine id %q", r.machineID)
 			r.logger.Error(
-				fmt.Errorf("multiple firewalls exist for this cluster, which is currently unsupported. delete these firewalls and try to keep the one with machine id %q", r.machineID),
+				err,
 				"clusterID", r.clusterID,
 				"expectedMachineID", r.machineID,
 			)
-			return firewallActionDoNothing, nil
+			return firewallActionDoNothing, err
 		}
 	}
 
