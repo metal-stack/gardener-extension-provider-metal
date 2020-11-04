@@ -540,32 +540,40 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	rateLimits := []map[string]interface{}{}
-	for net, rate := range infrastructureConfig.Firewall.RateLimits {
-		resp, err := mclient.NetworkFind(&metalgo.NetworkFindRequest{
-			ID: &net,
+	clusterID := string(cluster.Shoot.GetUID())
+	projectID := infrastructureConfig.ProjectID
+	rateLimitValues := make([]map[string]interface{}, len(infrastructureConfig.Firewall.RateLimits))
+	for _, rateLimit := range infrastructureConfig.Firewall.RateLimits {
+		rateLimitValues = append(rateLimitValues, map[string]interface{}{
+			"networkid": rateLimit.NetworkID,
+			"rate":      rateLimit.RateLimit,
 		})
-		if err != nil {
-			vp.logger.Info("could not find network by id for rate limit", "id", &net)
-			continue
-		}
-		if len(resp.Networks) != 1 {
-			vp.logger.Info("network id is ambiguous", "id", &net)
-			continue
-		}
-		n := resp.Networks[0]
-		iface := fmt.Sprintf("vrf%d", n.Vrf)
-		rl := map[string]interface{}{
-			"interface": iface,
-			"rate":      rate,
-		}
-		rateLimits = append(rateLimits, rl)
 	}
 
+	egressRulesValues := make([]map[string]interface{}, len(infrastructureConfig.Firewall.EgressRules))
+	for _, egressRule := range infrastructureConfig.Firewall.EgressRules {
+		egressRulesValues = append(egressRulesValues, map[string]interface{}{
+			"networkid": egressRule.NetworkID,
+			"ips":       egressRule.IPs,
+		})
+	}
+
+	firewalls, err := metalclient.FindClusterFirewalls(mclient, clusterTag(clusterID), projectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not find firewall for cluster")
+	}
+	if len(firewalls) != 1 {
+		return nil, fmt.Errorf("cluster %s has %d firewalls", clusterID, len(firewalls))
+	}
+
+	firewall := *firewalls[0]
 	values := map[string]interface{}{
 		"firewall": map[string]interface{}{
-			"internalPrefixes": internalPrefixes,
-			"rateLimits":       rateLimits,
+			"networks":         infrastructureConfig.Firewall.Networks,
+			"machinenetworks":  firewall.Allocation.Networks,
+			"internalprefixes": internalPrefixes,
+			"ratelimits":       rateLimitValues,
+			"egressrules":      egressRulesValues,
 		},
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
@@ -862,4 +870,12 @@ func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontrol
 	}
 
 	return values, nil
+}
+
+func egressTag(clusterID string) string {
+	return fmt.Sprintf("%s=%s", tag.ClusterEgress, clusterID)
+}
+
+func clusterTag(clusterID string) string {
+	return fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
 }

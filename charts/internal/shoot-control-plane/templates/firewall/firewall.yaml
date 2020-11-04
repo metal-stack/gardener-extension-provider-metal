@@ -11,11 +11,19 @@ metadata:
   name: firewall
 spec:
   interval: {{ .Values.firewall.interval }}
-{{- if .Values.firewall.internalPrefixes }}
-  internalprefixes:
-{{ toYaml .Values.firewall.internalPrefixes | indent 4 }}
+{{- if .Values.firewall.machinenetworks }}
+  machinenetworks:
+{{ toYaml .Values.firewall.machinenetworks | indent 4 }}
 {{- end }}
-{{- if .Values.firewall.rateLimits }}
+{{- if .Values.firewall.internalprefixes }}
+  internalprefixes:
+{{ toYaml .Values.firewall.internalprefixes | indent 4 }}
+{{- end }}
+{{- if .Values.firewall.ratelimits }}
   ratelimits:
-{{ toYaml .Values.firewall.rateLimits | indent 4 }}
+{{ toYaml .Values.firewall.ratelimits | indent 4 }}
+{{- end }}
+{{- if .Values.firewall.egressrules }}
+  egressrules:
+{{ toYaml .Values.firewall.egressrules | indent 4 }}
 {{- end }}

@@ -93,9 +93,41 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.E
 	if infra.Firewall.Size == "" {
 		allErrs = append(allErrs, field.Required(firewallPath.Child("size"), "firewall size must be specified"))
 	}
+
+	availableNetworks := sets.NewString()
 	for i, network := range infra.Firewall.Networks {
 		if network == "" {
 			allErrs = append(allErrs, field.Required(firewallPath.Child("networks").Index(i), "firewall network must not be an empty string"))
+			continue
+		}
+		availableNetworks.Insert(network)
+	}
+
+	for i, rateLimit := range infra.Firewall.RateLimits {
+		fp := firewallPath.Child("rateLimit").Index(i)
+		if rateLimit.Network == "" {
+			allErrs = append(allErrs, field.Required(fp, "rate limit network must not be an empty string"))
+			continue
+		}
+		if !availableNetworks.Has(rateLimit.Network) {
+			allErrs = append(allErrs, field.Required(fp, "rate limit network must be present as cluster network"))
+			continue
+		}
+	}
+
+	for i, egress := range infra.Firewall.EgressRules {
+		fp := firewallPath.Child("egressRules").Index(i)
+		if egress.Network == "" {
+			allErrs = append(allErrs, field.Required(fp, "egress rule network must not be an empty string"))
+			continue
+		}
+		if !availableNetworks.Has(egress.Network) {
+			allErrs = append(allErrs, field.Required(fp, "egress rule network must be present as cluster network"))
+			continue
+		}
+		if len(egress.IPs) == 0 {
+			allErrs = append(allErrs, field.Required(fp, "egress rule must contain ip addresses to use"))
+			continue
 		}
 	}
 

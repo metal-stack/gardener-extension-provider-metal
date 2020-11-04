@@ -23,7 +23,7 @@ require (
 	github.com/metal-stack/firewall-controller v0.1.8
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.3
 	github.com/metal-stack/metal-go v0.10.0
-	github.com/metal-stack/metal-lib v0.6.3
+	github.com/metal-stack/metal-lib v0.6.4-0.20201104134852-18a829f526e3
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
@@ -44,6 +44,7 @@ require (
 
 replace (
 	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd // indirect
+	github.com/metal-stack/metal-lib => ../metal-lib
 	k8s.io/api => k8s.io/api v0.17.11
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.11
 	k8s.io/apimachinery => k8s.io/apimachinery v0.17.11
