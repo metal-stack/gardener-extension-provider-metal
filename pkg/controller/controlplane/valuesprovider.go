@@ -872,10 +872,6 @@ func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontrol
 	return values, nil
 }
 
-func egressTag(clusterID string) string {
-	return fmt.Sprintf("%s=%s", tag.ClusterEgress, clusterID)
-}
-
 func clusterTag(clusterID string) string {
 	return fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
 }

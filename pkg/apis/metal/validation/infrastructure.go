@@ -105,11 +105,11 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.E
 
 	for i, rateLimit := range infra.Firewall.RateLimits {
 		fp := firewallPath.Child("rateLimit").Index(i)
-		if rateLimit.Network == "" {
+		if rateLimit.NetworkID == "" {
 			allErrs = append(allErrs, field.Required(fp, "rate limit network must not be an empty string"))
 			continue
 		}
-		if !availableNetworks.Has(rateLimit.Network) {
+		if !availableNetworks.Has(rateLimit.NetworkID) {
 			allErrs = append(allErrs, field.Required(fp, "rate limit network must be present as cluster network"))
 			continue
 		}
@@ -117,11 +117,11 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.E
 
 	for i, egress := range infra.Firewall.EgressRules {
 		fp := firewallPath.Child("egressRules").Index(i)
-		if egress.Network == "" {
+		if egress.NetworkID == "" {
 			allErrs = append(allErrs, field.Required(fp, "egress rule network must not be an empty string"))
 			continue
 		}
-		if !availableNetworks.Has(egress.Network) {
+		if !availableNetworks.Has(egress.NetworkID) {
 			allErrs = append(allErrs, field.Required(fp, "egress rule network must be present as cluster network"))
 			continue
 		}

@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"github.com/metal-stack/metal-go/api/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,12 +15,25 @@ type InfrastructureConfig struct {
 }
 
 type Firewall struct {
-	Size            string                     `json:"size"`
-	Image           string                     `json:"image"`
-	Networks        []string                   `json:"networks"`
-	MachineNetworks []*models.V1MachineNetwork `json:"machinenetworks"`
-	RateLimits      []RateLimit                `json:"ratelimits"`
-	EgressRules     []EgressRule               `json:"egressrules"`
+	Size            string           `json:"size"`
+	Image           string           `json:"image"`
+	Networks        []string         `json:"networks"`
+	MachineNetworks []MachineNetwork `json:"machinenetworks"`
+	RateLimits      []RateLimit      `json:"ratelimits"`
+	EgressRules     []EgressRule     `json:"egressrules"`
+}
+
+type MachineNetwork struct {
+	Asn                 *int64   `json:"asn"`
+	Destinationprefixes []string `json:"destinationprefixes"`
+	Ips                 []string `json:"ips"`
+	Nat                 *bool    `json:"nat"`
+	Networkid           *string  `json:"networkid"`
+	Networktype         *string  `json:"networktype"`
+	Prefixes            []string `json:"prefixes"`
+	Private             *bool    `json:"private"`
+	Underlay            *bool    `json:"underlay"`
+	Vrf                 *int64   `json:"vrf"`
 }
 
 type RateLimit struct {
