@@ -402,8 +402,6 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 
 func tagEgressIPs(r *firewallReconciler) error {
 	for _, egressRule := range r.infrastructureConfig.Firewall.EgressRules {
-		ips := []string{}
-
 	nextIP:
 		for _, i := range egressRule.IPs {
 			resp, err := r.mclient.IPFind(&metalgo.IPFindRequest{
@@ -430,13 +428,12 @@ func tagEgressIPs(r *firewallReconciler) error {
 			clusterEgressTag := egressTag(r.clusterID)
 			for _, t := range dbIP.Tags {
 				if t == clusterEgressTag {
-					ips = append(ips, i)
 					continue nextIP
 				}
 			}
 
 			if len(dbIP.Tags) > 0 {
-				return fmt.Errorf("won't use ip %s for egress rules because it does not have an egress tag but it has other tags")
+				return fmt.Errorf("won't use ip %s for egress rules because it does not have an egress tag but it has other tags", *dbIP.Ipaddress)
 			}
 
 			dbIP.Tags = []string{clusterEgressTag}
