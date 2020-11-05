@@ -15,25 +15,11 @@ type InfrastructureConfig struct {
 }
 
 type Firewall struct {
-	Size            string
-	Image           string
-	Networks        []string
-	MachineNetworks []MachineNetwork
-	RateLimits      []RateLimit
-	EgressRules     []EgressRule
-}
-
-type MachineNetwork struct {
-	Asn                 *int64   `json:"asn"`
-	Destinationprefixes []string `json:"destinationprefixes"`
-	Ips                 []string `json:"ips"`
-	Nat                 *bool    `json:"nat"`
-	Networkid           *string  `json:"networkid"`
-	Networktype         *string  `json:"networktype"`
-	Prefixes            []string `json:"prefixes"`
-	Private             *bool    `json:"private"`
-	Underlay            *bool    `json:"underlay"`
-	Vrf                 *int64   `json:"vrf"`
+	Size        string
+	Image       string
+	Networks    []string
+	RateLimits  []RateLimit
+	EgressRules []EgressRule
 }
 
 type RateLimit struct {
