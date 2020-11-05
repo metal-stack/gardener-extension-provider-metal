@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -128,6 +129,11 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.E
 		if len(egress.IPs) == 0 {
 			allErrs = append(allErrs, field.Required(fp, "egress rule must contain ip addresses to use"))
 			continue
+		}
+		for _, ip := range egress.IPs {
+			if net.ParseIP(ip) == nil {
+				allErrs = append(allErrs, field.Required(fp, "egress rule contains a malformed ip address"))
+			}
 		}
 	}
 
