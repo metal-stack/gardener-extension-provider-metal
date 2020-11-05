@@ -6,8 +6,10 @@ images:
 
 firewall:
     interval: 10s
-    internalPrefixes: []
-    rateLimits: []
+    machinenetworks: []
+    internalprefixes: []
+    ratelimits: []
+    egressrules: []
 
 accountingExporter:
     enabled: false
