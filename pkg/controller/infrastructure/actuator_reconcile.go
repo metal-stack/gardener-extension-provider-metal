@@ -51,6 +51,14 @@ type firewallReconciler struct {
 	machineID            string
 }
 
+type egressIPReconciler struct {
+	logger               logr.Logger
+	infrastructureConfig *metalapi.InfrastructureConfig
+	mclient              *metalgo.Driver
+	clusterID            string
+	egressTag            string
+}
+
 type firewallReconcileAction string
 
 const (
@@ -116,6 +124,18 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 	}
 
 	err = reconcileFirewall(ctx, reconciler)
+	if err != nil {
+		return err
+	}
+
+	egressIPReconciler := &egressIPReconciler{
+		logger:               a.logger,
+		infrastructureConfig: internalInfrastructureConfig,
+		mclient:              mclient,
+		clusterID:            string(cluster.Shoot.GetUID()),
+		egressTag:            egressTag(string(cluster.Shoot.GetUID())),
+	}
+	err = reconcileEgressIPs(ctx, egressIPReconciler)
 	if err != nil {
 		return err
 	}
@@ -385,68 +405,98 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 		return fmt.Errorf("firewall %q was created but has no allocation", machineID)
 	}
 
-	err = tagEgressIPs(r)
-	if err != nil {
-		r.logger.Error(err, "tagging egress ips failed")
-		return &controllererrors.RequeueAfterError{
-			Cause:        errors.Wrap(err, "failed to tag egress ips"),
-			RequeueAfter: 30 * time.Second,
-		}
-	}
-
 	r.providerStatus.Firewall.MachineID = machineID
 	r.providerStatus.Firewall.Succeeded = true
 
 	return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
 }
 
-func tagEgressIPs(r *firewallReconciler) error {
+func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
+	static := metalgo.IPTypeStatic
+	currentEgressIPs := sets.NewString()
+	resp, err := r.mclient.IPFind(&metalgo.IPFindRequest{
+		ProjectID: &r.infrastructureConfig.ProjectID,
+		Tags:      []string{r.egressTag},
+		Type:      &static,
+	})
+	if err != nil {
+		return &controllererrors.RequeueAfterError{
+			Cause:        errors.Wrap(err, "failed to list egress ips of cluster"),
+			RequeueAfter: 30 * time.Second,
+		}
+	}
+	for _, ip := range resp.IPs {
+		currentEgressIPs.Insert(*ip.Ipaddress)
+	}
+
+	wantEgressIPs := sets.NewString()
 	for _, egressRule := range r.infrastructureConfig.Firewall.EgressRules {
-	nextIP:
-		for _, i := range egressRule.IPs {
+		wantEgressIPs.Insert(egressRule.IPs...)
+
+		for _, ip := range egressRule.IPs {
+			if currentEgressIPs.Has(ip) {
+				continue
+			}
+
 			resp, err := r.mclient.IPFind(&metalgo.IPFindRequest{
-				IPAddress: &i,
+				IPAddress: &ip,
 				ProjectID: &r.infrastructureConfig.ProjectID,
 				NetworkID: &egressRule.NetworkID,
 			})
 
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("error when retrieving ip %s for egress rule", i))
+				return &controllererrors.RequeueAfterError{
+					Cause:        errors.Wrap(err, fmt.Sprintf("error when retrieving ip %s for egress rule", ip)),
+					RequeueAfter: 30 * time.Second,
+				}
 			}
 
-			if len(resp.IPs) == 0 {
-				return fmt.Errorf("could not find ip %s for egress rule", i)
-			} else if len(resp.IPs) > 1 {
-				return fmt.Errorf("ip %s for egress rule is ambiguous", i)
+			if len(resp.IPs) == 0 || len(resp.IPs) > 1 {
+				return &controllererrors.RequeueAfterError{
+					Cause:        errors.Wrap(err, fmt.Sprintf("ip %s for egress rule is ambiguous", ip)),
+					RequeueAfter: 30 * time.Second,
+				}
 			}
 
 			dbIP := resp.IPs[0]
 			if dbIP.Type != nil && *dbIP.Type != metalgo.IPTypeStatic {
-				return fmt.Errorf("ips for egress rule must be static, but %s is not static", i)
-			}
-
-			clusterEgressTag := egressTag(r.clusterID)
-			for _, t := range dbIP.Tags {
-				if t == clusterEgressTag {
-					continue nextIP
+				return &controllererrors.RequeueAfterError{
+					Cause:        errors.Wrap(err, fmt.Sprintf("ips for egress rule must be static, but %s is not static", ip)),
+					RequeueAfter: 30 * time.Second,
 				}
 			}
 
 			if len(dbIP.Tags) > 0 {
-				return fmt.Errorf("won't use ip %s for egress rules because it does not have an egress tag but it has other tags", *dbIP.Ipaddress)
+				return &controllererrors.RequeueAfterError{
+					Cause:        errors.Wrap(err, fmt.Sprintf("won't use ip %s for egress rules because it does not have an egress tag but it has other tags", *dbIP.Ipaddress)),
+					RequeueAfter: 30 * time.Second,
+				}
 			}
 
-			dbIP.Tags = []string{clusterEgressTag}
 			iur := metalgo.IPUpdateRequest{
-				IPAddress:   *dbIP.Ipaddress,
-				Description: dbIP.Description,
-				Name:        dbIP.Name,
-				Tags:        dbIP.Tags,
-				Type:        *dbIP.Type,
+				IPAddress: *dbIP.Ipaddress,
+				Tags:      []string{r.egressTag},
 			}
+
 			_, err = r.mclient.IPUpdate(&iur)
 			if err != nil {
-				return fmt.Errorf("could not tag ip %s for egress usage", i)
+				return &controllererrors.RequeueAfterError{
+					Cause:        errors.Wrap(err, fmt.Sprintf("could not tag ip %s for egress usage", ip)),
+					RequeueAfter: 30 * time.Second,
+				}
+			}
+		}
+	}
+
+	if !currentEgressIPs.Equal(wantEgressIPs) {
+		toUnTag := currentEgressIPs.Difference(wantEgressIPs)
+		for _, ip := range toUnTag.List() {
+			err := clearIPTags(r.mclient, ip)
+			if err != nil {
+				return &controllererrors.RequeueAfterError{
+					Cause:        errors.Wrap(err, fmt.Sprintf("could not remove egress tag from ip %s", ip)),
+					RequeueAfter: 30 * time.Second,
+				}
 			}
 		}
 	}
@@ -456,6 +506,15 @@ func tagEgressIPs(r *firewallReconciler) error {
 
 func egressTag(clusterID string) string {
 	return fmt.Sprintf("%s=%s", tag.ClusterEgress, clusterID)
+}
+
+func clearIPTags(mclient *metalgo.Driver, ip string) error {
+	iur := metalgo.IPUpdateRequest{
+		IPAddress: ip,
+		Tags:      []string{},
+	}
+	_, err := mclient.IPUpdate(&iur)
+	return err
 }
 
 func ensureNodeNetwork(ctx context.Context, r *firewallReconciler) (string, error) {

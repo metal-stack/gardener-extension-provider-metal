@@ -13,7 +13,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
-	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
@@ -122,60 +121,23 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	}
 
 	static := metalgo.IPTypeStatic
-	for _, egressRule := range d.infrastructureConfig.Firewall.EgressRules {
-		for _, ip := range egressRule.IPs {
-			resp, err := d.mclient.IPFind(&metalgo.IPFindRequest{
-				IPAddress: &ip,
-				ProjectID: &d.projectID,
-				NetworkID: &egressRule.NetworkID,
-				Type:      &static,
-			})
+	resp, err := d.mclient.IPFind(&metalgo.IPFindRequest{
+		ProjectID: &d.projectID,
+		Tags:      []string{egressTag(d.clusterID)},
+		Type:      &static,
+	})
+	if err != nil {
+		return &controllererrors.RequeueAfterError{
+			Cause:        errors.Wrap(err, "failed to list egress ips of cluster"),
+			RequeueAfter: 30 * time.Second,
+		}
+	}
 
-			if err != nil {
-				d.logger.Error(err, "failed to retrieve egress ip", "ip", ip)
-				return &controllererrors.RequeueAfterError{
-					Cause:        err,
-					RequeueAfter: 30 * time.Second,
-				}
-			}
-
-			if len(resp.IPs) != 1 {
-				d.logger.Error(err, "egress ip is ambiguous", "ip", ip)
-				return &controllererrors.RequeueAfterError{
-					Cause:        err,
-					RequeueAfter: 30 * time.Second,
-				}
-			}
-
-			dbIP := resp.IPs[0]
-			newTags := []string{}
-			hasEgressTag := false
-			for _, t := range dbIP.Tags {
-				if t == fmt.Sprintf("%s=%s", tag.ClusterEgress, d.clusterID) {
-					hasEgressTag = true
-					continue
-				}
-				newTags = append(newTags, t)
-			}
-
-			if !hasEgressTag {
-				continue
-			}
-
-			_, err = d.mclient.IPUpdate(&metalgo.IPUpdateRequest{
-				IPAddress:   *dbIP.Ipaddress,
-				Description: dbIP.Description,
-				Name:        dbIP.Name,
-				Tags:        newTags,
-				Type:        *dbIP.Type,
-			})
-
-			if err != nil {
-				d.logger.Error(err, "failed to untag egress", "ip", ip)
-				return &controllererrors.RequeueAfterError{
-					Cause:        err,
-					RequeueAfter: 30 * time.Second,
-				}
+	for _, ip := range resp.IPs {
+		if err := clearIPTags(d.mclient, *ip.Ipaddress); err != nil {
+			return &controllererrors.RequeueAfterError{
+				Cause:        errors.Wrap(err, fmt.Sprintf("could not remove egress tag from ip %s", *ip.Ipaddress)),
+				RequeueAfter: 30 * time.Second,
 			}
 		}
 	}
