@@ -27,3 +27,5 @@ spec:
   egressrules:
 {{ toYaml .Values.firewall.egressrules | indent 4 }}
 {{- end }}
+  signature:
+{{ toYaml .Values.firewallSignature | indent 4 }}

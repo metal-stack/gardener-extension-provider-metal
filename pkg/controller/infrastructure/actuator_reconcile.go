@@ -602,12 +602,12 @@ func createFirewallControllerKubeconfig(ctx context.Context, r *firewallReconcil
 		return "", "", err
 	}
 
-	kubeconfig, ok := secret[firewallControllerName].Data["kubeconfig"]
+	kubeconfig, ok := secret[firewallControllerName].Data[secrets.DataKeyKubeconfig]
 	if !ok {
 		return "", "", fmt.Errorf("kubeconfig not part of generated firewall controller secret")
 	}
 
-	kubeconfigCompatibility, ok := secret[firewallPolicyControllerNameCompatibility].Data["kubeconfig"]
+	kubeconfigCompatibility, ok := secret[firewallPolicyControllerNameCompatibility].Data[secrets.DataKeyKubeconfig]
 	if !ok {
 		return "", "", fmt.Errorf("kubeconfig not part of generated firewall policy controller secret")
 	}

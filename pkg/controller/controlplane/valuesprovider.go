@@ -7,6 +7,7 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	"gopkg.in/yaml.v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
+	"github.com/gardener/gardener/pkg/utils"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
@@ -567,14 +569,37 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	firewall := *firewalls[0]
+	fwValues := map[string]interface{}{
+		"networks":         infrastructureConfig.Firewall.Networks,
+		"machinenetworks":  firewall.Allocation.Networks,
+		"internalprefixes": internalPrefixes,
+		"ratelimits":       rateLimitValues,
+		"egressrules":      egressRulesValues,
+	}
+
+	secret, err = vp.getSecret(ctx, namespace, v1alpha1constants.SecretNameCACluster)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not find ca secret for signing firewall values")
+	}
+
+	privateKey, err := utils.DecodePrivateKey(secret.Data[secrets.DataKeyPrivateKeyCA])
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode private key from ca secret for signing firewall values")
+	}
+
+	fwValuesMarshalled, err := yaml.Marshal(&fwValues)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not marshal firewall values to yaml for signing")
+	}
+
+	signature, err := Sign(privateKey, fwValuesMarshalled)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not sign firewall values")
+	}
+
 	values := map[string]interface{}{
-		"firewall": map[string]interface{}{
-			"networks":         infrastructureConfig.Firewall.Networks,
-			"machinenetworks":  firewall.Allocation.Networks,
-			"internalprefixes": internalPrefixes,
-			"ratelimits":       rateLimitValues,
-			"egressrules":      egressRulesValues,
-		},
+		"firewall":          fwValues,
+		"firewallSignature": signature,
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
