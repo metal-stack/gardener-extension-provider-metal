@@ -107,6 +107,18 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return errors.Wrap(err, "could not create gardener clientset")
 	}
 
+	egressIPReconciler := &egressIPReconciler{
+		logger:               a.logger,
+		infrastructureConfig: internalInfrastructureConfig,
+		mclient:              mclient,
+		clusterID:            string(cluster.Shoot.GetUID()),
+		egressTag:            egressTag(string(cluster.Shoot.GetUID())),
+	}
+	err = reconcileEgressIPs(ctx, egressIPReconciler)
+	if err != nil {
+		return err
+	}
+
 	reconciler := &firewallReconciler{
 		logger:               a.logger,
 		restConfig:           a.restConfig,
@@ -124,18 +136,6 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 	}
 
 	err = reconcileFirewall(ctx, reconciler)
-	if err != nil {
-		return err
-	}
-
-	egressIPReconciler := &egressIPReconciler{
-		logger:               a.logger,
-		infrastructureConfig: internalInfrastructureConfig,
-		mclient:              mclient,
-		clusterID:            string(cluster.Shoot.GetUID()),
-		egressTag:            egressTag(string(cluster.Shoot.GetUID())),
-	}
-	err = reconcileEgressIPs(ctx, egressIPReconciler)
 	if err != nil {
 		return err
 	}
