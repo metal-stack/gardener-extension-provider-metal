@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
+	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -508,6 +509,36 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", metal.SplunkAuditWebhookDeploymentName, namespace)
 
+	fwValues, err := vp.getFirewallValues(ctx, cp, cluster)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not assemble firewall values")
+	}
+
+	fwSignature, err := vp.signFirewallValues(ctx, namespace, fwValues)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not sign firewall values")
+	}
+
+	values := map[string]interface{}{
+		"firewall":          fwValues,
+		"firewallSignature": fwSignature,
+		"groupRolebindingController": map[string]interface{}{
+			"enabled": vp.controllerConfig.Auth.Enabled,
+		},
+		"accountingExporter": map[string]interface{}{
+			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
+		},
+		"splunkAuditWebhook": map[string]interface{}{
+			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
+			"url":     splunkURL,
+			"ca":      splunkCABundle,
+		},
+	}
+
+	return values, nil
+}
+
+func (vp *valuesProvider) getFirewallValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
@@ -543,8 +574,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	clusterID := string(cluster.Shoot.GetUID())
-	projectID := infrastructureConfig.ProjectID
 	rateLimitValues := make([]map[string]interface{}, len(infrastructureConfig.Firewall.RateLimits))
 	for _, rateLimit := range infrastructureConfig.Firewall.RateLimits {
 		rateLimitValues = append(rateLimitValues, map[string]interface{}{
@@ -561,6 +590,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		})
 	}
 
+	clusterID := string(cluster.Shoot.GetUID())
+	projectID := infrastructureConfig.ProjectID
 	firewalls, err := metalclient.FindClusterFirewalls(mclient, clusterTag(clusterID), projectID)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not find firewall for cluster")
@@ -570,50 +601,49 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	firewall := *firewalls[0]
-	fwValues := map[string]interface{}{
-		"machinenetworks":  firewall.Allocation.Networks,
-		"internalprefixes": internalPrefixes,
-		"ratelimits":       rateLimitValues,
-		"egressrules":      egressRulesValues,
+	firewallNetworks := make([]firewallv1.FirewallNetwork, len(firewall.Allocation.Networks))
+	for _, n := range firewall.Allocation.Networks {
+		firewallNetworks = append(firewallNetworks, firewallv1.FirewallNetwork{
+			Asn:                 n.Asn,
+			Destinationprefixes: n.Destinationprefixes,
+			Ips:                 n.Ips,
+			Nat:                 n.Nat,
+			Networkid:           n.Networkid,
+			Networktype:         n.Networktype,
+			Prefixes:            n.Prefixes,
+			Vrf:                 n.Vrf,
+		})
 	}
 
-	secret, err = vp.getSecret(ctx, namespace, v1alpha1constants.SecretNameCACluster)
+	return map[string]interface{}{
+		"firewallNetworks": firewallNetworks,
+		"internalPrefixes": internalPrefixes,
+		"rateLimits":       rateLimitValues,
+		"egressRules":      egressRulesValues,
+	}, nil
+}
+
+func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace string, fwValues map[string]interface{}) (string, error) {
+	secret, err := vp.getSecret(ctx, namespace, v1alpha1constants.SecretNameCACluster)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not find ca secret for signing firewall values")
+		return "", errors.Wrap(err, "could not find ca secret for signing firewall values")
 	}
 
 	privateKey, err := utils.DecodePrivateKey(secret.Data[secrets.DataKeyPrivateKeyCA])
 	if err != nil {
-		return nil, errors.Wrap(err, "could not decode private key from ca secret for signing firewall values")
+		return "", errors.Wrap(err, "could not decode private key from ca secret for signing firewall values")
 	}
 
 	fwValuesMarshalled, err := yaml.Marshal(&fwValues)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not marshal firewall values to yaml for signing")
+		return "", errors.Wrap(err, "could not marshal firewall values to yaml for signing")
 	}
 
 	signature, err := sign.Sign(privateKey, fwValuesMarshalled)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not sign firewall values")
+		return "", errors.Wrap(err, "could not sign firewall values")
 	}
-
-	values := map[string]interface{}{
-		"firewall":          fwValues,
-		"firewallSignature": signature,
-		"groupRolebindingController": map[string]interface{}{
-			"enabled": vp.controllerConfig.Auth.Enabled,
-		},
-		"accountingExporter": map[string]interface{}{
-			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
-		},
-		"splunkAuditWebhook": map[string]interface{}{
-			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
-			"url":     splunkURL,
-			"ca":      splunkCABundle,
-		},
-	}
-
-	return values, nil
+	return signature, nil
 }
 
 func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
