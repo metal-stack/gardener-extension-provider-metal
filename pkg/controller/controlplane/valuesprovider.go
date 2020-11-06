@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
+	"github.com/metal-stack/metal-lib/pkg/sign"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"gopkg.in/yaml.v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -570,7 +571,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	firewall := *firewalls[0]
 	fwValues := map[string]interface{}{
-		"networks":         infrastructureConfig.Firewall.Networks,
 		"machinenetworks":  firewall.Allocation.Networks,
 		"internalprefixes": internalPrefixes,
 		"ratelimits":       rateLimitValues,
@@ -592,7 +592,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		return nil, errors.Wrap(err, "could not marshal firewall values to yaml for signing")
 	}
 
-	signature, err := Sign(privateKey, fwValuesMarshalled)
+	signature, err := sign.Sign(privateKey, fwValuesMarshalled)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not sign firewall values")
 	}

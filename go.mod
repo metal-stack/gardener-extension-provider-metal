@@ -23,7 +23,7 @@ require (
 	github.com/metal-stack/firewall-controller v0.1.8
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.3
 	github.com/metal-stack/metal-go v0.10.0
-	github.com/metal-stack/metal-lib v0.6.4-0.20201104134852-18a829f526e3
+	github.com/metal-stack/metal-lib v0.6.4-0.20201106055355-9f3da533d57c
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
@@ -31,6 +31,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50 // indirect
 	go4.org v0.0.0-20180809161055-417644f6feb5 // indirect
+	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.18.4
 	k8s.io/apiextensions-apiserver v0.18.4
 	k8s.io/apimachinery v0.18.4
