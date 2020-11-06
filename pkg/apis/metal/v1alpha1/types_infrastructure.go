@@ -18,17 +18,17 @@ type Firewall struct {
 	Size        string       `json:"size"`
 	Image       string       `json:"image"`
 	Networks    []string     `json:"networks"`
-	RateLimits  []RateLimit  `json:"ratelimits"`
-	EgressRules []EgressRule `json:"egressrules"`
+	RateLimits  []RateLimit  `json:"rateLimits"`
+	EgressRules []EgressRule `json:"egressRules"`
 }
 
 type RateLimit struct {
-	NetworkID string `json:"networkid"`
-	RateLimit uint32 `json:"ratelimit"`
+	NetworkID string `json:"networkID"`
+	RateLimit uint32 `json:"rateLimit"`
 }
 
 type EgressRule struct {
-	NetworkID string   `json:"networkid"`
+	NetworkID string   `json:"networkID"`
 	IPs       []string `json:"ips"`
 }
 
