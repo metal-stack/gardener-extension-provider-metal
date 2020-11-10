@@ -8,7 +8,6 @@ images:
   splunk-audit-webhook: image-repository:image-tag
   group-rolebinding-controller: image-repository:image-tag
   accounting-exporter: image-repository:image-tag
-  limit-validating-webhook: image-repository:image-tag
 
 cloudControllerManager:
   additionalParameters: []
