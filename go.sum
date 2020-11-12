@@ -217,6 +217,7 @@ github.com/emicklei/go-restful/v3 v3.2.0 h1:bYqC4/ykCzQbUVO2c9h1J4XYTD1ApVxsZ1HW
 github.com/emicklei/go-restful/v3 v3.2.0/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/emicklei/go-restful/v3 v3.3.1 h1:engBLuFVe3n4ck963X94ZFfauROk9nthZOKilyHLgpM=
 github.com/emicklei/go-restful/v3 v3.3.1/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
+github.com/emicklei/go-restful/v3 v3.3.3 h1:2WxjFb4b+Eik8vJ1saz3jbhKnt4xaFVn3N9uU3WXfLE=
 github.com/emicklei/go-restful/v3 v3.3.3/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
@@ -683,12 +684,6 @@ github.com/metal-stack/masterdata-api v0.8.3 h1:Hb4TDDp1HwJUalG1SKp14lctWyUWi2Xx
 github.com/metal-stack/masterdata-api v0.8.3/go.mod h1:vNzStBft4l8ItkUNu7mrdHbSF6kcPLhulByXBifYLkA=
 github.com/metal-stack/metal-go v0.8.3 h1:qY0QVkegUOh8l+wMVvVwDWNekntiD7ZuXuTeKjxrQjY=
 github.com/metal-stack/metal-go v0.8.3/go.mod h1:5emMVOjVD2tj6OxCBUYB8Xo1ruBnoP6idwypVV1pzec=
-github.com/metal-stack/metal-go v0.9.5-0.20201019120043-b2f07aecd694 h1:H/k6awmRQYGUKn0FbO1rx89pzD5Kn8wskT8mpXD/LKA=
-github.com/metal-stack/metal-go v0.9.5-0.20201019120043-b2f07aecd694/go.mod h1:5emMVOjVD2tj6OxCBUYB8Xo1ruBnoP6idwypVV1pzec=
-github.com/metal-stack/metal-go v0.10.0 h1:XlZpuHd5wWr9oVY+uxNjzoCDq4QJQrcZBx+97EKt+A0=
-github.com/metal-stack/metal-go v0.10.0/go.mod h1:5emMVOjVD2tj6OxCBUYB8Xo1ruBnoP6idwypVV1pzec=
-github.com/metal-stack/metal-go v0.10.1-0.20201027132527-c60447898db0 h1:XbUnAAztZh0D/ODagCV1iwXS92A2KpFIixH6ZfIrRtQ=
-github.com/metal-stack/metal-go v0.10.1-0.20201027132527-c60447898db0/go.mod h1:5emMVOjVD2tj6OxCBUYB8Xo1ruBnoP6idwypVV1pzec=
 github.com/metal-stack/metal-go v0.11.1 h1:aBv/JolspX3YYQDgLrfDAolJpm0HsQ5yf7H4Kv/o/hE=
 github.com/metal-stack/metal-go v0.11.1/go.mod h1:A1ZZSxY8gLIH+cHboUytRxzt42hgnNSCHzfzXwCrRe8=
 github.com/metal-stack/metal-lib v0.5.0 h1:C3QScS7+wNWMiERB+j0x06WpRuTHW6A3rpuILMOAgss=
@@ -696,10 +691,10 @@ github.com/metal-stack/metal-lib v0.5.0/go.mod h1:Vxr1OwM8fef1gtIv9fUiVU4Gq5mkd4
 github.com/metal-stack/metal-lib v0.6.0/go.mod h1:r8qhfX72eAzClR/pEaQvdwM//Otx9gegYoOphLPmmQ4=
 github.com/metal-stack/metal-lib v0.6.1 h1:6MUqkx2gPd5cafc3a5MLkGmoRhW3zb03qYzsZUyh6pU=
 github.com/metal-stack/metal-lib v0.6.1/go.mod h1:r8qhfX72eAzClR/pEaQvdwM//Otx9gegYoOphLPmmQ4=
-github.com/metal-stack/metal-lib v0.6.3 h1:iQOyLKnqqSJGpl++YgnbrW7DYbyC+1VVW2izoQlrcLk=
-github.com/metal-stack/metal-lib v0.6.3/go.mod h1:r8qhfX72eAzClR/pEaQvdwM//Otx9gegYoOphLPmmQ4=
 github.com/metal-stack/metal-lib v0.6.4 h1:7lvQcjGrZa3gUIzlbFi61fqFatDzlmWWMvXoqOi5HHM=
 github.com/metal-stack/metal-lib v0.6.4/go.mod h1:r8qhfX72eAzClR/pEaQvdwM//Otx9gegYoOphLPmmQ4=
+github.com/metal-stack/metal-lib v0.6.5 h1:lC/8EBnCezAzju96kkRW+vGNDhIpCR1Uq4Rvjd6Fxk8=
+github.com/metal-stack/metal-lib v0.6.5/go.mod h1:r8qhfX72eAzClR/pEaQvdwM//Otx9gegYoOphLPmmQ4=
 github.com/metal-stack/security v0.3.0 h1:YJL0qlsXlvA9O3iIWuk5YqF02IX9f6I60n93FkQpV4k=
 github.com/metal-stack/security v0.3.0/go.mod h1:xa0eka4HttrfhDTJPzcSDBGgaFyNBGXhz0B5YGqtKuU=
 github.com/metal-stack/security v0.4.0 h1:NrPm5srgmgeS9UdQmGKLEJ3P7BSsV2Gm7P781LmM0Xo=
@@ -903,6 +898,7 @@ github.com/texttheater/golang-levenshtein v0.0.0-20191208221605-eb6844b05fc6/go.
 github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/tidwall/pretty v1.0.1 h1:WE4RBSZ1x6McVVC8S/Md+Qse8YUv6HRObAx6ke00NY8=
 github.com/tidwall/pretty v1.0.1/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
+github.com/tidwall/pretty v1.0.2 h1:Z7S3cePv9Jwm1KwS0513MRaoUe3S01WPbLNV40pwWZU=
 github.com/tidwall/pretty v1.0.2/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 h1:LnC5Kc/wtumK+WB441p7ynQJzVuNRJiqddSIE3IlSEQ=
