@@ -12,7 +12,7 @@ require (
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
 	github.com/gardener/etcd-druid v0.3.0
-	github.com/gardener/gardener v1.12.1
+	github.com/gardener/gardener v1.12.6
 	github.com/gardener/machine-controller-manager v0.34.3
 	github.com/go-logr/logr v0.1.0
 	github.com/gobuffalo/packr/v2 v2.8.0
