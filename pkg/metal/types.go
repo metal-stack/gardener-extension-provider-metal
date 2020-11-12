@@ -26,8 +26,6 @@ const (
 	MetallbSpeakerImageName = "metallb-speaker"
 	// MetallbControllerImageName is the name of the metallb controller to deploy to the shoot.
 	MetallbControllerImageName = "metallb-controller"
-	// LimitValidatingWebhookImageName is the name of the limit validating webhook to deploy to the seed's shoot namespace.
-	LimitValidatingWebhookImageName = "limit-validating-webhook"
 	// CSIControllerImageName is the name of the csi lvm controller to deploy to the seed's shoot namespace.
 	CSIControllerImageName = "csi-lvm-controller"
 	// CSIProvisionerImageName is the name of the csi lvm provisioner to deploy to the seed's shoot namespace.
@@ -52,8 +50,6 @@ const (
 	CloudControllerManagerDeploymentName = "cloud-controller-manager"
 	CloudControllerManagerServerName     = "cloud-controller-manager-server"
 	GroupRolebindingControllerName       = "group-rolebinding-controller"
-	LimitValidatingWebhookDeploymentName = "limit-validating-webhook"
-	LimitValidatingWebhookServerName     = "limit-validating-webhook-server"
 	AccountingExporterName               = "accounting-exporter"
 	AuthNWebhookDeploymentName           = "kube-jwt-authn-webhook"
 	AuthNWebhookServerName               = "kube-jwt-authn-webhook-server"

@@ -45,7 +45,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -107,15 +106,6 @@ var controlPlaneSecrets = &secrets.Secrets{
 					Name:       metal.SplunkAuditWebhookServerName,
 					CommonName: metal.SplunkAuditWebhookDeploymentName,
 					DNSNames:   kutil.DNSNamesForService(metal.SplunkAuditWebhookDeploymentName, clusterName),
-					CertType:   secrets.ServerCert,
-					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
-				},
-			},
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       metal.LimitValidatingWebhookServerName,
-					CommonName: metal.LimitValidatingWebhookDeploymentName,
-					DNSNames:   kutil.DNSNamesForService(metal.LimitValidatingWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -256,7 +246,6 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{
 			metal.AuthNWebhookImageName,
 			metal.GroupRolebindingControllerImageName,
-			metal.LimitValidatingWebhookImageName,
 		}...)
 		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
 			// authn webhook
@@ -267,16 +256,8 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 
 			// group rolebinding controller
 			{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
-
-			// limit validation webhook
-			{Type: &appsv1.Deployment{}, Name: "limit-validating-webhook"},
-			{Type: &corev1.Service{}, Name: "limit-validating-webhook"},
-			{Type: &networkingv1.NetworkPolicy{}, Name: "limit-validating-webhook-allow-namespace"},
-			{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2limit-validating-webhook"},
 		}...)
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
-			// limit validating webhook
-			{Type: &admissionv1beta1.ValidatingWebhookConfiguration{}, Name: "limit-validating-webhook"},
 			// group rolebinding controller
 			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
 		}...)
@@ -516,21 +497,12 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	secret, err := vp.getSecret(ctx, namespace, metal.LimitValidatingWebhookServerName)
-	if err != nil {
-		return nil, err
-	}
-	limitCABundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
-
-	secret, err = vp.getSecret(ctx, namespace, metal.SplunkAuditWebhookServerName)
+	secret, err := vp.getSecret(ctx, namespace, metal.SplunkAuditWebhookServerName)
 	if err != nil {
 		return nil, err
 	}
 	splunkCABundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
 
-	// this should work as the kube-apiserver is a pod in the same cluster as the limit-validating-webhook
-	// example https://limit-validating-webhook.shoot--local--myshootname.svc.cluster.local/validate
-	limitURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/validate", metal.LimitValidatingWebhookDeploymentName, namespace)
 	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", metal.SplunkAuditWebhookDeploymentName, namespace)
 
 	internalPrefixes := []string{}
@@ -594,11 +566,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"firewall": map[string]interface{}{
 			"internalPrefixes": internalPrefixes,
 			"rateLimits":       rateLimits,
-		},
-		"limitValidatingWebhook": map[string]interface{}{
-			"enabled": vp.controllerConfig.Auth.Enabled,
-			"url":     limitURL,
-			"ca":      limitCABundle,
 		},
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
