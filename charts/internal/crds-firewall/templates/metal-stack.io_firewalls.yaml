@@ -55,11 +55,11 @@ spec:
                     items:
                       type: string
                     type: array
-                  network:
+                  networkid:
                     type: string
                 required:
                 - ips
-                - network
+                - networkid
                 type: object
               type: array
             firewallNetworks:
@@ -122,8 +122,8 @@ spec:
               items:
                 description: RateLimit contains the rate limit rule for a network.
                 properties:
-                  network:
-                    description: Network specifies the network which should be rate
+                  networkid:
+                    description: NetworkID specifies the network which should be rate
                       limited
                     type: string
                   rate:
