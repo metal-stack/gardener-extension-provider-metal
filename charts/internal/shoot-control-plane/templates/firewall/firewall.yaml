@@ -11,9 +11,9 @@ metadata:
   name: firewall
 spec:
   interval: {{ .Values.firewall.interval }}
-{{- if .Values.firewall.machineNetworks }}
-  machineNetworks:
-{{ toYaml .Values.firewall.machineNetworks | indent 4 }}
+{{- if .Values.firewall.firewallNetworks }}
+  firewallNetworks:
+{{ toYaml .Values.firewall.firewallNetworks | indent 4 }}
 {{- end }}
 {{- if .Values.firewall.internalPrefixes }}
   internalPrefixes:
