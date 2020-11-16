@@ -600,7 +600,7 @@ func (vp *valuesProvider) getFirewallValues(ctx context.Context, cp *extensionsv
 	}
 
 	firewall := *firewalls[0]
-	firewallNetworks := []firewallv1.FirewallNetwork
+	firewallNetworks := []firewallv1.FirewallNetwork{}
 	for _, n := range firewall.Allocation.Networks {
 		firewallNetworks = append(firewallNetworks, firewallv1.FirewallNetwork{
 			Asn:                 n.Asn,
