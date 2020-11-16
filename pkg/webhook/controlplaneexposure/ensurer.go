@@ -15,6 +15,7 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	v1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 )
@@ -47,6 +48,11 @@ func (e *ensurer) EnsureKubeAPIServerService(ctx context.Context, ectx genericmu
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, new, old *appsv1.Deployment) error {
+	// ignore gardener managed (APIServerSNI-enabled) apiservers.
+	if v1beta1helper.IsAPIServerExposureManaged(new) {
+		return nil
+	}
+
 	// Get load balancer address of the kube-apiserver service
 	address, err := kutil.GetLoadBalancerIngress(ctx, e.client, new.Namespace, v1beta1constants.DeploymentNameKubeAPIServer)
 	if err != nil {
