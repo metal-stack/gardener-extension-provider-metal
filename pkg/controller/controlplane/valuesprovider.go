@@ -573,7 +573,7 @@ func (vp *valuesProvider) getFirewallValues(ctx context.Context, cp *extensionsv
 		return nil, err
 	}
 
-	rateLimitValues := make([]map[string]interface{}, len(infrastructureConfig.Firewall.RateLimits))
+	rateLimitValues := []map[string]interface{}{}
 	for _, rateLimit := range infrastructureConfig.Firewall.RateLimits {
 		rateLimitValues = append(rateLimitValues, map[string]interface{}{
 			"networkid": rateLimit.NetworkID,
@@ -581,7 +581,7 @@ func (vp *valuesProvider) getFirewallValues(ctx context.Context, cp *extensionsv
 		})
 	}
 
-	egressRulesValues := make([]map[string]interface{}, len(infrastructureConfig.Firewall.EgressRules))
+	egressRulesValues := []map[string]interface{}{}
 	for _, egressRule := range infrastructureConfig.Firewall.EgressRules {
 		egressRulesValues = append(egressRulesValues, map[string]interface{}{
 			"networkid": egressRule.NetworkID,
@@ -600,7 +600,7 @@ func (vp *valuesProvider) getFirewallValues(ctx context.Context, cp *extensionsv
 	}
 
 	firewall := *firewalls[0]
-	firewallNetworks := make([]firewallv1.FirewallNetwork, len(firewall.Allocation.Networks))
+	firewallNetworks := []firewallv1.FirewallNetwork
 	for _, n := range firewall.Allocation.Networks {
 		firewallNetworks = append(firewallNetworks, firewallv1.FirewallNetwork{
 			Asn:                 n.Asn,

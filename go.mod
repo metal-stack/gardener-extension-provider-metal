@@ -22,8 +22,8 @@ require (
 	github.com/imdario/mergo v0.3.11
 	github.com/metal-stack/firewall-controller v0.1.10-0.20201106145348-0db78723d60e
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.3
-	github.com/metal-stack/metal-go v0.10.0
-	github.com/metal-stack/metal-lib v0.6.4-0.20201106055355-9f3da533d57c
+	github.com/metal-stack/metal-go v0.11.1
+	github.com/metal-stack/metal-lib v0.6.5
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
