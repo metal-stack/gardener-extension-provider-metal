@@ -633,7 +633,14 @@ func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace stri
 		return "", errors.Wrap(err, "could not decode private key from ca secret for signing firewall values")
 	}
 
-	fwValuesMarshalled, err := yaml.Marshal(&fwValues)
+	values := []interface{}{
+		fwValues["firewallNetworks"],
+		fwValues["internalPrefixes"],
+		fwValues["rateLimits"],
+		fwValues["egressRules"],
+	}
+	vp.logger.Info("signing firewall", "values", values)
+	fwValuesMarshalled, err := yaml.Marshal(&values)
 	if err != nil {
 		return "", errors.Wrap(err, "could not marshal firewall values to yaml for signing")
 	}
