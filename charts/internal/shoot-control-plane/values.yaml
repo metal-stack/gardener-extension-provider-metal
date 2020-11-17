@@ -4,12 +4,7 @@ images:
     metallb-speaker: image-repository:image-tag
     metallb-controller: image-repository:image-tag
 
-firewall:
-    interval: 10s
-    machineNetworks: []
-    internalPrefixes: []
-    rateLimits: []
-    egressRules: []
+firewallSpec: {}
 
 firewallSignature: ""
 

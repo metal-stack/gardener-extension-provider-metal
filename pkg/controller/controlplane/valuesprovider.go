@@ -3,12 +3,12 @@ package controlplane
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-lib/pkg/sign"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"gopkg.in/yaml.v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
@@ -508,19 +508,18 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", metal.SplunkAuditWebhookDeploymentName, namespace)
 
-	fwValues, err := vp.getFirewallValues(ctx, cp, cluster)
+	fwSpec, err := vp.getFirewallSpec(ctx, cp, cluster)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not assemble firewall values")
 	}
 
-	fwSignature, err := vp.signFirewallValues(ctx, namespace, fwValues)
+	err = vp.signFirewallValues(ctx, namespace, fwSpec)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not sign firewall values")
 	}
 
 	values := map[string]interface{}{
-		"firewall":          fwValues,
-		"firewallSignature": fwSignature,
+		"firewallSpec": fwSpec,
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
@@ -537,7 +536,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) getFirewallSpec(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (*firewallv1.FirewallSpec, error) {
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
@@ -573,19 +572,19 @@ func (vp *valuesProvider) getFirewallValues(ctx context.Context, cp *extensionsv
 		return nil, err
 	}
 
-	rateLimitValues := []map[string]interface{}{}
+	rateLimits := []firewallv1.RateLimit{}
 	for _, rateLimit := range infrastructureConfig.Firewall.RateLimits {
-		rateLimitValues = append(rateLimitValues, map[string]interface{}{
-			"networkid": rateLimit.NetworkID,
-			"rate":      rateLimit.RateLimit,
+		rateLimits = append(rateLimits, firewallv1.RateLimit{
+			NetworkID: rateLimit.NetworkID,
+			Rate:      rateLimit.RateLimit,
 		})
 	}
 
-	egressRulesValues := []map[string]interface{}{}
+	egressRules := []firewallv1.EgressRuleSNAT{}
 	for _, egressRule := range infrastructureConfig.Firewall.EgressRules {
-		egressRulesValues = append(egressRulesValues, map[string]interface{}{
-			"networkid": egressRule.NetworkID,
-			"ips":       egressRule.IPs,
+		egressRules = append(egressRules, firewallv1.EgressRuleSNAT{
+			NetworkID: egressRule.NetworkID,
+			IPs:       egressRule.IPs,
 		})
 	}
 
@@ -614,42 +613,43 @@ func (vp *valuesProvider) getFirewallValues(ctx context.Context, cp *extensionsv
 		})
 	}
 
-	return map[string]interface{}{
-		"firewallNetworks": firewallNetworks,
-		"internalPrefixes": internalPrefixes,
-		"rateLimits":       rateLimitValues,
-		"egressRules":      egressRulesValues,
-	}, nil
+	spec := firewallv1.FirewallSpec{
+		Data: firewallv1.Data{
+			Interval:         "10s",
+			FirewallNetworks: firewallNetworks,
+			InternalPrefixes: internalPrefixes,
+			RateLimits:       rateLimits,
+			EgressRules:      egressRules,
+		},
+	}
+
+	return &spec, nil
 }
 
-func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace string, fwValues map[string]interface{}) (string, error) {
+func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace string, spec *firewallv1.FirewallSpec) error {
 	secret, err := vp.getSecret(ctx, namespace, v1alpha1constants.SecretNameCACluster)
 	if err != nil {
-		return "", errors.Wrap(err, "could not find ca secret for signing firewall values")
+		return errors.Wrap(err, "could not find ca secret for signing firewall values")
 	}
 
 	privateKey, err := utils.DecodePrivateKey(secret.Data[secrets.DataKeyPrivateKeyCA])
 	if err != nil {
-		return "", errors.Wrap(err, "could not decode private key from ca secret for signing firewall values")
+		return errors.Wrap(err, "could not decode private key from ca secret for signing firewall values")
 	}
 
-	values := []interface{}{
-		fwValues["firewallNetworks"],
-		fwValues["internalPrefixes"],
-		fwValues["rateLimits"],
-		fwValues["egressRules"],
-	}
-	vp.logger.Info("signing firewall", "values", values)
-	fwValuesMarshalled, err := yaml.Marshal(&values)
+	dataMarshalled, err := json.Marshal(&spec.Data)
 	if err != nil {
-		return "", errors.Wrap(err, "could not marshal firewall values to yaml for signing")
+		return errors.Wrap(err, "could not marshal firewall values to json for signing")
+	}
+	vp.logger.Info("signing firewall", "values", dataMarshalled)
+
+	signature, err := sign.Sign(privateKey, dataMarshalled)
+	if err != nil {
+		return errors.Wrap(err, "could not sign firewall values")
 	}
 
-	signature, err := sign.Sign(privateKey, fwValuesMarshalled)
-	if err != nil {
-		return "", errors.Wrap(err, "could not sign firewall values")
-	}
-	return signature, nil
+	spec.Signature = signature
+	return nil
 }
 
 func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
