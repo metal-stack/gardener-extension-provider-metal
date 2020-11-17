@@ -1,5 +1,5 @@
 IMAGE_TAG                   := $(or ${GITHUB_TAG_NAME}, latest)
-REGISTRY                    := metalstack
+REGISTRY                    := ghcr.io/metal-stack
 IMAGE_PREFIX                := $(REGISTRY)
 REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 HACK_DIR                    := $(REPO_ROOT)/hack
