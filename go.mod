@@ -12,8 +12,8 @@ require (
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
 	github.com/gardener/etcd-druid v0.3.0
-	github.com/gardener/gardener v1.12.6
-	github.com/gardener/machine-controller-manager v0.34.3
+	github.com/gardener/gardener v1.12.8
+	github.com/gardener/machine-controller-manager v0.35.0
 	github.com/go-logr/logr v0.1.0
 	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/golang/mock v1.4.4
@@ -27,31 +27,31 @@ require (
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50 // indirect
 	go4.org v0.0.0-20180809161055-417644f6feb5 // indirect
-	k8s.io/api v0.18.10
+	k8s.io/api v0.18.12
 	k8s.io/apiextensions-apiserver v0.18.8
-	k8s.io/apimachinery v0.18.10
-	k8s.io/apiserver v0.18.10
+	k8s.io/apimachinery v0.18.12
+	k8s.io/apiserver v0.18.12
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/code-generator v0.18.10
-	k8s.io/component-base v0.18.10
+	k8s.io/code-generator v0.18.12
+	k8s.io/component-base v0.18.12
 	k8s.io/kubelet v0.18.8
 	sigs.k8s.io/controller-runtime v0.6.3
 )
 
 replace (
 	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd // indirect
-	k8s.io/api => k8s.io/api v0.18.10
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.18.10
-	k8s.io/apimachinery => k8s.io/apimachinery v0.18.10
-	k8s.io/apiserver => k8s.io/apiserver v0.18.10
-	k8s.io/client-go => k8s.io/client-go v0.18.10
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.18.10
-	k8s.io/code-generator => k8s.io/code-generator v0.18.10
-	k8s.io/component-base => k8s.io/component-base v0.18.10
+	k8s.io/api => k8s.io/api v0.18.12
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.18.12
+	k8s.io/apimachinery => k8s.io/apimachinery v0.18.12
+	k8s.io/apiserver => k8s.io/apiserver v0.18.12
+	k8s.io/client-go => k8s.io/client-go v0.18.12
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.18.12
+	k8s.io/code-generator => k8s.io/code-generator v0.18.12
+	k8s.io/component-base => k8s.io/component-base v0.18.12
 	k8s.io/helm => k8s.io/helm v2.13.1+incompatible
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.18.10
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.18.12
 )
