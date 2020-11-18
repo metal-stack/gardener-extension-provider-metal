@@ -18,7 +18,7 @@ jobs:
         # there is no easier way at the moment i guess
         # could be removed in the future
         token=${{ secrets.DOCKER_REGISTRY_TOKEN }}
-        if ["$token" != ""]; then
+        if ["$token" == ""]; then
           echo "::set-output name=is_fork_pr::true"
         else
           echo "::set-output name=is_fork_pr::false"
