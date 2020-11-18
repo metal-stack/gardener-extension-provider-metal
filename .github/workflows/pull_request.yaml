@@ -18,7 +18,7 @@ jobs:
         registry: ${{ secrets.DOCKER_REGISTRY }}
         username: ${{ secrets.DOCKER_REGISTRY_USER }}
         password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
-      if: github.env.DOCKER_REGISTRY == ''
+      if: github.env.DOCKER_REGISTRY != ''
 
     - name: Check (lint) and Test
       run: |
@@ -29,4 +29,4 @@ jobs:
         export GITHUB_TAG_NAME=${GITHUB_HEAD_REF##*/}
         make docker-image
         make docker-push
-      if: github.env.DOCKER_REGISTRY == ''
+      if: github.env.DOCKER_REGISTRY != ''
