@@ -1,7 +1,7 @@
 IMAGE_TAG                   := $(or ${GITHUB_TAG_NAME}, latest)
-REGISTRY                    := metalstack
+REGISTRY                    := ghcr.io/metal-stack
 IMAGE_PREFIX                := $(REGISTRY)
-REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+REPO_ROOT                   := $(shell dirname "$(realpath $(lastword $(MAKEFILE_LIST)))")
 HACK_DIR                    := $(REPO_ROOT)/hack
 HOSTNAME                    := $(shell hostname)
 LD_FLAGS                    := "-w -X github.com/metal-stack/gardener-extension-provider-metal/pkg/version.Version=$(IMAGE_TAG)"
@@ -105,7 +105,7 @@ check:
 generate:
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/...
 
-.PHONE: generate-in-docker
+.PHONY: generate-in-docker
 generate-in-docker: revendor
 	echo $(shell git describe --abbrev=0 --tags) > VERSION
 	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.15 \
@@ -121,7 +121,7 @@ format:
 test:
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test.sh --skipPackage test/e2e/networkpolicies,test/integration -r ./cmd/... ./pkg/...
 
-.PHONE: test-in-docker
+.PHONY: test-in-docker
 test-in-docker: revendor
 	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.15 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
