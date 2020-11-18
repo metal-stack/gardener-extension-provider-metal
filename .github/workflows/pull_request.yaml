@@ -19,8 +19,10 @@ jobs:
         # could be removed in the future
         token=${{ secrets.DOCKER_REGISTRY_TOKEN }}
         if ["$token" == ""]; then
+          echo "PR is from a fork"
           echo "::set-output name=is_fork_pr::true"
         else
+          echo "PR is not from a fork"
           echo "::set-output name=is_fork_pr::false"
         fi
 
