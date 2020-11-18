@@ -3,11 +3,9 @@ package controlplane
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
-	"github.com/metal-stack/metal-lib/pkg/sign"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -637,13 +635,8 @@ func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace stri
 		return errors.Wrap(err, "could not decode private key from ca secret for signing firewall values")
 	}
 
-	dataMarshalled, err := json.Marshal(&spec.Data)
-	if err != nil {
-		return errors.Wrap(err, "could not marshal firewall values to json for signing")
-	}
-	vp.logger.Info("signing firewall", "values", dataMarshalled)
-
-	signature, err := sign.Sign(privateKey, dataMarshalled)
+	vp.logger.Info("signing firewall", "data", spec.Data)
+	signature, err := spec.Data.Sign(privateKey)
 	if err != nil {
 		return errors.Wrap(err, "could not sign firewall values")
 	}
