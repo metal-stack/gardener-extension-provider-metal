@@ -4,9 +4,17 @@ images:
     metallb-speaker: image-repository:image-tag
     metallb-controller: image-repository:image-tag
 
-firewallSpec: {}
-
-firewallSignature: ""
+firewallSpec:
+    interval: 10s
+    dryrun: false
+    ipv4rulefile: /etc/
+    rateLimits: []
+    internalprefixes: []
+    egressRules:
+    - networkid: internet
+      ips:
+      - 212.34.83.15
+    firewallNetworks: []
 
 accountingExporter:
     enabled: false
