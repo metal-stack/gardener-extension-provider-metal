@@ -15,11 +15,15 @@ jobs:
     - name: Figure out if running fork PR
       id: fork_step
       run: |
+        # there is no easier way at the moment i guess
+        # could be removed in the future
         token=${{ secrets.DOCKER_REGISTRY_TOKEN }}
-        if ["$token" != ""]; then
-          echo "is_fork_pr=true >> $GITHUB_ENV
+        if ["$token" == ""]; then
+          echo "PR is from a fork"
+          echo "::set-output name=is_fork_pr::true"
         else
-          echo "is_fork_pr=false >> $GITHUB_ENV
+          echo "PR is not from a fork"
+          echo "::set-output name=is_fork_pr::false"
         fi
 
     - name: Docker Login
@@ -28,7 +32,7 @@ jobs:
         registry: ${{ secrets.DOCKER_REGISTRY }}
         username: ${{ secrets.DOCKER_REGISTRY_USER }}
         password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
-      if: ${{ steps.fork_step.outputs.is_fork_pr }} == 'true'
+      if: "!steps.fork_step.outputs.is_fork_pr"
 
     - name: Check (lint) and Test
       run: |
@@ -39,4 +43,4 @@ jobs:
         export GITHUB_TAG_NAME=${GITHUB_HEAD_REF##*/}
         make docker-image
         make docker-push
-      if: ${{ steps.fork_step.outputs.is_fork_pr }} == 'true'
+      if: "!steps.fork_step.outputs.is_fork_pr"
