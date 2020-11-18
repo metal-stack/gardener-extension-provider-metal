@@ -19,7 +19,7 @@ jobs:
         # could be removed in the future
         token=${{ secrets.DOCKER_REGISTRY_TOKEN }}
         if ["$token" != ""]; then
-          echo "is_fork_pr=true >> $GITHUB_ENV
+          echo "is_fork_pr=true" >> $GITHUB_ENV
         fi
 
     - name: Docker Login
