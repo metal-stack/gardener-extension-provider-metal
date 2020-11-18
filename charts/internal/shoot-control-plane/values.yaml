@@ -9,10 +9,7 @@ firewallSpec:
     dryrun: false
     rateLimits: []
     internalprefixes: []
-    egressRules:
-    - networkid: internet
-      ips:
-      - 212.34.83.15
+    egressRules: []
     firewallNetworks: []
 
 accountingExporter:
