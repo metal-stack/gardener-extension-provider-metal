@@ -12,15 +12,13 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - run: env
-
     - name: Docker Login
       uses: docker/login-action@v1
       with:
         registry: ${{ secrets.DOCKER_REGISTRY }}
         username: ${{ secrets.DOCKER_REGISTRY_USER }}
         password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
-      if: github.repository == 'metal-stack/gardener-extension-provider-metal'
+      if: github.env.DOCKER_REGISTRY == ''
 
     - name: Check (lint) and Test
       run: |
@@ -31,4 +29,4 @@ jobs:
         export GITHUB_TAG_NAME=${GITHUB_HEAD_REF##*/}
         make docker-image
         make docker-push
-      if: github.repository == 'metal-stack/gardener-extension-provider-metal'
+      if: github.env.DOCKER_REGISTRY == ''
