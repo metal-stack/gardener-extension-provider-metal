@@ -30,7 +30,7 @@ spec:
       containers:
       - name: kubernetes-authn-webhook
         image: {{ index .Values.images "authn-webhook" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.config.global.imagePullPolicy }}
         ports:
         - containerPort: {{ .Values.authnWebhook.port }}
           protocol: TCP

@@ -69,6 +69,8 @@ config:
     enabled: false
     hecURL:
     hecToken:
+  global:
+    imagePullPolicy: IfNotPresent
 
 gardener:
   seed:

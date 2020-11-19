@@ -39,7 +39,7 @@ spec:
       containers:
       - name: metal-machine-controller-manager
         image: registry.fi-ts.io/gardener/machine-controller-manager:metal
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: {{ .Values.config.global.imagePullPolicy }}
         command:
         - ./machine-controller-manager
         - --control-kubeconfig=inClusterConfig

@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - image: {{ index .Values.images "droptailer" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.config.global.imagePullPolicy }}
         name: droptailer
         ports:
         - protocol: TCP

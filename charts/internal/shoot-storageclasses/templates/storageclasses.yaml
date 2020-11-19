@@ -27,33 +27,33 @@ metadata:
 rules:
 - apiGroups:
   - ""
-  resources: 
+  resources:
   - nodes
   - persistentvolumeclaims
-  verbs: 
+  verbs:
   - get
   - list
   - watch
-- apiGroups: 
+- apiGroups:
   - ""
-  resources: 
+  resources:
   - endpoints
   - persistentvolumes
   - pods
-  verbs: 
+  verbs:
   - "*"
-- apiGroups: 
+- apiGroups:
   - ""
-  resources: 
+  resources:
   - events
-  verbs: 
+  verbs:
   - create
   - patch
 - apiGroups:
   - storage.k8s.io
-  resources: 
+  resources:
   - storageclasses
-  verbs: 
+  verbs:
   - get
   - list
   - watch
@@ -98,7 +98,7 @@ spec:
       containers:
       - name: csi-lvm-controller
         image: {{ index .Values.images "csi-lvm-controller" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.config.global.imagePullPolicy }}
         command:
         - /csi-lvm-controller
         args:
@@ -221,7 +221,7 @@ spec:
       containers:
       - name: csi-lvm-reviver
         image: {{ index .Values.images "csi-lvm-provisioner" }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: {{ .Values.config.global.imagePullPolicy }}
         securityContext:
           privileged: true
         env:

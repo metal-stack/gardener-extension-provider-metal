@@ -42,7 +42,7 @@ spec:
       containers:
       - name: machine-controller-manager-provider-metal
         image: {{ index .Values.images "machine-controller-manager-provider-metal" }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: {{ .Values.config.global.imagePullPolicy }}
         command:
         - ./machine-controller
         - --control-kubeconfig=inClusterConfig
@@ -74,7 +74,7 @@ spec:
           readOnly: true
       - name: machine-controller-manager
         image: {{ index .Values.images "machine-controller-manager" }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: {{ .Values.config.global.imagePullPolicy }}
         command:
         - ./machine-controller-manager
         - --control-kubeconfig=inClusterConfig

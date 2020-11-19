@@ -24,7 +24,7 @@ spec:
       containers:
       - name: group-rolebinding-controller
         image: {{ index .Values.images "group-rolebinding-controller" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.config.global.imagePullPolicy }}
         command: ["/group-rolebinding-controller"]
         args:
         - --excludeNamespaces=kube-system,kube-public,kube-node-lease,default

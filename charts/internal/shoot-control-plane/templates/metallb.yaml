@@ -213,7 +213,7 @@ spec:
             fieldRef:
               fieldPath: status.hostIP
         image: {{ index .Values.images "metallb-speaker" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.config.global.imagePullPolicy }}
         name: speaker
         ports:
         - containerPort: 7472
@@ -269,7 +269,7 @@ spec:
         - --port=7472
         - --config=config
         image: {{ index .Values.images "metallb-controller" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.config.global.imagePullPolicy }}
         name: controller
         ports:
         - containerPort: 7472
