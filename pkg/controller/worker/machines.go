@@ -282,16 +282,17 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		)
 
 		machineDeployments = append(machineDeployments, worker.MachineDeployment{
-			Name:           deploymentName,
-			ClassName:      className,
-			SecretName:     className,
-			Minimum:        pool.Minimum,
-			Maximum:        pool.Maximum,
-			MaxSurge:       pool.MaxSurge,
-			MaxUnavailable: pool.MaxUnavailable,
-			Labels:         pool.Labels,
-			Annotations:    pool.Annotations,
-			Taints:         pool.Taints,
+			Name:                 deploymentName,
+			ClassName:            className,
+			SecretName:           className,
+			Minimum:              pool.Minimum,
+			Maximum:              pool.Maximum,
+			MaxSurge:             pool.MaxSurge,
+			MaxUnavailable:       pool.MaxUnavailable,
+			Labels:               pool.Labels,
+			Annotations:          pool.Annotations,
+			Taints:               pool.Taints,
+			MachineConfiguration: genericworkeractuator.ReadMachineConfiguration(pool),
 		})
 
 		machineClassSpec["name"] = className
