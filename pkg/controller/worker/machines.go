@@ -253,24 +253,30 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			kubernetesTopologyZoneTag   = fmt.Sprintf("topology.kubernetes.io/zone=%s", infrastructureConfig.PartitionID)
 		)
 
+		tags := []string{
+			kubernetesClusterTag,
+			kubernetesRoleTag,
+			kubernetesInstanceTypeTag,
+			kubernetesTopologyRegionTag,
+			kubernetesTopologyZoneTag,
+
+			metalClusterIDTag,
+			metalClusterNameTag,
+			metalClusterProjectTag,
+		}
+
+		for k, v := range pool.Labels {
+			tags = append(tags, fmt.Sprintf("%s=%s", k, v))
+		}
+
 		machineClassSpec := map[string]interface{}{
 			"partition": infrastructureConfig.PartitionID,
 			"size":      pool.MachineType,
 			"project":   projectID,
 			"network":   privateNetwork.ID,
 			"image":     machineImage,
-			"tags": []string{
-				kubernetesClusterTag,
-				kubernetesRoleTag,
-				kubernetesInstanceTypeTag,
-				kubernetesTopologyRegionTag,
-				kubernetesTopologyZoneTag,
-
-				metalClusterIDTag,
-				metalClusterNameTag,
-				metalClusterProjectTag,
-			},
-			"sshkeys": []string{string(w.worker.Spec.SSHPublicKey)},
+			"tags":      tags,
+			"sshkeys":   []string{string(w.worker.Spec.SSHPublicKey)},
 			"secret": map[string]interface{}{
 				"cloudConfig": string(pool.UserData),
 			},
