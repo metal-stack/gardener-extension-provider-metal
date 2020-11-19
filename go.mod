@@ -23,7 +23,7 @@ require (
 	github.com/metal-stack/firewall-controller v0.2.0
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.3
 	github.com/metal-stack/metal-go v0.11.1
-	github.com/metal-stack/metal-lib v0.6.4
+	github.com/metal-stack/metal-lib v0.6.6
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
