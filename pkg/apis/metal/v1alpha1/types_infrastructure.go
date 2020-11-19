@@ -15,10 +15,21 @@ type InfrastructureConfig struct {
 }
 
 type Firewall struct {
-	Size       string            `json:"size"`
-	Image      string            `json:"image"`
-	Networks   []string          `json:"networks"`
-	RateLimits map[string]uint32 `json:"rateLimits"`
+	Size        string       `json:"size"`
+	Image       string       `json:"image"`
+	Networks    []string     `json:"networks"`
+	RateLimits  []RateLimit  `json:"rateLimits"`
+	EgressRules []EgressRule `json:"egressRules"`
+}
+
+type RateLimit struct {
+	NetworkID string `json:"networkID"`
+	RateLimit uint32 `json:"rateLimit"`
+}
+
+type EgressRule struct {
+	NetworkID string   `json:"networkID"`
+	IPs       []string `json:"ips"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

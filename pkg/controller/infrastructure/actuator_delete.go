@@ -120,6 +120,28 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		}
 	}
 
+	static := metalgo.IPTypeStatic
+	resp, err := d.mclient.IPFind(&metalgo.IPFindRequest{
+		ProjectID: &d.projectID,
+		Tags:      []string{egressTag(d.clusterID)},
+		Type:      &static,
+	})
+	if err != nil {
+		return &controllererrors.RequeueAfterError{
+			Cause:        errors.Wrap(err, "failed to list egress ips of cluster"),
+			RequeueAfter: 30 * time.Second,
+		}
+	}
+
+	for _, ip := range resp.IPs {
+		if err := clearIPTags(d.mclient, *ip.Ipaddress); err != nil {
+			return &controllererrors.RequeueAfterError{
+				Cause:        errors.Wrap(err, fmt.Sprintf("could not remove egress tag from ip %s", *ip.Ipaddress)),
+				RequeueAfter: 30 * time.Second,
+			}
+		}
+	}
+
 	if d.infrastructure.Status.NodesCIDR != nil {
 		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.mclient, d.projectID, *d.infrastructure.Status.NodesCIDR)
 		if err != nil {

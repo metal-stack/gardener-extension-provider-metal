@@ -2,6 +2,7 @@ package validation
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -93,9 +94,46 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.E
 	if infra.Firewall.Size == "" {
 		allErrs = append(allErrs, field.Required(firewallPath.Child("size"), "firewall size must be specified"))
 	}
+
+	availableNetworks := sets.NewString()
 	for i, network := range infra.Firewall.Networks {
 		if network == "" {
 			allErrs = append(allErrs, field.Required(firewallPath.Child("networks").Index(i), "firewall network must not be an empty string"))
+			continue
+		}
+		availableNetworks.Insert(network)
+	}
+
+	for i, rateLimit := range infra.Firewall.RateLimits {
+		fp := firewallPath.Child("rateLimit").Index(i)
+		if rateLimit.NetworkID == "" {
+			allErrs = append(allErrs, field.Required(fp, "rate limit network must not be an empty string"))
+			continue
+		}
+		if !availableNetworks.Has(rateLimit.NetworkID) {
+			allErrs = append(allErrs, field.Required(fp, "rate limit network must be present as cluster network"))
+			continue
+		}
+	}
+
+	for i, egress := range infra.Firewall.EgressRules {
+		fp := firewallPath.Child("egressRules").Index(i)
+		if egress.NetworkID == "" {
+			allErrs = append(allErrs, field.Required(fp, "egress rule network must not be an empty string"))
+			continue
+		}
+		if !availableNetworks.Has(egress.NetworkID) {
+			allErrs = append(allErrs, field.Required(fp, "egress rule network must be present as cluster network"))
+			continue
+		}
+		if len(egress.IPs) == 0 {
+			allErrs = append(allErrs, field.Required(fp, "egress rule must contain ip addresses to use"))
+			continue
+		}
+		for _, ip := range egress.IPs {
+			if net.ParseIP(ip) == nil {
+				allErrs = append(allErrs, field.Required(fp, "egress rule contains a malformed ip address"))
+			}
 		}
 	}
 

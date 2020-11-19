@@ -12,14 +12,15 @@ import (
 	"path/filepath"
 
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
+	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
+	"github.com/gardener/gardener/pkg/utils"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
-	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
 
@@ -505,6 +506,35 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", metal.SplunkAuditWebhookDeploymentName, namespace)
 
+	fwSpec, err := vp.getFirewallSpec(ctx, cp, cluster)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not assemble firewall values")
+	}
+
+	err = vp.signFirewallValues(ctx, namespace, fwSpec)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not sign firewall values")
+	}
+
+	values := map[string]interface{}{
+		"firewallSpec": fwSpec,
+		"groupRolebindingController": map[string]interface{}{
+			"enabled": vp.controllerConfig.Auth.Enabled,
+		},
+		"accountingExporter": map[string]interface{}{
+			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
+		},
+		"splunkAuditWebhook": map[string]interface{}{
+			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
+			"url":     splunkURL,
+			"ca":      splunkCABundle,
+		},
+	}
+
+	return values, nil
+}
+
+func (vp *valuesProvider) getFirewallSpec(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (*firewallv1.FirewallSpec, error) {
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
@@ -540,47 +570,79 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	rateLimits := []map[string]interface{}{}
-	for net, rate := range infrastructureConfig.Firewall.RateLimits {
-		resp, err := mclient.NetworkFind(&metalgo.NetworkFindRequest{
-			ID: &net,
+	rateLimits := []firewallv1.RateLimit{}
+	for _, rateLimit := range infrastructureConfig.Firewall.RateLimits {
+		rateLimits = append(rateLimits, firewallv1.RateLimit{
+			NetworkID: rateLimit.NetworkID,
+			Rate:      rateLimit.RateLimit,
 		})
-		if err != nil {
-			vp.logger.Info("could not find network by id for rate limit", "id", &net)
-			continue
-		}
-		if len(resp.Networks) != 1 {
-			vp.logger.Info("network id is ambiguous", "id", &net)
-			continue
-		}
-		n := resp.Networks[0]
-		iface := fmt.Sprintf("vrf%d", n.Vrf)
-		rl := map[string]interface{}{
-			"interface": iface,
-			"rate":      rate,
-		}
-		rateLimits = append(rateLimits, rl)
 	}
 
-	values := map[string]interface{}{
-		"firewall": map[string]interface{}{
-			"internalPrefixes": internalPrefixes,
-			"rateLimits":       rateLimits,
-		},
-		"groupRolebindingController": map[string]interface{}{
-			"enabled": vp.controllerConfig.Auth.Enabled,
-		},
-		"accountingExporter": map[string]interface{}{
-			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
-		},
-		"splunkAuditWebhook": map[string]interface{}{
-			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
-			"url":     splunkURL,
-			"ca":      splunkCABundle,
+	egressRules := []firewallv1.EgressRuleSNAT{}
+	for _, egressRule := range infrastructureConfig.Firewall.EgressRules {
+		egressRules = append(egressRules, firewallv1.EgressRuleSNAT{
+			NetworkID: egressRule.NetworkID,
+			IPs:       egressRule.IPs,
+		})
+	}
+
+	clusterID := string(cluster.Shoot.GetUID())
+	projectID := infrastructureConfig.ProjectID
+	firewalls, err := metalclient.FindClusterFirewalls(mclient, clusterTag(clusterID), projectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not find firewall for cluster")
+	}
+	if len(firewalls) != 1 {
+		return nil, fmt.Errorf("cluster %s has %d firewalls", clusterID, len(firewalls))
+	}
+
+	firewall := *firewalls[0]
+	firewallNetworks := []firewallv1.FirewallNetwork{}
+	for _, n := range firewall.Allocation.Networks {
+		firewallNetworks = append(firewallNetworks, firewallv1.FirewallNetwork{
+			Asn:                 n.Asn,
+			Destinationprefixes: n.Destinationprefixes,
+			Ips:                 n.Ips,
+			Nat:                 n.Nat,
+			Networkid:           n.Networkid,
+			Networktype:         n.Networktype,
+			Prefixes:            n.Prefixes,
+			Vrf:                 n.Vrf,
+		})
+	}
+
+	spec := firewallv1.FirewallSpec{
+		Data: firewallv1.Data{
+			Interval:         "10s",
+			FirewallNetworks: firewallNetworks,
+			InternalPrefixes: internalPrefixes,
+			RateLimits:       rateLimits,
+			EgressRules:      egressRules,
 		},
 	}
 
-	return values, nil
+	return &spec, nil
+}
+
+func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace string, spec *firewallv1.FirewallSpec) error {
+	secret, err := vp.getSecret(ctx, namespace, v1alpha1constants.SecretNameCACluster)
+	if err != nil {
+		return errors.Wrap(err, "could not find ca secret for signing firewall values")
+	}
+
+	privateKey, err := utils.DecodePrivateKey(secret.Data[secrets.DataKeyPrivateKeyCA])
+	if err != nil {
+		return errors.Wrap(err, "could not decode private key from ca secret for signing firewall values")
+	}
+
+	vp.logger.Info("signing firewall", "data", spec.Data)
+	signature, err := spec.Data.Sign(privateKey)
+	if err != nil {
+		return errors.Wrap(err, "could not sign firewall values")
+	}
+
+	spec.Signature = signature
+	return nil
 }
 
 func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
@@ -862,4 +924,8 @@ func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontrol
 	}
 
 	return values, nil
+}
+
+func clusterTag(clusterID string) string {
+	return fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
 }

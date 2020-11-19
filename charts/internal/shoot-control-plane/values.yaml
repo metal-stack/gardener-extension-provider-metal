@@ -4,10 +4,13 @@ images:
     metallb-speaker: image-repository:image-tag
     metallb-controller: image-repository:image-tag
 
-firewall:
+firewallSpec:
     interval: 10s
-    internalPrefixes: []
+    dryrun: false
     rateLimits: []
+    internalprefixes: []
+    egressRules: []
+    firewallNetworks: []
 
 accountingExporter:
     enabled: false

@@ -10,12 +10,4 @@ metadata:
   namespace: firewall
   name: firewall
 spec:
-  interval: {{ .Values.firewall.interval }}
-{{- if .Values.firewall.internalPrefixes }}
-  internalprefixes:
-{{ toYaml .Values.firewall.internalPrefixes | indent 4 }}
-{{- end }}
-{{- if .Values.firewall.rateLimits }}
-  ratelimits:
-{{ toYaml .Values.firewall.rateLimits | indent 4 }}
-{{- end }}
+{{ toYaml .Values.firewallSpec | indent 2 }}
