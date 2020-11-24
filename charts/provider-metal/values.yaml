@@ -51,6 +51,7 @@ config:
       capacity: 80Gi
     backup:
       schedule: "0 */24 * * *"
+      deltaSnapshotPeriod:
   accountingExporter:
     enabled: false
     networkTraffic:

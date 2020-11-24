@@ -27,6 +27,7 @@ data:
         capacity: {{ .Values.config.etcd.storage.capacity }}
       backup:
         schedule: {{ .Values.config.etcd.backup.schedule }}
+        deltaSnapshotPeriod: {{ .Values.config.etcd.backup.deltaSnapshotPeriod }}
     auth:
       enabled: {{ .Values.config.auth.enabled }}
 {{- if .Values.config.auth.enabled }}

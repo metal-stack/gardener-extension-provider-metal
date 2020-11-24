@@ -323,6 +323,7 @@ func Convert_config_ETCD_To_v1alpha1_ETCD(in *config.ETCD, out *ETCD, s conversi
 
 func autoConvert_v1alpha1_ETCDBackup_To_config_ETCDBackup(in *ETCDBackup, out *config.ETCDBackup, s conversion.Scope) error {
 	out.Schedule = (*string)(unsafe.Pointer(in.Schedule))
+	out.DeltaSnapshotPeriod = (*string)(unsafe.Pointer(in.DeltaSnapshotPeriod))
 	return nil
 }
 
@@ -333,6 +334,7 @@ func Convert_v1alpha1_ETCDBackup_To_config_ETCDBackup(in *ETCDBackup, out *confi
 
 func autoConvert_config_ETCDBackup_To_v1alpha1_ETCDBackup(in *config.ETCDBackup, out *ETCDBackup, s conversion.Scope) error {
 	out.Schedule = (*string)(unsafe.Pointer(in.Schedule))
+	out.DeltaSnapshotPeriod = (*string)(unsafe.Pointer(in.DeltaSnapshotPeriod))
 	return nil
 }
 

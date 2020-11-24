@@ -67,6 +67,8 @@ type ETCDBackup struct {
 	// Schedule is the etcd backup schedule.
 	// +optional
 	Schedule *string `json:"schedule,omitempty"`
+	// DeltaSnapshotPeriod is the time for delta snapshots to be made
+	DeltaSnapshotPeriod *string `json:"deltaSnapshotPeriod,omitempty"`
 }
 
 // Auth contains the configuration for metal stack specific user authentication in the cluster.

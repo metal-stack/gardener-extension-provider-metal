@@ -77,6 +77,8 @@ type ETCDStorage struct {
 type ETCDBackup struct {
 	// Schedule is the etcd backup schedule.
 	Schedule *string
+	// DeltaSnapshotPeriod is the time for delta snapshots to be made
+	DeltaSnapshotPeriod *string
 }
 
 // Auth contains the configuration for metal stack specific user authentication in the cluster.
