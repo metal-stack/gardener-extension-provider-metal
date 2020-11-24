@@ -611,13 +611,19 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, cp *extensionsv1a
 		})
 	}
 
+	var controllerVersion string
+	if infrastructureConfig.Firewall.ControllerVersion != "" {
+		controllerVersion = infrastructureConfig.Firewall.ControllerVersion
+	}
+
 	spec := firewallv1.FirewallSpec{
 		Data: firewallv1.Data{
-			Interval:         "10s",
-			FirewallNetworks: firewallNetworks,
-			InternalPrefixes: internalPrefixes,
-			RateLimits:       rateLimits,
-			EgressRules:      egressRules,
+			Interval:          "10s",
+			FirewallNetworks:  firewallNetworks,
+			InternalPrefixes:  internalPrefixes,
+			RateLimits:        rateLimits,
+			EgressRules:       egressRules,
+			ControllerVersion: controllerVersion,
 		},
 	}
 
