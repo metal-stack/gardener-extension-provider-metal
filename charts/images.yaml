@@ -1,40 +1,40 @@
 images:
 - name: metalccm
   sourceRepository: github.com/metal-stack/metal-ccm
-  repository: metalstack/metal-ccm
-  tag: v0.5.0
+  repository: ghcr.io/metal-stack/metal-ccm
+  tag: "v0.5.5"
 - name: machine-controller-manager
   sourceRepository: github.com/gardener/machine-controller-manager
   repository: eu.gcr.io/gardener-project/gardener/machine-controller-manager
-  tag: "0.34.0"
+  tag: "0.34.3"
 - name: machine-controller-manager-provider-metal
   sourceRepository: https://github.com/metal-stack/machine-controller-manager-provider-metal
-  repository: metalstack/machine-controller-manager-provider-metal
-  tag: "v0.1.3"
+  repository: ghcr.io/metal-stack/machine-controller-manager-provider-metal
+  tag: "v0.1.4"
 - name: droptailer
   sourceRepository: github.com/metal-stack/droptailer
-  repository: metalstack/droptailer
-  tag: v0.2.1
+  repository: ghcr.io/metal-stack/droptailer
+  tag: "v0.2.5"
 - name: csi-lvm-controller
   sourceRepository: github.com/metal-stack/csi-lvm-controller
-  repository: metalstack/csi-lvm-controller
-  tag: v0.6.0
+  repository: ghcr.io/metal-stack/csi-lvm-controller
+  tag: "v0.6.3"
 - name: csi-lvm-provisioner
   sourceRepository: github.com/metal-stack/csi-lvm-provisioner
-  repository: metalstack/csi-lvm-provisioner
-  tag: v0.6.0
+  repository: ghcr.io/metal-stack/csi-lvm-provisioner
+  tag: "v0.6.3"
 - name: metallb-speaker
   sourceRepository: https://github.com/metallb/metallb
   repository: metallb/speaker
-  tag: v0.8.3
+  tag: "v0.8.3"
 - name: metallb-controller
   sourceRepository: https://github.com/metallb/metallb
   repository: metallb/controller
-  tag: v0.8.3
+  tag: "v0.8.3"
 - name: splunk-audit-webhook
   sourceRepository: https://github.com/metal-stack/kubernetes-splunk-audit-webhook
-  repository: metalstack/kubernetes-splunk-audit-webhook
-  tag: v0.1.3
+  repository: ghcr.io/metal-stack/kubernetes-splunk-audit-webhook
+  tag: "v0.1.4"
 
 # can be provided via image override:
 # - name: authn-webhook

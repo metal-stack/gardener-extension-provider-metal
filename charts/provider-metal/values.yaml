@@ -1,5 +1,5 @@
 image:
-  repository: metalstack/gardener-extension-provider-metal
+  repository: ghcr.io/metal-stack/gardener-extension-provider-metal
   tag: latest
   pullPolicy: Always
 
