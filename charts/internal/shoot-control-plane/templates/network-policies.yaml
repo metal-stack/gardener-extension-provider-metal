@@ -67,3 +67,18 @@ spec:
     ports:
     - protocol: UDP
       port: 123
+---
+# currently, apiserver SNI is behind a feature gateway but will probably graduate in the future
+# see https://github.com/gardener/gardener/blob/master/docs/proposals/08-shoot-apiserver-via-sni.md
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-apiserver-sni
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 8443
+      protocol: TCP
+    to:
+    - cidr: 0.0.0.0/0
