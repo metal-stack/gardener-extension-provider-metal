@@ -22,8 +22,8 @@ var (
 
 // AddOptions are options to apply when adding the metal exposure webhook to the manager.
 type AddOptions struct {
-	// ETCDStorage is the etcd storage configuration.
-	ETCDStorage config.ETCDStorage
+	// ETCD is the etcd configuration.
+	ETCD config.ETCD
 }
 
 var logger = log.Log.WithName("metal-controlplaneexposure-webhook")
@@ -35,7 +35,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 		Kind:     controlplane.KindSeed,
 		Provider: metal.Type,
 		Types:    []runtime.Object{&corev1.Service{}, &appsv1.Deployment{}, &druidv1alpha1.Etcd{}},
-		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCDStorage, logger), nil, nil, nil, logger),
+		Mutator:  genericmutator.NewMutator(NewEnsurer(&opts.ETCD, logger), nil, nil, nil, logger),
 	})
 }
 

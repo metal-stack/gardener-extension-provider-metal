@@ -62,9 +62,9 @@ func (c *Config) ApplyMachineImages(machineImages *[]config.MachineImage) {
 	*machineImages = c.Config.MachineImages
 }
 
-// ApplyETCDStorage sets the given etcd storage configuration to that of this Config.
-func (c *Config) ApplyETCDStorage(etcdStorage *config.ETCDStorage) {
-	*etcdStorage = c.Config.ETCD.Storage
+// ApplyETCD sets the given etcd configuration to that of this Config.
+func (c *Config) ApplyETCD(etcd *config.ETCD) {
+	*etcd = c.Config.ETCD
 }
 
 // ApplyControllerConfig sets the given controller configuration to that of this Config.
