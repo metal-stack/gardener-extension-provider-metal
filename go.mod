@@ -14,17 +14,17 @@ require (
 	github.com/gardener/etcd-druid v0.3.0
 	github.com/gardener/gardener v1.8.2
 	github.com/gardener/machine-controller-manager v0.34.0
-	github.com/go-logr/logr v0.2.1
+	github.com/go-logr/logr v0.3.0
 	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.2
 	github.com/google/uuid v1.1.2
 	github.com/imdario/mergo v0.3.11
-	github.com/metal-stack/firewall-controller v0.2.0
+	github.com/metal-stack/firewall-controller v0.3.0
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.3
 	github.com/metal-stack/metal-go v0.11.1
 	github.com/metal-stack/metal-lib v0.6.6
-	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.0.0
