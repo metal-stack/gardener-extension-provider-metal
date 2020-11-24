@@ -161,6 +161,11 @@ func (in *ETCDBackup) DeepCopyInto(out *ETCDBackup) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.DeltaSnapshotPeriod != nil {
+		in, out := &in.DeltaSnapshotPeriod, &out.DeltaSnapshotPeriod
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 

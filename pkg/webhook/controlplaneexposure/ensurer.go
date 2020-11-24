@@ -2,6 +2,7 @@ package controlplaneexposure
 
 import (
 	"context"
+	"time"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
@@ -11,6 +12,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
@@ -21,18 +23,18 @@ import (
 )
 
 // NewEnsurer creates a new controlplaneexposure ensurer.
-func NewEnsurer(etcdStorage *config.ETCDStorage, logger logr.Logger) genericmutator.Ensurer {
+func NewEnsurer(etcdStorage *config.ETCD, logger logr.Logger) genericmutator.Ensurer {
 	return &ensurer{
-		etcdStorage: etcdStorage,
-		logger:      logger.WithName("metal-controlplaneexposure-ensurer"),
+		c:      etcdStorage,
+		logger: logger.WithName("metal-controlplaneexposure-ensurer"),
 	}
 }
 
 type ensurer struct {
 	genericmutator.NoopEnsurer
-	etcdStorage *config.ETCDStorage
-	client      client.Client
-	logger      logr.Logger
+	c      *config.ETCD
+	client client.Client
+	logger logr.Logger
 }
 
 // InjectClient injects the given client into the ensurer.
@@ -71,12 +73,22 @@ func (e *ensurer) EnsureETCD(ctx context.Context, ectx genericmutator.EnsurerCon
 	capacity := resource.MustParse("16Gi")
 	class := ""
 
-	if new.Name == v1beta1constants.ETCDMain && e.etcdStorage != nil {
-		if e.etcdStorage.Capacity != nil {
-			capacity = *e.etcdStorage.Capacity
+	if new.Name == v1beta1constants.ETCDMain && e.c != nil {
+		if e.c.Storage.Capacity != nil {
+			capacity = *e.c.Storage.Capacity
 		}
-		if e.etcdStorage.ClassName != nil {
-			class = *e.etcdStorage.ClassName
+		if e.c.Storage.ClassName != nil {
+			class = *e.c.Storage.ClassName
+		}
+		if e.c.Backup.DeltaSnapshotPeriod != nil {
+			d, err := time.ParseDuration(*e.c.Backup.DeltaSnapshotPeriod)
+			if err != nil {
+				return errors.Wrap(err, "unable to set delta snapshot period")
+			}
+			new.Spec.Backup.DeltaSnapshotPeriod = &v1.Duration{Duration: d}
+		}
+		if e.c.Backup.Schedule != nil {
+			new.Spec.Backup.FullSnapshotSchedule = e.c.Backup.Schedule
 		}
 	}
 
