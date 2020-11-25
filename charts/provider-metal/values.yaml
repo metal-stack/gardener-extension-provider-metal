@@ -41,16 +41,13 @@ config:
     contentType: application/json
     qps: 100
     burst: 130
-  machineImages:
-  - name: ubuntu
-    version: "19.04"
-    image: ubuntu-19.04
+  machineImages: []
   etcd:
     storage:
-      className: local-path
-      capacity: 80Gi
+      className:
+      capacity:
     backup:
-      schedule: "0 */24 * * *"
+      schedule:
       deltaSnapshotPeriod:
   accountingExporter:
     enabled: false
