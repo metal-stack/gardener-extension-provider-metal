@@ -392,7 +392,7 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 
 	fcr, err := r.mclient.FirewallCreate(createRequest)
 	if err != nil {
-		r.logger.Error(err, "firewalls create")
+		r.logger.Error(err, "firewall create error")
 		return &controllererrors.RequeueAfterError{
 			Cause:        errors.Wrap(err, "failed to create firewall"),
 			RequeueAfter: 30 * time.Second,
@@ -454,7 +454,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 
 			if len(resp.IPs) == 0 || len(resp.IPs) > 1 {
 				return &controllererrors.RequeueAfterError{
-					Cause:        errors.Wrap(err, fmt.Sprintf("ip %s for egress rule is ambiguous", ip)),
+					Cause:        fmt.Errorf("ip %s for egress rule is ambiguous", ip),
 					RequeueAfter: 30 * time.Second,
 				}
 			}
@@ -462,14 +462,14 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 			dbIP := resp.IPs[0]
 			if dbIP.Type != nil && *dbIP.Type != metalgo.IPTypeStatic {
 				return &controllererrors.RequeueAfterError{
-					Cause:        errors.Wrap(err, fmt.Sprintf("ips for egress rule must be static, but %s is not static", ip)),
+					Cause:        fmt.Errorf("ips for egress rule must be static, but %s is not static", ip),
 					RequeueAfter: 30 * time.Second,
 				}
 			}
 
 			if len(dbIP.Tags) > 0 {
 				return &controllererrors.RequeueAfterError{
-					Cause:        errors.Wrap(err, fmt.Sprintf("won't use ip %s for egress rules because it does not have an egress tag but it has other tags", *dbIP.Ipaddress)),
+					Cause:        fmt.Errorf("won't use ip %s for egress rules because it does not have an egress tag but it has other tags", *dbIP.Ipaddress),
 					RequeueAfter: 30 * time.Second,
 				}
 			}
