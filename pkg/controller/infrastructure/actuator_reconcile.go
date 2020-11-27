@@ -452,11 +452,15 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 				}
 			}
 
-			if len(resp.IPs) == 0 || len(resp.IPs) > 1 {
+			switch len(resp.IPs) {
+			case 0:
 				return &controllererrors.RequeueAfterError{
-					Cause:        fmt.Errorf("ip %s for egress rule is ambiguous", ip),
+					Cause:        fmt.Errorf("ip %s for egress rule does not exist", ip),
 					RequeueAfter: 30 * time.Second,
 				}
+			case 1:
+			default:
+				return fmt.Errorf("ip %s found multiple times", ip)
 			}
 
 			dbIP := resp.IPs[0]
