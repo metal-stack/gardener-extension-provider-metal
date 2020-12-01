@@ -2,7 +2,6 @@ package validation
 
 import (
 	"fmt"
-	"regexp"
 	"sort"
 
 	"github.com/gardener/gardener/pkg/apis/core"
@@ -10,40 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
-
-// ValidateClusterName validates the cluster name of the given shoot.
-func ValidateClusterName(shoot *core.Shoot) field.ErrorList {
-	var (
-		clusterNameRegex      = "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-		validClusterNameRegex = regexp.MustCompile(clusterNameRegex)
-		reservedClusterName   = "all"
-	)
-
-	allErrs := field.ErrorList{}
-
-	f := field.NewPath("metadata", "clusterName")
-	clusterName := shoot.ClusterName
-	if clusterName == "" {
-		clusterName = shoot.ObjectMeta.Name
-		f = field.NewPath("metadata", "name")
-	} else if shoot.ObjectMeta.Name != "" && clusterName != shoot.ObjectMeta.Name {
-		allErrs = append(allErrs, field.Required(f, "cluster name differs from shoot name"))
-	}
-	if clusterName == "" {
-		allErrs = append(allErrs, field.Required(f, "cluster name must not be empty"))
-	}
-	if len(clusterName) > 10 {
-		allErrs = append(allErrs, field.Required(f, "cluster name length must be <= 10 chars"))
-	}
-	if !validClusterNameRegex.MatchString(clusterName) {
-		allErrs = append(allErrs, field.Required(f, fmt.Sprintf("cluster name must comply with regex: %s", clusterNameRegex)))
-	}
-	if clusterName == reservedClusterName {
-		allErrs = append(allErrs, field.Required(f, fmt.Sprintf("cluster name must not be reserved word %q", reservedClusterName)))
-	}
-
-	return allErrs
-}
 
 // ValidateWorkers validates the workers of a Shoot.
 func ValidateWorkers(workers []core.Worker, cloudProfile *gardencorev1beta1.CloudProfile, fldPath *field.Path) field.ErrorList {
