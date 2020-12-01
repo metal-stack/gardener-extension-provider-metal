@@ -3,18 +3,20 @@ package validator
 import (
 	"context"
 	"errors"
-	"reflect"
-
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalvalidation "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
-
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"reflect"
 )
 
 func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
+	if errList := metalvalidation.ValidateClusterName(shoot); len(errList) != 0 {
+		return errList.ToAggregate()
+	}
+
 	// Provider validation
 	fldPath := field.NewPath("spec", "provider")
 
