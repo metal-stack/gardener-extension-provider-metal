@@ -664,6 +664,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.DroptailerClientSecretName,
 						CommonName:   "droptailer",
+						DNSNames:     []string{"droptailer"},
 						Organization: []string{"droptailer-client"},
 						CertType:     secrets.ClientCert,
 						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
@@ -673,6 +674,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.DroptailerServerSecretName,
 						CommonName:   "droptailer",
+						DNSNames:     []string{"droptailer"},
 						Organization: []string{"droptailer-server"},
 						CertType:     secrets.ServerCert,
 						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
