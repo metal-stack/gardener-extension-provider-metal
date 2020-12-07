@@ -621,7 +621,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, cp *extensionsv1a
 		},
 	}
 	if infrastructureConfig.Firewall.ControllerVersion != nil && *infrastructureConfig.Firewall.ControllerVersion != "" {
-		spec.Data.ControllerVersion = *infrastructureConfig.Firewall.ControllerVersion
+		spec.ControllerVersion = *infrastructureConfig.Firewall.ControllerVersion
 	}
 
 	return &spec, nil

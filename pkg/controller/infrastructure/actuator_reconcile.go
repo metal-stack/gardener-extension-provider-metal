@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/google/uuid"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -409,14 +408,6 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 
 	r.providerStatus.Firewall.MachineID = machineID
 	r.providerStatus.Firewall.Succeeded = true
-
-	iv, err := imagevector.ImageVector().FindImage("firewall-controller")
-	if err != nil {
-		return fmt.Errorf("firewall-controller version must be specified with the imagevector")
-	}
-
-	// TODO: needs to be persisted
-	r.infrastructureConfig.Firewall.ControllerVersion = iv.Tag
 
 	return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
 }
