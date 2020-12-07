@@ -6,6 +6,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.1.5
 	github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083 // indirect
 	github.com/ajeddeloh/yaml v0.0.0-00010101000000-000000000000 // indirect
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/coreos/container-linux-config-transpiler v0.9.0
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/coreos/ignition v0.35.0 // indirect
@@ -20,7 +21,7 @@ require (
 	github.com/google/go-cmp v0.5.2
 	github.com/google/uuid v1.1.2
 	github.com/imdario/mergo v0.3.11
-	github.com/metal-stack/firewall-controller v0.3.0
+	github.com/metal-stack/firewall-controller v0.3.1-0.20201207100002-7b47623c4bc4
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.3
 	github.com/metal-stack/metal-go v0.11.1
 	github.com/metal-stack/metal-lib v0.6.6
