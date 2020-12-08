@@ -21,7 +21,7 @@ require (
 	github.com/google/go-cmp v0.5.2
 	github.com/google/uuid v1.1.2
 	github.com/imdario/mergo v0.3.11
-	github.com/metal-stack/firewall-controller v0.3.1-0.20201207153415-4a24fa97e9e5
+	github.com/metal-stack/firewall-controller v1.0.0
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.3
 	github.com/metal-stack/metal-go v0.11.1
 	github.com/metal-stack/metal-lib v0.6.6
