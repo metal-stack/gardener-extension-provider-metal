@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
+	storagev1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -290,6 +291,19 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2splunk-audit-webhook"},
 		}...)
 	}
+	if controllerConfig.Storage.Duros.Enabled {
+		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.DurosControllerImageName}...)
+		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
+			// duros storage
+			{Type: &corev1.Secret{}, Name: "duros-admin"},
+			{Type: &appsv1.Deployment{}, Name: "duros-controller"},
+			{Type: &storagev1.Duros{}, Name: "shoot-default-storage"},
+			{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-storage"},
+		}...)
+		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+			// TODO:
+		}...)
+	}
 
 	return &valuesProvider{
 		mgr:              mgr,
@@ -427,7 +441,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	// Get CCM chart values
 	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient, metalControlPlane)
 	if err != nil {
 		return nil, err
@@ -448,12 +461,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	lvwValues, err := getLimitValidationWebhookControlPlaneChartValues(cluster)
+	storageValues, err := getStorageControlPlaneChartValues(vp.controllerConfig.Storage, cluster, infrastructureConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	merge(chartValues, authValues, splunkAuditValues, accValues, lvwValues)
+	merge(chartValues, authValues, splunkAuditValues, accValues, storageValues)
 
 	return chartValues, nil
 }
@@ -918,10 +931,25 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 	return values, nil
 }
 
-func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func getStorageControlPlaneChartValues(storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig) (map[string]interface{}, error) {
+	if cluster.Shoot.Spec.SeedName == nil {
+		return nil, fmt.Errorf("shoot resource has not seed name")
+	}
+
+	seedConfig, ok := storageConfig.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
+	if !ok {
+		return nil, nil
+	}
+
 	values := map[string]interface{}{
-		"limitValidatingWebhook": map[string]interface{}{
-			"enabled": false, // TODO: Add to opts
+		"duros": map[string]interface{}{
+			"enabled": storageConfig.Duros.Enabled,
+			"controller": map[string]interface{}{
+				"endpoints":  seedConfig.Endpoints,
+				"adminKey":   seedConfig.AdminKey,
+				"adminToken": seedConfig.AdminToken,
+				"projectID":  infrastructure.ProjectID,
+			},
 		},
 	}
 

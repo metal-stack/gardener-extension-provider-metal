@@ -1,0 +1,84 @@
+{{- if .Values.duros.enabled }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app: duros-controller
+  name: duros-admin
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  admin-key: {{ required ".Values.duros.controller.adminKey is required" (b64enc .Values.duros.controller.adminKey) }}
+  admin-token: {{ required ".Values.duros.controller.adminToken is required" (b64enc .Values.duros.controller.adminToken) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: duros-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: duros-controller
+spec:
+  selector:
+    matchLabels:
+      app: duros-controller
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: duros-controller
+    spec:
+      containers:
+      - name: duros-controller
+        args:
+          - -endpoints={{ join ";" .Values.duros.controller.endpoints }}
+          - -namespace={{ .Release.Namespace }}
+          - -enable-leader-election
+          - -admin-token=/duros/admin-token
+          - -admin-key=/duros/admin-key
+        image: {{ index .Values.images "duros-controller" }}
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: 400m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        volumeMounts:
+          - name: duros-admin
+            mountPath: /duros
+      volumes:
+        - name: duros-admin
+          secret:
+            secretName: duros-admin
+---
+apiVersion: storage.metal-stack.io/v1
+kind: Duros
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: shoot-default-storage
+spec:
+  metal_project_id: {{ required ".Values.duros.controller.projectID is required" .Values.duros.controller.projectID }}
+  replicas: {}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-storage
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 4420
+      protocol: TCP
+    - port: 8009
+      protocol: TCP
+    to:
+{{ range $i, $job := .Values.duros.controller.endpoints -}}
+    - cidr: {{ (split ":" .Values.duros.controller.endpoints)._0 }}
+{{- end }}
+{{- end }}

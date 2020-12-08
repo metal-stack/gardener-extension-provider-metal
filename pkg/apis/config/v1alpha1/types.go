@@ -32,6 +32,9 @@ type ControllerConfiguration struct {
 	// HealthCheckConfig is the config for the health check controller
 	// +optional
 	HealthCheckConfig *healthcheckconfigv1alpha1.HealthCheckConfig `json:"healthCheckConfig,omitempty"`
+
+	// Storage is the configuration for storage.
+	Storage StorageConfiguration `json:"storage,omitempty"`
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
@@ -119,4 +122,29 @@ type AccountingExporterClientConfiguration struct {
 	Cert string `json:"cert"`
 	// CertKey is the client certificate key used for communicating with the accounting api.
 	CertKey string `json:"certKey"`
+}
+
+// StorageConfiguration contains the configuration for provider specfic storage solutions.
+type StorageConfiguration struct {
+	// Duros contains the configuration for duros cloud storage
+	Duros DurosConfiguration `json:"duros"`
+}
+
+// DurosConfiguration contains the configuration for lightbits duros storage.
+type DurosConfiguration struct {
+	// Enabled enables duros storage when set to true.
+	Enabled bool `json:"enabled"`
+
+	// SeedConfig is a map of a seed name to the duros seed configuration
+	SeedConfig map[string]DurosSeedConfiguration `json:"seedConfig"`
+}
+
+// DurosSeedConfiguration is the configuration for duros for a particular seed
+type DurosSeedConfiguration struct {
+	// Endpoints is the list of endpoints of the duros API
+	Endpoints []string `json:"endpoints"`
+	// AdminKey is the key used for generating storage credentials
+	AdminKey string `json:"adminKey"`
+	// AdminToken is the token used by the duros-controller to authenticate against the duros API
+	AdminToken string `json:"adminToken"`
 }
