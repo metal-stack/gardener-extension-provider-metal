@@ -67,6 +67,10 @@ config:
     enabled: false
     hecURL:
     hecToken:
+  storage:
+    duros:
+      enabled: false
+      seedConfig: {}
 
 gardener:
   seed:
