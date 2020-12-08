@@ -53,6 +53,9 @@ spec:
         - name: duros-admin
           secret:
             secretName: duros-admin
+        - name: shoot-kubeconfig
+          secret:
+            secretName: duros-controller
 ---
 apiVersion: storage.metal-stack.io/v1
 kind: Duros
@@ -78,7 +81,7 @@ spec:
     - port: 8009
       protocol: TCP
     to:
-{{ range $i, $job := .Values.duros.controller.endpoints -}}
-    - cidr: {{ (split ":" .Values.duros.controller.endpoints)._0 }}
+{{ range $i, $endpoint := .Values.duros.controller.endpoints -}}
+    - cidr: {{ (split ":" $endpoint)._0 }}
 {{- end }}
 {{- end }}

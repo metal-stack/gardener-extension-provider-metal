@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -960,7 +959,7 @@ func getStorageControlPlaneChartValues(storageConfig config.StorageConfiguration
 		"duros": map[string]interface{}{
 			"enabled": storageConfig.Duros.Enabled,
 			"controller": map[string]interface{}{
-				"endpoints":  strings.Join(seedConfig.Endpoints, ";"),
+				"endpoints":  seedConfig.Endpoints,
 				"adminKey":   seedConfig.AdminKey,
 				"adminToken": seedConfig.AdminToken,
 				"projectID":  infrastructure.ProjectID,
