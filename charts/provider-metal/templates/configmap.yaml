@@ -58,4 +58,5 @@ data:
     storage:
       duros:
         enabled: {{ .Values.config.storage.duros.enabled }}
-        seedConfig: {{ .Values.config.storage.duros.seedConfig }}
+        seedConfig:
+{{ toYaml .Values.config.storage.duros.seedConfig | indent 12 }}
