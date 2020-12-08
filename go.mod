@@ -3,7 +3,7 @@ module github.com/metal-stack/gardener-extension-provider-metal
 go 1.15
 
 require (
-	github.com/ahmetb/gen-crd-api-reference-docs v0.1.5
+	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
 	github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083 // indirect
 	github.com/ajeddeloh/yaml v0.0.0-00010101000000-000000000000 // indirect
 	github.com/blang/semver v3.5.1+incompatible
@@ -12,8 +12,9 @@ require (
 	github.com/coreos/ignition v0.35.0 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
+	github.com/gardener/controller-manager-library v0.2.0 // indirect
 	github.com/gardener/etcd-druid v0.3.0
-	github.com/gardener/gardener v1.8.2
+	github.com/gardener/gardener v1.10.2
 	github.com/gardener/machine-controller-manager v0.34.0
 	github.com/go-logr/logr v0.3.0
 	github.com/gobuffalo/packr/v2 v2.8.0
@@ -45,6 +46,7 @@ require (
 
 replace (
 	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd // indirect
+	github.com/gardener/controller-manager-library v0.2.0 => github.com/gardener/controller-manager-library v0.1.1-0.20200204110458-c263b9bb97ad
 	k8s.io/api => k8s.io/api v0.17.11
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.11
 	k8s.io/apimachinery => k8s.io/apimachinery v0.17.11
@@ -55,5 +57,5 @@ replace (
 	k8s.io/component-base => k8s.io/component-base v0.17.11
 	k8s.io/helm => k8s.io/helm v2.13.1+incompatible
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.17.11
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.4.0
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.5.10
 )
