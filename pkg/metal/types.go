@@ -59,6 +59,7 @@ const (
 	SplunkAuditWebhookServerName         = "splunk-audit-webhook-server"
 	SplunkAuditWebHookConfigName         = "splunk-audit-webhook-config"
 	SplunkAuditWebHookCertName           = "splunk-audit-webhook-cert"
+	DurosControllerDeploymentName        = "duros-controller"
 )
 
 var (

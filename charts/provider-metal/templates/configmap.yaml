@@ -55,6 +55,7 @@ data:
 {{ .Values.config.accountingExporter.clientConfig.cert | indent 10 }}
         certKey: |
 {{ .Values.config.accountingExporter.clientConfig.certkey | indent 10 }}
+{{- end }}
     storage:
       duros:
         enabled: {{ .Values.config.storage.duros.enabled }}

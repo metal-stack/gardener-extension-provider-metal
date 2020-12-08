@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -72,6 +73,20 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.CloudControllerManagerDeploymentName,
 					CommonName:   "system:cloud-controller-manager",
+					Organization: []string{user.SystemPrivilegedGroup},
+					CertType:     secrets.ClientCert,
+					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+				},
+				KubeConfigRequest: &secrets.KubeConfigRequest{
+					ClusterName:  clusterName,
+					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:         metal.DurosControllerDeploymentName,
+					CommonName:   "system:duros-controller",
+					DNSNames:     kutil.DNSNamesForService(metal.DurosControllerDeploymentName, clusterName),
 					Organization: []string{user.SystemPrivilegedGroup},
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
@@ -945,7 +960,7 @@ func getStorageControlPlaneChartValues(storageConfig config.StorageConfiguration
 		"duros": map[string]interface{}{
 			"enabled": storageConfig.Duros.Enabled,
 			"controller": map[string]interface{}{
-				"endpoints":  seedConfig.Endpoints,
+				"endpoints":  strings.Join(seedConfig.Endpoints, ";"),
 				"adminKey":   seedConfig.AdminKey,
 				"adminToken": seedConfig.AdminToken,
 				"projectID":  infrastructure.ProjectID,
