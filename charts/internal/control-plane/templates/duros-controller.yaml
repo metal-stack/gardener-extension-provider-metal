@@ -81,8 +81,7 @@ spec:
     - port: 8009
       protocol: TCP
     to:
-{{ range $i, $endpoint := .Values.duros.controller.endpoints -}}
+{{ range $i, $endpoint := .Values.duros.controller.endpoints }}
     - cidr: {{ (split ":" $endpoint)._0 }}/32
-
-{{ end }}
+{{- end }}
 {{- end }}

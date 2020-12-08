@@ -85,12 +85,12 @@ accountingExporter:
       -----END RSA PRIVATE KEY-----
 
 duros:
-  enabled: false
+  enabled: true
   controller:
     endpoints:
     - ip:port
     - ip:port
     - ip:port
-    adminKey:
-    adminToken:
-    projectID:
+    adminKey: KEY
+    adminToken: tok
+    projectID: jkjk
