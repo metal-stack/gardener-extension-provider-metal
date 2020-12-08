@@ -83,5 +83,6 @@ spec:
     to:
 {{ range $i, $endpoint := .Values.duros.controller.endpoints -}}
     - cidr: {{ (split ":" $endpoint)._0 }}/32
-{{- end }}
+
+{{ end }}
 {{- end }}
