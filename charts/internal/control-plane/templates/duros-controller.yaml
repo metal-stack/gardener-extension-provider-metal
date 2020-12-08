@@ -64,7 +64,7 @@ metadata:
   name: shoot-default-storage
 spec:
   metal_project_id: {{ required ".Values.duros.controller.projectID is required" .Values.duros.controller.projectID }}
-  replicas: {}
+  replicas: []
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
