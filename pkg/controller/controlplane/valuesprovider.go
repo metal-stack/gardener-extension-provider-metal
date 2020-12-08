@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
-	storagev1 "github.com/metal-stack/duros-controller/api/v1"
+	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -297,7 +297,7 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			// duros storage
 			{Type: &corev1.Secret{}, Name: "duros-admin"},
 			{Type: &appsv1.Deployment{}, Name: "duros-controller"},
-			{Type: &storagev1.Duros{}, Name: "shoot-default-storage"},
+			{Type: &durosv1.Duros{}, Name: "shoot-default-storage"},
 			{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-storage"},
 		}...)
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
