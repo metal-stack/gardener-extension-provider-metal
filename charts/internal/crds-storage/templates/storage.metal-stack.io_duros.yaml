@@ -20,8 +20,8 @@ spec:
     - jsonPath: .spec.metalProjectID
       name: ProjectID
       type: string
-    - jsonPath: .spec.replicas
-      name: Replicas
+    - jsonPath: .spec.storageClasses
+      name: StorageClasses
       type: string
     name: v1
     schema:
@@ -46,22 +46,22 @@ spec:
               metalProjectID:
                 description: MetalProjectID is the projectID of this deployment
                 type: string
-              replicas:
-                description: Replicas defines for which replicas a storageclass should
-                  be deployed
+              storageClasses:
+                description: StorageClasses defines what storageclasses should be
+                  deployed
                 items:
-                  description: Replica defines the storageClass parameters
+                  description: StorageClass defines the storageClass parameters
                   properties:
                     compression:
                       type: boolean
-                    count:
-                      type: integer
                     name:
                       type: string
+                    replicas:
+                      type: integer
                   required:
                   - compression
-                  - count
                   - name
+                  - replicas
                   type: object
                 type: array
             type: object

@@ -108,9 +108,9 @@ metadata:
   name: shoot-default-storage
 spec:
   metal_project_id: {{ required ".Values.duros.projectID is required" .Values.duros.projectID }}
-{{- if .Values.duros.replicas }}
-  replicas:
-{{ toYaml .Values.duros.replicas | indent 4 }}
+{{- if .Values.duros.storageClasses }}
+  storageClasses:
+{{ toYaml .Values.duros.storageClasses | indent 4 }}
 {{- end }}
 ---
 apiVersion: metal-stack.io/v1

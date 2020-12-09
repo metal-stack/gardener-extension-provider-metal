@@ -86,7 +86,7 @@ accountingExporter:
 
 duros:
   enabled: true
-  replicas: []
+  storageClasses: []
   projectID: project-id
   controller:
     endpoints:
