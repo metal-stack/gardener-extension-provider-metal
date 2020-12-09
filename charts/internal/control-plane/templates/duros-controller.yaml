@@ -1,6 +1,46 @@
 {{- if .Values.duros.enabled }}
 ---
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: duros-controller
+  namespace: {{ .Release.Namespace }}
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: duros-controller
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups:
+  - storage.metal-stack.io
+  resources:
+  - duros
+  - duros/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: duros-controller
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: duros-controller
+subjects:
+- kind: ServiceAccount
+  name: duros-controller
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
 kind: Secret
 metadata:
   labels:
@@ -29,14 +69,16 @@ spec:
       labels:
         app: duros-controller
     spec:
+      serviceAccountName: duros-controller
       containers:
       - name: duros-controller
         args:
-          - -endpoints={{ join ";" .Values.duros.controller.endpoints }}
+          - -endpoints={{ join "," .Values.duros.controller.endpoints }}
           - -namespace={{ .Release.Namespace }}
           - -enable-leader-election
           - -admin-token=/duros/admin-token
           - -admin-key=/duros/admin-key
+          - -shoot-kubeconfig=/duros/kubeconfig
         image: {{ index .Values.images "duros-controller" }}
         imagePullPolicy: Always
         resources:
@@ -49,11 +91,13 @@ spec:
         volumeMounts:
           - name: duros-admin
             mountPath: /duros
+          - name: kubeconfig
+            mountPath: /duros
       volumes:
         - name: duros-admin
           secret:
             secretName: duros-admin
-        - name: shoot-kubeconfig
+        - name: kubeconfig
           secret:
             secretName: duros-controller
 ---

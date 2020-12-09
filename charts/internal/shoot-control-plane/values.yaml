@@ -22,3 +22,6 @@ limitValidatingWebhook:
     enabled: false
     ca: ABCDEF
     url: https://replace-this-webhook/validate
+
+duros:
+  enabled: true

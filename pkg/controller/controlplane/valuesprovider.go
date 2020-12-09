@@ -509,7 +509,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cluster)
 	if err != nil {
-		vp.logger.Error(err, "Error getting LimitValidationWebhookChartValues")
+		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
 	}
 
@@ -555,6 +555,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
 			"url":     splunkURL,
 			"ca":      splunkCABundle,
+		},
+		"duros": map[string]interface{}{
+			"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 		},
 	}
 
