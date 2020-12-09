@@ -38,7 +38,7 @@ images:
 - name: duros-controller
   sourceRepository: https://github.com/metal-stack/duros-controller
   repository: ghcr.io/metal-stack/duros-controller
-  tag: latest
+  tag: "v0.1.0"
 
 # can be provided via image override:
 # - name: authn-webhook
