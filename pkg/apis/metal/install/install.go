@@ -16,6 +16,7 @@ package install
 
 import (
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
+	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
@@ -29,6 +30,7 @@ var (
 		metal.AddToScheme,
 		setVersionPriority,
 		durosv1.AddToScheme,
+		firewallv1.AddToScheme,
 	)
 
 	// AddToScheme adds all APIs to the scheme.
