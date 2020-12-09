@@ -968,10 +968,16 @@ func getStorageControlPlaneChartValues(logger logr.Logger, storageConfig config.
 		return nil, fmt.Errorf("shoot resource has not seed name")
 	}
 
+	disabledValues := map[string]interface{}{
+		"duros": map[string]interface{}{
+			"enabled": false,
+		},
+	}
+
 	seedConfig, ok := storageConfig.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
 	if !ok {
 		logger.Info("skipping duros storage deployment because no storage configuration found for seed", "seed", *cluster.Shoot.Spec.SeedName)
-		return nil, nil
+		return disabledValues, nil
 	}
 
 	found := false
@@ -993,7 +999,7 @@ func getStorageControlPlaneChartValues(logger logr.Logger, storageConfig config.
 
 	if !found {
 		logger.Info("skipping duros storage deployment because no storage network found for partition")
-		return nil, nil
+		return disabledValues, nil
 	}
 
 	var scs []map[string]interface{}
