@@ -107,8 +107,15 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: shoot-default-storage
 spec:
-  metal_project_id: {{ required ".Values.duros.controller.projectID is required" .Values.duros.controller.projectID }}
+  metal_project_id: {{ required ".Values.duros.projectID is required" .Values.duros.projectID }}
+{{- if .Values.duros.replicas }}
+{{- if gt (len $.Values.duros.replicas) 0 -}}
+  replicas:
+{{ toYaml .Values.duros.replicas | indent 4 }}
+{{ else }}
   replicas: []
+{{- end }}
+{{- end }}
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy

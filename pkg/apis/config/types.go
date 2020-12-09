@@ -156,4 +156,13 @@ type DurosSeedConfiguration struct {
 	AdminKey string
 	// AdminToken is the token used by the duros-controller to authenticate against the duros API
 	AdminToken string
+	// StorageClasses contain information on the storage classes that the duros-controller creates in the shoot cluster
+	StorageClasses []DurosSeedStorageClass
+}
+
+type DurosSeedStorageClass struct {
+	// Name is the name of the storage class
+	Name string
+	// ReplicaCount is the amount of replicas in the storage backend for this storage class
+	ReplicaCount int
 }

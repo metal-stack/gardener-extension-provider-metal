@@ -86,6 +86,8 @@ accountingExporter:
 
 duros:
   enabled: true
+  replicas: []
+  projectID: project-id
   controller:
     endpoints:
     - ip:port
@@ -93,4 +95,3 @@ duros:
     - ip:port
     adminKey: KEY
     adminToken: tok
-    projectID: jkjk

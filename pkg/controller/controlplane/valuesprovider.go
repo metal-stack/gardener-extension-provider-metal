@@ -958,6 +958,14 @@ func getStorageControlPlaneChartValues(storageConfig config.StorageConfiguration
 		return nil, nil
 	}
 
+	var replicas []map[string]interface{}
+	for _, r := range seedConfig.StorageClasses {
+		replicas = append(replicas, map[string]interface{}{
+			"name":  r.Name,
+			"count": r.ReplicaCount,
+		})
+	}
+
 	values := map[string]interface{}{
 		"duros": map[string]interface{}{
 			"enabled": storageConfig.Duros.Enabled,
@@ -966,6 +974,7 @@ func getStorageControlPlaneChartValues(storageConfig config.StorageConfiguration
 				"adminKey":   seedConfig.AdminKey,
 				"adminToken": seedConfig.AdminToken,
 				"projectID":  infrastructure.ProjectID,
+				"replicas":   replicas,
 			},
 		},
 	}
