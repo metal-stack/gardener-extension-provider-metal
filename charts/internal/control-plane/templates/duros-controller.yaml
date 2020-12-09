@@ -29,8 +29,6 @@ rules:
   - ""
   resources:
   - configmaps
-  resourceNames:
-  - duros-controller-leader-election
   verbs:
   - create
   - get
@@ -117,7 +115,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   name: shoot-default-storage
 spec:
-  metal_project_id: {{ required ".Values.duros.projectID is required" .Values.duros.projectID }}
+  metalProjectID: {{ required ".Values.duros.projectID is required" .Values.duros.projectID }}
 {{- if .Values.duros.storageClasses }}
   storageClasses:
 {{ toYaml .Values.duros.storageClasses | indent 4 }}

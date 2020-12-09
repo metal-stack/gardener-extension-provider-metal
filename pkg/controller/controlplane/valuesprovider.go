@@ -312,13 +312,17 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.DurosControllerImageName}...)
 		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
 			// duros storage
+			{Type: &corev1.ServiceAccount{}, Name: "duros-controller"},
+			{Type: &rbacv1.Role{}, Name: "duros-controller"},
+			{Type: &rbacv1.RoleBinding{}, Name: "duros-controller"},
 			{Type: &corev1.Secret{}, Name: "duros-admin"},
 			{Type: &appsv1.Deployment{}, Name: "duros-controller"},
 			{Type: &durosv1.Duros{}, Name: "shoot-default-storage"},
 			{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-storage"},
 		}...)
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
-			// TODO:
+			{Type: &rbacv1.ClusterRole{}, Name: "system:duros-controller"},
+			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:duros-controller"},
 		}...)
 	}
 
@@ -519,8 +523,6 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
 func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, checksums map[string]string) (map[string]interface{}, error) {
-	vp.logger.Info("GetControlPlaneShootChartValues")
-
 	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cluster)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
@@ -569,9 +571,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
 			"url":     splunkURL,
 			"ca":      splunkCABundle,
-		},
-		"duros": map[string]interface{}{
-			"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 		},
 	}
 
@@ -770,7 +769,6 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 // getSecret returns the secret with the given namespace/secretName
 func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
 	key := kutil.Key(namespace, secretName)
-	vp.logger.Info("GetSecret", "key", key)
 	secret := &corev1.Secret{}
 	err := vp.mgr.GetClient().Get(ctx, key, secret)
 	if err != nil {
@@ -1013,13 +1011,13 @@ func getStorageControlPlaneChartValues(logger logr.Logger, storageConfig config.
 
 	values := map[string]interface{}{
 		"duros": map[string]interface{}{
-			"enabled": storageConfig.Duros.Enabled,
+			"enabled":        storageConfig.Duros.Enabled,
+			"storageClasses": scs,
 			"controller": map[string]interface{}{
-				"endpoints":      seedConfig.Endpoints,
-				"adminKey":       seedConfig.AdminKey,
-				"adminToken":     seedConfig.AdminToken,
-				"projectID":      infrastructure.ProjectID,
-				"storageClasses": scs,
+				"endpoints":  seedConfig.Endpoints,
+				"adminKey":   seedConfig.AdminKey,
+				"adminToken": seedConfig.AdminToken,
+				"projectID":  infrastructure.ProjectID,
 			},
 		},
 	}
