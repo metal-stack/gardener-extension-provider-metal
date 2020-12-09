@@ -1013,11 +1013,11 @@ func getStorageControlPlaneChartValues(logger logr.Logger, storageConfig config.
 		"duros": map[string]interface{}{
 			"enabled":        storageConfig.Duros.Enabled,
 			"storageClasses": scs,
+			"projectID":      infrastructure.ProjectID,
 			"controller": map[string]interface{}{
 				"endpoints":  seedConfig.Endpoints,
 				"adminKey":   seedConfig.AdminKey,
 				"adminToken": seedConfig.AdminToken,
-				"projectID":  infrastructure.ProjectID,
 			},
 		},
 	}
