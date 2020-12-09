@@ -24,4 +24,4 @@ limitValidatingWebhook:
     url: https://replace-this-webhook/validate
 
 duros:
-  enabled: true
+  enabled: false
