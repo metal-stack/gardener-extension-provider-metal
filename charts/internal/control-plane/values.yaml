@@ -85,7 +85,7 @@ accountingExporter:
       -----END RSA PRIVATE KEY-----
 
 duros:
-  enabled: true
+  enabled: false
   storageClasses: []
   projectID: project-id
   controller:

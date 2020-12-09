@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/models"
@@ -33,6 +34,7 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -488,12 +490,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	accValues, err := getAccountingExporterChartValues(vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
+	accValues, err := getAccountingExporterChartValues(ctx, vp.client, vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
 	if err != nil {
 		return nil, err
 	}
 
-	storageValues, err := getStorageControlPlaneChartValues(vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, nws)
+	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.client, vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -927,13 +929,46 @@ func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *
 	return values, nil
 }
 
-func getAccountingExporterChartValues(accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	partitionID := infrastructure.PartitionID
 	projectID := infrastructure.ProjectID
 	clusterID := cluster.Shoot.ObjectMeta.UID
 	clusterName := annotations[tag.ClusterName]
 	tenant := annotations[tag.ClusterTenant]
+
+	if accountingConfig.Enabled {
+		port9000 := intstr.FromInt(9000)
+		tcp := corev1.ProtocolTCP
+
+		cp := &firewallv1.ClusterwideNetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "egress-allow-accounting-api",
+				Namespace: "firewall",
+			},
+			Spec: firewallv1.PolicySpec{
+				Egress: []firewallv1.EgressRule{
+					{
+						Ports: []networkingv1.NetworkPolicyPort{
+							{
+								Port:     &port9000,
+								Protocol: &tcp,
+							},
+						},
+						To: []networkingv1.IPBlock{
+							{
+								CIDR: "0.0.0.0/0",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		if err := client.Create(ctx, cp); err != nil && !apierrors.IsAlreadyExists(err) {
+			return nil, errors.Wrap(err, "unable to deploy clusterwide network policy for duros storage into firewall namespace")
+		}
+	}
 
 	values := map[string]interface{}{
 		"accountingExporter": map[string]interface{}{
@@ -961,7 +996,7 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 	return values, nil
 }
 
-func getStorageControlPlaneChartValues(logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, nws networkMap) (map[string]interface{}, error) {
+func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, nws networkMap) (map[string]interface{}, error) {
 	if cluster.Shoot.Spec.SeedName == nil {
 		return nil, fmt.Errorf("shoot resource has not seed name")
 	}
@@ -998,6 +1033,52 @@ func getStorageControlPlaneChartValues(logger logr.Logger, storageConfig config.
 	if !found {
 		logger.Info("skipping duros storage deployment because no storage network found for partition")
 		return disabledValues, nil
+	}
+
+	if storageConfig.Duros.Enabled {
+		var to []networkingv1.IPBlock
+		for _, e := range seedConfig.Endpoints {
+			withoutPort := strings.Split(e, ":")
+			to = append(to, networkingv1.IPBlock{
+				CIDR: withoutPort[0] + "/32",
+			})
+		}
+
+		port443 := intstr.FromInt(443)
+		port4420 := intstr.FromInt(4420)
+		port8009 := intstr.FromInt(8009)
+		tcp := corev1.ProtocolTCP
+
+		cp := &firewallv1.ClusterwideNetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-to-storage",
+				Namespace: "firewall",
+			},
+			Spec: firewallv1.PolicySpec{
+				Egress: []firewallv1.EgressRule{
+					{
+						Ports: []networkingv1.NetworkPolicyPort{
+							{
+								Port:     &port443,
+								Protocol: &tcp,
+							},
+							{
+								Port:     &port4420,
+								Protocol: &tcp,
+							},
+							{
+								Port:     &port8009,
+								Protocol: &tcp,
+							},
+						},
+						To: to,
+					},
+				},
+			},
+		}
+		if err := client.Create(ctx, cp); err != nil && !apierrors.IsAlreadyExists(err) {
+			return nil, errors.Wrap(err, "unable to deploy clusterwide network policy for duros storage into firewall namespace")
+		}
 	}
 
 	var scs []map[string]interface{}

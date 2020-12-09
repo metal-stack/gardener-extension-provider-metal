@@ -120,23 +120,4 @@ spec:
   storageClasses:
 {{ toYaml .Values.duros.storageClasses | indent 4 }}
 {{- end }}
----
-apiVersion: metal-stack.io/v1
-kind: ClusterwideNetworkPolicy
-metadata:
-  name: allow-to-storage
-  namespace: firewall
-spec:
-  egress:
-  - ports:
-    - port: 443
-      protocol: TCP
-    - port: 4420
-      protocol: TCP
-    - port: 8009
-      protocol: TCP
-    to:
-{{ range $i, $endpoint := .Values.duros.controller.endpoints }}
-    - cidr: {{ (split ":" $endpoint)._0 }}/32
-{{- end }}
 {{- end }}
