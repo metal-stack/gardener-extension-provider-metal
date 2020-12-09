@@ -78,7 +78,7 @@ spec:
           - -enable-leader-election
           - -admin-token=/duros/admin-token
           - -admin-key=/duros/admin-key
-          - -shoot-kubeconfig=/duros/kubeconfig
+          - -shoot-kubeconfig=/duros/client/kubeconfig
         image: {{ index .Values.images "duros-controller" }}
         imagePullPolicy: Always
         resources:
@@ -92,7 +92,7 @@ spec:
           - name: duros-admin
             mountPath: /duros
           - name: kubeconfig
-            mountPath: /duros
+            mountPath: /duros/client
       volumes:
         - name: duros-admin
           secret:
