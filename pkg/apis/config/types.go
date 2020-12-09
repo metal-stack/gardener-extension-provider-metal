@@ -165,4 +165,6 @@ type DurosSeedStorageClass struct {
 	Name string
 	// ReplicaCount is the amount of replicas in the storage backend for this storage class
 	ReplicaCount int
+	// Compression enables compression for this storage class
+	Compression bool
 }

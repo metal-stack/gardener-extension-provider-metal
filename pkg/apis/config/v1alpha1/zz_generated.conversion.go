@@ -388,6 +388,7 @@ func Convert_config_DurosSeedConfiguration_To_v1alpha1_DurosSeedConfiguration(in
 func autoConvert_v1alpha1_DurosSeedStorageClass_To_config_DurosSeedStorageClass(in *DurosSeedStorageClass, out *config.DurosSeedStorageClass, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ReplicaCount = in.ReplicaCount
+	out.Compression = in.Compression
 	return nil
 }
 
@@ -399,6 +400,7 @@ func Convert_v1alpha1_DurosSeedStorageClass_To_config_DurosSeedStorageClass(in *
 func autoConvert_config_DurosSeedStorageClass_To_v1alpha1_DurosSeedStorageClass(in *config.DurosSeedStorageClass, out *DurosSeedStorageClass, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ReplicaCount = in.ReplicaCount
+	out.Compression = in.Compression
 	return nil
 }
 

@@ -961,8 +961,9 @@ func getStorageControlPlaneChartValues(storageConfig config.StorageConfiguration
 	var replicas []map[string]interface{}
 	for _, r := range seedConfig.StorageClasses {
 		replicas = append(replicas, map[string]interface{}{
-			"name":  r.Name,
-			"count": r.ReplicaCount,
+			"name":        r.Name,
+			"count":       r.ReplicaCount,
+			"compression": r.Compression,
 		})
 	}
 
