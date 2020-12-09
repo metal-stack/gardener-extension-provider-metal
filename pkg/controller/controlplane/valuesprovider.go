@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
+	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -253,6 +254,8 @@ var storageClassChart = &chart.Chart{
 	},
 }
 
+type networkMap map[string]*models.V1NetworkResponse
+
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
 func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
 	if controllerConfig.Auth.Enabled {
@@ -446,6 +449,17 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
+	resp, err := mclient.NetworkList()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not retrieve networks from metal-api")
+	}
+
+	nws := networkMap{}
+	for _, n := range resp.Networks {
+		n := n
+		nws[*n.ID] = n
+	}
+
 	// TODO: this is a workaround to speed things for the time being...
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
 	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
@@ -455,7 +469,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient, metalControlPlane)
+	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -475,7 +489,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	storageValues, err := getStorageControlPlaneChartValues(vp.controllerConfig.Storage, cluster, infrastructureConfig)
+	storageValues, err := getStorageControlPlaneChartValues(vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -786,6 +800,7 @@ func getCCMChartValues(
 	scaledDown bool,
 	mclient *metalgo.Driver,
 	mcp *apismetal.MetalControlPlane,
+	nws networkMap,
 ) (map[string]interface{}, error) {
 	projectID := infrastructureConfig.ProjectID
 	nodeCIDR := infrastructure.Status.NodesCIDR
@@ -816,11 +831,11 @@ func getCCMChartValues(
 		}
 	} else {
 		for _, networkID := range infrastructureConfig.Firewall.Networks {
-			resp, err := mclient.NetworkGet(networkID)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not retrieve network for finding default external network for metal-ccm deployment")
+			nw, ok := nws[networkID]
+			if !ok {
+				return nil, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
 			}
-			for k := range resp.Network.Labels {
+			for k := range nw.Labels {
 				if k == tag.NetworkDefaultExternal {
 					defaultExternalNetwork = networkID
 					break
@@ -948,13 +963,36 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 	return values, nil
 }
 
-func getStorageControlPlaneChartValues(storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig) (map[string]interface{}, error) {
+func getStorageControlPlaneChartValues(logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, nws networkMap) (map[string]interface{}, error) {
 	if cluster.Shoot.Spec.SeedName == nil {
 		return nil, fmt.Errorf("shoot resource has not seed name")
 	}
 
 	seedConfig, ok := storageConfig.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
 	if !ok {
+		logger.Info("skipping duros storage deployment because no storage configuration found for seed", "seed", *cluster.Shoot.Spec.SeedName)
+		return nil, nil
+	}
+
+	found := false
+	for _, networkID := range infrastructure.Firewall.Networks {
+		nw, ok := nws[networkID]
+		if !ok {
+			return nil, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
+		}
+		if nw.Partitionid != infrastructure.PartitionID {
+			continue
+		}
+		for k := range nw.Labels {
+			if k == tag.NetworkPartitionStorage {
+				found = true
+				break
+			}
+		}
+	}
+
+	if !found {
+		logger.Info("skipping duros storage deployment because no storage network found for partition")
 		return nil, nil
 	}
 
