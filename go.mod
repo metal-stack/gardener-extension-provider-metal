@@ -47,6 +47,7 @@ require (
 replace (
 	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd // indirect
 	github.com/gardener/controller-manager-library v0.2.0 => github.com/gardener/controller-manager-library v0.1.1-0.20200204110458-c263b9bb97ad
+	github.com/gardener/gardener-resource-manager v0.13.1 => github.com/gardener/gardener-resource-manager v0.17.1
 	k8s.io/api => k8s.io/api v0.17.11
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.11
 	k8s.io/apimachinery => k8s.io/apimachinery v0.17.11
