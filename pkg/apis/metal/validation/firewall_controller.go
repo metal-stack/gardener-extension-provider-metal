@@ -16,7 +16,7 @@ var (
 	ErrControllerTooOld     = fmt.Errorf("firewall-controller on machine is too old")
 )
 
-func validateFirewallControllerVersion(iv imagevector.ImageVector, specVersion *string, autoUpdate bool) (*string, error) {
+func ValidateFirewallControllerVersion(iv imagevector.ImageVector, specVersion *string, autoUpdate bool) (*string, error) {
 	versionTag, err := validateFirewallControllerVersionWithoutGithub(iv, specVersion, autoUpdate)
 	if err != nil {
 		return nil, err

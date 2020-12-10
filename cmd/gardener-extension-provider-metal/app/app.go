@@ -3,12 +3,10 @@ package app
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
-	"github.com/metal-stack/firewall-controller/controllers/crd"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -26,6 +24,7 @@ import (
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
+	"github.com/gardener/gardener/pkg/client/kubernetes"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,16 +99,14 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			}
 
 			if workerReconcileOpts.Completed().DeployCRDs {
-				crdMap, err := readCRDsFromVFS()
+				ca, err := kubernetes.NewChartApplierForConfig(restOpts.Completed().Config)
 				if err != nil {
-					controllercmd.LogErrAndExit(err, "unable to read crds-firewall")
+					controllercmd.LogErrAndExit(err, "Error creating chart renderer")
 				}
 
-				opts := crd.InstallOptions{
-					CRDContents: crdMap,
-				}
-				if _, err = crd.InstallCRDs(restOpts.Completed().Config, opts); err != nil {
-					controllercmd.LogErrAndExit(err, "unable to create crds-firewall")
+				err = ca.Apply(ctx, filepath.Join(metal.InternalChartsPath, "metal-crds"), "", "metal-crds")
+				if err != nil {
+					controllercmd.LogErrAndExit(err, "Error applying metal-crds chart")
 				}
 
 				c, err := client.New(restOpts.Completed().Config, client.Options{})
@@ -181,24 +178,4 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 	aggOption.AddFlags(cmd.Flags())
 
 	return cmd
-}
-
-func readCRDsFromVFS() (map[string][]byte, error) {
-	crdMap := make(map[string][]byte)
-
-	err := filepath.Walk(filepath.Join(metal.InternalChartsPath, "crds-firewall", "templates"), func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
-		}
-		b, readerr := ioutil.ReadFile(path)
-		if readerr != nil {
-			return fmt.Errorf("unable to readfile:%v", readerr)
-		}
-		crdMap[path] = b
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return crdMap, nil
 }

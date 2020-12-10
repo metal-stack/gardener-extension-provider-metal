@@ -97,7 +97,7 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.E
 	}
 
 	if infra.Firewall.ControllerVersion != nil {
-		_, err := validateFirewallControllerVersion(imagevector.ImageVector(), infra.Firewall.ControllerVersion, infra.Firewall.ControllerVersionAutoUpdate)
+		_, err := ValidateFirewallControllerVersion(imagevector.ImageVector(), infra.Firewall.ControllerVersion, infra.Firewall.ControllerVersionAutoUpdate)
 		if err != nil {
 			allErrs = append(allErrs, field.Required(field.NewPath("controllerVersion"), err.Error()))
 		}
