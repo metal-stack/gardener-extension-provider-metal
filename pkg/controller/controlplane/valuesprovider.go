@@ -9,6 +9,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
@@ -938,35 +939,38 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 	tenant := annotations[tag.ClusterTenant]
 
 	if accountingConfig.Enabled {
-		port9000 := intstr.FromInt(9000)
-		tcp := corev1.ProtocolTCP
-
 		cp := &firewallv1.ClusterwideNetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "egress-allow-accounting-api",
 				Namespace: "firewall",
 			},
-			Spec: firewallv1.PolicySpec{
-				Egress: []firewallv1.EgressRule{
-					{
-						Ports: []networkingv1.NetworkPolicyPort{
-							{
-								Port:     &port9000,
-								Protocol: &tcp,
-							},
+		}
+
+		_, err := controllerutil.CreateOrUpdate(ctx, client, cp, func() error {
+			port9000 := intstr.FromInt(9000)
+			tcp := corev1.ProtocolTCP
+
+			cp.Spec.Egress = []firewallv1.EgressRule{
+				{
+					Ports: []networkingv1.NetworkPolicyPort{
+						{
+							Port:     &port9000,
+							Protocol: &tcp,
 						},
-						To: []networkingv1.IPBlock{
-							{
-								CIDR: "0.0.0.0/0",
-							},
+					},
+					To: []networkingv1.IPBlock{
+						{
+							CIDR: "0.0.0.0/0",
 						},
 					},
 				},
-			},
-		}
+			}
 
-		if err := client.Create(ctx, cp); err != nil && !apierrors.IsAlreadyExists(err) {
-			return nil, errors.Wrap(err, "unable to deploy clusterwide network policy for duros storage into firewall namespace")
+			return nil
+		})
+
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to deploy clusterwide network policy for accounting-api into firewall namespace")
 		}
 	}
 
@@ -1036,47 +1040,50 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	if storageConfig.Duros.Enabled {
-		var to []networkingv1.IPBlock
-		for _, e := range seedConfig.Endpoints {
-			withoutPort := strings.Split(e, ":")
-			to = append(to, networkingv1.IPBlock{
-				CIDR: withoutPort[0] + "/32",
-			})
-		}
-
-		port443 := intstr.FromInt(443)
-		port4420 := intstr.FromInt(4420)
-		port8009 := intstr.FromInt(8009)
-		tcp := corev1.ProtocolTCP
-
 		cp := &firewallv1.ClusterwideNetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "allow-to-storage",
 				Namespace: "firewall",
 			},
-			Spec: firewallv1.PolicySpec{
-				Egress: []firewallv1.EgressRule{
-					{
-						Ports: []networkingv1.NetworkPolicyPort{
-							{
-								Port:     &port443,
-								Protocol: &tcp,
-							},
-							{
-								Port:     &port4420,
-								Protocol: &tcp,
-							},
-							{
-								Port:     &port8009,
-								Protocol: &tcp,
-							},
-						},
-						To: to,
-					},
-				},
-			},
 		}
-		if err := client.Create(ctx, cp); err != nil && !apierrors.IsAlreadyExists(err) {
+
+		_, err := controllerutil.CreateOrUpdate(ctx, client, cp, func() error {
+			var to []networkingv1.IPBlock
+			for _, e := range seedConfig.Endpoints {
+				withoutPort := strings.Split(e, ":")
+				to = append(to, networkingv1.IPBlock{
+					CIDR: withoutPort[0] + "/32",
+				})
+			}
+
+			port443 := intstr.FromInt(443)
+			port4420 := intstr.FromInt(4420)
+			port8009 := intstr.FromInt(8009)
+			tcp := corev1.ProtocolTCP
+
+			cp.Spec.Egress = []firewallv1.EgressRule{
+				{
+					Ports: []networkingv1.NetworkPolicyPort{
+						{
+							Port:     &port443,
+							Protocol: &tcp,
+						},
+						{
+							Port:     &port4420,
+							Protocol: &tcp,
+						},
+						{
+							Port:     &port8009,
+							Protocol: &tcp,
+						},
+					},
+					To: to,
+				},
+			}
+
+			return nil
+		})
+		if err != nil {
 			return nil, errors.Wrap(err, "unable to deploy clusterwide network policy for duros storage into firewall namespace")
 		}
 	}
