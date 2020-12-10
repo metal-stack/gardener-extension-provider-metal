@@ -102,14 +102,14 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			if workerReconcileOpts.Completed().DeployCRDs {
 				crdMap, err := readCRDsFromVFS()
 				if err != nil {
-					controllercmd.LogErrAndExit(err, "unable to read metal-crds")
+					controllercmd.LogErrAndExit(err, "unable to read crds-firewall")
 				}
 
 				opts := crd.InstallOptions{
 					CRDContents: crdMap,
 				}
 				if _, err = crd.InstallCRDs(restOpts.Completed().Config, opts); err != nil {
-					controllercmd.LogErrAndExit(err, "unable to create metal-crds")
+					controllercmd.LogErrAndExit(err, "unable to create crds-firewall")
 				}
 
 				c, err := client.New(restOpts.Completed().Config, client.Options{})
@@ -186,7 +186,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 func readCRDsFromVFS() (map[string][]byte, error) {
 	crdMap := make(map[string][]byte)
 
-	err := filepath.Walk(filepath.Join(metal.InternalChartsPath, "metal-crds"), func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(filepath.Join(metal.InternalChartsPath, "crds-firewall", "templates"), func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
 		}
