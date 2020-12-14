@@ -40,7 +40,7 @@ func validateFirewallControllerVersionWithoutGithub(iv imagevector.ImageVector, 
 		return nil, err
 	}
 
-	wantedVersion, err := getNextVersion(specVersion, imageVectorVersion, autoUpdate)
+	wantedVersion, err := determineWantedVersion(specVersion, imageVectorVersion, autoUpdate)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func getImageVectorVersion(imageVector imagevector.ImageVector) (*semver.Version
 	return &semv, nil
 }
 
-func getNextVersion(specVersion *string, ivSemv *semver.Version, autoUpdate bool) (*semver.Version, error) {
+func determineWantedVersion(specVersion *string, ivSemv *semver.Version, autoUpdate bool) (*semver.Version, error) {
 	if specVersion == nil {
 		return nil, ErrSpecVersionUndefined
 	}
