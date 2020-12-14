@@ -199,6 +199,11 @@ func (in *Firewall) DeepCopyInto(out *Firewall) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.ControllerVersion != nil {
+		in, out := &in.ControllerVersion, &out.ControllerVersion
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 

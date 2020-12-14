@@ -20,9 +20,12 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
@@ -619,6 +622,15 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, cp *extensionsv1a
 			RateLimits:       rateLimits,
 			EgressRules:      egressRules,
 		},
+	}
+
+	fwcv, err := validation.ValidateFirewallControllerVersion(imagevector.ImageVector(), infrastructureConfig.Firewall.ControllerVersion, infrastructureConfig.Firewall.ControllerVersionAutoUpdate)
+	if err != nil {
+		return nil, fmt.Errorf("could not validate firewall controller version: %w", err)
+	}
+
+	if fwcv != nil {
+		spec.ControllerVersion = *fwcv
 	}
 
 	return &spec, nil
