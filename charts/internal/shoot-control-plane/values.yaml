@@ -25,3 +25,4 @@ limitValidatingWebhook:
 
 duros:
   enabled: false
+  endpoints: []

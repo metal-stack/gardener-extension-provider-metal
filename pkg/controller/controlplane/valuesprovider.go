@@ -529,7 +529,38 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
 func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, checksums map[string]string) (map[string]interface{}, error) {
-	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cluster)
+	infrastructureConfig := &apismetal.InfrastructureConfig{}
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+	}
+
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	if err != nil {
+		return nil, err
+	}
+
+	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := mclient.NetworkList()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not retrieve networks from metal-api")
+	}
+
+	nws := networkMap{}
+	for _, n := range resp.Networks {
+		n := n
+		nws[*n.ID] = n
+	}
+
+	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cluster, nws, infrastructureConfig)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -544,7 +575,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	secret, err := vp.getSecret(ctx, namespace, metal.SplunkAuditWebhookServerName)
@@ -565,6 +596,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		return nil, errors.Wrap(err, "could not sign firewall values")
 	}
 
+	durosValues := map[string]interface{}{
+		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
+	}
+
 	values := map[string]interface{}{
 		"firewallSpec": fwSpec,
 		"groupRolebindingController": map[string]interface{}{
@@ -578,6 +613,29 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			"url":     splunkURL,
 			"ca":      splunkCABundle,
 		},
+		"duros": durosValues,
+	}
+
+	if vp.controllerConfig.Storage.Duros.Enabled {
+		if cluster.Shoot.Spec.SeedName == nil {
+			return nil, fmt.Errorf("shoot resource has not seed name")
+		}
+
+		seedConfig, ok := vp.controllerConfig.Storage.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
+		if !ok {
+			return nil, fmt.Errorf("skipping duros storage deployment because no storage configuration found for seed: %s", *cluster.Shoot.Spec.SeedName)
+		}
+
+		found, err := hasDurosStorageNetwork(infrastructure, nws)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to determine storage network")
+		}
+
+		if found {
+			durosValues["endpoints"] = seedConfig.Endpoints
+		} else {
+			durosValues["enabled"] = false
+		}
 	}
 
 	return values, nil
@@ -1029,21 +1087,9 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 		return disabledValues, nil
 	}
 
-	found := false
-	for _, networkID := range infrastructure.Firewall.Networks {
-		nw, ok := nws[networkID]
-		if !ok {
-			return nil, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
-		}
-		if nw.Partitionid != infrastructure.PartitionID {
-			continue
-		}
-		for k := range nw.Labels {
-			if k == tag.NetworkPartitionStorage {
-				found = true
-				break
-			}
-		}
+	found, err := hasDurosStorageNetwork(infrastructure, nws)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to determine storage network")
 	}
 
 	if !found {
@@ -1127,4 +1173,22 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 
 func clusterTag(clusterID string) string {
 	return fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
+}
+
+func hasDurosStorageNetwork(infrastructure *apismetal.InfrastructureConfig, nws networkMap) (bool, error) {
+	for _, networkID := range infrastructure.Firewall.Networks {
+		nw, ok := nws[networkID]
+		if !ok {
+			return false, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
+		}
+		if nw.Partitionid != infrastructure.PartitionID {
+			continue
+		}
+		for k := range nw.Labels {
+			if k == tag.NetworkPartitionStorage {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
