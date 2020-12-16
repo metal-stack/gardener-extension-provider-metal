@@ -622,16 +622,13 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 
 		seedConfig, ok := vp.controllerConfig.Storage.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
-		if !ok {
-			return nil, fmt.Errorf("skipping duros storage deployment because no storage configuration found for seed: %s", *cluster.Shoot.Spec.SeedName)
-		}
 
 		found, err := hasDurosStorageNetwork(infrastructure, nws)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to determine storage network")
 		}
 
-		if found {
+		if found && ok {
 			durosValues["endpoints"] = seedConfig.Endpoints
 		} else {
 			durosValues["enabled"] = false
