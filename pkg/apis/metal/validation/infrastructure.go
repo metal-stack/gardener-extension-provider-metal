@@ -96,11 +96,9 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.E
 		allErrs = append(allErrs, field.Required(firewallPath.Child("size"), "firewall size must be specified"))
 	}
 
-	if infra.Firewall.ControllerVersion != nil {
-		_, err := ValidateFirewallControllerVersion(imagevector.ImageVector(), infra.Firewall.ControllerVersion, infra.Firewall.ControllerVersionAutoUpdate)
-		if err != nil {
-			allErrs = append(allErrs, field.Required(field.NewPath("controllerVersion"), err.Error()))
-		}
+	_, err := ValidateFirewallControllerVersion(imagevector.ImageVector(), infra.Firewall.ControllerVersion)
+	if err != nil && err != ErrSpecVersionUndefined {
+		allErrs = append(allErrs, field.Required(field.NewPath("controllerVersion"), err.Error()))
 	}
 
 	availableNetworks := sets.NewString()

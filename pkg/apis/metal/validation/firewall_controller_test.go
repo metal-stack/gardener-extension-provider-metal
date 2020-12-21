@@ -14,9 +14,8 @@ func Test_validateFirewallControllerVersionWithoutGithub(t *testing.T) {
 	tests := []struct {
 		name        string
 		iv          imagevector.ImageVector
-		specVersion *string
-		autoUpdate  bool
-		want        *string
+		specVersion string
+		want        string
 		wantErr     error
 	}{
 		{
@@ -27,9 +26,8 @@ func Test_validateFirewallControllerVersionWithoutGithub(t *testing.T) {
 					Tag:  &v0_2_0,
 				},
 			},
-			specVersion: nil,
-			autoUpdate:  false,
-			want:        nil,
+			specVersion: "",
+			want:        "",
 			wantErr:     ErrSpecVersionUndefined,
 		},
 		{
@@ -40,9 +38,8 @@ func Test_validateFirewallControllerVersionWithoutGithub(t *testing.T) {
 					Tag:  &v0_2_0,
 				},
 			},
-			specVersion: &v0_1_0,
-			autoUpdate:  true,
-			want:        &v0_2_0,
+			specVersion: FirewallControllerVersionAuto,
+			want:        v0_2_0,
 		},
 		{
 			name: "downgrade to older minor version given in image vector",
@@ -52,9 +49,8 @@ func Test_validateFirewallControllerVersionWithoutGithub(t *testing.T) {
 					Tag:  &v0_1_0,
 				},
 			},
-			specVersion: &v0_2_0,
-			autoUpdate:  true,
-			want:        &v0_1_0,
+			specVersion: FirewallControllerVersionAuto,
+			want:        v0_1_0,
 		},
 		{
 			name: "major version updates may contain api changes btw. gepm and firewall-controller and are not supported",
@@ -64,8 +60,7 @@ func Test_validateFirewallControllerVersionWithoutGithub(t *testing.T) {
 					Tag:  &v1_0_0,
 				},
 			},
-			specVersion: &v0_1_0,
-			autoUpdate:  true,
+			specVersion: v0_1_0,
 			wantErr:     ErrControllerTooOld,
 		},
 		{
@@ -76,8 +71,7 @@ func Test_validateFirewallControllerVersionWithoutGithub(t *testing.T) {
 					Tag:  &v0_1_0,
 				},
 			},
-			specVersion: &abc,
-			autoUpdate:  true,
+			specVersion: abc,
 			wantErr:     ErrNoSemver,
 		},
 		{
@@ -88,24 +82,19 @@ func Test_validateFirewallControllerVersionWithoutGithub(t *testing.T) {
 					Tag:  &abc,
 				},
 			},
-			specVersion: &v0_1_0,
-			autoUpdate:  true,
+			specVersion: v0_1_0,
 			wantErr:     ErrNoSemver,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := validateFirewallControllerVersionWithoutGithub(tt.iv, tt.specVersion, tt.autoUpdate)
+			got, err := validateFirewallControllerVersionWithoutGithub(tt.iv, tt.specVersion)
 			if err != tt.wantErr {
 				t.Errorf("validateFirewallControllerVersionWithoutGithub() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if tt.want == nil || got == nil {
-				if tt.want != nil || got != nil {
-					t.Errorf("error")
-				}
-			} else if *got != *tt.want {
-				t.Errorf("validateFirewallControllerVersionWithoutGithub() = %v, want %v", *got, *tt.want)
+			if got != tt.want {
+				t.Errorf("validateFirewallControllerVersionWithoutGithub() = %v, want %v", got, tt.want)
 			}
 		})
 	}
