@@ -4,14 +4,18 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
+	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"path/filepath"
 
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
+	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -20,9 +24,12 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
@@ -31,6 +38,7 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -71,6 +79,20 @@ var controlPlaneSecrets = &secrets.Secrets{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.CloudControllerManagerDeploymentName,
 					CommonName:   "system:cloud-controller-manager",
+					Organization: []string{user.SystemPrivilegedGroup},
+					CertType:     secrets.ClientCert,
+					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+				},
+				KubeConfigRequest: &secrets.KubeConfigRequest{
+					ClusterName:  clusterName,
+					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:         metal.DurosControllerDeploymentName,
+					CommonName:   "system:duros-controller",
+					DNSNames:     kutil.DNSNamesForService(metal.DurosControllerDeploymentName, clusterName),
 					Organization: []string{user.SystemPrivilegedGroup},
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
@@ -238,6 +260,8 @@ var storageClassChart = &chart.Chart{
 	},
 }
 
+type networkMap map[string]*models.V1NetworkResponse
+
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
 func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
 	if controllerConfig.Auth.Enabled {
@@ -288,6 +312,23 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &corev1.Service{}, Name: "splunk-audit-webhook"},
 			{Type: &networkingv1.NetworkPolicy{}, Name: "splunk-audit-webhook-allow-apiserver"},
 			{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2splunk-audit-webhook"},
+		}...)
+	}
+	if controllerConfig.Storage.Duros.Enabled {
+		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.DurosControllerImageName}...)
+		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
+			// duros storage
+			{Type: &corev1.ServiceAccount{}, Name: "duros-controller"},
+			{Type: &rbacv1.Role{}, Name: "duros-controller"},
+			{Type: &rbacv1.RoleBinding{}, Name: "duros-controller"},
+			{Type: &corev1.Secret{}, Name: "duros-admin"},
+			{Type: &appsv1.Deployment{}, Name: "duros-controller"},
+			{Type: &durosv1.Duros{}, Name: "shoot-default-storage"},
+			{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-storage"},
+		}...)
+		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+			{Type: &rbacv1.ClusterRole{}, Name: "system:duros-controller"},
+			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:duros-controller"},
 		}...)
 	}
 
@@ -418,6 +459,17 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
+	resp, err := mclient.NetworkList()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not retrieve networks from metal-api")
+	}
+
+	nws := networkMap{}
+	for _, n := range resp.Networks {
+		n := n
+		nws[*n.ID] = n
+	}
+
 	// TODO: this is a workaround to speed things for the time being...
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
 	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
@@ -427,8 +479,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	// Get CCM chart values
-	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient, metalControlPlane)
+	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -443,17 +494,17 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	accValues, err := getAccountingExporterChartValues(vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
+	accValues, err := getAccountingExporterChartValues(ctx, vp.client, vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
 	if err != nil {
 		return nil, err
 	}
 
-	lvwValues, err := getLimitValidationWebhookControlPlaneChartValues(cluster)
+	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.client, vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, nws)
 	if err != nil {
 		return nil, err
 	}
 
-	merge(chartValues, authValues, splunkAuditValues, accValues, lvwValues)
+	merge(chartValues, authValues, splunkAuditValues, accValues, storageValues)
 
 	return chartValues, nil
 }
@@ -478,11 +529,40 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
 func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, checksums map[string]string) (map[string]interface{}, error) {
-	vp.logger.Info("GetControlPlaneShootChartValues")
+	infrastructureConfig := &apismetal.InfrastructureConfig{}
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cluster)
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
 	if err != nil {
-		vp.logger.Error(err, "Error getting LimitValidationWebhookChartValues")
+		return nil, err
+	}
+
+	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	if err != nil {
+		return nil, err
+	}
+
+	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := mclient.NetworkList()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not retrieve networks from metal-api")
+	}
+
+	nws := networkMap{}
+	for _, n := range resp.Networks {
+		n := n
+		nws[*n.ID] = n
+	}
+
+	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cluster, nws, infrastructureConfig)
+	if err != nil {
+		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
 	}
 
@@ -495,7 +575,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	secret, err := vp.getSecret(ctx, namespace, metal.SplunkAuditWebhookServerName)
@@ -516,6 +596,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		return nil, errors.Wrap(err, "could not sign firewall values")
 	}
 
+	durosValues := map[string]interface{}{
+		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
+	}
+
 	values := map[string]interface{}{
 		"firewallSpec": fwSpec,
 		"groupRolebindingController": map[string]interface{}{
@@ -529,6 +613,26 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			"url":     splunkURL,
 			"ca":      splunkCABundle,
 		},
+		"duros": durosValues,
+	}
+
+	if vp.controllerConfig.Storage.Duros.Enabled {
+		if cluster.Shoot.Spec.SeedName == nil {
+			return nil, fmt.Errorf("shoot resource has not seed name")
+		}
+
+		seedConfig, ok := vp.controllerConfig.Storage.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
+
+		found, err := hasDurosStorageNetwork(infrastructure, nws)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to determine storage network")
+		}
+
+		if found && ok {
+			durosValues["endpoints"] = seedConfig.Endpoints
+		} else {
+			durosValues["enabled"] = false
+		}
 	}
 
 	return values, nil
@@ -621,6 +725,12 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, cp *extensionsv1a
 		},
 	}
 
+	fwcv, err := validation.ValidateFirewallControllerVersion(imagevector.ImageVector(), infrastructureConfig.Firewall.ControllerVersion)
+	if err != nil && err != validation.ErrSpecVersionUndefined {
+		return nil, fmt.Errorf("could not validate firewall controller version: %w", err)
+	}
+
+	spec.ControllerVersion = fwcv
 	return &spec, nil
 }
 
@@ -726,7 +836,6 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 // getSecret returns the secret with the given namespace/secretName
 func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
 	key := kutil.Key(namespace, secretName)
-	vp.logger.Info("GetSecret", "key", key)
 	secret := &corev1.Secret{}
 	err := vp.mgr.GetClient().Get(ctx, key, secret)
 	if err != nil {
@@ -756,6 +865,7 @@ func getCCMChartValues(
 	scaledDown bool,
 	mclient *metalgo.Driver,
 	mcp *apismetal.MetalControlPlane,
+	nws networkMap,
 ) (map[string]interface{}, error) {
 	projectID := infrastructureConfig.ProjectID
 	nodeCIDR := infrastructure.Status.NodesCIDR
@@ -786,11 +896,11 @@ func getCCMChartValues(
 		}
 	} else {
 		for _, networkID := range infrastructureConfig.Firewall.Networks {
-			resp, err := mclient.NetworkGet(networkID)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not retrieve network for finding default external network for metal-ccm deployment")
+			nw, ok := nws[networkID]
+			if !ok {
+				return nil, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
 			}
-			for k := range resp.Network.Labels {
+			for k := range nw.Labels {
 				if k == tag.NetworkDefaultExternal {
 					defaultExternalNetwork = networkID
 					break
@@ -884,13 +994,49 @@ func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *
 	return values, nil
 }
 
-func getAccountingExporterChartValues(accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	partitionID := infrastructure.PartitionID
 	projectID := infrastructure.ProjectID
 	clusterID := cluster.Shoot.ObjectMeta.UID
 	clusterName := annotations[tag.ClusterName]
 	tenant := annotations[tag.ClusterTenant]
+
+	if accountingConfig.Enabled {
+		cp := &firewallv1.ClusterwideNetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "egress-allow-accounting-api",
+				Namespace: "firewall",
+			},
+		}
+
+		_, err := controllerutil.CreateOrUpdate(ctx, client, cp, func() error {
+			port9000 := intstr.FromInt(9000)
+			tcp := corev1.ProtocolTCP
+
+			cp.Spec.Egress = []firewallv1.EgressRule{
+				{
+					Ports: []networkingv1.NetworkPolicyPort{
+						{
+							Port:     &port9000,
+							Protocol: &tcp,
+						},
+					},
+					To: []networkingv1.IPBlock{
+						{
+							CIDR: "0.0.0.0/0",
+						},
+					},
+				},
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to deploy clusterwide network policy for accounting-api into firewall namespace")
+		}
+	}
 
 	values := map[string]interface{}{
 		"accountingExporter": map[string]interface{}{
@@ -918,10 +1064,101 @@ func getAccountingExporterChartValues(accountingConfig config.AccountingExporter
 	return values, nil
 }
 
-func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, nws networkMap) (map[string]interface{}, error) {
+	if cluster.Shoot.Spec.SeedName == nil {
+		return nil, fmt.Errorf("shoot resource has not seed name")
+	}
+
+	disabledValues := map[string]interface{}{
+		"duros": map[string]interface{}{
+			"enabled": false,
+		},
+	}
+
+	seedConfig, ok := storageConfig.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
+	if !ok {
+		logger.Info("skipping duros storage deployment because no storage configuration found for seed", "seed", *cluster.Shoot.Spec.SeedName)
+		return disabledValues, nil
+	}
+
+	found, err := hasDurosStorageNetwork(infrastructure, nws)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to determine storage network")
+	}
+
+	if !found {
+		logger.Info("skipping duros storage deployment because no storage network found for partition")
+		return disabledValues, nil
+	}
+
+	if storageConfig.Duros.Enabled {
+		cp := &firewallv1.ClusterwideNetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "allow-to-storage",
+				Namespace: "firewall",
+			},
+		}
+
+		_, err := controllerutil.CreateOrUpdate(ctx, client, cp, func() error {
+			var to []networkingv1.IPBlock
+			for _, e := range seedConfig.Endpoints {
+				withoutPort := strings.Split(e, ":")
+				to = append(to, networkingv1.IPBlock{
+					CIDR: withoutPort[0] + "/32",
+				})
+			}
+
+			port443 := intstr.FromInt(443)
+			port4420 := intstr.FromInt(4420)
+			port8009 := intstr.FromInt(8009)
+			tcp := corev1.ProtocolTCP
+
+			cp.Spec.Egress = []firewallv1.EgressRule{
+				{
+					Ports: []networkingv1.NetworkPolicyPort{
+						{
+							Port:     &port443,
+							Protocol: &tcp,
+						},
+						{
+							Port:     &port4420,
+							Protocol: &tcp,
+						},
+						{
+							Port:     &port8009,
+							Protocol: &tcp,
+						},
+					},
+					To: to,
+				},
+			}
+
+			return nil
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to deploy clusterwide network policy for duros storage into firewall namespace")
+		}
+	}
+
+	var scs []map[string]interface{}
+	for _, sc := range seedConfig.StorageClasses {
+		scs = append(scs, map[string]interface{}{
+			"name":        sc.Name,
+			"replicas":    sc.ReplicaCount,
+			"compression": sc.Compression,
+		})
+	}
+
 	values := map[string]interface{}{
-		"limitValidatingWebhook": map[string]interface{}{
-			"enabled": false, // TODO: Add to opts
+		"duros": map[string]interface{}{
+			"enabled":        storageConfig.Duros.Enabled,
+			"storageClasses": scs,
+			"projectID":      infrastructure.ProjectID,
+			"controller": map[string]interface{}{
+				"endpoints":  seedConfig.Endpoints,
+				"adminKey":   seedConfig.AdminKey,
+				"adminToken": seedConfig.AdminToken,
+			},
 		},
 	}
 
@@ -930,4 +1167,22 @@ func getLimitValidationWebhookControlPlaneChartValues(cluster *extensionscontrol
 
 func clusterTag(clusterID string) string {
 	return fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
+}
+
+func hasDurosStorageNetwork(infrastructure *apismetal.InfrastructureConfig, nws networkMap) (bool, error) {
+	for _, networkID := range infrastructure.Firewall.Networks {
+		nw, ok := nws[networkID]
+		if !ok {
+			return false, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
+		}
+		if nw.Partitionid != infrastructure.PartitionID {
+			continue
+		}
+		for k := range nw.Labels {
+			if k == tag.NetworkPartitionStorage {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }

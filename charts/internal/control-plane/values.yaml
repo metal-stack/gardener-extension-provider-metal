@@ -8,6 +8,7 @@ images:
   splunk-audit-webhook: image-repository:image-tag
   group-rolebinding-controller: image-repository:image-tag
   accounting-exporter: image-repository:image-tag
+  duros-controller: image-repository:image-tag
 
 cloudControllerManager:
   additionalParameters: []
@@ -82,3 +83,15 @@ accountingExporter:
       -----BEGIN RSA PRIVATE KEY-----
       ...
       -----END RSA PRIVATE KEY-----
+
+duros:
+  enabled: false
+  storageClasses: []
+  projectID: project-id
+  controller:
+    endpoints:
+    - ip:port
+    - ip:port
+    - ip:port
+    adminKey: KEY
+    adminToken: tok

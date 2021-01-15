@@ -67,3 +67,24 @@ spec:
     ports:
     - protocol: UDP
       port: 123
+{{- if .Values.duros.enabled }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-storage
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 4420
+      protocol: TCP
+    - port: 8009
+      protocol: TCP
+    to:
+{{ range $i, $endpoint := .Values.duros.endpoints }}
+    - cidr: {{ (split ":" $endpoint)._0 }}/32
+{{- end }}
+{{- end }}

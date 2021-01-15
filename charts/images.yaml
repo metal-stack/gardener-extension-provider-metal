@@ -35,6 +35,14 @@ images:
   sourceRepository: https://github.com/metal-stack/kubernetes-splunk-audit-webhook
   repository: ghcr.io/metal-stack/kubernetes-splunk-audit-webhook
   tag: "v0.1.4"
+- name: duros-controller
+  sourceRepository: https://github.com/metal-stack/duros-controller
+  repository: ghcr.io/metal-stack/duros-controller
+  tag: "v0.1.1"
+# firewall-controller tag must be semver compatible with golang dependency!
+- name: firewall-controller
+  sourceRepository: https://github.com/metal-stack/firewall-controller
+  tag: "v1.0.1"
 
 # can be provided via image override:
 # - name: authn-webhook

@@ -8,6 +8,7 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -93,6 +94,11 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.E
 	}
 	if infra.Firewall.Size == "" {
 		allErrs = append(allErrs, field.Required(firewallPath.Child("size"), "firewall size must be specified"))
+	}
+
+	_, err := ValidateFirewallControllerVersion(imagevector.ImageVector(), infra.Firewall.ControllerVersion)
+	if err != nil && err != ErrSpecVersionUndefined {
+		allErrs = append(allErrs, field.Required(field.NewPath("controllerVersion"), err.Error()))
 	}
 
 	availableNetworks := sets.NewString()

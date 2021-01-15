@@ -1,0 +1,123 @@
+{{- if .Values.duros.enabled }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: duros-controller
+  namespace: {{ .Release.Namespace }}
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: duros-controller
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups:
+  - storage.metal-stack.io
+  resources:
+  - duros
+  - duros/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - get
+  - update
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: duros-controller
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: duros-controller
+subjects:
+- kind: ServiceAccount
+  name: duros-controller
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app: duros-controller
+  name: duros-admin
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  admin-key: {{ required ".Values.duros.controller.adminKey is required" (b64enc .Values.duros.controller.adminKey) }}
+  admin-token: {{ required ".Values.duros.controller.adminToken is required" (b64enc .Values.duros.controller.adminToken) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: duros-controller
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: duros-controller
+spec:
+  selector:
+    matchLabels:
+      app: duros-controller
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: duros-controller
+    spec:
+      serviceAccountName: duros-controller
+      containers:
+      - name: duros-controller
+        args:
+          - -endpoints={{ join "," .Values.duros.controller.endpoints }}
+          - -namespace={{ .Release.Namespace }}
+          - -enable-leader-election
+          - -admin-token=/duros/admin-token
+          - -admin-key=/duros/admin-key
+          - -shoot-kubeconfig=/duros/client/kubeconfig
+        image: {{ index .Values.images "duros-controller" }}
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: 400m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        volumeMounts:
+          - name: duros-admin
+            mountPath: /duros
+          - name: kubeconfig
+            mountPath: /duros/client
+      volumes:
+        - name: duros-admin
+          secret:
+            secretName: duros-admin
+        - name: kubeconfig
+          secret:
+            secretName: duros-controller
+---
+apiVersion: storage.metal-stack.io/v1
+kind: Duros
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: shoot-default-storage
+spec:
+  metalProjectID: {{ required ".Values.duros.projectID is required" .Values.duros.projectID }}
+{{- if .Values.duros.storageClasses }}
+  storageClasses:
+{{ toYaml .Values.duros.storageClasses | indent 4 }}
+{{- end }}
+{{- end }}

@@ -30,6 +30,8 @@ const (
 	CSIControllerImageName = "csi-lvm-controller"
 	// CSIProvisionerImageName is the name of the csi lvm provisioner to deploy to the seed's shoot namespace.
 	CSIProvisionerImageName = "csi-lvm-provisioner"
+	// DurosControllerImageName is the name of the duros controller to deploy to the seed's shoot namespace.
+	DurosControllerImageName = "duros-controller"
 
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"
@@ -57,6 +59,7 @@ const (
 	SplunkAuditWebhookServerName         = "splunk-audit-webhook-server"
 	SplunkAuditWebHookConfigName         = "splunk-audit-webhook-config"
 	SplunkAuditWebHookCertName           = "splunk-audit-webhook-cert"
+	DurosControllerDeploymentName        = "duros-controller"
 )
 
 var (

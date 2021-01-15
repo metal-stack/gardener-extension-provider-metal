@@ -15,11 +15,12 @@ type InfrastructureConfig struct {
 }
 
 type Firewall struct {
-	Size        string
-	Image       string
-	Networks    []string
-	RateLimits  []RateLimit
-	EgressRules []EgressRule
+	Size              string
+	Image             string
+	Networks          []string
+	RateLimits        []RateLimit
+	EgressRules       []EgressRule
+	ControllerVersion string
 }
 
 type RateLimit struct {
