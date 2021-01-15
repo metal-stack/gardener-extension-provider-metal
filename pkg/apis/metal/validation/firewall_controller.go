@@ -9,48 +9,42 @@ import (
 	"github.com/metal-stack/firewall-controller/pkg/updater"
 )
 
+const (
+	FirewallControllerVersionAuto = "auto"
+)
+
 var (
 	ErrSpecVersionUndefined = fmt.Errorf("firewall-controller version was not specified in the spec")
-	ErrSpecVersionEmpty     = fmt.Errorf("firewall-controller version must not be empty")
 	ErrNoSemver             = fmt.Errorf("firewall-controller versions must adhere to semver spec")
 	ErrControllerTooOld     = fmt.Errorf("firewall-controller on machine is too old")
 )
 
-func ValidateFirewallControllerVersion(iv imagevector.ImageVector, specVersion *string, autoUpdate bool) (*string, error) {
-	versionTag, err := validateFirewallControllerVersionWithoutGithub(iv, specVersion, autoUpdate)
+func ValidateFirewallControllerVersion(iv imagevector.ImageVector, specVersion string) (string, error) {
+	versionTag, err := validateFirewallControllerVersionWithoutGithub(iv, specVersion)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	if versionTag == nil {
-		return nil, nil
-	}
-
-	_, err = updater.DetermineGithubAsset(*versionTag)
+	_, err = updater.DetermineGithubAsset(versionTag)
 	if err != nil {
-		return nil, fmt.Errorf("firewall-controller version must be a github release but version %v was not found", *versionTag)
+		return "", fmt.Errorf("firewall-controller version must be a github release but version %v was not found", versionTag)
 	}
 
 	return versionTag, nil
 }
 
-func validateFirewallControllerVersionWithoutGithub(iv imagevector.ImageVector, specVersion *string, autoUpdate bool) (*string, error) {
+func validateFirewallControllerVersionWithoutGithub(iv imagevector.ImageVector, specVersion string) (string, error) {
 	imageVectorVersion, err := getImageVectorVersion(iv)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	wantedVersion, err := determineWantedVersion(specVersion, imageVectorVersion, autoUpdate)
+	wantedVersion, err := determineWantedVersion(specVersion, imageVectorVersion)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	if wantedVersion == nil {
-		return nil, nil
-	}
-
-	versionTag := fmt.Sprintf("v%s", wantedVersion.String())
-	return &versionTag, nil
+	return fmt.Sprintf("v%s", wantedVersion.String()), nil
 }
 
 func getImageVectorVersion(imageVector imagevector.ImageVector) (*semver.Version, error) {
@@ -67,28 +61,23 @@ func getImageVectorVersion(imageVector imagevector.ImageVector) (*semver.Version
 	return &semv, nil
 }
 
-func determineWantedVersion(specVersion *string, ivSemv *semver.Version, autoUpdate bool) (*semver.Version, error) {
-	if specVersion == nil {
+func determineWantedVersion(specVersion string, ivSemv *semver.Version) (*semver.Version, error) {
+	if specVersion == "" {
 		return nil, ErrSpecVersionUndefined
 	}
 
-	if specVersion != nil && *specVersion == "" {
-		return nil, ErrSpecVersionEmpty
-	}
-
 	var wantedSemv *semver.Version
-	specSemv, err := semver.Make(strings.TrimPrefix(*specVersion, "v"))
-	if err != nil {
-		return nil, ErrNoSemver
-	}
-
-	if autoUpdate {
+	if specVersion == FirewallControllerVersionAuto {
 		wantedSemv = ivSemv
 	} else {
+		specSemv, err := semver.Make(strings.TrimPrefix(specVersion, "v"))
+		if err != nil {
+			return nil, ErrNoSemver
+		}
 		wantedSemv = &specSemv
 	}
 
-	if specSemv.Major != ivSemv.Major {
+	if wantedSemv.Major != ivSemv.Major {
 		return nil, ErrControllerTooOld
 	}
 

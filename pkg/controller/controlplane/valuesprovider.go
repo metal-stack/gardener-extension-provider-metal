@@ -725,15 +725,12 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, cp *extensionsv1a
 		},
 	}
 
-	fwcv, err := validation.ValidateFirewallControllerVersion(imagevector.ImageVector(), infrastructureConfig.Firewall.ControllerVersion, infrastructureConfig.Firewall.ControllerVersionAutoUpdate)
+	fwcv, err := validation.ValidateFirewallControllerVersion(imagevector.ImageVector(), infrastructureConfig.Firewall.ControllerVersion)
 	if err != nil && err != validation.ErrSpecVersionUndefined {
 		return nil, fmt.Errorf("could not validate firewall controller version: %w", err)
 	}
 
-	if fwcv != nil {
-		spec.ControllerVersion = *fwcv
-	}
-
+	spec.ControllerVersion = fwcv
 	return &spec, nil
 }
 
