@@ -8,7 +8,8 @@ require (
 	github.com/ajeddeloh/yaml v0.0.0-00010101000000-000000000000 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/coreos/container-linux-config-transpiler v0.9.0
-	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
+	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
+	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/coreos/ignition v0.35.0 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
