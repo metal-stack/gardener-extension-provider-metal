@@ -7,45 +7,31 @@ import (
 	confighelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/helper"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	apismetalhelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
-	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// GetMachineImages returns the used machine images for the `Worker` resource.
-func (w *workerDelegate) GetMachineImages(ctx context.Context) (runtime.Object, error) {
+// UpdateMachineImagesStatus implements genericactuator.WorkerDelegate.
+func (w *workerDelegate) UpdateMachineImagesStatus(ctx context.Context) error {
 	if w.machineImages == nil {
 		if err := w.generateMachineConfig(ctx); err != nil {
-			return nil, err
+			return errors.Wrapf(err, "unable to generate the machine config")
 		}
 	}
 
-	var (
-		workerStatus = &apismetal.WorkerStatus{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: apismetal.SchemeGroupVersion.String(),
-				Kind:       "WorkerStatus",
-			},
-			MachineImages: w.machineImages,
-		}
-
-		workerStatusV1alpha1 = &metalv1alpha1.WorkerStatus{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
-				Kind:       "WorkerStatus",
-			},
-		}
-	)
-
-	if err := w.scheme.Convert(workerStatus, workerStatusV1alpha1, nil); err != nil {
-		return nil, err
+	workerStatus, err := w.decodeWorkerProviderStatus()
+	if err != nil {
+		return errors.Wrapf(err, "unable to decode the worker provider status")
 	}
 
-	return workerStatusV1alpha1, nil
+	workerStatus.MachineImages = w.machineImages
+	if err := w.updateWorkerProviderStatus(ctx, workerStatus); err != nil {
+		return errors.Wrapf(err, "unable to update worker provider status")
+	}
+
+	return nil
 }
 
 func (w *workerDelegate) findMachineImage(name, version string) (string, error) {

@@ -808,7 +808,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 		return errors.Wrap(err, "could not create shoot Gardener client")
 	}
 
-	_, err = cs.CoreV1().Namespaces().Get(metal.DroptailerNamespace, metav1.GetOptions{})
+	_, err = cs.CoreV1().Namespaces().Get(ctx, metal.DroptailerNamespace, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			ns := &corev1.Namespace{
@@ -816,7 +816,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 					Name: metal.DroptailerNamespace,
 				},
 			}
-			_, err := cs.CoreV1().Namespaces().Create(ns)
+			_, err := cs.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 			if err != nil {
 				return errors.Wrap(err, "could not create droptailer namespace")
 			}
