@@ -1,5 +1,6 @@
 ---
 images:
+    audittailer: image-repository:image-tag
     droptailer: image-repository:image-tag
     metallb-speaker: image-repository:image-tag
     metallb-controller: image-repository:image-tag

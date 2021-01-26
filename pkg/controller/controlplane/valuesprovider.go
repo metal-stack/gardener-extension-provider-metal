@@ -189,7 +189,7 @@ var controlPlaneChart = &chart.Chart{
 var cpShootChart = &chart.Chart{
 	Name:   "shoot-control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "shoot-control-plane"),
-	Images: []string{metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName},
+	Images: []string{metal.AudittailerImageName, metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName},
 	Objects: []*chart.Object{
 		// metallb
 		{Type: &corev1.Namespace{}, Name: "metallb-system"},
@@ -227,6 +227,11 @@ var cpShootChart = &chart.Chart{
 		// firewall policy controller TODO can be removed in a future version
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
+
+		// audittailer
+		{Type: &appsv1.Deployment{}, Name: "audittailer"},
+		{Type: &corev1.ConfigMap{}, Name: "audittailer-config"},
+		{Type: &corev1.Service{}, Name: "audittailer"},
 
 		// droptailer
 		{Type: &appsv1.Deployment{}, Name: "droptailer"},
@@ -566,6 +571,11 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
+	err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
+	if err != nil {
+		vp.logger.Error(err, "error deploying audittailer certs")
+	}
+
 	err = vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster)
 	if err != nil {
 		vp.logger.Error(err, "error deploying droptailer certs")
@@ -752,6 +762,84 @@ func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace stri
 	}
 
 	spec.Signature = signature
+	return nil
+}
+
+func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
+	// TODO: There is actually no nice way to deploy the certs into the shoot when we want to use
+	// the certificate helper functions from Gardener itself...
+	// Maybe we can find a better solution? This is actually only for chart values...
+
+	wanted := &secrets.Secrets{
+		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
+			v1alpha1constants.SecretNameCACluster: {
+				Name:       v1alpha1constants.SecretNameCACluster,
+				CommonName: "kubernetes",
+				CertType:   secrets.CACert,
+			},
+		},
+		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
+			return []secrets.ConfigInterface{
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         metal.AudittailerClientSecretName,
+						CommonName:   "audittailer",
+						DNSNames:     []string{"audittailer"},
+						Organization: []string{"audittailer-client"},
+						CertType:     secrets.ClientCert,
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+					},
+				},
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         metal.AudittailerServerSecretName,
+						CommonName:   "audittailer",
+						DNSNames:     []string{"audittailer"},
+						Organization: []string{"audittailer-server"},
+						CertType:     secrets.ServerCert,
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+					},
+				},
+			}
+		},
+	}
+
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot client")
+	}
+
+	cs, err := kubernetes.NewForConfig(shootConfig)
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot kubernetes client")
+	}
+	gcs, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(shootConfig))
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot Gardener client")
+	}
+
+	_, err = cs.CoreV1().Namespaces().Get(metal.AudittailerNamespace, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			ns := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: metal.AudittailerNamespace,
+				},
+			}
+			_, err := cs.CoreV1().Namespaces().Create(ns)
+			if err != nil {
+				return errors.Wrap(err, "could not create audittailer namespace")
+			}
+		} else {
+			return errors.Wrap(err, "could not search for existence of audittailer namespace")
+		}
+	}
+
+	_, err = wanted.Deploy(ctx, cs, gcs, metal.AudittailerNamespace)
+	if err != nil {
+		return errors.Wrap(err, "could not deploy audittailer secrets to shoot cluster")
+	}
+
 	return nil
 }
 

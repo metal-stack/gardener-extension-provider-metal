@@ -20,6 +20,8 @@ const (
 	AuthNWebhookImageName = "authn-webhook"
 	// SplunkAuditWebhookImageName is the name of the splunk audit Webhook configured with the shoot kube-apiserver
 	SplunkAuditWebhookImageName = "splunk-audit-webhook"
+	// AudittailerImageName is the name of the Audittailer to deploy to the shoot.
+	AudittailerImageName = "audittailer"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
 	DroptailerImageName = "droptailer"
 	// MetallbSpeakerImageName is the name of the metallb speaker to deploy to the shoot.
@@ -46,6 +48,9 @@ const (
 	AuthNWebHookConfigName               = "authn-webhook-config"
 	AuthNWebHookCertName                 = "authn-webhook-cert"
 	ShootExtensionTypeTokenIssuer        = "tokenissuer"
+	AudittailerNamespace                 = "audit"
+	AudittailerClientSecretName          = "audittailer-client"
+	AudittailerServerSecretName          = "audittailer-server"
 	DroptailerNamespace                  = "firewall"
 	DroptailerClientSecretName           = "droptailer-client"
 	DroptailerServerSecretName           = "droptailer-server"

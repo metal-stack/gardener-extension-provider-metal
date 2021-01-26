@@ -1,0 +1,86 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audittailer
+  namespace: audit
+  labels:
+    k8s-app: audittailer
+spec:
+  selector:
+    matchLabels:
+      k8s-app: audittailer
+  template:
+    metadata:
+      labels:
+        k8s-app: audittailer
+        app: audittailer
+    spec:
+      securityContext:
+        runAsUser: 65534
+      containers:
+      - image: {{ index .Values.images "audittailer" }}
+        imagePullPolicy: IfNotPresent
+        name: audittailer
+        env: []
+        # - name: FLUENTD_CONF
+        #   value: /fluentd/fluentd.conf
+        ports:
+        - containerPort: 24224
+          protocol: TCP
+        volumeMounts:
+        - name: fluentd-config
+          mountPath: /fluentd/etc
+        - name: fluentd-certs
+          mountPath: /fluentd/etc/ssl
+        resources:
+          limits:
+            cpu: 50m
+            memory: 200Mi
+      restartPolicy: Always
+      volumes:
+      - name: fluentd-config
+        configMap:
+          name: audittailer-config
+      - name: fluentd-certs
+        secret:
+          secretName: audittailer-server
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audittailer-config
+  namespace: audit
+  labels:
+    app.kubernetes.io/name: audittailer
+data:
+  fluent.conf: |
+    <source>
+      @type forward
+      port 24224
+      bind 0.0.0.0
+      <transport tls>
+        ca_path                   /fluentd/etc/ssl/ca.crt
+        cert_path                 /fluentd/etc/ssl/tailer.crt
+        private_key_path          /fluentd/etc/ssl/tailer.key
+        # private_key_passphrase  YOUR_PASSPHRASE
+        client_cert_auth          true
+      </transport>
+    </source>
+    <match **>
+      @type stdout
+    </match>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audittailer
+  namespace: audit
+  labels:
+    app: audittailer
+spec:
+  selector:
+    app: audittailer
+  ports:
+  - port: 24224
+    targetPort: 24224
