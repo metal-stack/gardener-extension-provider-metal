@@ -601,7 +601,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	values := map[string]interface{}{
-		"firewallSpec": fwSpec,
+		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
+		"firewallSpec":      fwSpec,
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
