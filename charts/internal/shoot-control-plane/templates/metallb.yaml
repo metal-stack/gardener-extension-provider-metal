@@ -243,6 +243,7 @@ spec:
 {{- if semverCompare ">= 1.17" .Values.kubernetesVersion -}}
       priorityClassName: system-node-critical
 {{- end -}}
+
 ---
 apiVersion: apps/v1
 kind: Deployment
