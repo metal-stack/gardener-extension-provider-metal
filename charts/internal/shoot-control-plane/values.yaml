@@ -1,4 +1,6 @@
 ---
+kubernetesVersion: "1.16.0"
+
 images:
     audittailer: image-repository:image-tag
     droptailer: image-repository:image-tag

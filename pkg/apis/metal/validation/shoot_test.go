@@ -6,8 +6,6 @@ import (
 	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	// . "github.com/gardener/gardener/pkg/utils/validation/gomega"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"

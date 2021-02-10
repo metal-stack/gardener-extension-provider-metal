@@ -240,6 +240,9 @@ spec:
       tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
+{{- if semverCompare ">= 1.17" .Values.kubernetesVersion }}
+      priorityClassName: system-node-critical
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
