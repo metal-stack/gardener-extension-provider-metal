@@ -88,3 +88,24 @@ spec:
     - cidr: {{ (split ":" $endpoint)._0 }}/32
 {{- end }}
 {{- end }}
+{{- if gt (len .Values.apiserverIPs) 0 }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-apiserver
+  namespace: firewall
+spec:
+  egress:
+  - to:
+{{- range $i, $ip := .Values.apiserverIPs }}
+    - cidr: {{ $ip }}/32
+{{- end }}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 8443
+    - protocol: TCP
+      port: 8132
+{{- end }}
