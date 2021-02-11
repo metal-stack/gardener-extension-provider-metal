@@ -1,5 +1,6 @@
 ---
 kubernetesVersion: "1.16.0"
+apiserverIPs: []
 
 images:
     droptailer: image-repository:image-tag
