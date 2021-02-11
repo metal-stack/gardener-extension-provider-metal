@@ -3,6 +3,7 @@ FROM golang:1.15 AS builder
 WORKDIR /go/src/github.com/metal-stack/gardener-extension-provider-metal
 COPY . .
 RUN make install
+RUN apk add patch
 
 FROM alpine:3.12
 WORKDIR /
