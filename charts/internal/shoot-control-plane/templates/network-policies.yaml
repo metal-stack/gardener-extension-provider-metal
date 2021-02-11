@@ -88,6 +88,7 @@ spec:
     - cidr: {{ (split ":" $endpoint)._0 }}/32
 {{- end }}
 {{- end }}
+{{- if gt (len .Values.apiserverIPs) 0 }}
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
@@ -103,3 +104,4 @@ spec:
     ports:
     - protocol: TCP
       port: 8132
+{{- end }}

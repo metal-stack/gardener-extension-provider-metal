@@ -604,8 +604,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	// resolve ip address of the apiserver from "api"+Shoot.Spec.DNS.Domain
 	apiserver := fmt.Sprintf("api.%s", *cluster.Shoot.Spec.DNS.Domain)
 	apiserverIPs, err := net.LookupHost(apiserver)
-	if err != nil || len(apiserverIPs) < 1 {
-		return nil, errors.Wrap(err, fmt.Sprintf("could not find ip address apiserver %q", apiserver))
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("could not find ip address of apiserver %q", apiserver))
 	}
 
 	values := map[string]interface{}{
