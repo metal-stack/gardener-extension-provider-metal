@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -600,8 +601,16 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
+	// resolve ip address of the apiserver from "api"+Shoot.Spec.DNS.Domain
+	apiserver := fmt.Sprintf("api.%s", *cluster.Shoot.Spec.DNS.Domain)
+	apiserverIPs, err := net.LookupHost(apiserver)
+	if err != nil || len(apiserverIPs) < 1 {
+		return nil, errors.Wrap(err, fmt.Sprintf("could not find ip address apiserver %q", apiserver))
+	}
+
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
+		"apiserverIPs":      apiserverIPs,
 		"firewallSpec":      fwSpec,
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
