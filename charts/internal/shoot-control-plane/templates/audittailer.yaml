@@ -61,8 +61,8 @@ data:
       bind 0.0.0.0
       <transport tls>
         ca_path                   /fluentd/etc/ssl/ca.crt
-        cert_path                 /fluentd/etc/ssl/tailer.crt
-        private_key_path          /fluentd/etc/ssl/tailer.key
+        cert_path                 /fluentd/etc/ssl/audittailer-server.crt
+        private_key_path          /fluentd/etc/ssl/audittailer-server.key
         # private_key_passphrase  YOUR_PASSPHRASE
         client_cert_auth          true
       </transport>
