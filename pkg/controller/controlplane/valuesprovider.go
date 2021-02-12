@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"net"
 	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -39,6 +38,7 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -63,6 +63,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	dnsv1alpha1 "github.com/gardener/external-dns-management/pkg/apis/dns/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -601,12 +602,14 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
-	// resolve ip address of the apiserver from "api"+Shoot.Spec.DNS.Domain
-	apiserver := fmt.Sprintf("api.%s", *cluster.Shoot.Spec.DNS.Domain)
-	apiserverIPs, err := net.LookupHost(apiserver)
+	// get apiserver ip adresses from external dns entry
+	dns := &dnsv1alpha1.DNSEntry{}
+
+	err = vp.client.Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("could not find ip address of apiserver %q", apiserver))
+		return nil, errors.Wrap(err, "failed to get dnsEntry")
 	}
+	apiserverIPs := dns.Spec.Targets
 
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,

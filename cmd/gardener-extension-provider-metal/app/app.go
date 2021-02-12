@@ -26,6 +26,7 @@ import (
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 
+	dnsv1alpha1 "github.com/gardener/external-dns-management/pkg/apis/dns/v1alpha1"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -142,6 +143,10 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			}
 
 			if err := druidv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
+				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
+			}
+
+			if err := dnsv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
 				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
 			}
 
