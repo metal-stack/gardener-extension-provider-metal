@@ -93,7 +93,7 @@ spec:
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
 metadata:
-  name: allow-to-konnectivity
+  name: allow-to-apiserver
   namespace: firewall
 spec:
   egress:
@@ -102,6 +102,10 @@ spec:
     - cidr: {{ $ip }}/32
 {{- end }}
     ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 8443
     - protocol: TCP
       port: 8132
 {{- end }}
