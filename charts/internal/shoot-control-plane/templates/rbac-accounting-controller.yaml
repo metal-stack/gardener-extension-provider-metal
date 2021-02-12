@@ -10,6 +10,7 @@ rules:
   resources:
   - pods
   - persistentvolumes
+  - persistentvolumeclaims
   verbs:
   - get
   - list
