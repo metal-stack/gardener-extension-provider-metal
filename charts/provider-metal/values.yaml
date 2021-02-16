@@ -60,6 +60,8 @@ config:
       ca:
       cert:
       certkey:
+  auditPolicy:
+    enabled: false
   auth:
     enabled: false
     providerTenant: provider-tenant

@@ -20,6 +20,9 @@ type ControllerConfiguration struct {
 	// ETCD is the etcd configuration.
 	ETCD ETCD `json:"etcd"`
 
+	// AuditPolicy is configuration for the audit policy.
+	AuditPolicy AuditPolicy `json:"auditpolicy,omitempty"`
+
 	// Auth is configuration for metal stack specific user authentication in the cluster.
 	Auth Auth `json:"auth"`
 
@@ -69,6 +72,12 @@ type ETCDBackup struct {
 	Schedule *string `json:"schedule,omitempty"`
 	// DeltaSnapshotPeriod is the time for delta snapshots to be made
 	DeltaSnapshotPeriod *string `json:"deltaSnapshotPeriod,omitempty"`
+}
+
+// AuditPolicy is the configuration for the audit policy.
+type AuditPolicy struct {
+	// Enabled enables the deployment of the default audit policy defined here in this extension provider.
+	Enabled bool `json:"enabled"`
 }
 
 // Auth contains the configuration for metal stack specific user authentication in the cluster.
