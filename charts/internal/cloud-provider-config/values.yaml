@@ -2,3 +2,5 @@
 authnWebhook:
     enabled: false
     url: https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
+auditPolicy:
+    enabled: false
