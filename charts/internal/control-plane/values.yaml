@@ -33,6 +33,9 @@ groupRolebindingController:
   enabled: false
   clusterName: cluster-name
 
+auditPolicy:
+  enalbed: false
+
 authnWebhook:
   enabled: false
   port: 443
