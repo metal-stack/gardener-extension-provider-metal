@@ -34,7 +34,7 @@ groupRolebindingController:
   clusterName: cluster-name
 
 auditPolicy:
-  enalbed: false
+  enabled: false
 
 authnWebhook:
   enabled: false
