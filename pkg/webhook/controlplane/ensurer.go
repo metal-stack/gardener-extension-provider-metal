@@ -79,34 +79,6 @@ var (
 			},
 		},
 	}
-	// config mount for splunk-audit-webhook-config that is specified at kube-apiserver commandline
-	splunkAuditWebhookConfigVolumeMount = corev1.VolumeMount{
-		Name:      metal.SplunkAuditWebHookConfigName,
-		MountPath: "/etc/splunkauditwebhook/config",
-		ReadOnly:  true,
-	}
-	splunkAuditWebhookConfigVolume = corev1.Volume{
-		Name: metal.SplunkAuditWebHookConfigName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: metal.SplunkAuditWebHookConfigName},
-			},
-		},
-	}
-	// cert mount "splunk-audit-webhook-server" that is referenced from the splunk-audit-webhook-config
-	splunkAuditWebhookCertVolumeMount = corev1.VolumeMount{
-		Name:      metal.SplunkAuditWebHookCertName,
-		MountPath: "/etc/splunkauditwebhook/certs",
-		ReadOnly:  true,
-	}
-	splunkAuditWebhookCertVolume = corev1.Volume{
-		Name: metal.SplunkAuditWebHookCertName,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: "splunk-audit-webhook-server",
-			},
-		},
-	}
 )
 
 func ensureVolumeMounts(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
@@ -114,20 +86,12 @@ func ensureVolumeMounts(c *corev1.Container, controllerConfig config.ControllerC
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
 	}
-	if controllerConfig.SplunkAudit.Enabled {
-		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, splunkAuditWebhookConfigVolumeMount)
-		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, splunkAuditWebhookCertVolumeMount)
-	}
 }
 
 func ensureVolumes(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) {
 	if controllerConfig.Auth.Enabled {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
-	}
-	if controllerConfig.SplunkAudit.Enabled {
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, splunkAuditWebhookConfigVolume)
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, splunkAuditWebhookCertVolume)
 	}
 }
 
@@ -138,11 +102,6 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig co
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
 	}
 
-	if controllerConfig.SplunkAudit.Enabled {
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/splunkauditwebhook/config/audit-policy.yaml")
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-webhook-config-file=", "/etc/splunkauditwebhook/config/splunk-audit-webhook-kubeconfig")
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-webhook-batch-max-size=", "4") // To not exceed the splunk hec endpoint maximum event size. Maybe make it configurable? CHECKME
-	}
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.

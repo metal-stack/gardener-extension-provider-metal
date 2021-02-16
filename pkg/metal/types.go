@@ -18,8 +18,6 @@ const (
 	AccountingExporterImageName = "accounting-exporter"
 	// AuthNWebhookImageName is the name of the AuthN Webhook configured with the shoot kube-apiserver
 	AuthNWebhookImageName = "authn-webhook"
-	// SplunkAuditWebhookImageName is the name of the splunk audit Webhook configured with the shoot kube-apiserver
-	SplunkAuditWebhookImageName = "splunk-audit-webhook"
 	// AudittailerImageName is the name of the Audittailer to deploy to the shoot.
 	AudittailerImageName = "audittailer"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
@@ -60,10 +58,6 @@ const (
 	AccountingExporterName               = "accounting-exporter"
 	AuthNWebhookDeploymentName           = "kube-jwt-authn-webhook"
 	AuthNWebhookServerName               = "kube-jwt-authn-webhook-server"
-	SplunkAuditWebhookDeploymentName     = "splunk-audit-webhook"
-	SplunkAuditWebhookServerName         = "splunk-audit-webhook-server"
-	SplunkAuditWebHookConfigName         = "splunk-audit-webhook-config"
-	SplunkAuditWebHookCertName           = "splunk-audit-webhook-cert"
 	DurosControllerDeploymentName        = "duros-controller"
 )
 

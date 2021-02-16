@@ -63,10 +63,6 @@ config:
   auth:
     enabled: false
     providerTenant: provider-tenant
-  splunkAudit:
-    enabled: false
-    hecURL:
-    hecToken:
   storage:
     duros:
       enabled: false

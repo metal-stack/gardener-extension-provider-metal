@@ -35,10 +35,6 @@ images:
   sourceRepository: https://github.com/metallb/metallb
   repository: metallb/controller
   tag: "v0.8.3"
-- name: splunk-audit-webhook
-  sourceRepository: https://github.com/metal-stack/kubernetes-splunk-audit-webhook
-  repository: ghcr.io/metal-stack/kubernetes-splunk-audit-webhook
-  tag: "v0.1.4"
 - name: duros-controller
   sourceRepository: https://github.com/metal-stack/duros-controller
   repository: ghcr.io/metal-stack/duros-controller

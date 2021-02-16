@@ -33,12 +33,6 @@ data:
 {{- if .Values.config.auth.enabled }}
       providerTenant: {{ .Values.config.auth.providerTenant }}
 {{- end }}
-    splunkAudit:
-      enabled: {{ .Values.config.splunkAudit.enabled }}
-{{- if .Values.config.splunkAudit.enabled }}
-      hecURL: {{ .Values.config.splunkAudit.hecURL }}
-      hecToken: {{ .Values.config.splunkAudit.hecToken }}
-{{- end }}
     accountingExporter:
       enabled: {{ .Values.config.accountingExporter.enabled }}
 {{- if .Values.config.accountingExporter.enabled }}

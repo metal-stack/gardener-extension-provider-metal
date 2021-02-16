@@ -49,9 +49,6 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 	authPreCheck := func(_ runtime.Object, cluster *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.Auth.Enabled
 	}
-	splunkPreCheck := func(_ runtime.Object, cluster *extensionscontroller.Cluster) bool {
-		return opts.ControllerConfig.SplunkAudit.Enabled
-	}
 
 	if err := healthcheck.DefaultRegistration(
 		metal.Type,
@@ -80,11 +77,6 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
 				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.AuthNWebhookDeploymentName),
 				PreCheckFunc:  authPreCheck,
-			},
-			{
-				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
-				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.SplunkAuditWebhookDeploymentName),
-				PreCheckFunc:  splunkPreCheck,
 			},
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),

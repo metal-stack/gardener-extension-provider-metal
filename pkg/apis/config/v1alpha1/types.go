@@ -23,9 +23,6 @@ type ControllerConfiguration struct {
 	// Auth is configuration for metal stack specific user authentication in the cluster.
 	Auth Auth `json:"auth"`
 
-	// SplunkAudit contains the configuration for auditlogging the kube-apiserver to splunk endpoint via webhook.
-	SplunkAudit SplunkAudit `json:"splunkAudit"`
-
 	// AccountingExporter is the configuration for the accounting exporter.
 	AccountingExporter AccountingExporterConfiguration `json:"accountingExporter,omitempty"`
 
@@ -80,16 +77,6 @@ type Auth struct {
 	Enabled bool `json:"enabled"`
 	// ProviderTenant is the name of the provider tenant who has special privileges.
 	ProviderTenant string `json:"providerTenant"`
-}
-
-// SplunkAudit contains the configuration for auditlogging the kube-apiserver to splunk endpoint via webhook.
-type SplunkAudit struct {
-	// Enabled enables the deployment of splunk audit webhook when set to true.
-	Enabled bool `json:"enabled"`
-	// hecURL is the URL of the splunk hec endpoint that receives the audit log data.
-	HecURL string `json:"hecURL"`
-	// hecToken is the token that needs to be sent to the splunk endpoint.
-	HecToken string `json:"hecToken"`
 }
 
 // AccountingExporterConfiguration contains the configuration for the accounting exporter.
