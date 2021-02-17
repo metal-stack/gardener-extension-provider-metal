@@ -259,11 +259,11 @@ type networkMap map[string]*models.V1NetworkResponse
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
 func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
-	if controllerConfig.AuditPolicy.Enabled {
-		configChart.Objects = append(configChart.Objects, []*chart.Object{
-			{Type: &corev1.ConfigMap{}, Name: "audit-policy-config"},
-		}...)
-	}
+	// if controllerConfig.AuditPolicy.Enabled {
+	configChart.Objects = append(configChart.Objects, []*chart.Object{
+		{Type: &corev1.ConfigMap{}, Name: "audit-policy-config"},
+	}...)
+	// }
 	if controllerConfig.Auth.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
 			{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
