@@ -1,4 +1,4 @@
-{{- if .Values.auditPolicy.enabled }}
+# {{- if .Values.auditPolicy.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -183,4 +183,4 @@ data:
       - level: Metadata
         omitStages:
           - RequestReceived
-{{- end }}
+# {{- end }}
