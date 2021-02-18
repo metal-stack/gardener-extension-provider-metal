@@ -263,6 +263,7 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
 			{Type: &corev1.ConfigMap{}, Name: "audit-policy-config"},
 		}...)
+		logger.Info("auditdebug: Added audit policy configmap", "configChart.Objects:", configChart.Objects)
 	}
 	if controllerConfig.Auth.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
@@ -368,6 +369,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	if err != nil {
 		return nil, err
 	}
+	logger.Info("auditdebug: got audit config values", "clusterAuditValues:", clusterAuditValues)
 
 	merge(authValues, clusterAuditValues)
 	return authValues, nil
@@ -472,6 +474,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	if err != nil {
 		return nil, err
 	}
+	logger.Info("auditdebug: Got cluster audit values", "clusterAuditValues", clusterAuditValues)
 
 	accValues, err := getAccountingExporterChartValues(ctx, vp.client, vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
 	if err != nil {
