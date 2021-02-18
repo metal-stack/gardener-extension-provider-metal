@@ -1,8 +1,8 @@
-# {{- if .Values.auditPolicy.enabled }}
+{{- if .Values.clusterAudit.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: audit-policy-override
+  name: audit-policy-config
   namespace: {{ .Release.Namespace }}
 data:
   audit-policy.yaml: |
@@ -183,4 +183,4 @@ data:
       - level: Metadata
         omitStages:
           - RequestReceived
-# {{- end }}
+{{- end }}

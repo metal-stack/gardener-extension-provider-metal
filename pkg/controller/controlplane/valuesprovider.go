@@ -259,11 +259,11 @@ type networkMap map[string]*models.V1NetworkResponse
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
 func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
-	// if controllerConfig.AuditPolicy.Enabled {
-	configChart.Objects = append(configChart.Objects, []*chart.Object{
-		{Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
-	}...)
-	// }
+	if controllerConfig.ClusterAudit.Enabled {
+		configChart.Objects = append(configChart.Objects, []*chart.Object{
+			{Type: &corev1.ConfigMap{}, Name: "audit-policy-config"},
+		}...)
+	}
 	if controllerConfig.Auth.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
 			{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
@@ -364,6 +364,12 @@ func (vp *valuesProvider) GetConfigChartValues(
 		return nil, err
 	}
 
+	clusterAuditValues, err := vp.getClusterAuditConfigValues(ctx, cp, cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	merge(authValues, clusterAuditValues)
 	return authValues, nil
 }
 
@@ -378,6 +384,16 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 		"authnWebhook": map[string]interface{}{
 			"url":     url,
 			"enabled": vp.controllerConfig.Auth.Enabled,
+		},
+	}
+
+	return values, nil
+}
+
+func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+	values := map[string]interface{}{
+		"clusterAudit": map[string]interface{}{
+			"enabled": vp.controllerConfig.ClusterAudit.Enabled,
 		},
 	}
 
@@ -452,6 +468,11 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
+	clusterAuditValues, err := getClusterAuditChartValues(vp.controllerConfig.ClusterAudit)
+	if err != nil {
+		return nil, err
+	}
+
 	accValues, err := getAccountingExporterChartValues(ctx, vp.client, vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
 	if err != nil {
 		return nil, err
@@ -462,7 +483,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, authValues, accValues, storageValues)
+	merge(chartValues, authValues, clusterAuditValues, accValues, storageValues)
 
 	return chartValues, nil
 }
@@ -994,6 +1015,17 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 		"groupRolebindingController": map[string]interface{}{
 			"enabled":     config.Enabled,
 			"clusterName": clusterName,
+		},
+	}
+
+	return values, nil
+}
+
+// returns values for "clusterAudit"
+func getClusterAuditChartValues(config config.ClusterAudit) (map[string]interface{}, error) {
+	values := map[string]interface{}{
+		"clusterAudit": map[string]interface{}{
+			"enabled": config.Enabled,
 		},
 	}
 

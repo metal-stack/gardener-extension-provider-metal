@@ -34,8 +34,8 @@ type ControllerConfiguration struct {
 	// ETCD is the etcd configuration.
 	ETCD ETCD
 
-	// AuditPolicy is configuration for the audit policy.
-	AuditPolicy AuditPolicy
+	// ClusterAudit is configuration for cluster auditing.
+	ClusterAudit ClusterAudit
 
 	// Auth is configuration for metal stack specific user authentication in the cluster.
 	Auth Auth
@@ -84,9 +84,9 @@ type ETCDBackup struct {
 	DeltaSnapshotPeriod *string
 }
 
-// AuditPolicy is the configuration for the audit policy.
-type AuditPolicy struct {
-	// Enabled enables the deployment of the default audit policy defined here in this extension provider.
+// ClusterAudit is the configuration for cluster auditing.
+type ClusterAudit struct {
+	// Enabled enables collecting of the kube-apiserver auditlog.
 	Enabled bool
 }
 

@@ -60,7 +60,7 @@ config:
       ca:
       cert:
       certkey:
-  auditPolicy:
+  clusterAudit:
     enabled: false
   auth:
     enabled: false
