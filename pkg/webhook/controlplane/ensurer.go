@@ -95,6 +95,14 @@ var (
 			},
 		},
 	}
+	audittailerClientSecretVolume = corev1.Volume{
+		Name: metal.AudittailerClientSecretName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: metal.AudittailerClientSecretName,
+			},
+		},
+	}
 	auditForwarderSidecar = corev1.Container{
 		Name:            "auditforwarder",
 		Image:           "mreiger/audit-forwarder:pr-TLS",
@@ -102,7 +110,26 @@ var (
 		Env: []corev1.EnvVar{
 			{
 				Name:  "AUDIT_KUBECFG",
-				Value: "/kube.config",
+				Value: "/secrets/kubeconfig",
+			},
+			{
+				Name:  "AUDIT_TLS_CA_FILE",
+				Value: "/secrets/ca.crt",
+			},
+			{
+				Name:  "AUDIT_TLS_CRT_FILE",
+				Value: "/secrets/audittailer-client.crt",
+			},
+			{
+				Name:  "AUDIT_TLS_KEY_FILE",
+				Value: "/secrets/audittailer-client.key",
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      audittailerClientSecretVolume.Name,
+				ReadOnly:  true,
+				MountPath: "/secrets",
 			},
 		},
 	}
@@ -125,6 +152,7 @@ func ensureVolumes(ps *corev1.PodSpec, controllerConfig config.ControllerConfigu
 	}
 	if controllerConfig.ClusterAudit.Enabled {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
 	}
 }
 

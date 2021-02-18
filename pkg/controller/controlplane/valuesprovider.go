@@ -103,6 +103,20 @@ var controlPlaneSecrets = &secrets.Secrets{
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:         metal.AudittailerClientSecretName,
+					CommonName:   "audittailer",
+					DNSNames:     []string{"audittailer"},
+					Organization: []string{"audittailer-client"},
+					CertType:     secrets.ClientCert,
+					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+				},
+				KubeConfigRequest: &secrets.KubeConfigRequest{
+					ClusterName:  clusterName,
+					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.GroupRolebindingControllerName,
 					CommonName:   "system:group-rolebinding-controller",
 					Organization: []string{user.SystemPrivilegedGroup},
@@ -745,16 +759,6 @@ func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Co
 		},
 		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
 			return []secrets.ConfigInterface{
-				&secrets.ControlPlaneSecretConfig{
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         metal.AudittailerClientSecretName,
-						CommonName:   "audittailer",
-						DNSNames:     []string{"audittailer"},
-						Organization: []string{"audittailer-client"},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-					},
-				},
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.AudittailerServerSecretName,
