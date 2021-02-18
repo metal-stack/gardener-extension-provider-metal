@@ -50,7 +50,7 @@ const (
 	// ShootExtensionTypeTokenIssuer appears unused? CHECKME
 	ShootExtensionTypeTokenIssuer = "tokenissuer"
 	// AuditPolicyName is the name of the configmap containing the audit policy.
-	// AuditPolicyName = "audit-policy"
+	AuditPolicyName = "audit-policy-override"
 	// AudittailerNamespace is the namespace where the audit tailer will get deployed.
 	AudittailerNamespace = "audit"
 	// AudittailerClientSecretName is the name of the secret containing the certificates for the audittailer client.
