@@ -261,7 +261,7 @@ type networkMap map[string]*models.V1NetworkResponse
 func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
 	if controllerConfig.ClusterAudit.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
-			{Type: &corev1.ConfigMap{}, Name: "audit-policy-config"},
+			{Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
 		}...)
 		logger.Info("auditdebug: Added audit policy configmap", "configChart.Objects:", configChart.Objects)
 	}
