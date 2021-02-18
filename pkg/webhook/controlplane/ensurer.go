@@ -103,6 +103,17 @@ var (
 			},
 		},
 	}
+	auditLogVolumeMount = corev1.VolumeMount{
+		Name:      "auditlog",
+		MountPath: "/auditlog",
+		ReadOnly:  false,
+	}
+	auditLogVolume = corev1.Volume{
+		Name: "auditlog",
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	}
 	auditForwarderSidecar = corev1.Container{
 		Name:            "auditforwarder",
 		Image:           "mreiger/audit-forwarder:pr-TLS",
@@ -111,6 +122,14 @@ var (
 			{
 				Name:  "AUDIT_KUBECFG",
 				Value: "/secrets/kubeconfig",
+			},
+			{
+				Name:  "AUDIT_NAMESPACE",
+				Value: metal.AudittailerNamespace,
+			},
+			{
+				Name:  "AUDIT_AUDIT_LOG_PATH",
+				Value: "/auditlog",
 			},
 			{
 				Name:  "AUDIT_TLS_CA_FILE",
@@ -124,6 +143,10 @@ var (
 				Name:  "AUDIT_TLS_KEY_FILE",
 				Value: "/secrets/audittailer-client.key",
 			},
+			{
+				Name:  "AUDIT_TLS_VHOST",
+				Value: "audittailer",
+			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
@@ -131,6 +154,7 @@ var (
 				ReadOnly:  true,
 				MountPath: "/secrets",
 			},
+			auditLogVolumeMount,
 		},
 	}
 )
@@ -142,6 +166,7 @@ func ensureVolumeMounts(c *corev1.Container, controllerConfig config.ControllerC
 	}
 	if controllerConfig.ClusterAudit.Enabled {
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditPolicyVolumeMount)
+		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditLogVolumeMount)
 	}
 }
 
@@ -152,6 +177,7 @@ func ensureVolumes(ps *corev1.PodSpec, controllerConfig config.ControllerConfigu
 	}
 	if controllerConfig.ClusterAudit.Enabled {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
 	}
 }
@@ -165,6 +191,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig co
 
 	if controllerConfig.ClusterAudit.Enabled {
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-path=", "/auditlog/audit.log")
 	}
 
 }
