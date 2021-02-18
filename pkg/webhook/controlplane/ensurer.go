@@ -47,6 +47,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 		ensureVolumeMounts(c, e.controllerConfig)
 		ensureVolumes(ps, e.controllerConfig)
 	}
+	ensureAuditForwarder(ps, e.controllerConfig)
+
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
 
@@ -93,6 +95,17 @@ var (
 			},
 		},
 	}
+	auditForwarderSidecar = corev1.Container{
+		Name:            "auditforwarder",
+		Image:           "mreiger/audit-forwarder:pr-TLS",
+		ImagePullPolicy: "Always",
+		Env: []corev1.EnvVar{
+			{
+				Name:  "AUDIT_KUBECFG",
+				Value: "/kube.config",
+			},
+		},
+	}
 )
 
 func ensureVolumeMounts(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
@@ -126,6 +139,12 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig co
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
 	}
 
+}
+
+func ensureAuditForwarder(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) {
+	if controllerConfig.ClusterAudit.Enabled {
+		ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
+	}
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
