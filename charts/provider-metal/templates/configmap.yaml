@@ -28,8 +28,8 @@ data:
       backup:
         schedule: {{ .Values.config.etcd.backup.schedule }}
         deltaSnapshotPeriod: {{ .Values.config.etcd.backup.deltaSnapshotPeriod }}
-    auditPolicy:
-      enabled: {{ .Values.config.auditPolicy.enabled }}
+    clusterAudit:
+      enabled: {{ .Values.config.clusterAudit.enabled }}
     auth:
       enabled: {{ .Values.config.auth.enabled }}
 {{- if .Values.config.auth.enabled }}
