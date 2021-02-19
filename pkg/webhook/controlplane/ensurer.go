@@ -128,6 +128,10 @@ var (
 				Value: metal.AudittailerNamespace,
 			},
 			{
+				Name:  "AUDIT_SERVICE_NAME",
+				Value: "audittailer",
+			},
+			{
 				Name:  "AUDIT_AUDIT_LOG_PATH",
 				Value: "/auditlog",
 			},
