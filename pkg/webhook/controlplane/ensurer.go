@@ -117,7 +117,7 @@ var (
 	auditForwarderSidecar = corev1.Container{
 		Name:            "auditforwarder",
 		Image:           "mreiger/audit-forwarder:pr-TLS",
-		ImagePullPolicy: "Always",
+		ImagePullPolicy: "IfNotPresent",
 		Env: []corev1.EnvVar{
 			{
 				Name:  "AUDIT_KUBECFG",

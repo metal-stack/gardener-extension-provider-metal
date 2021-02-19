@@ -84,3 +84,30 @@ spec:
   ports:
   - port: 24224
     targetPort: 24224
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: audittailer
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: audittailer
+  namespace: audit
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: auditforwarder
+subjects:
+- kind: User
+  name: audittailer
+  namespace: audit
