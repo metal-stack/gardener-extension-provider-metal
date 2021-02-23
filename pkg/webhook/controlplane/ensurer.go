@@ -116,12 +116,12 @@ var (
 	}
 	auditForwarderSidecar = corev1.Container{
 		Name:            "auditforwarder",
-		Image:           "mreiger/audit-forwarder:pr-TLS",
+		Image:           "mreiger/audit-forwarder:pr-read-certs",
 		ImagePullPolicy: "IfNotPresent",
 		Env: []corev1.EnvVar{
 			{
 				Name:  "AUDIT_KUBECFG",
-				Value: "/secrets/kubeconfig",
+				Value: "/shootconfig/kubeconfig",
 			},
 			{
 				Name:  "AUDIT_NAMESPACE",
@@ -132,21 +132,25 @@ var (
 				Value: "audittailer",
 			},
 			{
+				Name:  "AUDIT_SECRET_NAME",
+				Value: "audittailer-client",
+			},
+			{
 				Name:  "AUDIT_AUDIT_LOG_PATH",
 				Value: "/auditlog",
 			},
-			{
-				Name:  "AUDIT_TLS_CA_FILE",
-				Value: "/secrets/ca.crt",
-			},
-			{
-				Name:  "AUDIT_TLS_CRT_FILE",
-				Value: "/secrets/audittailer-client.crt",
-			},
-			{
-				Name:  "AUDIT_TLS_KEY_FILE",
-				Value: "/secrets/audittailer-client.key",
-			},
+			// {
+			// 	Name:  "AUDIT_TLS_CA_FILE",
+			// 	Value: "/secrets/ca.crt",
+			// },
+			// {
+			// 	Name:  "AUDIT_TLS_CRT_FILE",
+			// 	Value: "/secrets/audittailer-client.crt",
+			// },
+			// {
+			// 	Name:  "AUDIT_TLS_KEY_FILE",
+			// 	Value: "/secrets/audittailer-client.key",
+			// },
 			{
 				Name:  "AUDIT_TLS_VHOST",
 				Value: "audittailer",
@@ -156,7 +160,7 @@ var (
 			{
 				Name:      audittailerClientSecretVolume.Name,
 				ReadOnly:  true,
-				MountPath: "/secrets",
+				MountPath: "/shootconfig",
 			},
 			auditLogVolumeMount,
 		},

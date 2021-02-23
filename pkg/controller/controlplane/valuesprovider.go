@@ -761,6 +761,16 @@ func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Co
 			return []secrets.ConfigInterface{
 				&secrets.ControlPlaneSecretConfig{
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         metal.AudittailerClientSecretName,
+						CommonName:   "audittailer",
+						DNSNames:     []string{"audittailer"},
+						Organization: []string{"audittailer-client"},
+						CertType:     secrets.ClientCert,
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+					},
+				},
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.AudittailerServerSecretName,
 						CommonName:   "audittailer",
 						DNSNames:     []string{"audittailer"},
