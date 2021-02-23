@@ -1043,17 +1043,6 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	return values, nil
 }
 
-// returns values for "clusterAudit"
-func getClusterAuditChartValues(config config.ClusterAudit) (map[string]interface{}, error) {
-	values := map[string]interface{}{
-		"clusterAudit": map[string]interface{}{
-			"enabled": config.Enabled,
-		},
-	}
-
-	return values, nil
-}
-
 func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	partitionID := infrastructure.PartitionID
