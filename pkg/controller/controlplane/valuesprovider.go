@@ -335,7 +335,6 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &rbacv1.Role{}, Name: "audittailer"},
 			{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
 		}...)
-		logger.Info("auditdebug: Added audit policy objects", "configChart.Objects:", configChart.Objects, "cpShootChart.Objects:", cpShootChart.Objects)
 	}
 
 	return &valuesProvider{
@@ -387,7 +386,6 @@ func (vp *valuesProvider) GetConfigChartValues(
 	if err != nil {
 		return nil, err
 	}
-	logger.Info("auditdebug: got audit config values", "clusterAuditValues:", clusterAuditValues)
 
 	merge(authValues, clusterAuditValues)
 	return authValues, nil

@@ -133,24 +133,24 @@ var (
 			},
 			{
 				Name:  "AUDIT_SECRET_NAME",
-				Value: "audittailer-client",
+				Value: metal.AudittailerClientSecretName,
 			},
 			{
 				Name:  "AUDIT_AUDIT_LOG_PATH",
 				Value: "/auditlog",
 			},
-			// {
-			// 	Name:  "AUDIT_TLS_CA_FILE",
-			// 	Value: "/secrets/ca.crt",
-			// },
-			// {
-			// 	Name:  "AUDIT_TLS_CRT_FILE",
-			// 	Value: "/secrets/audittailer-client.crt",
-			// },
-			// {
-			// 	Name:  "AUDIT_TLS_KEY_FILE",
-			// 	Value: "/secrets/audittailer-client.key",
-			// },
+			{
+				Name:  "AUDIT_TLS_CA_FILE",
+				Value: "ca.crt",
+			},
+			{
+				Name:  "AUDIT_TLS_CRT_FILE",
+				Value: "audittailer-client.crt",
+			},
+			{
+				Name:  "AUDIT_TLS_KEY_FILE",
+				Value: "audittailer-client.key",
+			},
 			{
 				Name:  "AUDIT_TLS_VHOST",
 				Value: "audittailer",

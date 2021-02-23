@@ -20,10 +20,10 @@ type ControllerConfiguration struct {
 	// ETCD is the etcd configuration.
 	ETCD ETCD `json:"etcd"`
 
-	// ClusterAudit is configuration for cluster auditing.
+	// ClusterAudit is the configuration for cluster auditing.
 	ClusterAudit ClusterAudit `json:"clusterAudit"`
 
-	// Auth is configuration for metal stack specific user authentication in the cluster.
+	// Auth is the configuration for metal stack specific user authentication in the cluster.
 	Auth Auth `json:"auth"`
 
 	// AccountingExporter is the configuration for the accounting exporter.
@@ -74,7 +74,7 @@ type ETCDBackup struct {
 	DeltaSnapshotPeriod *string `json:"deltaSnapshotPeriod,omitempty"`
 }
 
-// ClusterAudit is configuration for cluster auditing.
+// ClusterAudit is the configuration for cluster auditing.
 type ClusterAudit struct {
 	// Enabled enables collecting of the kube-apiserver audit log.
 	Enabled bool `json:"enabled"`

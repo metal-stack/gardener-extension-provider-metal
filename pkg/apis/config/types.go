@@ -34,10 +34,10 @@ type ControllerConfiguration struct {
 	// ETCD is the etcd configuration.
 	ETCD ETCD
 
-	// ClusterAudit is configuration for cluster auditing.
+	// ClusterAudit is the configuration for cluster auditing.
 	ClusterAudit ClusterAudit
 
-	// Auth is configuration for metal stack specific user authentication in the cluster.
+	// Auth is the configuration for metal stack specific user authentication in the cluster.
 	Auth Auth
 
 	// AccountingExporter is the configuration for the accounting exporter
