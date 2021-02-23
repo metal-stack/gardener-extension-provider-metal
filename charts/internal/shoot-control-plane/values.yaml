@@ -29,3 +29,6 @@ limitValidatingWebhook:
 duros:
   enabled: false
   endpoints: []
+
+clusterAudit:
+  enabled: false

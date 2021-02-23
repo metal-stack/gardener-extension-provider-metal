@@ -1,3 +1,4 @@
+{{- if .Values.clusterAudit.enabled }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -112,3 +113,4 @@ subjects:
 - kind: User
   name: audittailer
   namespace: audit
+{{- end }}

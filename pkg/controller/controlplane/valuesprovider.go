@@ -193,7 +193,7 @@ var controlPlaneChart = &chart.Chart{
 var cpShootChart = &chart.Chart{
 	Name:   "shoot-control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "shoot-control-plane"),
-	Images: []string{metal.AudittailerImageName, metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName},
+	Images: []string{metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName},
 	Objects: []*chart.Object{
 		// metallb
 		{Type: &corev1.Namespace{}, Name: "metallb-system"},
@@ -232,11 +232,6 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
 
-		// audittailer
-		{Type: &appsv1.Deployment{}, Name: "audittailer"},
-		{Type: &corev1.ConfigMap{}, Name: "audittailer-config"},
-		{Type: &corev1.Service{}, Name: "audittailer"},
-
 		// droptailer
 		{Type: &appsv1.Deployment{}, Name: "droptailer"},
 
@@ -273,12 +268,6 @@ type networkMap map[string]*models.V1NetworkResponse
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
 func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
-	if controllerConfig.ClusterAudit.Enabled {
-		configChart.Objects = append(configChart.Objects, []*chart.Object{
-			{Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
-		}...)
-		logger.Info("auditdebug: Added audit policy configmap", "configChart.Objects:", configChart.Objects)
-	}
 	if controllerConfig.Auth.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
 			{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
@@ -332,6 +321,21 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &rbacv1.ClusterRole{}, Name: "system:duros-controller"},
 			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:duros-controller"},
 		}...)
+	}
+	if controllerConfig.ClusterAudit.Enabled {
+		configChart.Objects = append(configChart.Objects, []*chart.Object{
+			{Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
+		}...)
+		cpShootChart.Images = append(cpShootChart.Images, []string{metal.AudittailerImageName}...)
+		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+			// audittailer
+			{Type: &appsv1.Deployment{}, Name: "audittailer"},
+			{Type: &corev1.ConfigMap{}, Name: "audittailer-config"},
+			{Type: &corev1.Service{}, Name: "audittailer"},
+			{Type: &rbacv1.Role{}, Name: "audittailer"},
+			{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
+		}...)
+		logger.Info("auditdebug: Added audit policy objects", "configChart.Objects:", configChart.Objects, "cpShootChart.Objects:", cpShootChart.Objects)
 	}
 
 	return &valuesProvider{
@@ -484,12 +488,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	clusterAuditValues, err := getClusterAuditChartValues(vp.controllerConfig.ClusterAudit)
-	if err != nil {
-		return nil, err
-	}
-	logger.Info("auditdebug: Got cluster audit values", "clusterAuditValues", clusterAuditValues)
-
 	accValues, err := getAccountingExporterChartValues(ctx, vp.client, vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
 	if err != nil {
 		return nil, err
@@ -500,7 +498,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, authValues, clusterAuditValues, accValues, storageValues)
+	merge(chartValues, authValues, accValues, storageValues)
 
 	return chartValues, nil
 }
@@ -562,9 +560,11 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
-	if err != nil {
-		vp.logger.Error(err, "error deploying audittailer certs")
+	if vp.controllerConfig.ClusterAudit.Enabled {
+		err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
+		if err != nil {
+			vp.logger.Error(err, "error deploying audittailer certs")
+		}
 	}
 
 	err = vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster)
@@ -593,6 +593,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
+	clusterAuditValues := map[string]interface{}{
+		"enabled": vp.controllerConfig.ClusterAudit.Enabled,
+	}
+
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"firewallSpec":      fwSpec,
@@ -602,7 +606,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"accountingExporter": map[string]interface{}{
 			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
 		},
-		"duros": durosValues,
+		"duros":        durosValues,
+		"clusterAudit": clusterAuditValues,
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
