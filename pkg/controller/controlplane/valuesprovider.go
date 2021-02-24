@@ -888,14 +888,15 @@ func getCCMChartValues(
 			return nil, errors.Wrap(err, fmt.Sprintf("could not retrieve user-given default external network: %s", defaultExternalNetwork))
 		}
 
-		if resp.Network.Projectid != "" && resp.Network.Projectid != infrastructureConfig.ProjectID {
-			return nil, fmt.Errorf("cannot define default external network of another project")
+		if resp.Network.Projectid != "" && resp.Network.Projectid != infrastructureConfig.ProjectID && !resp.Network.Shared {
+			return nil, fmt.Errorf("cannot define default external unshared network of another project")
 		}
 
 		if (resp.Network.Underlay != nil && *resp.Network.Underlay) || (resp.Network.Privatesuper != nil && *resp.Network.Privatesuper) {
 			return nil, fmt.Errorf("cannot declare underlay or private super networks as default external network")
 		}
 	} else {
+		var dmzNetwork string
 		for _, networkID := range infrastructureConfig.Firewall.Networks {
 			nw, ok := nws[networkID]
 			if !ok {
@@ -903,10 +904,24 @@ func getCCMChartValues(
 			}
 			for k := range nw.Labels {
 				if k == tag.NetworkDefaultExternal {
-					defaultExternalNetwork = networkID
+					if nw.Parentnetworkid != "" {
+						pn, ok := nws[nw.Parentnetworkid]
+						if !ok {
+							return nil, fmt.Errorf("network defined in firewall networks specified a parent network that does not exist in metal-api")
+						}
+						if *pn.Privatesuper {
+							dmzNetwork = networkID
+						}
+					} else {
+						defaultExternalNetwork = networkID
+					}
 					break
 				}
 			}
+		}
+		// fallback to a dmz network with the NetworkDefaultExternal tag
+		if defaultExternalNetwork == "" && dmzNetwork != "" {
+			defaultExternalNetwork = dmzNetwork
 		}
 		if defaultExternalNetwork == "" {
 			return nil, fmt.Errorf("unable to find a default external network for metal-ccm deployment")
