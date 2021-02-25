@@ -34,10 +34,10 @@ spec:
           mountPath: /fluentd/etc
         - name: fluentd-certs
           mountPath: /fluentd/etc/ssl
-        resources:
-          limits:
-            cpu: 50m
-            memory: 512Mi
+        # resources:
+        #   limits:
+        #     cpu: 50m
+        #     memory: 512Mi
       restartPolicy: Always
       volumes:
       - name: fluentd-config
