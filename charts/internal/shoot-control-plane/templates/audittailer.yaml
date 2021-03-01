@@ -24,8 +24,6 @@ spec:
         imagePullPolicy: IfNotPresent
         name: audittailer
         env: []
-        # - name: FLUENTD_CONF
-        #   value: /fluentd/fluentd.conf
         ports:
         - containerPort: 24224
           protocol: TCP
@@ -34,10 +32,10 @@ spec:
           mountPath: /fluentd/etc
         - name: fluentd-certs
           mountPath: /fluentd/etc/ssl
-        # resources:
-        #   limits:
-        #     cpu: 50m
-        #     memory: 512Mi
+        resources:
+          limits:
+            cpu: 100m
+            memory: 512Mi
       restartPolicy: Always
       volumes:
       - name: fluentd-config
@@ -70,6 +68,10 @@ data:
     </source>
     <match **>
       @type stdout
+      <buffer>
+        total_limit_size          448Mb
+        chunk_limit_size          16Mb
+      </buffer>
       <format>
         @type json
       </format>
