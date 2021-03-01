@@ -10,6 +10,7 @@ import (
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -115,8 +116,8 @@ var (
 		},
 	}
 	auditForwarderSidecar = corev1.Container{
-		Name:            "auditforwarder",
-		Image:           "mreiger/audit-forwarder:pr-read-certs",
+		Name: "auditforwarder",
+		// Image:           "mreiger/audit-forwarder:pr-read-certs", // is added from the image vector in the ensure function
 		ImagePullPolicy: "IfNotPresent",
 		Env: []corev1.EnvVar{
 			{
@@ -206,6 +207,11 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig co
 
 func ensureAuditForwarder(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) {
 	if controllerConfig.ClusterAudit.Enabled {
+		auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
+		if err != nil {
+			logger.Error(err, "Could not find auditforwarder image in imagevector")
+		}
+		auditForwarderSidecar.Image = auditForwarderImage.String()
 		ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
 	}
 }
