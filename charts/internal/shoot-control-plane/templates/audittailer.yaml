@@ -32,6 +32,8 @@ spec:
           mountPath: /fluentd/etc
         - name: fluentd-certs
           mountPath: /fluentd/etc/ssl
+        - name: fluentbuffer
+          mountPath: /fluentbuffer
         resources:
           # requests:
           #   cpu: 100m
@@ -47,6 +49,8 @@ spec:
       - name: fluentd-certs
         secret:
           secretName: audittailer-server
+      - name: fluentbuffer
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: ConfigMap
