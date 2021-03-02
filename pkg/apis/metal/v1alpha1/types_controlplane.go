@@ -37,7 +37,7 @@ type CloudControllerManagerConfig struct {
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`
 	// DefaultExternalNetwork explicitly defines the network from which the CCM allocates IPs for services of type load balancer
 	// If not defined, it will use the last network with the default external network tag from the infrastructure firewall networks
-	// Networks that are not derived from a private super network overrule DMZ networks.
+	// Networks not derived from a private super network have precedence.
 	// +optional
 	DefaultExternalNetwork *string `json:"defaultExternalNetwork" optional:"true"`
 }
