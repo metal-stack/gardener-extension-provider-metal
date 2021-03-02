@@ -78,6 +78,7 @@ data:
       <buffer>
         @type file
         path /fluentbuffer/auditlog-*
+        chunk_limit_size          256Mb
         # This was for memory buffer:
         # total_limit_size          128Mb
         # chunk_limit_size          8Mb
