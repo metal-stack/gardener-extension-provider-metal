@@ -69,7 +69,7 @@ data:
     <match **>
       @type stdout
       <buffer>
-        total_limit_size          448Mb
+        total_limit_size          384Mb
         chunk_limit_size          16Mb
       </buffer>
       <format>
