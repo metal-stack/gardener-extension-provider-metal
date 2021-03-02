@@ -69,8 +69,8 @@ data:
     <match **>
       @type stdout
       <buffer>
-        total_limit_size          256Mb
-        chunk_limit_size          16Mb
+        total_limit_size          128Mb
+        chunk_limit_size          8Mb
       </buffer>
       <format>
         @type json
