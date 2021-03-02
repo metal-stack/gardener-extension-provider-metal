@@ -33,9 +33,9 @@ spec:
         - name: fluentd-certs
           mountPath: /fluentd/etc/ssl
         resources:
-          requests:
-            cpu: 100m
-            memory: 512Mi
+          # requests:
+          #   cpu: 100m
+          #   memory: 512Mi
           limits:
             cpu: 100m
             memory: 512Mi
@@ -72,8 +72,11 @@ data:
     <match **>
       @type stdout
       <buffer>
-        total_limit_size          128Mb
-        chunk_limit_size          8Mb
+        @type file
+        path /fluentbuffer/auditlog-*
+        # This was for memory buffer:
+        # total_limit_size          128Mb
+        # chunk_limit_size          8Mb
       </buffer>
       <format>
         @type json
