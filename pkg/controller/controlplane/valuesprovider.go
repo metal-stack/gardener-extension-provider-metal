@@ -888,6 +888,10 @@ func getCCMChartValues(
 			return nil, errors.Wrap(err, fmt.Sprintf("could not retrieve user-given default external network: %s", defaultExternalNetwork))
 		}
 
+		if resp.Network.Shared && resp.Network.Partitionid != infrastructureConfig.PartitionID {
+			return nil, fmt.Errorf("shared external network must be in same partition as shoot")
+		}
+
 		if resp.Network.Projectid != "" && resp.Network.Projectid != infrastructureConfig.ProjectID && !resp.Network.Shared {
 			return nil, fmt.Errorf("cannot define default external unshared network of another project")
 		}
