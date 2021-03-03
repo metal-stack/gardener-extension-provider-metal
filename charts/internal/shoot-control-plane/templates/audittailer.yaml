@@ -23,7 +23,10 @@ spec:
       - image: {{ index .Values.images "audittailer" }}
         imagePullPolicy: IfNotPresent
         name: audittailer
-        env: []
+        env:
+        # This is supposed to limit fluentd memory usage. See https://docs.fluentd.org/deployment/performance-tuning-single-process#reduce-memory-usage.
+        - name: RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR
+          value: "0.9"
         ports:
         - containerPort: 24224
           protocol: TCP
