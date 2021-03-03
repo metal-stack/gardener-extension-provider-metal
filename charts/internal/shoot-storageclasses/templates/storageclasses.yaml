@@ -27,33 +27,33 @@ metadata:
 rules:
 - apiGroups:
   - ""
-  resources: 
+  resources:
   - nodes
   - persistentvolumeclaims
-  verbs: 
+  verbs:
   - get
   - list
   - watch
-- apiGroups: 
+- apiGroups:
   - ""
-  resources: 
+  resources:
   - endpoints
   - persistentvolumes
   - pods
-  verbs: 
+  verbs:
   - "*"
-- apiGroups: 
+- apiGroups:
   - ""
-  resources: 
+  resources:
   - events
-  verbs: 
+  verbs:
   - create
   - patch
 - apiGroups:
   - storage.k8s.io
-  resources: 
+  resources:
   - storageclasses
-  verbs: 
+  verbs:
   - get
   - list
   - watch
@@ -114,7 +114,7 @@ spec:
           value: {{ index .Values.images "csi-lvm-provisioner" }}
         - name: CSI_LVM_DEVICE_PATTERN
           # IMPORTANT: you cannot specify a wildcard (*) at any position in the devices grok.
-          value: "/dev/nvme[0-9]n[0-9]"
+          value: "/dev/nvme[0-1]n[0-9]"
         resources:
           limits:
             cpu: 20m
