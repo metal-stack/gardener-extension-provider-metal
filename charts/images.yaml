@@ -14,7 +14,7 @@ images:
 - name: auditforwarder
   sourceRepository: https://github.com/mreiger/audit-forwarder
   repository: mreiger/audit-forwarder
-  tag: "pr-read-certs"
+  tag: "latest"
 - name: audittailer
   sourceRepository: https://github.com/fluent/fluentd
   repository: fluent/fluentd

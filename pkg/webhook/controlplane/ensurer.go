@@ -118,7 +118,7 @@ var (
 	auditForwarderSidecar = corev1.Container{
 		Name: "auditforwarder",
 		// Image:           "mreiger/audit-forwarder:pr-read-certs", // is added from the image vector in the ensure function
-		ImagePullPolicy: "IfNotPresent",
+		ImagePullPolicy: "Always",
 		Env: []corev1.EnvVar{
 			{
 				Name:  "AUDIT_KUBECFG",
@@ -138,7 +138,7 @@ var (
 			},
 			{
 				Name:  "AUDIT_AUDIT_LOG_PATH",
-				Value: "/auditlog",
+				Value: "/auditlog/audit.log",
 			},
 			{
 				Name:  "AUDIT_TLS_CA_FILE",
