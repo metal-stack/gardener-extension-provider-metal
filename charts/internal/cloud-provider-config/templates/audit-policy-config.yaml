@@ -2,7 +2,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: audit-policy-override
+  # name: audit-policy-override
+  name: audit-policy-config
   namespace: {{ .Release.Namespace }}
 data:
   audit-policy.yaml: |

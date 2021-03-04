@@ -83,19 +83,19 @@ var (
 		},
 	}
 	// config mount for the audit policy; it gets mounted where the kube-apiserver expects its audit policy.
-	auditPolicyVolumeMount = corev1.VolumeMount{
-		Name:      metal.AuditPolicyName,
-		MountPath: "/etc/kubernetes/audit-override",
-		ReadOnly:  true,
-	}
-	auditPolicyVolume = corev1.Volume{
-		Name: metal.AuditPolicyName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditPolicyName},
-			},
-		},
-	}
+	// auditPolicyVolumeMount = corev1.VolumeMount{
+	// 	Name:      metal.AuditPolicyName,
+	// 	MountPath: "/etc/kubernetes/audit-override",
+	// 	ReadOnly:  true,
+	// }
+	// auditPolicyVolume = corev1.Volume{
+	// 	Name: metal.AuditPolicyName,
+	// 	VolumeSource: corev1.VolumeSource{
+	// 		ConfigMap: &corev1.ConfigMapVolumeSource{
+	// 			LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditPolicyName},
+	// 		},
+	// 	},
+	// }
 	audittailerClientSecretVolume = corev1.Volume{
 		Name: metal.AudittailerClientSecretName,
 		VolumeSource: corev1.VolumeSource{
@@ -174,7 +174,7 @@ func ensureVolumeMounts(c *corev1.Container, controllerConfig config.ControllerC
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
 	}
 	if controllerConfig.ClusterAudit.Enabled {
-		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditPolicyVolumeMount)
+		// c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditPolicyVolumeMount)
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditLogVolumeMount)
 	}
 }
@@ -185,7 +185,7 @@ func ensureVolumes(ps *corev1.PodSpec, controllerConfig config.ControllerConfigu
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
 	}
 	if controllerConfig.ClusterAudit.Enabled {
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
+		// ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
 	}
@@ -199,7 +199,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig co
 	}
 
 	if controllerConfig.ClusterAudit.Enabled {
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
+		// c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-path=", "/auditlog/audit.log")
 	}
 
