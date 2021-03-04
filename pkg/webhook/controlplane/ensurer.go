@@ -84,9 +84,8 @@ var (
 	}
 	// config mount for the audit policy; it gets mounted where the kube-apiserver expects its audit policy.
 	auditPolicyVolumeMount = corev1.VolumeMount{
-		Name: metal.AuditPolicyName,
-		// MountPath: "/etc/kubernetes/audit-override",
-		MountPath: "/etc/kubernetes/audit",
+		Name:      metal.AuditPolicyName,
+		MountPath: "/etc/kubernetes/audit-override",
 		ReadOnly:  true,
 	}
 	auditPolicyVolume = corev1.Volume{
@@ -200,7 +199,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig co
 	}
 
 	if controllerConfig.ClusterAudit.Enabled {
-		// c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-path=", "/auditlog/audit.log")
 	}
 
