@@ -324,8 +324,7 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 	}
 	if controllerConfig.ClusterAudit.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
-			// {Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
-			{Type: &corev1.ConfigMap{}, Name: "audit-policy-config"},
+			{Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
 		}...)
 		cpShootChart.Images = append(cpShootChart.Images, []string{metal.AudittailerImageName}...)
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
