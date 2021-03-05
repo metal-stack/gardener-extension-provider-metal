@@ -145,6 +145,11 @@ func (in *ControlPlaneFeatures) DeepCopyInto(out *ControlPlaneFeatures) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.ClusterAudit != nil {
+		in, out := &in.ClusterAudit, &out.ClusterAudit
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -409,9 +410,19 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 }
 
 func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	if err != nil {
+		return nil, err
+	}
+	clusterAuditEnabled := false
+	if vp.controllerConfig.ClusterAudit.Enabled {
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+			clusterAuditEnabled = true
+		}
+	}
 	values := map[string]interface{}{
 		"clusterAudit": map[string]interface{}{
-			"enabled": vp.controllerConfig.ClusterAudit.Enabled,
+			"enabled": strconv.FormatBool(clusterAuditEnabled),
 		},
 	}
 
@@ -526,6 +537,11 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
 	}
 
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	if err != nil {
+		return nil, err
+	}
+
 	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
 	if err != nil {
 		return nil, err
@@ -559,9 +575,11 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	if vp.controllerConfig.ClusterAudit.Enabled {
-		err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
-		if err != nil {
-			vp.logger.Error(err, "error deploying audittailer certs")
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+			err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
+			if err != nil {
+				vp.logger.Error(err, "error deploying audittailer certs")
+			}
 		}
 	}
 
@@ -577,6 +595,11 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	if err != nil {
+		return nil, err
+	}
+
 	fwSpec, err := vp.getFirewallSpec(ctx, cp, cluster)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not assemble firewall values")
@@ -591,8 +614,14 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
+	clusterAuditEnabled := false
+	if vp.controllerConfig.ClusterAudit.Enabled {
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+			clusterAuditEnabled = true
+		}
+	}
 	clusterAuditValues := map[string]interface{}{
-		"enabled": vp.controllerConfig.ClusterAudit.Enabled,
+		"enabled": strconv.FormatBool(clusterAuditEnabled),
 	}
 
 	values := map[string]interface{}{

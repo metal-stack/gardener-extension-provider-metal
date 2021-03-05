@@ -28,6 +28,11 @@ type ControlPlaneFeatures struct {
 	// This will become default at some point in the future.
 	// +optional
 	MachineControllerManagerOOT *bool
+	// ClusterAudit enables the deployment of a non-null audit policy to the apiserver and the forwarding
+	// of the audit events into the cluster where they appear as container log of an audittailer pod, where they
+	// can be picked up by any of the available Kubernetes logging solutions.
+	// +optional
+	ClusterAudit *bool
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
