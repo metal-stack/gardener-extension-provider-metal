@@ -46,8 +46,8 @@ func (e *ensurer) InjectClient(client client.Client) error {
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, new, _ *appsv1.Deployment) error {
+	var cpConfig *apismetal.ControlPlaneConfig
 	cluster, _ := ectx.GetCluster(ctx)
-	cpConfig := &apismetal.ControlPlaneConfig{}
 	makeAuditForwarder := false
 
 	logger.Info("Cluster is:", "cluster", cluster)
