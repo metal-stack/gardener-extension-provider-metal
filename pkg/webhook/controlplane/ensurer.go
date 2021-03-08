@@ -50,11 +50,19 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 	cpConfig := &apismetal.ControlPlaneConfig{}
 	makeAuditForwarder := false
 
-	if _, _, err := e.decoder.Decode(cluster.Shoot.Spec.Provider.ControlPlaneConfig.Raw, nil, cpConfig); err != nil {
-		return errors.Wrapf(err, "could not decode providerConfig of shot spec")
+	logger.Info("Cluster is:", "cluster", cluster)
+	if cluster.Shoot != nil {
+		logger.Info("Shoot is:", "cluster.Shoot", cluster.Shoot)
 	}
-	if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-		makeAuditForwarder = true
+
+	if cluster != nil && cluster.Shoot != nil && cluster.Shoot.Spec.Provider.ControlPlaneConfig != nil {
+		logger.Info("Auditdebug: Got cluster shoot spec, decoding", "ControlPlaneConfig", cluster.Shoot.Spec.Provider.ControlPlaneConfig)
+		if _, _, err := e.decoder.Decode(cluster.Shoot.Spec.Provider.ControlPlaneConfig.Raw, nil, cpConfig); err != nil {
+			return errors.Wrapf(err, "could not decode providerConfig of shot spec")
+		}
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+			makeAuditForwarder = true
+		}
 	}
 
 	template := &new.Spec.Template
