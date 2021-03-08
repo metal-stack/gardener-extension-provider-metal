@@ -9,15 +9,14 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
-	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -35,7 +34,6 @@ type ensurer struct {
 	client           client.Client
 	logger           logr.Logger
 	controllerConfig config.ControllerConfiguration
-	decoder          runtime.Decoder
 }
 
 // InjectClient injects the given client into the ensurer.
@@ -46,19 +44,13 @@ func (e *ensurer) InjectClient(client client.Client) error {
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, new, _ *appsv1.Deployment) error {
-	var cpConfig *apismetal.ControlPlaneConfig
 	cluster, _ := ectx.GetCluster(ctx)
 	makeAuditForwarder := false
 
-	logger.Info("Cluster is:", "cluster", cluster)
-	if cluster.Shoot != nil {
-		logger.Info("Shoot is:", "cluster.Shoot", cluster.Shoot)
-	}
-
-	if cluster != nil && cluster.Shoot != nil && cluster.Shoot.Spec.Provider.ControlPlaneConfig != nil {
-		logger.Info("Auditdebug: Got cluster shoot spec, decoding", "ControlPlaneConfig", cluster.Shoot.Spec.Provider.ControlPlaneConfig)
-		if _, _, err := e.decoder.Decode(cluster.Shoot.Spec.Provider.ControlPlaneConfig.Raw, nil, cpConfig); err != nil {
-			return errors.Wrapf(err, "could not decode providerConfig of shot spec")
+	if e.controllerConfig.ClusterAudit.Enabled {
+		cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+		if err != nil {
+			logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
 		}
 		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
 			makeAuditForwarder = true
@@ -72,7 +64,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumes(ps, makeAuditForwarder, e.controllerConfig)
 	}
-	ensureAuditForwarder(ps, makeAuditForwarder, e.controllerConfig)
+	if makeAuditForwarder {
+		ensureAuditForwarder(ps, e.controllerConfig)
+	}
 
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
@@ -197,11 +191,9 @@ func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool, controller
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
 	}
-	if controllerConfig.ClusterAudit.Enabled {
-		if makeAuditForwarder {
-			c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditPolicyVolumeMount)
-			c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditLogVolumeMount)
-		}
+	if makeAuditForwarder {
+		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditPolicyVolumeMount)
+		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditLogVolumeMount)
 	}
 }
 
@@ -210,12 +202,10 @@ func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder bool, controllerConfig
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
 	}
-	if controllerConfig.ClusterAudit.Enabled {
-		if makeAuditForwarder {
-			ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
-			ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
-			ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
-		}
+	if makeAuditForwarder {
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
 	}
 }
 
@@ -226,26 +216,20 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder 
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
 	}
 
-	if controllerConfig.ClusterAudit.Enabled {
-		if makeAuditForwarder {
-			c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
-			c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-path=", "/auditlog/audit.log")
-		}
+	if makeAuditForwarder {
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-path=", "/auditlog/audit.log")
 	}
 
 }
 
-func ensureAuditForwarder(ps *corev1.PodSpec, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
-	if controllerConfig.ClusterAudit.Enabled {
-		if makeAuditForwarder {
-			auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
-			if err != nil {
-				logger.Error(err, "Could not find auditforwarder image in imagevector")
-			}
-			auditForwarderSidecar.Image = auditForwarderImage.String()
-			ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
-		}
+func ensureAuditForwarder(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) {
+	auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
+	if err != nil {
+		logger.Error(err, "Could not find auditforwarder image in imagevector")
 	}
+	auditForwarderSidecar.Image = auditForwarderImage.String()
+	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
