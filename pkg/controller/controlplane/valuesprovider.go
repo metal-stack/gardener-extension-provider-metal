@@ -322,8 +322,20 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:duros-controller"},
 		}...)
 	}
-	// if controllerConfig.ClusterAudit.Enabled {
-	// }
+	if controllerConfig.ClusterAudit.Enabled {
+		configChart.Objects = append(configChart.Objects, []*chart.Object{
+			{Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
+		}...)
+		cpShootChart.Images = append(cpShootChart.Images, []string{metal.AudittailerImageName}...)
+		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+			// audittailer
+			{Type: &appsv1.Deployment{}, Name: "audittailer"},
+			{Type: &corev1.ConfigMap{}, Name: "audittailer-config"},
+			{Type: &corev1.Service{}, Name: "audittailer"},
+			{Type: &rbacv1.Role{}, Name: "audittailer"},
+			{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
+		}...)
+	}
 
 	return &valuesProvider{
 		mgr:              mgr,
@@ -408,10 +420,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 	if vp.controllerConfig.ClusterAudit.Enabled {
 		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
 			clusterAuditEnabled = true
-			configChart.Objects = append(configChart.Objects, []*chart.Object{
-				{Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
-			}...)
-			logger.Info("Auditdebug:", "Cluster auditing enabled, configChart Objects are now", configChart.Objects)
+			// logger.Info("Auditdebug:", "Cluster auditing enabled, configChart Objects are now", configChart.Objects)
 		}
 	}
 	logger.Info("Auditdebug:", "Featuregate", cpConfig.FeatureGates.ClusterAudit, "therefore clusterAuditEnabled", clusterAuditEnabled)
@@ -650,16 +659,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
 			logger.Info("Auditdebug: Cluster auditing enabled", "Featuregate", cpConfig.FeatureGates.ClusterAudit)
 			clusterAuditEnabled = true
-			cpShootChart.Images = append(cpShootChart.Images, []string{metal.AudittailerImageName}...)
-			cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
-				// audittailer
-				{Type: &appsv1.Deployment{}, Name: "audittailer"},
-				{Type: &corev1.ConfigMap{}, Name: "audittailer-config"},
-				{Type: &corev1.Service{}, Name: "audittailer"},
-				{Type: &rbacv1.Role{}, Name: "audittailer"},
-				{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
-			}...)
-			logger.Info("Auditdebug:", "cpShootChart.Images now", cpShootChart.Images, "cpShootChart.Objects now", cpShootChart.Objects)
+			// logger.Info("Auditdebug:", "cpShootChart.Images now", cpShootChart.Images, "cpShootChart.Objects now", cpShootChart.Objects)
 		}
 	}
 	// clusterAuditEnabled := false
