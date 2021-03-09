@@ -3,7 +3,6 @@ package controlplane
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -438,7 +437,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 
 	values := map[string]interface{}{
 		"clusterAudit": map[string]interface{}{
-			"enabled": strconv.FormatBool(clusterAuditEnabled),
+			"enabled": clusterAuditEnabled,
 		},
 	}
 	logger.Info("Auditdebug:", "Returning values", values)
@@ -671,7 +670,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		logger.Info("Auditdebug:", "Featuregate", cpConfig.FeatureGates.ClusterAudit, "therefore clusterAuditEnabled", clusterAuditEnabled)
 	}
 	clusterAuditValues := map[string]interface{}{
-		"enabled": strconv.FormatBool(clusterAuditEnabled),
+		"enabled": clusterAuditEnabled,
 	}
 
 	values := map[string]interface{}{
