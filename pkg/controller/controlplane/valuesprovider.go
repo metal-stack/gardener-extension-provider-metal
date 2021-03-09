@@ -410,16 +410,29 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 }
 
 func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
-	if err != nil {
-		return nil, err
-	}
+	// cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// clusterAuditEnabled := false
+	// if vp.controllerConfig.ClusterAudit.Enabled {
+	// 	if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+	// 		clusterAuditEnabled = true
+	// 	}
+	// }
+
 	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
+		cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+		if err != nil {
+			logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
+		}
 		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
 			clusterAuditEnabled = true
 		}
 	}
+
 	values := map[string]interface{}{
 		"clusterAudit": map[string]interface{}{
 			"enabled": strconv.FormatBool(clusterAuditEnabled),
@@ -537,10 +550,10 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
 	}
 
-	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
-	if err != nil {
-		return nil, err
-	}
+	// cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
 	if err != nil {
@@ -574,14 +587,33 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
+	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
+		cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+		if err != nil {
+			logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
+		}
 		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-			err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
-			if err != nil {
-				vp.logger.Error(err, "error deploying audittailer certs")
-			}
+			clusterAuditEnabled = true
 		}
 	}
+
+	if clusterAuditEnabled {
+		err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
+		if err != nil {
+			vp.logger.Error(err, "error deploying audittailer certs")
+		}
+
+	}
+
+	// if vp.controllerConfig.ClusterAudit.Enabled {
+	// 	if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+	// 		err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
+	// 		if err != nil {
+	// 			vp.logger.Error(err, "error deploying audittailer certs")
+	// 		}
+	// 	}
+	// }
 
 	err = vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster)
 	if err != nil {
@@ -595,10 +627,10 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
-	if err != nil {
-		return nil, err
-	}
+	// cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	fwSpec, err := vp.getFirewallSpec(ctx, cp, cluster)
 	if err != nil {
@@ -614,8 +646,18 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
+	// clusterAuditEnabled := false
+	// if vp.controllerConfig.ClusterAudit.Enabled {
+	// 	if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+	// 		clusterAuditEnabled = true
+	// 	}
+	// }
 	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
+		cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+		if err != nil {
+			logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
+		}
 		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
 			clusterAuditEnabled = true
 		}
