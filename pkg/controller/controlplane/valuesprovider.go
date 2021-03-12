@@ -414,35 +414,18 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 		return nil, err
 	}
 
-	logger.Info("Auditdebug:", "vp.controllerConfig.ClusterAudit.Enabled", vp.controllerConfig.ClusterAudit.Enabled)
-
 	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
 		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
 			clusterAuditEnabled = true
-			// logger.Info("Auditdebug:", "Cluster auditing enabled, configChart Objects are now", configChart.Objects)
 		}
 	}
-	logger.Info("Auditdebug:", "Featuregate", cpConfig.FeatureGates.ClusterAudit, "therefore clusterAuditEnabled", clusterAuditEnabled)
-
-	// clusterAuditEnabled := false
-	// if vp.controllerConfig.ClusterAudit.Enabled {
-	// 	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
-	// 	if err != nil {
-	// 		logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
-	// 	}
-	// 	if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-	// 		clusterAuditEnabled = true
-	// 	}
-	// 	logger.Info("Auditdebug:", "Featuregate", cpConfig.FeatureGates.ClusterAudit, "therefore clusterAuditEnabled", clusterAuditEnabled)
-	// }
 
 	values := map[string]interface{}{
 		"clusterAudit": map[string]interface{}{
 			"enabled": clusterAuditEnabled,
 		},
 	}
-	logger.Info("Auditdebug:", "Returning values", values)
 
 	return values, nil
 }
@@ -592,30 +575,8 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	// clusterAuditEnabled := false
-	// if vp.controllerConfig.ClusterAudit.Enabled {
-	// 	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
-	// 	if err != nil {
-	// 		logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
-	// 	}
-	// 	if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-	// 		clusterAuditEnabled = true
-	// 	}
-	// 	logger.Info("Auditdebug:", "Featuregate", cpConfig.FeatureGates.ClusterAudit, "therefore clusterAuditEnabled", clusterAuditEnabled)
-	// }
-
-	// if clusterAuditEnabled {
-	// 	err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
-	// 	if err != nil {
-	// 		vp.logger.Error(err, "error deploying audittailer certs")
-	// 	}
-
-	// }
-
-	logger.Info("Auditdebug:", "vp.controllerConfig.ClusterAudit.Enabled", vp.controllerConfig.ClusterAudit.Enabled)
 	if vp.controllerConfig.ClusterAudit.Enabled {
 		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-			logger.Info("Auditdebug: cluster audit enabled", "Featuregate", cpConfig.FeatureGates.ClusterAudit)
 			err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
 			if err != nil {
 				vp.logger.Error(err, "error deploying audittailer certs")
@@ -657,23 +618,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
 		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-			logger.Info("Auditdebug: Cluster auditing enabled", "Featuregate", cpConfig.FeatureGates.ClusterAudit)
 			clusterAuditEnabled = true
-			// logger.Info("Auditdebug:", "cpShootChart.Images now", cpShootChart.Images, "cpShootChart.Objects now", cpShootChart.Objects)
 		}
 	}
-	// clusterAuditEnabled := false
-	// logger.Info("Auditdebug:", "vp.controllerConfig.ClusterAudit.Enabled", vp.controllerConfig.ClusterAudit.Enabled)
-	// if vp.controllerConfig.ClusterAudit.Enabled {
-	// 	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
-	// 	if err != nil {
-	// 		logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
-	// 	}
-	// 	if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-	// 		clusterAuditEnabled = true
-	// 	}
-	// 	logger.Info("Auditdebug:", "Featuregate", cpConfig.FeatureGates.ClusterAudit, "therefore clusterAuditEnabled", clusterAuditEnabled)
-	// }
 	clusterAuditValues := map[string]interface{}{
 		"enabled": clusterAuditEnabled,
 	}
@@ -710,7 +657,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 	}
 
-	logger.Info("Auditdebug:", "returning values", values)
 	return values, nil
 }
 

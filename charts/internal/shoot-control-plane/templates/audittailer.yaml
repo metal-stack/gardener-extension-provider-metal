@@ -38,9 +38,6 @@ spec:
         - name: fluentbuffer
           mountPath: /fluentbuffer
         resources:
-          # requests:
-          #   cpu: 100m
-          #   memory: 512Mi
           limits:
             cpu: 100m
             memory: 512Mi
@@ -72,7 +69,6 @@ data:
         ca_path                   /fluentd/etc/ssl/ca.crt
         cert_path                 /fluentd/etc/ssl/audittailer-server.crt
         private_key_path          /fluentd/etc/ssl/audittailer-server.key
-        # private_key_passphrase  YOUR_PASSPHRASE
         client_cert_auth          true
       </transport>
     </source>
@@ -82,9 +78,6 @@ data:
         @type file
         path /fluentbuffer/auditlog-*
         chunk_limit_size          256Mb
-        # This was for memory buffer:
-        # total_limit_size          128Mb
-        # chunk_limit_size          8Mb
       </buffer>
       <format>
         @type json
