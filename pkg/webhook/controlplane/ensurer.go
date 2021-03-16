@@ -65,7 +65,10 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 		ensureVolumes(ps, makeAuditForwarder, e.controllerConfig)
 	}
 	if makeAuditForwarder {
-		ensureAuditForwarder(ps, e.controllerConfig)
+		err := ensureAuditForwarder(ps, e.controllerConfig)
+		if err != nil {
+			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
+		}
 	}
 
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
