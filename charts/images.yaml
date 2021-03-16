@@ -13,7 +13,7 @@ images:
   tag: "v0.1.5"
 - name: auditforwarder
   sourceRepository: https://github.com/metal-stack/audit-forwarder
-  repository: metal-stack/audit-forwarder
+  repository: ghcr.io/metal-stack/audit-forwarder
   tag: "pr-move-to-metal-stack"
 - name: audittailer
   sourceRepository: https://github.com/fluent/fluentd
