@@ -69,6 +69,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 		err := ensureAuditForwarder(ps, e.controllerConfig)
 		if err != nil {
 			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
+			return err
 		}
 	}
 
