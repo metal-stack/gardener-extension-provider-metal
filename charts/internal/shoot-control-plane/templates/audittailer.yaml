@@ -1,0 +1,128 @@
+{{- if .Values.clusterAudit.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audittailer
+  namespace: audit
+  labels:
+    k8s-app: audittailer
+spec:
+  selector:
+    matchLabels:
+      k8s-app: audittailer
+  template:
+    metadata:
+      labels:
+        k8s-app: audittailer
+        app: audittailer
+    spec:
+      securityContext:
+        runAsUser: 65534
+      containers:
+      - image: {{ index .Values.images "audittailer" }}
+        imagePullPolicy: IfNotPresent
+        name: audittailer
+        env:
+        # This is supposed to limit fluentd memory usage. See https://docs.fluentd.org/deployment/performance-tuning-single-process#reduce-memory-usage.
+        - name: RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR
+          value: "1.2"
+        ports:
+        - containerPort: 24224
+          protocol: TCP
+        volumeMounts:
+        - name: fluentd-config
+          mountPath: /fluentd/etc
+        - name: fluentd-certs
+          mountPath: /fluentd/etc/ssl
+        - name: fluentbuffer
+          mountPath: /fluentbuffer
+        resources:
+          limits:
+            cpu: 100m
+            memory: 512Mi
+      restartPolicy: Always
+      volumes:
+      - name: fluentd-config
+        configMap:
+          name: audittailer-config
+      - name: fluentd-certs
+        secret:
+          secretName: audittailer-server
+      - name: fluentbuffer
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audittailer-config
+  namespace: audit
+  labels:
+    app.kubernetes.io/name: audittailer
+data:
+  fluent.conf: |
+    <source>
+      @type forward
+      port 24224
+      bind 0.0.0.0
+      <transport tls>
+        ca_path                   /fluentd/etc/ssl/ca.crt
+        cert_path                 /fluentd/etc/ssl/audittailer-server.crt
+        private_key_path          /fluentd/etc/ssl/audittailer-server.key
+        client_cert_auth          true
+      </transport>
+    </source>
+    <match **>
+      @type stdout
+      <buffer>
+        @type file
+        path /fluentbuffer/auditlog-*
+        chunk_limit_size          256Mb
+      </buffer>
+      <format>
+        @type json
+      </format>
+    </match>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audittailer
+  namespace: audit
+  labels:
+    app: audittailer
+spec:
+  selector:
+    app: audittailer
+  ports:
+  - port: 24224
+    targetPort: 24224
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: audittailer
+  namespace: audit
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - secrets
+  verbs:
+  - get
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: audittailer
+  namespace: audit
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: audittailer
+subjects:
+- kind: User
+  name: audittailer
+  namespace: audit
+{{- end }}

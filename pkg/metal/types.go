@@ -18,8 +18,8 @@ const (
 	AccountingExporterImageName = "accounting-exporter"
 	// AuthNWebhookImageName is the name of the AuthN Webhook configured with the shoot kube-apiserver
 	AuthNWebhookImageName = "authn-webhook"
-	// SplunkAuditWebhookImageName is the name of the splunk audit Webhook configured with the shoot kube-apiserver
-	SplunkAuditWebhookImageName = "splunk-audit-webhook"
+	// AudittailerImageName is the name of the Audittailer to deploy to the shoot.
+	AudittailerImageName = "audittailer"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
 	DroptailerImageName = "droptailer"
 	// MetallbSpeakerImageName is the name of the metallb speaker to deploy to the shoot.
@@ -43,23 +43,40 @@ const (
 	// MachineControllerManagerName is a constant for the name of the machine-controller-manager.
 	MachineControllerManagerName = "machine-controller-manager"
 
-	AuthNWebHookConfigName               = "authn-webhook-config"
-	AuthNWebHookCertName                 = "authn-webhook-cert"
-	ShootExtensionTypeTokenIssuer        = "tokenissuer"
-	DroptailerNamespace                  = "firewall"
-	DroptailerClientSecretName           = "droptailer-client"
-	DroptailerServerSecretName           = "droptailer-server"
+	// AuthNWebHookConfigName is the name of the configmap containing the authn webhook config.
+	AuthNWebHookConfigName = "authn-webhook-config"
+	// AuthNWebHookCertName is the name of the secret containing the authn webhook certificates.
+	AuthNWebHookCertName = "authn-webhook-cert"
+	// ShootExtensionTypeTokenIssuer appears unused? CHECKME
+	ShootExtensionTypeTokenIssuer = "tokenissuer"
+	// AuditPolicyName is the name of the configmap containing the audit policy.
+	AuditPolicyName = "audit-policy-override"
+	// AudittailerNamespace is the namespace where the audit tailer will get deployed.
+	AudittailerNamespace = "audit"
+	// AudittailerClientSecretName is the name of the secret containing the certificates for the audittailer client.
+	AudittailerClientSecretName = "audittailer-client"
+	// AudittailerServerSecretName is the name of the secret containing the certificates for the audittailer server.
+	AudittailerServerSecretName = "audittailer-server"
+	// DroptailerNamespace is the namespace where the firewall droptailer will get deployed.
+	DroptailerNamespace = "firewall"
+	// DroptailerClientSecretName is the name of the secret containing the certificates for the droptailer client.
+	DroptailerClientSecretName = "droptailer-client"
+	// DroptailerServerSecretName is the name of the secret containing the certificates for the droptailer server.
+	DroptailerServerSecretName = "droptailer-server"
+	// CloudControllerManagerDeploymentName is the name of the deployment for the cloud controller manager.
 	CloudControllerManagerDeploymentName = "cloud-controller-manager"
-	CloudControllerManagerServerName     = "cloud-controller-manager-server"
-	GroupRolebindingControllerName       = "group-rolebinding-controller"
-	AccountingExporterName               = "accounting-exporter"
-	AuthNWebhookDeploymentName           = "kube-jwt-authn-webhook"
-	AuthNWebhookServerName               = "kube-jwt-authn-webhook-server"
-	SplunkAuditWebhookDeploymentName     = "splunk-audit-webhook"
-	SplunkAuditWebhookServerName         = "splunk-audit-webhook-server"
-	SplunkAuditWebHookConfigName         = "splunk-audit-webhook-config"
-	SplunkAuditWebHookCertName           = "splunk-audit-webhook-cert"
-	DurosControllerDeploymentName        = "duros-controller"
+	// CloudControllerManagerServerName is the name of the secret containing the certificates for the cloud controller manager server.
+	CloudControllerManagerServerName = "cloud-controller-manager-server"
+	// GroupRolebindingControllerName is the name of the deployment for the group rolebinding controller.
+	GroupRolebindingControllerName = "group-rolebinding-controller"
+	// AccountingExporterName is the name of the deployment for the accounting exporter.
+	AccountingExporterName = "accounting-exporter"
+	// AuthNWebhookDeploymentName is the name of the deployment for the authn webhook.
+	AuthNWebhookDeploymentName = "kube-jwt-authn-webhook"
+	// AuthNWebhookServerName is the name of the secret containing the certificates for the authn webhook.
+	AuthNWebhookServerName = "kube-jwt-authn-webhook-server"
+	// DurosControllerDeploymentName is the name of the deployment for the duros-controller.
+	DurosControllerDeploymentName = "duros-controller"
 )
 
 var (

@@ -28,16 +28,12 @@ data:
       backup:
         schedule: {{ .Values.config.etcd.backup.schedule }}
         deltaSnapshotPeriod: {{ .Values.config.etcd.backup.deltaSnapshotPeriod }}
+    clusterAudit:
+      enabled: {{ .Values.config.clusterAudit.enabled }}
     auth:
       enabled: {{ .Values.config.auth.enabled }}
 {{- if .Values.config.auth.enabled }}
       providerTenant: {{ .Values.config.auth.providerTenant }}
-{{- end }}
-    splunkAudit:
-      enabled: {{ .Values.config.splunkAudit.enabled }}
-{{- if .Values.config.splunkAudit.enabled }}
-      hecURL: {{ .Values.config.splunkAudit.hecURL }}
-      hecToken: {{ .Values.config.splunkAudit.hecToken }}
 {{- end }}
     accountingExporter:
       enabled: {{ .Values.config.accountingExporter.enabled }}

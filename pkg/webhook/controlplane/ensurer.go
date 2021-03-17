@@ -9,7 +9,11 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	"github.com/go-logr/logr"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -40,13 +44,35 @@ func (e *ensurer) InjectClient(client client.Client) error {
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx genericmutator.EnsurerContext, new, _ *appsv1.Deployment) error {
+	cluster, _ := ectx.GetCluster(ctx)
+	makeAuditForwarder := false
+
+	if e.controllerConfig.ClusterAudit.Enabled {
+		cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+		if err != nil {
+			logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
+			return err
+		}
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+			makeAuditForwarder = true
+		}
+	}
+
 	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		ensureKubeAPIServerCommandLineArgs(c, e.controllerConfig)
-		ensureVolumeMounts(c, e.controllerConfig)
-		ensureVolumes(ps, e.controllerConfig)
+		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
+		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
+		ensureVolumes(ps, makeAuditForwarder, e.controllerConfig)
 	}
+	if makeAuditForwarder {
+		err := ensureAuditForwarder(ps, e.controllerConfig)
+		if err != nil {
+			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
+			return err
+		}
+	}
+
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
 
@@ -79,70 +105,138 @@ var (
 			},
 		},
 	}
-	// config mount for splunk-audit-webhook-config that is specified at kube-apiserver commandline
-	splunkAuditWebhookConfigVolumeMount = corev1.VolumeMount{
-		Name:      metal.SplunkAuditWebHookConfigName,
-		MountPath: "/etc/splunkauditwebhook/config",
+	// config mount for the audit policy; it gets mounted where the kube-apiserver expects its audit policy.
+	auditPolicyVolumeMount = corev1.VolumeMount{
+		Name:      metal.AuditPolicyName,
+		MountPath: "/etc/kubernetes/audit-override",
 		ReadOnly:  true,
 	}
-	splunkAuditWebhookConfigVolume = corev1.Volume{
-		Name: metal.SplunkAuditWebHookConfigName,
+	auditPolicyVolume = corev1.Volume{
+		Name: metal.AuditPolicyName,
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: metal.SplunkAuditWebHookConfigName},
+				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditPolicyName},
 			},
 		},
 	}
-	// cert mount "splunk-audit-webhook-server" that is referenced from the splunk-audit-webhook-config
-	splunkAuditWebhookCertVolumeMount = corev1.VolumeMount{
-		Name:      metal.SplunkAuditWebHookCertName,
-		MountPath: "/etc/splunkauditwebhook/certs",
-		ReadOnly:  true,
-	}
-	splunkAuditWebhookCertVolume = corev1.Volume{
-		Name: metal.SplunkAuditWebHookCertName,
+	audittailerClientSecretVolume = corev1.Volume{
+		Name: metal.AudittailerClientSecretName,
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: "splunk-audit-webhook-server",
+				SecretName: metal.AudittailerClientSecretName,
 			},
+		},
+	}
+	auditLogVolumeMount = corev1.VolumeMount{
+		Name:      "auditlog",
+		MountPath: "/auditlog",
+		ReadOnly:  false,
+	}
+	auditLogVolume = corev1.Volume{
+		Name: "auditlog",
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	}
+	auditForwarderSidecar = corev1.Container{
+		Name: "auditforwarder",
+		// Image:   // is added from the image vector in the ensure function
+		ImagePullPolicy: "Always",
+		Env: []corev1.EnvVar{
+			{
+				Name:  "AUDIT_KUBECFG",
+				Value: "/shootconfig/kubeconfig",
+			},
+			{
+				Name:  "AUDIT_NAMESPACE",
+				Value: metal.AudittailerNamespace,
+			},
+			{
+				Name:  "AUDIT_SERVICE_NAME",
+				Value: "audittailer",
+			},
+			{
+				Name:  "AUDIT_SECRET_NAME",
+				Value: metal.AudittailerClientSecretName,
+			},
+			{
+				Name:  "AUDIT_AUDIT_LOG_PATH",
+				Value: "/auditlog/audit.log",
+			},
+			{
+				Name:  "AUDIT_TLS_CA_FILE",
+				Value: "ca.crt",
+			},
+			{
+				Name:  "AUDIT_TLS_CRT_FILE",
+				Value: "audittailer-client.crt",
+			},
+			{
+				Name:  "AUDIT_TLS_KEY_FILE",
+				Value: "audittailer-client.key",
+			},
+			{
+				Name:  "AUDIT_TLS_VHOST",
+				Value: "audittailer",
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      audittailerClientSecretVolume.Name,
+				ReadOnly:  true,
+				MountPath: "/shootconfig",
+			},
+			auditLogVolumeMount,
 		},
 	}
 )
 
-func ensureVolumeMounts(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
+func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
 	if controllerConfig.Auth.Enabled {
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
 	}
-	if controllerConfig.SplunkAudit.Enabled {
-		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, splunkAuditWebhookConfigVolumeMount)
-		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, splunkAuditWebhookCertVolumeMount)
+	if makeAuditForwarder {
+		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditPolicyVolumeMount)
+		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditLogVolumeMount)
 	}
 }
 
-func ensureVolumes(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) {
+func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
 	if controllerConfig.Auth.Enabled {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
 	}
-	if controllerConfig.SplunkAudit.Enabled {
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, splunkAuditWebhookConfigVolume)
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, splunkAuditWebhookCertVolume)
+	if makeAuditForwarder {
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
 	}
 }
 
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
+func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
 
 	if controllerConfig.Auth.Enabled {
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
 	}
 
-	if controllerConfig.SplunkAudit.Enabled {
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/splunkauditwebhook/config/audit-policy.yaml")
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-webhook-config-file=", "/etc/splunkauditwebhook/config/splunk-audit-webhook-kubeconfig")
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-webhook-batch-max-size=", "4") // To not exceed the splunk hec endpoint maximum event size. Maybe make it configurable? CHECKME
+	if makeAuditForwarder {
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-path=", "/auditlog/audit.log")
 	}
+
+}
+
+func ensureAuditForwarder(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) error {
+	auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
+	if err != nil {
+		logger.Error(err, "Could not find auditforwarder image in imagevector")
+		return err
+	}
+	auditForwarderSidecar.Image = auditForwarderImage.String()
+	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
+	return nil
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.

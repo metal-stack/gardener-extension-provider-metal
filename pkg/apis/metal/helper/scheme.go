@@ -71,6 +71,18 @@ func ControlPlaneConfigFromControlPlane(cp *extensionsv1alpha1.ControlPlane) (*a
 	return config, nil
 }
 
+// ControlPlaneConfigFromClusterShootSpec extracts the ControlPlaneConfig from the shoot spec of a given cluster.
+func ControlPlaneConfigFromClusterShootSpec(cluster *controller.Cluster) (*api.ControlPlaneConfig, error) {
+	config := &api.ControlPlaneConfig{}
+	if cluster != nil && cluster.Shoot != nil && cluster.Shoot.Spec.Provider.ControlPlaneConfig != nil && cluster.Shoot.Spec.Provider.ControlPlaneConfig.Raw != nil {
+		if _, _, err := decoder.Decode(cluster.Shoot.Spec.Provider.ControlPlaneConfig.Raw, nil, config); err != nil {
+			return nil, err
+		}
+		return config, nil
+	}
+	return config, nil
+}
+
 // CloudProfileConfigFromCluster decodes the provider specific cloud profile configuration for a cluster
 func CloudProfileConfigFromCluster(cluster *controller.Cluster) (*api.CloudProfileConfig, error) {
 	var cloudProfileConfig *api.CloudProfileConfig

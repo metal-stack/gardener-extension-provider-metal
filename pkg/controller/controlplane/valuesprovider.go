@@ -2,7 +2,6 @@ package controlplane
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -104,6 +103,20 @@ var controlPlaneSecrets = &secrets.Secrets{
 			},
 			&secrets.ControlPlaneSecretConfig{
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:         metal.AudittailerClientSecretName,
+					CommonName:   "audittailer",
+					DNSNames:     []string{"audittailer"},
+					Organization: []string{"audittailer-client"},
+					CertType:     secrets.ClientCert,
+					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+				},
+				KubeConfigRequest: &secrets.KubeConfigRequest{
+					ClusterName:  clusterName,
+					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
+				},
+			},
+			&secrets.ControlPlaneSecretConfig{
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.GroupRolebindingControllerName,
 					CommonName:   "system:group-rolebinding-controller",
 					Organization: []string{user.SystemPrivilegedGroup},
@@ -120,15 +133,6 @@ var controlPlaneSecrets = &secrets.Secrets{
 					Name:       metal.AuthNWebhookServerName,
 					CommonName: metal.AuthNWebhookDeploymentName,
 					DNSNames:   kutil.DNSNamesForService(metal.AuthNWebhookDeploymentName, clusterName),
-					CertType:   secrets.ServerCert,
-					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
-				},
-			},
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       metal.SplunkAuditWebhookServerName,
-					CommonName: metal.SplunkAuditWebhookDeploymentName,
-					DNSNames:   kutil.DNSNamesForService(metal.SplunkAuditWebhookDeploymentName, clusterName),
 					CertType:   secrets.ServerCert,
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
@@ -301,19 +305,6 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 		}...)
 
 	}
-	if controllerConfig.SplunkAudit.Enabled {
-		configChart.Objects = append(configChart.Objects, []*chart.Object{
-			{Type: &corev1.ConfigMap{}, Name: "splunk-audit-webhook-config"},
-		}...)
-		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.SplunkAuditWebhookImageName}...)
-		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
-			// splunk audit webhook
-			{Type: &appsv1.Deployment{}, Name: "splunk-audit-webhook"},
-			{Type: &corev1.Service{}, Name: "splunk-audit-webhook"},
-			{Type: &networkingv1.NetworkPolicy{}, Name: "splunk-audit-webhook-allow-apiserver"},
-			{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2splunk-audit-webhook"},
-		}...)
-	}
 	if controllerConfig.Storage.Duros.Enabled {
 		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.DurosControllerImageName}...)
 		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
@@ -329,6 +320,20 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 			{Type: &rbacv1.ClusterRole{}, Name: "system:duros-controller"},
 			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:duros-controller"},
+		}...)
+	}
+	if controllerConfig.ClusterAudit.Enabled {
+		configChart.Objects = append(configChart.Objects, []*chart.Object{
+			{Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
+		}...)
+		cpShootChart.Images = append(cpShootChart.Images, []string{metal.AudittailerImageName}...)
+		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+			// audittailer
+			{Type: &appsv1.Deployment{}, Name: "audittailer"},
+			{Type: &corev1.ConfigMap{}, Name: "audittailer-config"},
+			{Type: &corev1.Service{}, Name: "audittailer"},
+			{Type: &rbacv1.Role{}, Name: "audittailer"},
+			{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
 		}...)
 	}
 
@@ -377,13 +382,12 @@ func (vp *valuesProvider) GetConfigChartValues(
 		return nil, err
 	}
 
-	splunkAuditValues, err := vp.getSplunkAuditConfigValues(ctx, cp, cluster)
+	clusterAuditValues, err := vp.getClusterAuditConfigValues(ctx, cp, cluster)
 	if err != nil {
 		return nil, err
 	}
 
-	merge(authValues, splunkAuditValues)
-
+	merge(authValues, clusterAuditValues)
 	return authValues, nil
 }
 
@@ -404,17 +408,22 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 	return values, nil
 }
 
-func (vp *valuesProvider) getSplunkAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-	namespace := cluster.ObjectMeta.Name
+func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	if err != nil {
+		return nil, err
+	}
 
-	// this should work as the kube-apiserver is a pod in the same cluster as the splunk-audit-webhook
-	// example https://splunk-audit-webhook.shoot--local--myshootname.svc.cluster.local/audit
-	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", metal.SplunkAuditWebhookDeploymentName, namespace)
+	clusterAuditEnabled := false
+	if vp.controllerConfig.ClusterAudit.Enabled {
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+			clusterAuditEnabled = true
+		}
+	}
 
 	values := map[string]interface{}{
-		"splunkAuditWebhook": map[string]interface{}{
-			"url":     url,
-			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
+		"clusterAudit": map[string]interface{}{
+			"enabled": clusterAuditEnabled,
 		},
 	}
 
@@ -489,11 +498,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	splunkAuditValues, err := getSplunkAuditChartValues(cpConfig, cluster, infrastructureConfig, vp.controllerConfig.SplunkAudit)
-	if err != nil {
-		return nil, err
-	}
-
 	accValues, err := getAccountingExporterChartValues(ctx, vp.client, vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
 	if err != nil {
 		return nil, err
@@ -504,7 +508,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, authValues, splunkAuditValues, accValues, storageValues)
+	merge(chartValues, authValues, accValues, storageValues)
 
 	return chartValues, nil
 }
@@ -532,6 +536,11 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
 	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+	}
+
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
+	if err != nil {
+		return nil, err
 	}
 
 	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
@@ -566,6 +575,15 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
+	if vp.controllerConfig.ClusterAudit.Enabled {
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+			err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
+			if err != nil {
+				vp.logger.Error(err, "error deploying audittailer certs")
+			}
+		}
+	}
+
 	err = vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster)
 	if err != nil {
 		vp.logger.Error(err, "error deploying droptailer certs")
@@ -578,13 +596,10 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	secret, err := vp.getSecret(ctx, namespace, metal.SplunkAuditWebhookServerName)
+	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
 	if err != nil {
 		return nil, err
 	}
-	splunkCABundle := base64.StdEncoding.EncodeToString(secret.Data[secrets.DataKeyCertificateCA])
-
-	splunkURL := fmt.Sprintf("https://%s.%s.svc.cluster.local/audit", metal.SplunkAuditWebhookDeploymentName, namespace)
 
 	fwSpec, err := vp.getFirewallSpec(ctx, cp, cluster)
 	if err != nil {
@@ -600,6 +615,16 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
+	clusterAuditEnabled := false
+	if vp.controllerConfig.ClusterAudit.Enabled {
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+			clusterAuditEnabled = true
+		}
+	}
+	clusterAuditValues := map[string]interface{}{
+		"enabled": clusterAuditEnabled,
+	}
+
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"firewallSpec":      fwSpec,
@@ -609,12 +634,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"accountingExporter": map[string]interface{}{
 			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
 		},
-		"splunkAuditWebhook": map[string]interface{}{
-			"enabled": vp.controllerConfig.SplunkAudit.Enabled,
-			"url":     splunkURL,
-			"ca":      splunkCABundle,
-		},
-		"duros": durosValues,
+		"duros":        durosValues,
+		"clusterAudit": clusterAuditValues,
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
@@ -753,6 +774,84 @@ func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace stri
 	}
 
 	spec.Signature = signature
+	return nil
+}
+
+func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
+	// TODO: There is actually no nice way to deploy the certs into the shoot when we want to use
+	// the certificate helper functions from Gardener itself...
+	// Maybe we can find a better solution? This is actually only for chart values...
+
+	wanted := &secrets.Secrets{
+		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
+			v1alpha1constants.SecretNameCACluster: {
+				Name:       v1alpha1constants.SecretNameCACluster,
+				CommonName: "kubernetes",
+				CertType:   secrets.CACert,
+			},
+		},
+		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
+			return []secrets.ConfigInterface{
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         metal.AudittailerClientSecretName,
+						CommonName:   "audittailer",
+						DNSNames:     []string{"audittailer"},
+						Organization: []string{"audittailer-client"},
+						CertType:     secrets.ClientCert,
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+					},
+				},
+				&secrets.ControlPlaneSecretConfig{
+					CertificateSecretConfig: &secrets.CertificateSecretConfig{
+						Name:         metal.AudittailerServerSecretName,
+						CommonName:   "audittailer",
+						DNSNames:     []string{"audittailer"},
+						Organization: []string{"audittailer-server"},
+						CertType:     secrets.ServerCert,
+						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+					},
+				},
+			}
+		},
+	}
+
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot client")
+	}
+
+	cs, err := kubernetes.NewForConfig(shootConfig)
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot kubernetes client")
+	}
+	gcs, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(shootConfig))
+	if err != nil {
+		return errors.Wrap(err, "could not create shoot Gardener client")
+	}
+
+	_, err = cs.CoreV1().Namespaces().Get(ctx, metal.AudittailerNamespace, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			ns := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: metal.AudittailerNamespace,
+				},
+			}
+			_, err := cs.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
+			if err != nil {
+				return errors.Wrap(err, "could not create audittailer namespace")
+			}
+		} else {
+			return errors.Wrap(err, "could not search for existence of audittailer namespace")
+		}
+	}
+
+	_, err = wanted.Deploy(ctx, cs, gcs, metal.AudittailerNamespace)
+	if err != nil {
+		return errors.Wrap(err, "could not deploy audittailer secrets to shoot cluster")
+	}
+
 	return nil
 }
 
@@ -985,29 +1084,6 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 		"groupRolebindingController": map[string]interface{}{
 			"enabled":     config.Enabled,
 			"clusterName": clusterName,
-		},
-	}
-
-	return values, nil
-}
-
-// returns values for "splunk-audit-webhook"
-func getSplunkAuditChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, config config.SplunkAudit) (map[string]interface{}, error) {
-	var srcHost string
-	if cluster.Shoot.Spec.DNS != nil && cluster.Shoot.Spec.DNS.Domain != nil {
-		srcHost = *cluster.Shoot.Spec.DNS.Domain
-	} else {
-		return nil, fmt.Errorf("shoot does not have a DNS domain, which is required for splunk logging")
-	}
-
-	values := map[string]interface{}{
-		"splunkAuditWebhook": map[string]interface{}{
-			"enabled": config.Enabled,
-			"srcHost": srcHost,
-			"hecEndpoint": map[string]interface{}{
-				"url":   config.HecURL,
-				"token": config.HecToken,
-			},
 		},
 	}
 

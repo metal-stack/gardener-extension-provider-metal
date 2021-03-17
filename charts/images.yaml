@@ -11,6 +11,14 @@ images:
   sourceRepository: https://github.com/metal-stack/machine-controller-manager-provider-metal
   repository: ghcr.io/metal-stack/machine-controller-manager-provider-metal
   tag: "v0.1.5"
+- name: auditforwarder
+  sourceRepository: https://github.com/metal-stack/audit-forwarder
+  repository: ghcr.io/metal-stack/audit-forwarder
+  tag: "v0.1.0"
+- name: audittailer
+  sourceRepository: https://github.com/fluent/fluentd
+  repository: fluent/fluentd
+  tag: "v1.12"
 - name: droptailer
   sourceRepository: github.com/metal-stack/droptailer
   repository: ghcr.io/metal-stack/droptailer
@@ -31,10 +39,6 @@ images:
   sourceRepository: https://github.com/metallb/metallb
   repository: metallb/controller
   tag: "v0.8.3"
-- name: splunk-audit-webhook
-  sourceRepository: https://github.com/metal-stack/kubernetes-splunk-audit-webhook
-  repository: ghcr.io/metal-stack/kubernetes-splunk-audit-webhook
-  tag: "v0.1.4"
 - name: duros-controller
   sourceRepository: https://github.com/metal-stack/duros-controller
   repository: ghcr.io/metal-stack/duros-controller
