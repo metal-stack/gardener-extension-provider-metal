@@ -51,6 +51,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, ectx generi
 		cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
 		if err != nil {
 			logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
+			return err
 		}
 		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
 			makeAuditForwarder = true
