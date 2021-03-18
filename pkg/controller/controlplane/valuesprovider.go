@@ -493,7 +493,18 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth)
+	metalEndpoint := metalControlPlane.Endpoint
+	metalCredentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+	ma := metalAccess{
+		url:          metalEndpoint,
+		hmac:         metalCredentials.MetalAPIHMac,
+		hmacAuthType: "", // currently default is used
+		apiToken:     metalCredentials.MetalAPIKey,
+	}
+	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth, ma)
 	if err != nil {
 		return nil, err
 	}
@@ -1060,8 +1071,15 @@ func getCCMChartValues(
 	return values, nil
 }
 
+type metalAccess struct {
+	url          string
+	hmac         string
+	hmacAuthType string
+	apiToken     string
+}
+
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth) (map[string]interface{}, error) {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth, metalAccess metalAccess) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
@@ -1078,6 +1096,12 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 			"oidc": map[string]interface{}{
 				"issuerUrl":      ti.Url,
 				"issuerClientId": ti.ClientId,
+			},
+			"metalapi": map[string]interface{}{
+				"url":            metalAccess.url,
+				"hmac":           metalAccess.hmac,
+				"hmac_auth_type": metalAccess.hmacAuthType,
+				"apitoken":       metalAccess.apiToken,
 			},
 		},
 
