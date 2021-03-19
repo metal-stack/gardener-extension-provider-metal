@@ -488,17 +488,22 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
+	p, err := mclient.ProjectGet(infrastructureConfig.ProjectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not retrieve project from metal-api")
+	}
+
 	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
 	if err != nil {
 		return nil, err
 	}
 
-	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth)
+	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, p.Project, vp.controllerConfig.Auth)
 	if err != nil {
 		return nil, err
 	}
 
-	accValues, err := getAccountingExporterChartValues(ctx, vp.client, vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, mclient)
+	accValues, err := getAccountingExporterChartValues(ctx, vp.client, vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, p.Project)
 	if err != nil {
 		return nil, err
 	}
@@ -1061,18 +1066,17 @@ func getCCMChartValues(
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth) (map[string]interface{}, error) {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, p *models.V1ProjectResponse, config config.Auth) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
-	tenant := annotations[tag.ClusterTenant]
 
 	ti := cpConfig.IAMConfig.IssuerConfig
 
 	values := map[string]interface{}{
 		"authnWebhook": map[string]interface{}{
 			"enabled":        config.Enabled,
-			"tenant":         tenant,
+			"tenant":         p.TenantID,
 			"providerTenant": config.ProviderTenant,
 			"clusterName":    clusterName,
 			"oidc": map[string]interface{}{
@@ -1090,13 +1094,12 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	return values, nil
 }
 
-func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, p *models.V1ProjectResponse) (map[string]interface{}, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	partitionID := infrastructure.PartitionID
 	projectID := infrastructure.ProjectID
 	clusterID := cluster.Shoot.ObjectMeta.UID
 	clusterName := annotations[tag.ClusterName]
-	tenant := annotations[tag.ClusterTenant]
 
 	if accountingConfig.Enabled {
 		cp := &firewallv1.ClusterwideNetworkPolicy{
@@ -1142,9 +1145,9 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 			},
 			"enrichments": map[string]interface{}{
 				"partitionID": partitionID,
-				"tenant":      tenant,
+				"tenant":      p.TenantID,
 				"projectID":   projectID,
-				"projectName": "FIXME", // has to be retrieved from metal-api project
+				"projectName": p.Name,
 				"clusterName": clusterName,
 				"clusterID":   clusterID,
 			},
