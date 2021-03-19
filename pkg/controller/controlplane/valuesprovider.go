@@ -1144,6 +1144,7 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 				"partitionID": partitionID,
 				"tenant":      tenant,
 				"projectID":   projectID,
+				"projectName": "FIXME", // has to be retrieved from metal-api project
 				"clusterName": clusterName,
 				"clusterID":   clusterID,
 			},

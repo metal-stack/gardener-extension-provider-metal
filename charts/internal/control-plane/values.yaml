@@ -51,6 +51,7 @@ accountingExporter:
   enabled: false
   enrichments:
     projectID: project-id
+    projectName: project-name
     partitionID: partition-id
     tenant: some-tenant
     clusterID: cluster-id
