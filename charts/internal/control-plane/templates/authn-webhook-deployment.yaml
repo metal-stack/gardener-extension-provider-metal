@@ -57,6 +57,26 @@ spec:
           value: {{ .Values.authnWebhook.clusterName }}
         - name: DEBUG
           value: {{ quote .Values.authnWebhook.debug }}
+        - name: METAL_URL
+          valueFrom:
+            secretKeyRef:
+              name: kube-jwt-authn-webhook-metalapi-secret
+              key: metalapi-url
+        - name: METAL_HMAC
+          valueFrom:
+            secretKeyRef:
+              name: kube-jwt-authn-webhook-metalapi-secret
+              key: metalapi-hmac
+        - name: METAL_HMACAUTHTYPE
+          valueFrom:
+            secretKeyRef:
+              name: kube-jwt-authn-webhook-metalapi-secret
+              key: metalapi-authtype
+        - name: METAL_APITOKEN
+          valueFrom:
+            secretKeyRef:
+              name: kube-jwt-authn-webhook-metalapi-secret
+              key: metalapi-apitoken
         volumeMounts:
         - name: webhook-certs
           mountPath: /etc/webhook/certs
@@ -66,6 +86,18 @@ spec:
         secret:
             secretName: kube-jwt-authn-webhook-server
       restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kube-jwt-authn-webhook-metalapi-secret
+  namespace: {{ .Release.Namespace }}
+data:
+  metalapi-url: {{ required ".Values.authnWebhook.metalapi.url is required" (b64enc .Values.authnWebhook.metalapi.url) }}
+  metalapi-hmac: {{ required ".Values.authnWebhook.metalapi.hmac is required" (b64enc .Values.authnWebhook.metalapi.hmac) }}
+  metalapi-authtype: {{ required ".Values.authnWebhook.metalapi.hmac_auth_type is required" (b64enc .Values.authnWebhook.metalapi.hmac_auth_type) }}
+  metalapi-apitoken: {{ required ".Values.authnWebhook.metalapi.apitoken is required" (b64enc .Values.authnWebhook.metalapi.apitoken) }}
 
 ---
 apiVersion: v1
