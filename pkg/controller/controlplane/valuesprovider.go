@@ -463,7 +463,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
+	metalCredentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+
+	mclient, err := metalclient.NewClientFromCredentials(metalControlPlane.Endpoint, metalCredentials)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +503,14 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, p.Project, vp.controllerConfig.Auth)
+	metalEndpoint := metalControlPlane.Endpoint
+	ma := metalAccess{
+		url:          metalEndpoint,
+		hmac:         metalCredentials.MetalAPIHMac,
+		hmacAuthType: "", // currently default is used
+		apiToken:     metalCredentials.MetalAPIKey,
+	}
+	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth, p.Project, ma)
 	if err != nil {
 		return nil, err
 	}
@@ -1065,8 +1077,15 @@ func getCCMChartValues(
 	return values, nil
 }
 
+type metalAccess struct {
+	url          string
+	hmac         string
+	hmacAuthType string
+	apiToken     string
+}
+
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, p *models.V1ProjectResponse, config config.Auth) (map[string]interface{}, error) {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth, p *models.V1ProjectResponse, metalAccess metalAccess) (map[string]interface{}, error) {
 
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
@@ -1082,6 +1101,12 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 			"oidc": map[string]interface{}{
 				"issuerUrl":      ti.Url,
 				"issuerClientId": ti.ClientId,
+			},
+			"metalapi": map[string]interface{}{
+				"url":            metalAccess.url,
+				"hmac":           metalAccess.hmac,
+				"hmac_auth_type": metalAccess.hmacAuthType,
+				"apitoken":       metalAccess.apiToken,
 			},
 		},
 
