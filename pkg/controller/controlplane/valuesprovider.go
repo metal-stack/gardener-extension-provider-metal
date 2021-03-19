@@ -463,7 +463,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
+	metalCredentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
+	if err != nil {
+		return nil, err
+	}
+
+	mclient, err := metalclient.NewClientFromCredentials(metalControlPlane.Endpoint, metalCredentials)
 	if err != nil {
 		return nil, err
 	}
@@ -494,10 +499,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	}
 
 	metalEndpoint := metalControlPlane.Endpoint
-	metalCredentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
-	if err != nil {
-		return nil, err
-	}
 	ma := metalAccess{
 		url:          metalEndpoint,
 		hmac:         metalCredentials.MetalAPIHMac,
