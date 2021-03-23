@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"time"
 
+	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -24,35 +26,24 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// MachineClassKind yields the name of the metal machine class.
+// MachineClassKind yields the name of the machine class.
 func (w *workerDelegate) MachineClassKind() string {
-	ootDeployment, err := w.isOOTDeployment()
-	if err != nil {
-		w.logger.Error(err, "could not determine if oot control plane feature gate is set, defaulting to old MCM deployment type")
-	}
-	if ootDeployment {
-		return "MachineClass"
-	}
-	return "MetalMachineClass"
+	return "MachineClass"
 }
 
-// MachineClassList yields a newly initialized MetalMachineClassList object.
+// MachineClass yields a newly initialized MachineClass object.
+func (w *workerDelegate) MachineClass() runtime.Object {
+	return &machinev1alpha1.MachineClass{}
+}
+
+// MachineClassList yields a newly initialized MachineClassList object.
 func (w *workerDelegate) MachineClassList() runtime.Object {
-	ootDeployment, err := w.isOOTDeployment()
-	if err != nil {
-		w.logger.Error(err, "could not determine if oot control plane feature gate is set, defaulting to old MCM deployment type")
-	}
-	if ootDeployment {
-		return &machinev1alpha1.MachineClassList{}
-	}
-	return &metalv1alpha1.MetalMachineClassList{}
+	return &machinev1alpha1.MachineClassList{}
 }
 
 func (w *workerDelegate) cleanupOldMachineClasses(ctx context.Context, namespace string, machineClassList runtime.Object, wantedMachineDeployments worker.MachineDeployments) error {
@@ -126,40 +117,14 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 		}
 	}
 
-	ootDeployment, err := w.isOOTDeployment()
-	if err != nil {
-		return err
+	// this can be removed in a future release
+	if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
+		w.logger.Info("unable to cleanup old metal machine classes by now, retrying later...", "error", err)
 	}
 
-	if ootDeployment {
-		// Delete any older version machine class CRs.
-		if err := w.cleanupOldMachineClasses(ctx, w.worker.Namespace, &metalv1alpha1.MetalMachineClassList{}, nil); err != nil {
-			w.logger.Info("unable to cleanup old metal machine classes by now, retrying later...", "error", err)
-		}
-	} else {
-		err := w.errorWhenAlreadyMigrated(ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	values := kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses, "deployOOT": ootDeployment})
+	values := kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses})
 
 	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", values)
-}
-
-func (w *workerDelegate) errorWhenAlreadyMigrated(ctx context.Context) error {
-	machines := &machinev1alpha1.MachineList{}
-	if err := w.client.List(ctx, machines, client.InNamespace(w.worker.Namespace)); err != nil {
-		return err
-	}
-	return meta.EachListItem(machines, func(machineObject runtime.Object) error {
-		machine := machineObject.(*machinev1alpha1.Machine)
-		if machine.Spec.Class.Kind == "MachineClass" {
-			return fmt.Errorf("cannot use legacy deployment method of MCM because machines were already migrated (at least partly), please enable worker feature gate for MCM OOT")
-		}
-		return nil
-	})
 }
 
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.

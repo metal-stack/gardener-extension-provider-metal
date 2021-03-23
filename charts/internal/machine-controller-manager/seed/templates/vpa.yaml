@@ -1,4 +1,3 @@
-{{- if .Values.deployOOT }}
 {{- if .Values.vpa.enabled }}
 apiVersion: autoscaling.k8s.io/v1beta2
 kind: VerticalPodAutoscaler
@@ -12,5 +11,4 @@ spec:
     name: machine-controller-manager
   updatePolicy:
     updateMode: {{ .Values.vpa.updatePolicy.updateMode | quote }}
-{{- end }}
 {{- end }}

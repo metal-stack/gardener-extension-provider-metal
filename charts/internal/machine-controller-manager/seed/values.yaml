@@ -19,5 +19,3 @@ vpa:
   enabled: true
   updatePolicy:
     updateMode: "Auto"
-
-deployOOT: false

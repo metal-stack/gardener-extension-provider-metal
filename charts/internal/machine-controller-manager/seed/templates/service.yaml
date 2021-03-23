@@ -1,4 +1,3 @@
-{{- if .Values.deployOOT }}
 ---
 apiVersion: v1
 kind: Service
@@ -18,4 +17,3 @@ spec:
   selector:
     app: kubernetes
     role: machine-controller-manager
-{{- end }}

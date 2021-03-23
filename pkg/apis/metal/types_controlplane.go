@@ -25,7 +25,7 @@ type ControlPlaneConfig struct {
 type ControlPlaneFeatures struct {
 	// MachineControllerManagerOOT enables the deployment of the out-of-tree machine controller manager.
 	// Once enabled this cannot be taken back.
-	// This will become default at some point in the future.
+	// Deprecated: This is now default and always on. Toggle does not have an effect anymore.
 	// +optional
 	MachineControllerManagerOOT *bool
 	// ClusterAudit enables the deployment of a non-null audit policy to the apiserver and the forwarding
