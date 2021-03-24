@@ -70,6 +70,7 @@ config:
       enabled: false
       seedConfig: {}
   imagePullSecret:
+    encodedDockerConfigJSON:
 
 gardener:
   seed:

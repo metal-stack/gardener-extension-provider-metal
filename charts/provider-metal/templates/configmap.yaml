@@ -59,7 +59,7 @@ data:
         seedConfig:
 {{ toYaml .Values.config.storage.duros.seedConfig | indent 12 }}
 {{- end }}
-{{- if .Values.config.imagePullSecret }}
+{{- if .Values.config.imagePullSecret.encodedDockerConfigJSON }}
     imagePullSecret:
-      dockerConfigJSON: {{ .Values.config.imagePullSecret | toJson | quote }}
+      encodedDockerConfigJSON: {{ .Values.config.imagePullSecret.encodedDockerConfigJSON }}
 {{- end }}

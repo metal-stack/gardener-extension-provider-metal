@@ -36,9 +36,9 @@ groupRolebindingController:
 authnWebhook:
   metalapi:
     url: https://metal-api
-    hmac: ""
+    hmac: ABC123
     hmac_auth_type: Metal-View
-    apitoken: ""
+    apitoken: ey123
 
   enabled: false
   port: 443
