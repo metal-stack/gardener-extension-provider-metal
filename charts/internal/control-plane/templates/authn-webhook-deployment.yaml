@@ -1,4 +1,16 @@
 {{- if .Values.authnWebhook.enabled }}
+{{- if .Values.imagePullSecret }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app: kube-jwt-authn-webhook-registry-credentials
+  name: kube-jwt-authn-webhook-registry-credentials
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: {{ b64enc .Values.imagePullSecret }}
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -27,6 +39,10 @@ spec:
         prometheus.io/path: /metrics
         prometheus.io/port: '2112'
     spec:
+{{- if .Values.imagePullSecret }}
+      imagePullSecrets:
+      - name: kube-jwt-authn-webhook-registry-credentials
+{{- end }}
       containers:
       - name: kubernetes-authn-webhook
         image: {{ index .Values.images "authn-webhook" }}
