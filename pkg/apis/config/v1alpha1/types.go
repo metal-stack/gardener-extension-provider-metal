@@ -161,6 +161,6 @@ type DurosSeedStorageClass struct {
 
 // ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 type ImagePullSecret struct {
-	// DockerConfigJSON contains the JSON content for the image pull secret
+	// DockerConfigJSON contains the already base64 encoded JSON content for the image pull secret
 	DockerConfigJSON string `json:"encodedDockerConfigJSON"`
 }
