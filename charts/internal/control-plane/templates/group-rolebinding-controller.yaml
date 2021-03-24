@@ -9,7 +9,7 @@ metadata:
   name: group-rolebinding-controller-registry-credentials
 type: kubernetes.io/dockerconfigjson
 data:
-  .dockerconfigjson: {{ b64enc .Values.imagePullSecret }}
+  .dockerconfigjson: {{ .Values.imagePullSecret }}
 {{- end }}
 ---
 apiVersion: apps/v1
