@@ -7,6 +7,7 @@ metadata:
   labels:
     app: group-rolebinding-controller-registry-credentials
   name: group-rolebinding-controller-registry-credentials
+  namespace: {{ .Release.Namespace }}
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: {{ .Values.imagePullSecret }}
