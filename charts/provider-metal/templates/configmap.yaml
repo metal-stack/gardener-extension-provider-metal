@@ -61,6 +61,5 @@ data:
 {{- end }}
 {{- if .Values.config.imagePullSecret }}
     imagePullSecret:
-      dockerConfigJSON:
-{{ .Values.config.imagePullSecret.dockerConfigJSON | indent 8 }}
+      dockerConfigJSON: {{ .Values.config.imagePullSecret | toJson | quote }}
 {{- end }}
