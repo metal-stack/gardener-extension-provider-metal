@@ -1,4 +1,17 @@
 {{- if .Values.authnWebhook.enabled }}
+{{- if .Values.imagePullSecret }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app: kube-jwt-authn-webhook-registry-credentials
+  name: kube-jwt-authn-webhook-registry-credentials
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: {{ .Values.imagePullSecret }}
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -27,6 +40,10 @@ spec:
         prometheus.io/path: /metrics
         prometheus.io/port: '2112'
     spec:
+{{- if .Values.imagePullSecret }}
+      imagePullSecrets:
+      - name: kube-jwt-authn-webhook-registry-credentials
+{{- end }}
       containers:
       - name: kubernetes-authn-webhook
         image: {{ index .Values.images "authn-webhook" }}
@@ -95,9 +112,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   metalapi-url: {{ required ".Values.authnWebhook.metalapi.url is required" (b64enc .Values.authnWebhook.metalapi.url) }}
-  metalapi-hmac: {{ required ".Values.authnWebhook.metalapi.hmac is required" (b64enc .Values.authnWebhook.metalapi.hmac) }}
-  metalapi-authtype: {{ required ".Values.authnWebhook.metalapi.hmac_auth_type is required" (b64enc .Values.authnWebhook.metalapi.hmac_auth_type) }}
-  metalapi-apitoken: {{ required ".Values.authnWebhook.metalapi.apitoken is required" (b64enc .Values.authnWebhook.metalapi.apitoken) }}
+  metalapi-hmac: {{ b64enc .Values.authnWebhook.metalapi.hmac }}
+  metalapi-authtype: {{ b64enc .Values.authnWebhook.metalapi.hmac_auth_type }}
+  metalapi-apitoken: {{ b64enc .Values.authnWebhook.metalapi.apitoken }}
 
 ---
 apiVersion: v1
