@@ -35,6 +35,9 @@ type ControllerConfiguration struct {
 
 	// Storage is the configuration for storage.
 	Storage StorageConfiguration `json:"storage,omitempty"`
+
+	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
+	ImagePullSecret *ImagePullSecret `json:"imagePullSecret,omitempty"`
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
@@ -154,4 +157,10 @@ type DurosSeedStorageClass struct {
 	ReplicaCount int `json:"replicaCount"`
 	// Compression enables compression for this storage class
 	Compression bool `json:"compression"`
+}
+
+// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
+type ImagePullSecret struct {
+	// DockerConfigJSON contains the already base64 encoded JSON content for the image pull secret
+	DockerConfigJSON string `json:"encodedDockerConfigJSON"`
 }

@@ -529,6 +529,10 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	merge(chartValues, authValues, accValues, storageValues)
 
+	if vp.controllerConfig.ImagePullSecret != nil {
+		chartValues["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
+	}
+
 	return chartValues, nil
 }
 

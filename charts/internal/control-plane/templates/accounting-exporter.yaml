@@ -1,4 +1,17 @@
 {{- if .Values.accountingExporter.enabled }}
+{{- if .Values.imagePullSecret }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app: accounting-exporter-registry-credentials
+  name: accounting-exporter-registry-credentials
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: {{ .Values.imagePullSecret }}
+{{- end }}
 ---
 apiVersion: v1
 kind: Secret
@@ -36,6 +49,10 @@ spec:
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
     spec:
+{{- if .Values.imagePullSecret }}
+      imagePullSecrets:
+      - name: accounting-exporter-registry-credentials
+{{- end }}
       containers:
       - image: {{ index .Values.images "accounting-exporter" }}
         imagePullPolicy: Always
