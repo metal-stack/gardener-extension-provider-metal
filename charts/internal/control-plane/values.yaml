@@ -42,7 +42,7 @@ authnWebhook:
 
   enabled: false
   port: 443
-  debug: true
+  debug: false
   tenant: some-tenant
   providerTenant: provider-tenant
   clusterName: cluster-name
