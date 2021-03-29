@@ -79,6 +79,8 @@ spec:
           value: {{ .Values.accountingExporter.enrichments.tenant }}
         - name: KUBE_COUNTER_PROJECT_ID
           value: {{ .Values.accountingExporter.enrichments.projectID }}
+        - name: KUBE_COUNTER_PROJECT_NAME
+          value: {{ .Values.accountingExporter.enrichments.projectName }}
         - name: KUBE_COUNTER_CLUSTER_ID
           value: {{ .Values.accountingExporter.enrichments.clusterID }}
         - name: KUBE_COUNTER_CLUSTER_NAME

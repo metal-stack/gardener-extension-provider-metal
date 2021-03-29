@@ -42,7 +42,7 @@ authnWebhook:
 
   enabled: false
   port: 443
-  debug: true
+  debug: false
   tenant: some-tenant
   providerTenant: provider-tenant
   clusterName: cluster-name
@@ -57,6 +57,7 @@ accountingExporter:
   enabled: false
   enrichments:
     projectID: project-id
+    projectName: project-name
     partitionID: partition-id
     tenant: some-tenant
     clusterID: cluster-id
