@@ -91,3 +91,5 @@ duros:
     - ip:port
     adminKey: KEY
     adminToken: tok
+
+imagePullSecret:
