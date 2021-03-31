@@ -617,7 +617,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	fwSpec, err := vp.getFirewallSpec(ctx, infrastructure, cluster, mclient)
+	fwSpec, err := vp.getFirewallSpec(ctx, infrastructure, cluster, nws, mclient)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not assemble firewall values")
 	}
@@ -676,7 +676,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallSpec(ctx context.Context, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient *metalgo.Driver) (*firewallv1.FirewallSpec, error) {
+func (vp *valuesProvider) getFirewallSpec(ctx context.Context, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient *metalgo.Driver) (*firewallv1.FirewallSpec, error) {
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
@@ -711,6 +711,24 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, infrastructureCon
 	firewall := *firewalls[0]
 	firewallNetworks := []firewallv1.FirewallNetwork{}
 	for _, n := range firewall.Allocation.Networks {
+		if n.Networkid == nil {
+			continue
+		}
+		n := n
+
+		// prefixes in the firewall machine allocation are just a snapshot when the firewall was created.
+		// -> when changing prefixes in the referenced network the firewall does not know about any prefix changes.
+		//
+		// we replace the prefixes from the snapshot with the actual prefixes that are currently attached to the network.
+		// this allows dynamic prefix reconfiguration of the firewall.
+		prefixes := n.Prefixes
+		networkRef, ok := nws[*n.Networkid]
+		if !ok {
+			vp.logger.Info("network in firewall allocation does not exist anymore")
+		} else {
+			prefixes = networkRef.Prefixes
+		}
+
 		firewallNetworks = append(firewallNetworks, firewallv1.FirewallNetwork{
 			Asn:                 n.Asn,
 			Destinationprefixes: n.Destinationprefixes,
@@ -718,7 +736,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, infrastructureCon
 			Nat:                 n.Nat,
 			Networkid:           n.Networkid,
 			Networktype:         n.Networktype,
-			Prefixes:            n.Prefixes,
+			Prefixes:            prefixes,
 			Vrf:                 n.Vrf,
 		})
 	}
