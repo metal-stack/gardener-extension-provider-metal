@@ -1,4 +1,3 @@
-{{- if .Values.deployOOT }}
 {{- range $index, $machineClass := .Values.machineClasses }}
 ---
 apiVersion: v1
@@ -36,5 +35,4 @@ secretRef:
   name: {{ $machineClass.name }}
   namespace: {{ $.Release.Namespace }}
 provider: metal
-{{- end }}
 {{- end }}

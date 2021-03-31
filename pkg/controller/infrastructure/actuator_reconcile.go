@@ -63,9 +63,7 @@ type firewallReconcileAction string
 
 const (
 	firewallControllerName = "firewall-controller"
-	// firewallPolicyControllerNameCompatibility TODO can be removed in a future version when all firewalls migrated to firewall-controller
-	firewallPolicyControllerNameCompatibility = "firewall-policy-controller"
-	droptailerClientName                      = "droptailer"
+	droptailerClientName   = "droptailer"
 )
 
 var (
@@ -349,12 +347,12 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 		return err
 	}
 
-	kubeconfig, kubeconfigCompatibility, err := createFirewallControllerKubeconfig(ctx, r)
+	kubeconfig, err := createFirewallControllerKubeconfig(ctx, r)
 	if err != nil {
 		return err
 	}
 
-	firewallUserData, err := renderFirewallUserData(kubeconfig, kubeconfigCompatibility)
+	firewallUserData, err := renderFirewallUserData(kubeconfig)
 	if err != nil {
 		return err
 	}
@@ -559,7 +557,7 @@ func ensureNodeNetwork(ctx context.Context, r *firewallReconciler) (string, erro
 	return nodeCIDR, nil
 }
 
-func createFirewallControllerKubeconfig(ctx context.Context, r *firewallReconciler) (string, string, error) {
+func createFirewallControllerKubeconfig(ctx context.Context, r *firewallReconciler) (string, error) {
 	apiServerURL := fmt.Sprintf("api.%s", *r.cluster.Shoot.Spec.DNS.Domain)
 	infrastructureSecrets := &secrets.Secrets{
 		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
@@ -584,43 +582,24 @@ func createFirewallControllerKubeconfig(ctx context.Context, r *firewallReconcil
 						APIServerURL: apiServerURL,
 					},
 				},
-				// TODO: can be removed in a future version
-				&secrets.ControlPlaneSecretConfig{
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         firewallPolicyControllerNameCompatibility,
-						CommonName:   fmt.Sprintf("system:%s", firewallPolicyControllerNameCompatibility),
-						Organization: []string{firewallPolicyControllerNameCompatibility},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-					},
-					KubeConfigRequest: &secrets.KubeConfigRequest{
-						ClusterName:  clusterName,
-						APIServerURL: apiServerURL,
-					},
-				},
 			}
 		},
 	}
 
 	secret, err := infrastructureSecrets.Deploy(ctx, r.clientset, r.gc, r.infrastructure.Namespace)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	kubeconfig, ok := secret[firewallControllerName].Data[secrets.DataKeyKubeconfig]
 	if !ok {
-		return "", "", fmt.Errorf("kubeconfig not part of generated firewall controller secret")
+		return "", fmt.Errorf("kubeconfig not part of generated firewall controller secret")
 	}
 
-	kubeconfigCompatibility, ok := secret[firewallPolicyControllerNameCompatibility].Data[secrets.DataKeyKubeconfig]
-	if !ok {
-		return "", "", fmt.Errorf("kubeconfig not part of generated firewall policy controller secret")
-	}
-
-	return string(kubeconfig), string(kubeconfigCompatibility), nil
+	return string(kubeconfig), nil
 }
 
-func renderFirewallUserData(kubeconfig, kubeconfigCompatibility string) (string, error) {
+func renderFirewallUserData(kubeconfig string) (string, error) {
 	cfg := types.Config{}
 	cfg.Systemd = types.Systemd{}
 
@@ -630,19 +609,13 @@ func renderFirewallUserData(kubeconfig, kubeconfigCompatibility string) (string,
 		Enable:  enabled,
 		Enabled: &enabled,
 	}
-	// TODO can be removed in a future version
-	fpcUnitCompatibility := types.SystemdUnit{
-		Name:    fmt.Sprintf("%s.service", firewallPolicyControllerNameCompatibility),
-		Enable:  enabled,
-		Enabled: &enabled,
-	}
 	dcUnit := types.SystemdUnit{
 		Name:    fmt.Sprintf("%s.service", droptailerClientName),
 		Enable:  enabled,
 		Enabled: &enabled,
 	}
 
-	cfg.Systemd.Units = append(cfg.Systemd.Units, fcUnit, fpcUnitCompatibility, dcUnit)
+	cfg.Systemd.Units = append(cfg.Systemd.Units, fcUnit, dcUnit)
 
 	cfg.Storage = types.Storage{}
 
@@ -662,22 +635,7 @@ func renderFirewallUserData(kubeconfig, kubeconfigCompatibility string) (string,
 			Inline: string(kubeconfig),
 		},
 	}
-	// TODO can be removed in a future version
-	ignitionFileCompatibility := types.File{
-		Path:       "/etc/firewall-policy-controller/.kubeconfig",
-		Filesystem: "root",
-		Mode:       &mode,
-		User: &types.FileUser{
-			Id: &id,
-		},
-		Group: &types.FileGroup{
-			Id: &id,
-		},
-		Contents: types.FileContents{
-			Inline: string(kubeconfigCompatibility),
-		},
-	}
-	cfg.Storage.Files = append(cfg.Storage.Files, ignitionFile, ignitionFileCompatibility)
+	cfg.Storage.Files = append(cfg.Storage.Files, ignitionFile)
 
 	outCfg, report := types.Convert(cfg, "", nil)
 	if report.IsFatal() {

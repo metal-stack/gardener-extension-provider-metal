@@ -1,4 +1,3 @@
-{{- if .Values.deployOOT }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -12,4 +11,3 @@ roleRef:
 subjects:
 - kind: User
   name: system:machine-controller-manager
-{{- end }}
