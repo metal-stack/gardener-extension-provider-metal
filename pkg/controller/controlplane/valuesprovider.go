@@ -590,7 +590,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		nws[*n.ID] = n
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cluster, nws, infrastructureConfig)
+	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cpConfig, cluster, nws, infrastructureConfig, mclient)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -614,15 +614,10 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
-	if err != nil {
-		return nil, err
-	}
-
-	fwSpec, err := vp.getFirewallSpec(ctx, cp, cluster)
+	fwSpec, err := vp.getFirewallSpec(ctx, infrastructure, cluster, mclient)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not assemble firewall values")
 	}
@@ -681,40 +676,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallSpec(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (*firewallv1.FirewallSpec, error) {
+func (vp *valuesProvider) getFirewallSpec(ctx context.Context, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient *metalgo.Driver) (*firewallv1.FirewallSpec, error) {
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
-	}
-
-	infrastructureConfig := &apismetal.InfrastructureConfig{}
-	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
-		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
-	}
-
-	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
-	if err != nil {
-		return nil, err
-	}
-
-	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
-	if err != nil {
-		return nil, err
-	}
-
-	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
-	if err != nil {
-		return nil, err
-	}
-
-	cpConfig.IAMConfig, err = helper.MergeIAMConfig(metalControlPlane.IAMConfig, cpConfig.IAMConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
-	if err != nil {
-		return nil, err
 	}
 
 	rateLimits := []firewallv1.RateLimit{}
