@@ -88,19 +88,13 @@ spec:
             memory: 1Mi
       initContainers:
       - name: node-init
-        image: busybox:stable
+        image: ghcr.io/metal-stack/node-init:latest
         env:
         - name: KUBE_NODE_NAME
           valueFrom:
             fieldRef:
               apiVersion: v1
               fieldPath: spec.nodeName
-        command: ['sh', '-c', "\
-          wget -qO /tmp/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.20.0/bin/linux/amd64/kubectl ; \
-          chmod 755 /tmp/kubectl; \
-          POD_CIDR=$(/tmp/kubectl get node $KUBE_NODE_NAME -o jsonpath='{.spec.podCIDR}'); \
-          ip route add $POD_CIDR dev lo || true;\
-        "]
         securityContext:
           privileged: true
       hostNetwork: true
