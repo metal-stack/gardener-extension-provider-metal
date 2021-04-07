@@ -78,15 +78,6 @@ spec:
       serviceAccount: node-init
       serviceAccountName: node-init
       containers:
-      - name: node-init-pause
-        image: k8s.gcr.io/pause:3.3
-        securityContext:
-          privileged: true
-        resources:
-          requests:
-            cpu: 0m
-            memory: 1Mi
-      initContainers:
       - name: node-init
         image: ghcr.io/metal-stack/node-init:latest
         env:
