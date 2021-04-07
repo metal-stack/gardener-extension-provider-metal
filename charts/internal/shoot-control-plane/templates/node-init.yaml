@@ -78,6 +78,7 @@ spec:
       serviceAccount: node-init
       serviceAccountName: node-init
       containers:
+      # TODO: add to image vector
       - name: node-init
         image: ghcr.io/metal-stack/node-init:latest
         env:
