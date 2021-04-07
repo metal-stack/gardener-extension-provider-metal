@@ -9,8 +9,8 @@ kind: PodSecurityPolicy
 metadata:
   name: node-init
 spec:
-  allowPrivilegeEscalation: true
-  privileged: true
+  allowedCapabilities:
+  - NET_ADMIN
   fsGroup:
     rule: RunAsAny
   runAsUser:
@@ -87,5 +87,7 @@ spec:
               apiVersion: v1
               fieldPath: spec.nodeName
         securityContext:
-          privileged: true
+          capabilities:
+            add:
+              - NET_ADMIN
       hostNetwork: true
