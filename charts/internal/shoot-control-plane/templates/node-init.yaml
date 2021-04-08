@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-init
+  namespace: kube-system
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: node-init
+spec:
+  allowedCapabilities:
+  - NET_ADMIN
+  fsGroup:
+    rule: RunAsAny
+  runAsUser:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  volumes:
+  - secret
+  hostNetwork: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube-system:node-init
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - watch
+  - list
+  - get
+- apiGroups:
+  - extensions
+  resources:
+  - podsecuritypolicies
+  resourceNames:
+  - node-init
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube-system:node-init
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube-system:node-init
+subjects:
+- apiGroup: ""
+  kind: ServiceAccount
+  name: node-init
+  namespace: kube-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-init
+  namespace: kube-system
+  labels:
+    app: node-init
+spec:
+  selector:
+    matchLabels:
+      app: node-init
+  template:
+    metadata:
+      labels:
+        app: node-init
+    spec:
+      serviceAccount: node-init
+      serviceAccountName: node-init
+      containers:
+      # TODO: add to image vector
+      - name: node-init
+        image: ghcr.io/metal-stack/node-init:latest
+        env:
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+      hostNetwork: true

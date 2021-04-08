@@ -240,6 +240,13 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:controller:cloud-node-controller"},
 		{Type: &rbacv1.ClusterRole{}, Name: "cloud-controller-manager"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "cloud-controller-manager"},
+
+		// node-init
+		{Type: &corev1.ServiceAccount{}, Name: "node-init"},
+		{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "node-init"},
+		{Type: &rbacv1.ClusterRole{}, Name: "kube-system:node-init"},
+		{Type: &rbacv1.ClusterRoleBinding{}, Name: "kube-system:node-init"},
+		{Type: &appsv1.DaemonSet{}, Name: "node-init"},
 	},
 }
 
