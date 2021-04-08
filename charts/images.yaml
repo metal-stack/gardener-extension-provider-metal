@@ -46,7 +46,7 @@ images:
 # firewall-controller tag must be semver compatible with golang dependency!
 - name: firewall-controller
   sourceRepository: https://github.com/metal-stack/firewall-controller
-  tag: "v1.0.1"
+  tag: "v1.0.2"
 
 # can be provided via image override:
 # - name: authn-webhook
