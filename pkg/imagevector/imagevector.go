@@ -12,8 +12,8 @@ import (
 var imageVector imagevector.ImageVector
 
 func init() {
-
-	imageVector, err := imagevector.Read(strings.NewReader(charts.ImagesYAML))
+	var err error
+	imageVector, err = imagevector.Read(strings.NewReader(charts.ImagesYAML))
 	runtime.Must(err)
 
 	imageVector, err = imagevector.WithEnvOverride(imageVector)
