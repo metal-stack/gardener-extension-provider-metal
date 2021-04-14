@@ -138,6 +138,15 @@ var (
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
+	konnectivityUdsVolumeMount = corev1.VolumeMount{
+		Name:      "konnectivity-uds",
+		MountPath: "/konnectivity-uds",
+		ReadOnly:  false,
+	}
+	konnectivityEnvVar = corev1.EnvVar{
+		Name:  "AUDIT_KONNECTIVITY_UDS_SOCKET",
+		Value: "/konnectivity-uds/konnectivity-server.socket",
+	}
 	auditForwarderSidecar = corev1.Container{
 		Name: "auditforwarder",
 		// Image:   // is added from the image vector in the ensure function
@@ -235,6 +244,15 @@ func ensureAuditForwarder(ps *corev1.PodSpec, controllerConfig config.Controller
 		return err
 	}
 	auditForwarderSidecar.Image = auditForwarderImage.String()
+
+	for _, volume := range ps.Volumes {
+		if volume.Name == "konnectivity-uds" {
+			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount)
+			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, konnectivityEnvVar)
+			break
+		}
+	}
+
 	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
 	return nil
 }
