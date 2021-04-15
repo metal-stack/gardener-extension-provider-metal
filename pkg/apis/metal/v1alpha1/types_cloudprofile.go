@@ -21,7 +21,7 @@ type MetalControlPlane struct {
 	Endpoint string `json:"endpoint"`
 	// IAMConfig contains the config for all AuthN/AuthZ related components, can be overriden in shoots control plane config
 	// +optional
-	IAMConfig *IAMConfig `json:"iamconfig"`
+	IAMConfig *IAMConfig `json:"iamconfig,omitempty"`
 	// Partitions is a map of a region name from the regions defined in the cloud profile to region-specific control plane settings
 	Partitions map[string]Partition `json:"partitions"`
 	// FirewallImages is a list of available firewall images in this control plane.
