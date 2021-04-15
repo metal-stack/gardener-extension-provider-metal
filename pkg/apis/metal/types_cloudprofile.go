@@ -20,6 +20,7 @@ type MetalControlPlane struct {
 	// Endpoint is the endpoint to the metal-api of the control plane
 	Endpoint string
 	// IAMConfig contains the config for all AuthN/AuthZ related components, can be overriden in shoots control plane config
+	// +optional
 	IAMConfig *IAMConfig
 	// Partitions is a map of a region name from the regions defined in the cloud profile to region-specific control plane settings
 	Partitions map[string]Partition
