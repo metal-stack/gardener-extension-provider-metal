@@ -60,7 +60,7 @@ func (v *Shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 		return err
 	}
 
-	controlPlaneConfig.IAMConfig, err = helper.MergeIAMConfig(controlPlaneConfig.IAMConfig, metalControlPlane.IAMConfig)
+	controlPlaneConfig.IAMConfig, err = helper.MergeIAMConfig(metalControlPlane.IAMConfig, controlPlaneConfig.IAMConfig)
 	if err != nil {
 		return err
 	}
