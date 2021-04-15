@@ -15,7 +15,8 @@ type ControlPlaneConfig struct {
 	CloudControllerManager *CloudControllerManagerConfig `json:"cloudControllerManager,omitempty"`
 
 	// IAMConfig contains the config for all AuthN/AuthZ related components
-	IAMConfig *IAMConfig `json:"iamconfig" optional:"false"`
+	// +optional
+	IAMConfig *IAMConfig `json:"iamconfig,omitempty"`
 
 	// FeatureGates contains feature gates for the control plane.
 	FeatureGates ControlPlaneFeatures `json:"featureGates,omitempty"`
