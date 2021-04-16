@@ -84,7 +84,6 @@ revendor:
 	@GO111MODULE=on go mod tidy
 	@chmod +x $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/*
 	@chmod +x $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/.ci/*
-	@patch -p0 -d $(REPO_ROOT) -f <hack/gardener-install-requirements.patch
 	@$(REPO_ROOT)/hack/update-github-templates.sh
 
 .PHONY: clean
