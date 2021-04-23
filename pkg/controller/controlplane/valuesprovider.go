@@ -338,6 +338,7 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 		cpShootChart.Images = append(cpShootChart.Images, []string{metal.AudittailerImageName}...)
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 			// audittailer
+			{Type: &corev1.Namespace{}, Name: "audit"},
 			{Type: &appsv1.Deployment{}, Name: "audittailer"},
 			{Type: &corev1.ConfigMap{}, Name: "audittailer-config"},
 			{Type: &corev1.Service{}, Name: "audittailer"},
