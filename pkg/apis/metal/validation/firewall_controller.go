@@ -1,12 +1,14 @@
 package validation
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/blang/semver"
 	"github.com/gardener/gardener/pkg/utils/imagevector"
-	"github.com/metal-stack/firewall-controller/pkg/updater"
+	"github.com/google/go-github/github"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -17,6 +19,9 @@ var (
 	ErrSpecVersionUndefined = fmt.Errorf("firewall-controller version was not specified in the spec")
 	ErrNoSemver             = fmt.Errorf("firewall-controller versions must adhere to semver spec")
 	ErrControllerTooOld     = fmt.Errorf("firewall-controller on machine is too old")
+
+	ghclient      = github.NewClient(nil)
+	versionsCache = make(map[string]bool)
 )
 
 func ValidateFirewallControllerVersion(iv imagevector.ImageVector, specVersion string) (string, error) {
@@ -25,12 +30,51 @@ func ValidateFirewallControllerVersion(iv imagevector.ImageVector, specVersion s
 		return "", err
 	}
 
-	_, err = updater.DetermineGithubAsset(versionTag)
+	err = isFirewallControllerVersionValid(versionTag)
 	if err != nil {
-		return "", fmt.Errorf("firewall-controller version must be a github release but version %v was not found", versionTag)
+		return "", err
 	}
 
 	return versionTag, nil
+}
+
+func isFirewallControllerVersionValid(versionTag string) error {
+	if versionsCache[versionTag] {
+		return nil
+	}
+
+	releases, _, err := ghclient.Repositories.ListReleases(context.Background(), "metal-stack", "firewall-controller", &github.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, "unable to list github firewall-controller releases")
+	}
+
+	var rel *github.RepositoryRelease
+	for _, r := range releases {
+		if r.TagName != nil && *r.TagName == versionTag {
+			rel = r
+			break
+		}
+	}
+
+	if rel == nil {
+		return fmt.Errorf("could not find release with tag %s", versionTag)
+	}
+
+	var asset *github.ReleaseAsset
+	for _, ra := range rel.Assets {
+		if ra.GetName() == "firewall-controller" {
+			asset = &ra
+			break
+		}
+	}
+
+	if asset == nil {
+		return fmt.Errorf("could not find artifact %q in github release with tag %s", "firewall-controller", versionTag)
+	}
+
+	versionsCache[versionTag] = true
+
+	return nil
 }
 
 func validateFirewallControllerVersionWithoutGithub(iv imagevector.ImageVector, specVersion string) (string, error) {
