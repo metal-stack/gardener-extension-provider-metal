@@ -1,6 +1,6 @@
 module github.com/metal-stack/gardener-extension-provider-metal
 
-go 1.15
+go 1.16
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
@@ -18,7 +18,7 @@ require (
 	github.com/gardener/gardener v1.16.5
 	github.com/gardener/machine-controller-manager v0.36.0
 	github.com/go-logr/logr v0.4.0
-	github.com/gobuffalo/packr/v2 v2.8.0
+	github.com/gobuffalo/packr/v2 v2.5.1
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.5
 	github.com/google/go-github v17.0.0+incompatible
