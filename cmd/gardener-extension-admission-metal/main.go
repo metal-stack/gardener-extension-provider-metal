@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/metal-stack/gardener-extension-provider-metal/cmd/gardener-extension-provider-metal/app"
+	"github.com/metal-stack/gardener-extension-provider-metal/cmd/gardener-extension-admission-metal/app"
 
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"github.com/gardener/gardener/extensions/pkg/log"
@@ -11,9 +11,9 @@ import (
 
 func main() {
 	runtimelog.SetLogger(log.ZapLogger(false))
-	cmd := app.NewControllerManagerCommand(signals.SetupSignalHandler())
+	cmd := app.NewAdmissionCommand(signals.SetupSignalHandler())
 
 	if err := cmd.Execute(); err != nil {
-		controllercmd.LogErrAndExit(err, "error executing the main controller command")
+		controllercmd.LogErrAndExit(err, "error executing the main command")
 	}
 }

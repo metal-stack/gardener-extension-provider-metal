@@ -17,7 +17,7 @@ package validation
 import (
 	"fmt"
 
-	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	"github.com/gardener/gardener/pkg/apis/core"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -25,7 +25,7 @@ import (
 )
 
 // ValidateCloudProfileConfig validates a CloudProfileConfig object.
-func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig, cloudProfile *gardencorev1beta1.CloudProfile) field.ErrorList {
+func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig, cloudProfile *core.CloudProfile, providerConfigPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	availableZones := sets.NewString()
@@ -35,7 +35,7 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 		}
 	}
 
-	controlPlanesPath := field.NewPath("metalControlPlanes")
+	controlPlanesPath := providerConfigPath.Child("metalControlPlanes")
 	for mcpName, mcp := range cloudProfileConfig.MetalControlPlanes {
 		for partitionName := range mcp.Partitions {
 			if !availableZones.Has(partitionName) {
