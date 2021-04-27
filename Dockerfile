@@ -2,9 +2,6 @@ FROM golang:1.16 AS builder
 
 WORKDIR /go/src/github.com/metal-stack/gardener-extension-provider-metal
 COPY . .
-RUN apt-get update
-# Patch is only required for patching install-requirements.sh; can remove this once fix is in upstream gardener.
-RUN apt-get install patch
 RUN make install
 
 FROM alpine:3.13

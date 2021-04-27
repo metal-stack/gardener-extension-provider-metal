@@ -138,6 +138,15 @@ var (
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
+	konnectivityUdsVolumeMount = corev1.VolumeMount{
+		Name:      "konnectivity-uds",
+		MountPath: "/konnectivity-uds",
+		ReadOnly:  false,
+	}
+	konnectivityEnvVar = corev1.EnvVar{
+		Name:  "AUDIT_KONNECTIVITY_UDS_SOCKET",
+		Value: "/konnectivity-uds/konnectivity-server.socket",
+	}
 	auditForwarderSidecar = corev1.Container{
 		Name: "auditforwarder",
 		// Image:   // is added from the image vector in the ensure function
@@ -224,6 +233,8 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder 
 	if makeAuditForwarder {
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-path=", "/auditlog/audit.log")
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-maxsize=", "100")
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-maxbackup=", "1")
 	}
 
 }
@@ -235,6 +246,22 @@ func ensureAuditForwarder(ps *corev1.PodSpec, controllerConfig config.Controller
 		return err
 	}
 	auditForwarderSidecar.Image = auditForwarderImage.String()
+
+	udsVolumeFound := false
+	for _, volume := range ps.Volumes {
+		if volume.Name == "konnectivity-uds" {
+			udsVolumeFound = true
+			break
+		}
+	}
+	if udsVolumeFound {
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, konnectivityEnvVar)
+	} else {
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount.Name)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, konnectivityEnvVar.Name)
+	}
+
 	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
 	return nil
 }
