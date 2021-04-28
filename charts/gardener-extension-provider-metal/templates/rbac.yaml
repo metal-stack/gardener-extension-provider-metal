@@ -39,7 +39,7 @@ rules:
   resources:
   - leases
   resourceNames:
-  - gardener-extension-provider-metal-leader-election
+  - provider-metal-leader-election
   verbs:
   - get
   - watch
