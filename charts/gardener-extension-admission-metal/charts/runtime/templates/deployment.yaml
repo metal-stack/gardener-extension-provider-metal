@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "labels" . | indent 4 }}
+spec:
+  revisionHistoryLimit: 5
+  replicas: {{ .Values.global.replicaCount }}
+  selector:
+    matchLabels:
+{{ include "labels" . | indent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/secret-gardener-extension-admission-metal-cert: {{ include (print $.Template.BasePath "/secret-cert.yaml") . | sha256sum }}
+        {{- if .Values.global.kubeconfig }}
+        checksum/gardener-extension-admission-metal-kubeconfig: {{ include (print $.Template.BasePath "/secret-kubeconfig.yaml") . | sha256sum }}
+        {{- end }}
+      labels:
+{{ include "labels" . | indent 8 }}
+    spec:
+      {{- if .Values.global.kubeconfig }}
+      automountServiceAccountToken: false
+      {{- else }}
+      serviceAccountName: {{ include "name" . }}
+      {{- end }}
+      containers:
+      - name: {{ include "name" . }}
+        image: {{ include "image" .Values.global.image }}
+        imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+        command:
+        - /gardener-extension-metal-hyper
+        - admission-metal
+        - --webhook-config-server-port={{ .Values.global.webhookConfig.serverPort }}
+        - --webhook-config-cert-dir=/etc/gardener-extension-admission-metal/srv
+        {{- if .Values.global.kubeconfig }}
+        - --kubeconfig=/etc/gardener-extension-admission-metal/kubeconfig/kubeconfig
+        {{- end }}
+        ports:
+        - name: webhook-server
+          containerPort: {{ .Values.global.webhookConfig.serverPort }}
+          protocol: TCP
+        # FIXME: This is somehow making trouble and leads to shutdown
+        # livenessProbe:
+        #   httpGet:
+        #     port: {{ .Values.global.webhookConfig.serverPort }}
+        #     scheme: HTTPS
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 10
+{{- if .Values.global.resources }}
+        resources:
+{{ toYaml .Values.global.resources | nindent 10 }}
+{{- end }}
+        volumeMounts:
+        - name: gardener-extension-admission-metal-cert
+          mountPath: /etc/gardener-extension-admission-metal/srv
+          readOnly: true
+        {{- if .Values.global.kubeconfig }}
+        - name: gardener-extension-admission-metal-kubeconfig
+          mountPath: /etc/gardener-extension-admission-metal/kubeconfig
+          readOnly: true
+        {{- end }}
+      volumes:
+      - name: gardener-extension-admission-metal-cert
+        secret:
+          secretName: gardener-extension-admission-metal-cert
+          defaultMode: 420
+      {{- if .Values.global.kubeconfig }}
+      - name: gardener-extension-admission-metal-kubeconfig
+        secret:
+          secretName: gardener-extension-admission-metal-kubeconfig
+          defaultMode: 420
+      {{- end }}

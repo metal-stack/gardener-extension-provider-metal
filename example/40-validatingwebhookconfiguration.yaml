@@ -1,7 +1,7 @@
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: gardener-extensions-validator-metal
+  name: gardener-extension-admission-metal
 webhooks:
 - name: validation.metal.provider.extensions.gardener.cloud
   rules:

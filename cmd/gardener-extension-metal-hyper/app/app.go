@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 
+	admissionmetal "github.com/metal-stack/gardener-extension-provider-metal/cmd/gardener-extension-admission-metal/app"
 	providermetal "github.com/metal-stack/gardener-extension-provider-metal/cmd/gardener-extension-provider-metal/app"
-	validatormetal "github.com/metal-stack/gardener-extension-provider-metal/cmd/gardener-extension-validator-metal/app"
 
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,7 @@ func NewHyperCommand(ctx context.Context) *cobra.Command {
 
 	cmd.AddCommand(
 		providermetal.NewControllerManagerCommand(ctx),
-		validatormetal.NewValidatorCommand(ctx),
+		admissionmetal.NewAdmissionCommand(ctx),
 	)
 
 	return cmd

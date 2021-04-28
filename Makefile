@@ -36,15 +36,15 @@ start-provider-metal:
 		--webhook-config-mode=url \
 		--webhook-config-url=$(WEBHOOK_CONFIG_URL)
 
-.PHONY: start-validator-metal
-start-validator-metal:
+.PHONY: start-admission-metal
+start-admission-metal:
 	@LEADER_ELECTION_NAMESPACE=garden go run \
 		-ldflags $(LD_FLAGS) \
 		-tags netgo \
-		./cmd/gardener-extension-validator-metal \
+		./cmd/gardener-extension-admission-metal \
 		--webhook-config-server-host=0.0.0.0 \
 		--webhook-config-server-port=9443 \
-		--webhook-config-cert-dir=./example/validator-metal-certs
+		--webhook-config-cert-dir=./example/admission-metal-certs
 
 #################################################################
 # Rules related to binary build, Docker image build and release #

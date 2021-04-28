@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -23,7 +23,7 @@ func NewMutator() extensionswebhook.Mutator {
 	}
 }
 
-func (m *mutator) Mutate(ctx context.Context, new, old runtime.Object) error {
+func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 	acc, err := meta.Accessor(new)
 	if err != nil {
 		return errors.Wrapf(err, "could not create accessor during webhook")

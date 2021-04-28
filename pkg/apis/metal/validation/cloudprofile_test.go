@@ -15,7 +15,7 @@
 package validation_test
 
 import (
-	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	"github.com/gardener/gardener/pkg/apis/core"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
 	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
@@ -29,17 +29,18 @@ import (
 var _ = Describe("CloudProfileConfig validation", func() {
 	Describe("#ValidateCloudProfileConfig", func() {
 		var (
-			cloudProfile       *gardencorev1beta1.CloudProfile
+			cloudProfile       *core.CloudProfile
 			cloudProfileConfig *apismetal.CloudProfileConfig
+			path               *field.Path
 		)
 
 		BeforeEach(func() {
-			cloudProfile = &gardencorev1beta1.CloudProfile{
-				Spec: gardencorev1beta1.CloudProfileSpec{
-					Regions: []gardencorev1beta1.Region{
+			cloudProfile = &core.CloudProfile{
+				Spec: core.CloudProfileSpec{
+					Regions: []core.Region{
 						{
 							Name: "region-a",
-							Zones: []gardencorev1beta1.AvailabilityZone{
+							Zones: []core.AvailabilityZone{
 								{
 									Name: "partition-a",
 								},
@@ -50,7 +51,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 						},
 						{
 							Name: "region-b",
-							Zones: []gardencorev1beta1.AvailabilityZone{
+							Zones: []core.AvailabilityZone{
 								{
 									Name: "partition-c",
 								},
@@ -61,10 +62,11 @@ var _ = Describe("CloudProfileConfig validation", func() {
 			}
 
 			cloudProfileConfig = &apismetal.CloudProfileConfig{}
+			path = field.NewPath("test")
 		})
 
 		It("should pass empty configuration", func() {
-			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile)
+			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile, path)
 
 			Expect(errorList).To(BeEmpty())
 		})
@@ -78,7 +80,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 				},
 			}
 
-			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile)
+			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile, path)
 
 			Expect(errorList).To(BeEmpty())
 		})
@@ -92,11 +94,11 @@ var _ = Describe("CloudProfileConfig validation", func() {
 				},
 			}
 
-			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile)
+			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile, path)
 
 			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
 				"Type":     Equal(field.ErrorTypeInvalid),
-				"Field":    Equal("metalControlPlanes.prod"),
+				"Field":    Equal("test.metalControlPlanes.prod"),
 				"BadValue": Equal("random-partition"),
 				"Detail":   Equal("the control plane has a partition that is not a configured zone in any of the cloud profile regions: [partition-a partition-b partition-c]"),
 			}))))
