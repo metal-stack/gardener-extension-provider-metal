@@ -10,10 +10,10 @@ rules:
   - extensions.gardener.cloud
   resources:
   - clusters
-  - infrastructures
-  - infrastructures/status
   - controlplanes
   - controlplanes/status
+  - infrastructures
+  - infrastructures/status
   - workers
   - workers/status
   verbs:
@@ -29,16 +29,21 @@ rules:
   verbs:
   - "*"
 - apiGroups:
-  - ""
+  - coordination.k8s.io
   resources:
-  - configmaps
+  - leases
+  verbs:
+  - create
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
   resourceNames:
-  - gardener-extension-provider-metal-leader-election
+  - provider-metal-leader-election
   verbs:
   - get
   - watch
   - update
-  - patch
 - apiGroups:
   - ""
   - apps
@@ -49,6 +54,7 @@ rules:
   - networking.k8s.io
   resources:
   - namespaces
+  - namespaces/finalizers
   - events
   - secrets
   - configmaps
@@ -80,6 +86,7 @@ rules:
   - verticalpodautoscalers
   verbs:
   - "*"
+# metal-specific rules:
 - apiGroups:
   - metal-stack.io
   resources:
