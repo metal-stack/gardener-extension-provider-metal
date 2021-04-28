@@ -4,7 +4,7 @@ import "path/filepath"
 
 const (
 	// Name is the name of the Metal provider.
-	Name = "gardener-extension-provider-metal"
+	Name = "provider-metal"
 
 	// MachineControllerManagerImageName is the name of the MachineControllerManager image.
 	MachineControllerManagerImageName = "machine-controller-manager"
