@@ -66,6 +66,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumes(ps, makeAuditForwarder, e.controllerConfig)
+		fixKonnektivityHostPort(ps)
 	}
 	if makeAuditForwarder {
 		err := ensureAuditForwarder(ps, e.controllerConfig)
@@ -222,6 +223,27 @@ func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder bool, controllerConfig
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
+	}
+}
+
+// fixKonnektivityHostPort fixes a Gardener bug introduced in v1.16 where host port is preventing multiple
+// API servers in a seed to be scheduled because host ports can only be taken once
+// TODO: Remove when a fix is available from Gardener upstream
+func fixKonnektivityHostPort(ps *corev1.PodSpec) {
+	for _, c := range ps.Containers {
+		if c.Name != "konnectivity-server" {
+			continue
+		}
+
+		for _, p := range c.Ports {
+			if p.Name == "adminport" || p.Name == "healthport" {
+				p.HostPort = 0
+			}
+		}
+
+		c.LivenessProbe.HTTPGet.Host = ""
+
+		return
 	}
 }
 
