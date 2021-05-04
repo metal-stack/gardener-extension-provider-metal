@@ -66,7 +66,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumes(ps, makeAuditForwarder, e.controllerConfig)
-		fixKonnektivityHostPort(ps)
+		fixKonnektivityHostPort(ps, e.logger)
 	}
 	if makeAuditForwarder {
 		err := ensureAuditForwarder(ps, e.controllerConfig)
@@ -229,9 +229,11 @@ func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder bool, controllerConfig
 // fixKonnektivityHostPort fixes a Gardener bug introduced in v1.16 where host port is preventing multiple
 // API servers in a seed to be scheduled because host ports can only be taken once
 // TODO: Remove when a fix is available from Gardener upstream
-func fixKonnektivityHostPort(ps *corev1.PodSpec) {
+func fixKonnektivityHostPort(ps *corev1.PodSpec, log logr.Logger) {
+	var containers []corev1.Container
 	for _, c := range ps.Containers {
 		if c.Name != "konnectivity-server" {
+			containers = append(containers, c)
 			continue
 		}
 
@@ -240,7 +242,11 @@ func fixKonnektivityHostPort(ps *corev1.PodSpec) {
 			p := p
 
 			if p.Name == "adminport" || p.Name == "healthport" {
-				p.HostPort = 0
+				p = corev1.ContainerPort{
+					Name:          p.Name,
+					Protocol:      p.Protocol,
+					ContainerPort: p.ContainerPort,
+				}
 			}
 
 			ports = append(ports, p)
@@ -249,8 +255,12 @@ func fixKonnektivityHostPort(ps *corev1.PodSpec) {
 		c.Ports = ports
 		c.LivenessProbe.HTTPGet.Host = ""
 
-		return
+		containers = append(containers, c)
 	}
+
+	ps.Containers = containers
+
+	log.Info("modified konnectivity server deployment", "containers", ps.Containers)
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
