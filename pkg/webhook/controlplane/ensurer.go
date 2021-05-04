@@ -235,12 +235,18 @@ func fixKonnektivityHostPort(ps *corev1.PodSpec) {
 			continue
 		}
 
+		var ports []corev1.ContainerPort
 		for _, p := range c.Ports {
+			p := p
+
 			if p.Name == "adminport" || p.Name == "healthport" {
 				p.HostPort = 0
 			}
+
+			ports = append(ports, p)
 		}
 
+		c.Ports = ports
 		c.LivenessProbe.HTTPGet.Host = ""
 
 		return
