@@ -259,8 +259,6 @@ func fixKonnektivityHostPort(ps *corev1.PodSpec, log logr.Logger) {
 	}
 
 	ps.Containers = containers
-
-	log.Info("modified konnectivity server deployment", "containers", ps.Containers)
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
