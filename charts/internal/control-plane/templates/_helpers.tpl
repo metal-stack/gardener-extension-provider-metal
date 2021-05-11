@@ -7,4 +7,3 @@
 {{- define "cloud-controller-manager.port" -}}
 10258
 {{- end -}}
-{{- end -}}
