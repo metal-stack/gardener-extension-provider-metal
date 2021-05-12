@@ -20,7 +20,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -44,10 +43,10 @@ type AddOptions struct {
 
 // RegisterHealthChecks registers health checks for each extension resource
 func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
-	accountingPreCheck := func(_ runtime.Object, cluster *extensionscontroller.Cluster) bool {
+	accountingPreCheck := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.AccountingExporter.Enabled
 	}
-	authPreCheck := func(_ runtime.Object, cluster *extensionscontroller.Cluster) bool {
+	authPreCheck := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.Auth.Enabled
 	}
 

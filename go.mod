@@ -15,10 +15,10 @@ require (
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
 	github.com/gardener/etcd-druid v0.3.0
 	github.com/gardener/external-dns-management v0.8.1
-	github.com/gardener/gardener v1.16.5
+	github.com/gardener/gardener v1.18.2
 	github.com/gardener/machine-controller-manager v0.36.0
 	github.com/go-logr/logr v0.4.0
-	github.com/golang/mock v1.4.4
+	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.5
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/uuid v1.2.0
@@ -29,7 +29,7 @@ require (
 	github.com/metal-stack/metal-go v0.14.0
 	github.com/metal-stack/metal-lib v0.7.2
 	github.com/onsi/ginkgo v1.15.1
-	github.com/onsi/gomega v1.10.3
+	github.com/onsi/gomega v1.10.5
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
