@@ -80,8 +80,8 @@ rules:
 - apiGroups:
   - "metal-stack.io/v1"
   resources:
-  - ClusterwideNetworkPolicy
-  - Firewall
+  - clusterwidenetworkpolicy
+  - firewall
   verbs:
   - get
   - list
