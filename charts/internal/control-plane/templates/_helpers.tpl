@@ -5,9 +5,5 @@
 {{- end -}}
 
 {{- define "cloud-controller-manager.port" -}}
-{{- if semverCompare ">= 1.13" .Values.kubernetesVersion -}}
 10258
-{{- else -}}
-10253
-{{- end -}}
 {{- end -}}
