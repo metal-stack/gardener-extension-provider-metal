@@ -78,7 +78,7 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-view: "true"
 rules:
 - apiGroups:
-  - "metal-stack.io/v1"
+  - "metal-stack.io"
   resources:
   - clusterwidenetworkpolicies
   - firewalls
