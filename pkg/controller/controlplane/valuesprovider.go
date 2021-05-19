@@ -1318,3 +1318,13 @@ func hasDurosStorageNetwork(infrastructure *apismetal.InfrastructureConfig, nws 
 	}
 	return false, nil
 }
+
+// GetControlPlaneShootCRDsChartValues returns the values for the control plane shoot CRDs chart applied by the generic actuator.
+// Currently the provider extension does not specify a control plane shoot CRDs chart. That's why we simply return empty values.
+func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
+	_ context.Context,
+	_ *extensionsv1alpha1.ControlPlane,
+	_ *extensionscontroller.Cluster,
+) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
+}
