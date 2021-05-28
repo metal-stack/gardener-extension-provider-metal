@@ -47,8 +47,9 @@ func (e *ensurer) InjectClient(client client.Client) error {
 
 // EnsureKubeAPIServerService ensures that the kube-apiserver service conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerService(ctx context.Context, gctx gcontext.GardenContext, new, old *corev1.Service) error {
+	cluster, _ := gctx.GetCluster(ctx)
 	if new.Spec.ExternalTrafficPolicy != corev1.ServiceExternalTrafficPolicyType("Local") {
-		e.logger.Info("kube-apiserver externalTrafficPolicy", "now", new.Spec.ExternalTrafficPolicy, "changing to", corev1.ServiceExternalTrafficPolicyType("Local"))
+		e.logger.Info("kube-apiserver service externalTrafficPolicy of", "shoot", cluster.ObjectMeta.Name, "now", new.Spec.ExternalTrafficPolicy, "changing to", corev1.ServiceExternalTrafficPolicyType("Local"))
 		new.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyType("Local")
 	}
 	return nil
