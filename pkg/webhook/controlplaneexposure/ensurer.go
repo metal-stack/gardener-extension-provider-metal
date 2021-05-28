@@ -57,6 +57,7 @@ func (e *ensurer) EnsureKubeAPIServerService(ctx context.Context, gctx gcontext.
 		new.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyType("Local")
 	}
 	if new.Spec.HealthCheckNodePort == 0 {
+		e.logger.Info("kube-apiserver service healthCheckNodePort of", "shoot", cluster.ObjectMeta.Name, "now", new.Spec.HealthCheckNodePort, "changing to", old.Spec.HealthCheckNodePort)
 		new.Spec.HealthCheckNodePort = old.Spec.HealthCheckNodePort
 	}
 
