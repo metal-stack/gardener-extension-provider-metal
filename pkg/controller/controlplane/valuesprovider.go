@@ -227,7 +227,6 @@ var cpShootChart = &chart.Chart{
 
 		// cluster wide network policies
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
-		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-https"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-dns"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-ntp"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-vpn"},
@@ -287,7 +286,7 @@ func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerCon
 	cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 		{Type: &corev1.ConfigMap{}, Name: "shoot-info-node-cidr"},
 	}...)
-
+	
 	if controllerConfig.Auth.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
 			{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},

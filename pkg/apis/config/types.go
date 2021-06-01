@@ -54,6 +54,8 @@ type ControllerConfiguration struct {
 
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 	ImagePullSecret *ImagePullSecret
+
+	HTTPSToApiserverOnly bool
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
