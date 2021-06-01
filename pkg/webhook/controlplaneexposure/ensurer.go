@@ -47,6 +47,29 @@ func (e *ensurer) InjectClient(client client.Client) error {
 
 // EnsureKubeAPIServerService ensures that the kube-apiserver service conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerService(ctx context.Context, gctx gcontext.GardenContext, new, old *corev1.Service) error {
+	cluster, _ := gctx.GetCluster(ctx)
+
+	if old != nil {
+		e.logger.Info("kube-apiserver service externalTrafficPolicy of", "shoot", cluster.ObjectMeta.Name, "old", old.Spec.ExternalTrafficPolicy, "new", new.Spec.ExternalTrafficPolicy)
+		e.logger.Info("kube-apiserver service healthCheckNodePort of", "shoot", cluster.ObjectMeta.Name, "old", old.Spec.HealthCheckNodePort, "new", new.Spec.HealthCheckNodePort)
+	} else {
+		e.logger.Info("kube-apiserver service externalTrafficPolicy of", "shoot", cluster.ObjectMeta.Name, "old", "nil", "new", new.Spec.ExternalTrafficPolicy)
+		e.logger.Info("kube-apiserver service healthCheckNodePort of", "shoot", cluster.ObjectMeta.Name, "old", "nil", "new", new.Spec.HealthCheckNodePort)
+	}
+	// We ensure that the externalTrafficPolicy of the kube-apiserver service is Local, and that the healthCheckNodePort is preserved.
+	if new.Spec.ExternalTrafficPolicy != corev1.ServiceExternalTrafficPolicyType("Local") {
+		e.logger.Info("kube-apiserver service externalTrafficPolicy of", "shoot", cluster.ObjectMeta.Name, "now", new.Spec.ExternalTrafficPolicy, "changing to", corev1.ServiceExternalTrafficPolicyType("Local"))
+		new.Spec.ExternalTrafficPolicy = corev1.ServiceExternalTrafficPolicyType("Local")
+	}
+	if new.Spec.HealthCheckNodePort == 0 {
+		if old != nil {
+			e.logger.Info("kube-apiserver service healthCheckNodePort of", "shoot", cluster.ObjectMeta.Name, "now", new.Spec.HealthCheckNodePort, "changing to", old.Spec.HealthCheckNodePort)
+			new.Spec.HealthCheckNodePort = old.Spec.HealthCheckNodePort
+		} else {
+			e.logger.Info("new kube-apiserver service healthCheckNodePort is 0, can not set it because there is no old kube-apiserver service (nil). Hope that's okay.")
+		}
+	}
+
 	return nil
 }
 
