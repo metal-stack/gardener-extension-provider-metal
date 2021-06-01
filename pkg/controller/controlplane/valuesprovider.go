@@ -227,6 +227,7 @@ var cpShootChart = &chart.Chart{
 
 		// cluster wide network policies
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-https"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-dns"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-ntp"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-vpn"},
@@ -737,6 +738,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		}
 	}
 
+	cwnpsValues := map[string]interface{}{
+		"allowHttps": !infrastructure.HTTPSToApiserverOnly,
+	}
+
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
@@ -750,6 +755,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		},
 		"duros":        durosValues,
 		"clusterAudit": clusterAuditValues,
+		"cwnps":        cwnpsValues,
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {

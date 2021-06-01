@@ -28,6 +28,7 @@ spec:
       port: 53
     - protocol: TCP
       port: 53
+{{- if .Values.cwnps.allowHttps }}
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
@@ -41,6 +42,7 @@ spec:
     ports:
     - protocol: TCP
       port: 443
+{{- end }}
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy

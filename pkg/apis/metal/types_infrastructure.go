@@ -12,6 +12,9 @@ type InfrastructureConfig struct {
 	Firewall    Firewall
 	PartitionID string
 	ProjectID   string
+
+	// If true, allow HTTPS requests to k8s apiserver only(by default, if no additional CNWPs are created)
+	HTTPSToApiserverOnly bool
 }
 
 type Firewall struct {
