@@ -27,12 +27,16 @@ rules:
   - watch
 - apiGroups:
   - ""
+  - coordination.k8s.io
   resources:
   - configmaps
+  - leases
   verbs:
-  - create
   - get
+  - watch
   - update
+  - patch
+  - create
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
