@@ -42,11 +42,11 @@ images:
 - name: duros-controller
   sourceRepository: https://github.com/metal-stack/duros-controller
   repository: ghcr.io/metal-stack/duros-controller
-  tag: "v0.1.1"
+  tag: "v0.2.0"
 # firewall-controller tag must be semver compatible with golang dependency!
 - name: firewall-controller
   sourceRepository: https://github.com/metal-stack/firewall-controller
-  tag: "v1.0.5"
+  tag: "v1.0.9"
 
 # can be provided via image override:
 # - name: authn-webhook
