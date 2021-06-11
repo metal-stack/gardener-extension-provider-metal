@@ -33,11 +33,11 @@ images:
   tag: "v0.6.3"
 - name: metallb-speaker
   sourceRepository: https://github.com/metallb/metallb
-  repository: metallb/speaker
+  repository: quay.io/metallb/speaker
   tag: "v0.10.1"
 - name: metallb-controller
   sourceRepository: https://github.com/metallb/metallb
-  repository: metallb/controller
+  repository: quay.io/metallb/controller
   tag: "v0.10.1"
 - name: duros-controller
   sourceRepository: https://github.com/metal-stack/duros-controller
