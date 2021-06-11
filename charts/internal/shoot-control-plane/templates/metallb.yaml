@@ -392,7 +392,7 @@ spec:
             drop:
             - ALL
           readOnlyRootFilesystem: true
-      hostNetwork: true
+      hostNetwork: false
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: speaker
