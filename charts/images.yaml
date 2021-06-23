@@ -19,6 +19,10 @@ images:
   sourceRepository: https://github.com/fluent/fluentd
   repository: fluent/fluentd
   tag: "v1.12"
+- name: fluentd-splunk-audit
+  sourceRepository: https://github.com/fluent/fluentd-kubernetes-daemonset
+  repository: fluent/fluentd-kubernetes-daemonset
+  tag: "v1.12.4-debian-forward-1.1"
 - name: droptailer
   sourceRepository: github.com/metal-stack/droptailer
   repository: ghcr.io/metal-stack/droptailer
