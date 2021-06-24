@@ -37,7 +37,8 @@ data:
       index: {{ .Values.config.auditToSplunk.index }}
       hecHost: {{ .Values.config.auditToSplunk.hecHost }}
       hecPort: {{ .Values.config.auditToSplunk.hecPort }}
-      hecCAFile: {{ .Values.config.auditToSplunk.hecCAFile }}
+      hecCAFile: |
+{{ .Values.config.auditToSplunk.hecCAFile | indent 8}}
 {{- end }}
     auth:
       enabled: {{ .Values.config.auth.enabled }}
