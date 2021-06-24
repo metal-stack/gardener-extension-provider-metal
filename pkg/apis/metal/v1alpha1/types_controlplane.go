@@ -32,6 +32,8 @@ type ControlPlaneFeatures struct {
 	// ClusterAudit enables the deployment of a non-null audit policy to the apiserver and the forwarding
 	// of the audit events into the cluster where they appear as container log of an audittailer pod, where they
 	// can be picked up by any of the available Kubernetes logging solutions.
+	//
+	// If unset, defaults to true.
 	// +optional
 	ClusterAudit *bool `json:"clusterAudit,omitempty"`
 	// AuditToSplunk enables the deployment fluentd daemonset picking up the firewall drop log and kube-apiserver

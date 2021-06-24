@@ -440,7 +440,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 
 	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
 			clusterAuditEnabled = true
 		}
 	}
@@ -621,7 +621,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
 			err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
 			if err != nil {
 				vp.logger.Error(err, "error deploying audittailer certs")
@@ -657,7 +657,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
 			clusterAuditEnabled = true
 		}
 	}
