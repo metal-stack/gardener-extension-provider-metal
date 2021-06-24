@@ -678,7 +678,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"hecHost":     vp.controllerConfig.AuditToSplunk.HECHost,
 		"hecPort":     vp.controllerConfig.AuditToSplunk.HECPort,
 		"hecCAFile":   vp.controllerConfig.AuditToSplunk.HECCAFile,
-		"clusterName": cluster.ObjectMeta.ClusterName,
+		"clusterName": cluster.ObjectMeta.Name,
 	}
 
 	// get apiserver ip adresses from external dns entry
