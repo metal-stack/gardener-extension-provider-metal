@@ -33,7 +33,7 @@ data:
     auditToSplunk:
       enabled: {{ .Values.config.auditToSplunk.enabled }}
 {{- if .Values.config.auditToSplunk.enabled }}
-      hecToken: {{ .Values.config.auditToSplunk.}}
+      hecToken: {{ .Values.config.auditToSplunk.hecToken }}
       index: {{ .Values.config.auditToSplunk.index }}
       hecHost: {{ .Values.config.auditToSplunk.hecHost }}
       hecPort: {{ .Values.config.auditToSplunk.hecPort }}
