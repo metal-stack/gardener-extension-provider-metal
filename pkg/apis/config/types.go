@@ -37,6 +37,9 @@ type ControllerConfiguration struct {
 	// ClusterAudit is the configuration for cluster auditing.
 	ClusterAudit ClusterAudit
 
+	// AuditToSplunk is the configuration for forwarding audit (and firewall) logs to Splunk.
+	AuditToSplunk AuditToSplunk
+
 	// Auth is the configuration for metal stack specific user authentication in the cluster.
 	Auth Auth
 
@@ -91,6 +94,17 @@ type ETCDBackup struct {
 type ClusterAudit struct {
 	// Enabled enables collecting of the kube-apiserver auditlog.
 	Enabled bool
+}
+
+// AuditToSplunk is the configuration for forwarding audit (and firewall) logs to Splunk.
+type AuditToSplunk struct {
+	// Enabled enables collecting of the kube-apiserver auditlog.
+	Enabled   bool
+	HECToken  string
+	Index     string
+	HECHost   string
+	HECPort   int
+	HECCAFile string
 }
 
 // Auth contains the configuration for metal stack specific user authentication in the cluster.

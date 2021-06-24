@@ -346,6 +346,20 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
 		}...)
 	}
+	if controllerConfig.AuditToSplunk.Enabled {
+		cpShootChart.Images = append(cpShootChart.Images, []string{metal.AuditToSplunkImageName}...)
+		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+			// auditToSplunk
+			{Type: &corev1.Namespace{}, Name: "fluentd-splunk-audit"},
+			{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "fluentd-splunk-audit"},
+			{Type: &corev1.ServiceAccount{}, Name: "fluentd-splunk-audit"},
+			{Type: &corev1.Secret{}, Name: "fluentd-splunk-audit"},
+			{Type: &corev1.ConfigMap{}, Name: "fluentd-splunk-audit"},
+			{Type: &rbacv1.ClusterRole{}, Name: "fluentd-splunk-audit"},
+			{Type: &rbacv1.ClusterRoleBinding{}, Name: "fluentd-splunk-audit"},
+			{Type: &appsv1.DaemonSet{}, Name: "fluentd-splunk-audit"},
+		}...)
+	}
 
 	return &valuesProvider{
 		mgr:              mgr,
@@ -651,6 +665,22 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": clusterAuditEnabled,
 	}
 
+	auditToSplunkEnabled := false
+	if vp.controllerConfig.AuditToSplunk.Enabled {
+		if cpConfig.FeatureGates.AuditToSplunk == nil || *cpConfig.FeatureGates.ClusterAudit {
+			auditToSplunkEnabled = true
+		}
+	}
+	auditToSplunkValues := map[string]interface{}{
+		"enabled":     auditToSplunkEnabled,
+		"hecToken":    vp.controllerConfig.AuditToSplunk.HECToken,
+		"index":       vp.controllerConfig.AuditToSplunk.Index,
+		"hecHost":     vp.controllerConfig.AuditToSplunk.HECHost,
+		"hecPort":     vp.controllerConfig.AuditToSplunk.HECPort,
+		"hecCAFile":   vp.controllerConfig.AuditToSplunk.HECCAFile,
+		"clusterName": cluster.ObjectMeta.ClusterName,
+	}
+
 	// get apiserver ip adresses from external dns entry
 	dns := &dnsv1alpha1.DNSEntry{}
 
@@ -670,8 +700,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"accountingExporter": map[string]interface{}{
 			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
 		},
-		"duros":        durosValues,
-		"clusterAudit": clusterAuditValues,
+		"duros":         durosValues,
+		"clusterAudit":  clusterAuditValues,
+		"auditToSplunk": auditToSplunkValues,
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {

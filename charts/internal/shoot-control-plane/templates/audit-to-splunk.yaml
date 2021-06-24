@@ -1,10 +1,17 @@
 {{- if .Values.auditToSplunk.enabled }}
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app: fluentd-splunk-audit
+  name: fluentd-splunk-audit
+---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: fluentd-splunk-audit
-  namespace: audit
+  namespace: fluentd-splunk-audit
   labels:
     app: fluentd-splunk-audit
   annotations:
@@ -33,7 +40,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: fluentd-splunk-audit
-  namespace: audit
+  namespace: fluentd-splunk-audit
   labels:
     app: fluentd-splunk-audit
 ---
@@ -41,7 +48,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: fluentd-splunk-audit
-  namespace: audit
+  namespace: fluentd-splunk-audit
   labels:
     app: fluentd-splunk-audit
 type: Opaque
@@ -55,7 +62,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fluentd-splunk-audit
-  namespace: audit
+  namespace: fluentd-splunk-audit
   labels:
     app: fluentd-splunk-audit
 data:
@@ -259,13 +266,13 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: fluentd-splunk-audit
-  namespace: audit
+  namespace: fluentd-splunk-audit
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: fluentd-splunk-audit
-  namespace: audit
+  namespace: fluentd-splunk-audit
   labels:
     app: fluentd-splunk-audit
 spec:

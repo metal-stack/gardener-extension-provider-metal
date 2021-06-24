@@ -30,6 +30,15 @@ data:
         deltaSnapshotPeriod: {{ .Values.config.etcd.backup.deltaSnapshotPeriod }}
     clusterAudit:
       enabled: {{ .Values.config.clusterAudit.enabled }}
+    auditToSplunk:
+      enabled: {{ .Values.config.auditToSplunk.enabled }}
+{{- if .Values.config.auditToSplunk.enabled }}
+      hecToken: {{ .Values.config.auditToSplunk.}}
+      index: {{ .Values.config.auditToSplunk.index }}
+      hecHost: {{ .Values.config.auditToSplunk.hecHost }}
+      hecPort: {{ .Values.config.auditToSplunk.hecPort }}
+      hecCAFile: {{ .Values.config.auditToSplunk.hecCAFile }}
+{{- end }}
     auth:
       enabled: {{ .Values.config.auth.enabled }}
 {{- if .Values.config.auth.enabled }}

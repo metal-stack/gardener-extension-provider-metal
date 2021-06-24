@@ -34,6 +34,12 @@ type ControlPlaneFeatures struct {
 	// can be picked up by any of the available Kubernetes logging solutions.
 	// +optional
 	ClusterAudit *bool `json:"clusterAudit,omitempty"`
+	// AuditToSplunk enables the deployment fluentd daemonset picking up the firewall drop log and kube-apiserver
+	// auditlog and forwarding it to the defined splunk instance.
+	//
+	// If unset, defaults to true.
+	// +optional
+	AuditToSplunk *bool `json:"auditToSplunk,omitempty"`
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
