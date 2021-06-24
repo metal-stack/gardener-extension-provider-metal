@@ -665,9 +665,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": clusterAuditEnabled,
 	}
 
+	vp.logger.Info("SPLUNKDEBUG Reading values", "cluster", cluster.ObjectMeta.Name, "controllerConfig.AuditToSplunk.Enabled", vp.controllerConfig.AuditToSplunk.Enabled,
+		"cpConfig.FeatureGates.AuditToSplunk", cpConfig.FeatureGates.AuditToSplunk)
 	auditToSplunkEnabled := false
 	if vp.controllerConfig.AuditToSplunk.Enabled {
-		if cpConfig.FeatureGates.AuditToSplunk == nil || *cpConfig.FeatureGates.ClusterAudit {
+		if cpConfig.FeatureGates.AuditToSplunk == nil || *cpConfig.FeatureGates.AuditToSplunk {
 			auditToSplunkEnabled = true
 		}
 	}
@@ -680,6 +682,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"hecCAFile":   vp.controllerConfig.AuditToSplunk.HECCAFile,
 		"clusterName": cluster.ObjectMeta.Name,
 	}
+	vp.logger.Info("SPLUNKDEBUG", "cluster", cluster.ObjectMeta.Name, "values", auditToSplunkValues)
 
 	// get apiserver ip adresses from external dns entry
 	dns := &dnsv1alpha1.DNSEntry{}
