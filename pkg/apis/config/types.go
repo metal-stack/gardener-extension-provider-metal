@@ -99,12 +99,13 @@ type ClusterAudit struct {
 // AuditToSplunk is the configuration for forwarding audit (and firewall) logs to Splunk.
 type AuditToSplunk struct {
 	// Enabled enables collecting of the kube-apiserver auditlog.
-	Enabled   bool
-	HECToken  string
-	Index     string
-	HECHost   string
-	HECPort   int
-	HECCAFile string
+	Enabled    bool
+	HECToken   string
+	Index      string
+	HECHost    string
+	HECPort    int
+	TLSEnabled bool
+	HECCAFile  string
 }
 
 // Auth contains the configuration for metal stack specific user authentication in the cluster.

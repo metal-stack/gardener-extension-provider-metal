@@ -48,6 +48,7 @@ func (e *ensurer) InjectClient(client client.Client) error {
 func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
 	cluster, _ := gctx.GetCluster(ctx)
 	makeAuditForwarder := false
+	auditToSplunk := false
 
 	if e.controllerConfig.ClusterAudit.Enabled {
 		cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
@@ -57,6 +58,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		}
 		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
 			makeAuditForwarder = true
+			if cpConfig.FeatureGates.AuditToSplunk == nil || *cpConfig.FeatureGates.AuditToSplunk {
+				auditToSplunk = true
+			}
 		}
 	}
 
@@ -65,11 +69,11 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
-		ensureVolumes(ps, makeAuditForwarder, e.controllerConfig)
+		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, e.controllerConfig)
 		fixKonnektivityHostPort(ps, e.logger)
 	}
 	if makeAuditForwarder {
-		err := ensureAuditForwarder(ps, e.controllerConfig)
+		err := ensureAuditForwarder(ps, auditToSplunk, e.controllerConfig)
 		if err != nil {
 			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
 			return err
@@ -127,6 +131,49 @@ var (
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
 				SecretName: metal.AudittailerClientSecretName,
+			},
+		},
+	}
+	auditForwarderSplunkConfigVolumeMount = corev1.VolumeMount{
+		Name:      metal.AuditForwarderSplunkConfigName,
+		MountPath: "/fluent-bit/etc/add",
+		ReadOnly:  true,
+	}
+	auditForwarderSplunkConfigVolume = corev1.Volume{
+		Name: metal.AuditForwarderSplunkConfigName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditForwarderSplunkConfigName},
+			},
+		},
+	}
+	auditForwarderSplunkSecretVolumeMount = corev1.VolumeMount{
+		Name:      metal.AuditForwarderSplunkSecretName,
+		MountPath: "/fluent-bit/etc/splunkca",
+		ReadOnly:  true,
+	}
+	auditForwarderSplunkSecretVolume = corev1.Volume{
+		Name: metal.AuditForwarderSplunkSecretName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: metal.AuditForwarderSplunkSecretName,
+			},
+		},
+	}
+	auditForwarderSplunkPodNameEnvVar = corev1.EnvVar{
+		Name: "MY_POD_NAME",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"},
+		},
+	}
+	auditForwarderSplunkHECTokenEnvVar = corev1.EnvVar{
+		Name: "SPLUNK_HEC_TOKEN",
+		ValueFrom: &corev1.EnvVarSource{
+			SecretKeyRef: &corev1.SecretKeySelector{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: metal.AuditForwarderSplunkSecretName,
+				},
+				Key: "splunk_hec_token",
 			},
 		},
 	}
@@ -214,7 +261,7 @@ func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool, controller
 	}
 }
 
-func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
+func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, controllerConfig config.ControllerConfiguration) {
 	if controllerConfig.Auth.Enabled {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
@@ -223,6 +270,10 @@ func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder bool, controllerConfig
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
+	}
+	if auditToSplunk {
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditForwarderSplunkConfigVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditForwarderSplunkSecretVolume)
 	}
 }
 
@@ -277,7 +328,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder 
 
 }
 
-func ensureAuditForwarder(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) error {
+func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool, controllerConfig config.ControllerConfiguration) error {
 	auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
 	if err != nil {
 		logger.Error(err, "Could not find auditforwarder image in imagevector")
@@ -298,6 +349,18 @@ func ensureAuditForwarder(ps *corev1.PodSpec, controllerConfig config.Controller
 	} else {
 		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount.Name)
 		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, konnectivityEnvVar.Name)
+	}
+
+	if auditToSplunk {
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkConfigVolumeMount)
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkSecretVolumeMount)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkPodNameEnvVar)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar)
+	} else {
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkConfigVolumeMount.Name)
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkSecretVolumeMount.Name)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkPodNameEnvVar.Name)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar.Name)
 	}
 
 	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)

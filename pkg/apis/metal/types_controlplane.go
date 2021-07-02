@@ -36,8 +36,8 @@ type ControlPlaneFeatures struct {
 	// If unset, defaults to true.
 	// +optional
 	ClusterAudit *bool
-	// AuditToSplunk enables the deployment fluentd daemonset picking up the firewall drop log and kube-apiserver
-	// auditlog and forwarding it to the defined splunk instance.
+	// AuditToSplunk enables the forwarding of the apiserver auditlog to a defined splunk instance in addition to
+	// forwarding it into the cluster. Needs the clusterAudit featureGate to be active.
 	//
 	// If unset, defaults to true.
 	// +optional

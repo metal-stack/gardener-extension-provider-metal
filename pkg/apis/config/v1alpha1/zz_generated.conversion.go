@@ -289,6 +289,7 @@ func autoConvert_v1alpha1_AuditToSplunk_To_config_AuditToSplunk(in *AuditToSplun
 	out.Index = in.Index
 	out.HECHost = in.HECHost
 	out.HECPort = in.HECPort
+	out.TLSEnabled = in.TLSEnabled
 	out.HECCAFile = in.HECCAFile
 	return nil
 }
@@ -304,6 +305,7 @@ func autoConvert_config_AuditToSplunk_To_v1alpha1_AuditToSplunk(in *config.Audit
 	out.Index = in.Index
 	out.HECHost = in.HECHost
 	out.HECPort = in.HECPort
+	out.TLSEnabled = in.TLSEnabled
 	out.HECCAFile = in.HECCAFile
 	return nil
 }

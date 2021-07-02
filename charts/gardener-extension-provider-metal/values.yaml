@@ -68,6 +68,7 @@ config:
     index:
     hecHost:
     hecPort:
+    tlsEnabled:
     hecCAFile:
   auth:
     enabled: false

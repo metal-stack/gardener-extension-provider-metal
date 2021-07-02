@@ -14,15 +14,15 @@ images:
 - name: auditforwarder
   sourceRepository: https://github.com/metal-stack/audit-forwarder
   repository: ghcr.io/metal-stack/audit-forwarder
-  tag: "v0.1.0"
+  tag: "v0.1.4"
 - name: audittailer
   sourceRepository: https://github.com/fluent/fluentd
   repository: fluent/fluentd
   tag: "v1.12"
-- name: fluentd-splunk-audit
-  sourceRepository: https://github.com/fluent/fluentd-kubernetes-daemonset
-  repository: fluent/fluentd-kubernetes-daemonset
-  tag: "v1.12.4-debian-forward-1.1"
+# - name: fluentd-splunk-audit
+#   sourceRepository: https://github.com/fluent/fluentd-kubernetes-daemonset
+#   repository: fluent/fluentd-kubernetes-daemonset
+#   tag: "v1.12.4-debian-forward-1.1"
 - name: droptailer
   sourceRepository: github.com/metal-stack/droptailer
   repository: ghcr.io/metal-stack/droptailer

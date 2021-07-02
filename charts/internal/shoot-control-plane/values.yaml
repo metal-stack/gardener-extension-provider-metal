@@ -34,12 +34,3 @@ duros:
 
 clusterAudit:
   enabled: false
-
-auditToSplunk:
-  enabled: false
-  hecToken: dummy-token
-  index: splunk-logging-index
-  hecHost: splunk.example.org
-  hecPort: 8123
-  hecCAFile: base64-encoded ca cert for the splunk hec endpoint
-  clusterName: cluster-name

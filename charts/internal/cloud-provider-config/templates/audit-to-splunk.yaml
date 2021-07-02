@@ -1,0 +1,57 @@
+{{- if .Values.auditToSplunk.enabled }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: audit-to-splunk-secret
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  splunk_hec_token: {{ .Values.auditToSplunk.hecToken | b64enc }}
+{{- if .Values.auditToSplunk.hecCAFile }}
+  hec_ca_file: {{ .Values.auditToSplunk.hecCAFile | b64enc }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audit-to-splunk-config
+  namespace: {{ .Release.Namespace }}
+data:
+  splunk.conf: |
+    [FILTER]
+        Name            rewrite_tag
+        Match           audit
+        Rule            $kind Event tosplunk true
+
+    [FILTER]
+        Name            nest
+        Match           tosplunk
+        Operation       nest
+        Wildcard        *
+        Nest_under      event
+
+    [FILTER]
+        Name            record_modifier
+        Match           tosplunk
+        Record          host {{ .Values.auditToSplunk.clusterName }}
+        Record          sourcetype kube:apiserver:auditlog
+        Record          source ${MY_POD_NAME}
+        Record          index {{ .Values.auditToSplunk.index }}
+
+    [OUTPUT]
+        Name            splunk
+        Match           tosplunk
+        Host            {{ .Values.auditToSplunk.hecHost }}
+        Port            {{ .Values.auditToSplunk.hecPort }}
+        Splunk_Token    ${SPLUNK_HEC_TOKEN}
+{{- if .Values.auditToSplunk.tlsEnabled }}
+        TLS             On
+        TLS.Verify      On
+{{- end }}
+{{- if .Values.auditToSplunk.hecCAFile }}
+        TLS.CA_Path     /fluent-bit/etc/splunkca
+{{- end }}
+        Retry_Limit     False
+        Splunk_Send_Raw On
+{{- end }}
