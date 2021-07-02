@@ -50,7 +50,7 @@ data:
         TLS.Verify      On
 {{- end }}
 {{- if .Values.auditToSplunk.hecCAFile }}
-        TLS.CA_Path     /fluent-bit/etc/splunkca
+        TLS.CA_File     /fluent-bit/etc/splunkca/splunk-ca.pem
 {{- end }}
         Retry_Limit     False
         Splunk_Send_Raw On
