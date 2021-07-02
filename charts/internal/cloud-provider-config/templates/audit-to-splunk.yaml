@@ -9,7 +9,7 @@ type: Opaque
 data:
   splunk_hec_token: {{ .Values.auditToSplunk.hecToken | b64enc }}
 {{- if .Values.auditToSplunk.hecCAFile }}
-  hec_ca_file: {{ .Values.auditToSplunk.hecCAFile | b64enc }}
+  splunk-ca.pem: {{ .Values.auditToSplunk.hecCAFile | b64enc }}
 {{- end }}
 ---
 apiVersion: v1
