@@ -19,6 +19,11 @@ jobs:
         username: ${{ secrets.DOCKER_REGISTRY_USER }}
         password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
 
+    - name: Set up Go 1.16
+      uses: actions/setup-go@v2.1.3
+      with:
+        go-version: '1.16.x'
+
     - name: Check (lint) and Test
       run: |
         make test-in-docker
