@@ -675,11 +675,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
-		if cluster.Shoot.Spec.SeedName == nil {
-			return nil, fmt.Errorf("shoot resource has not seed name")
-		}
-
-		seedConfig, ok := vp.controllerConfig.Storage.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
+		partitionConfig, ok := vp.controllerConfig.Storage.Duros.PartitionConfig[infrastructure.PartitionID]
 
 		found, err := hasDurosStorageNetwork(infrastructure, nws)
 		if err != nil {
@@ -687,7 +683,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 
 		if found && ok {
-			durosValues["endpoints"] = seedConfig.Endpoints
+			durosValues["endpoints"] = partitionConfig.Endpoints
 		} else {
 			durosValues["enabled"] = false
 		}
@@ -1197,19 +1193,15 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 }
 
 func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, nws networkMap) (map[string]interface{}, error) {
-	if cluster.Shoot.Spec.SeedName == nil {
-		return nil, fmt.Errorf("shoot resource has not seed name")
-	}
-
 	disabledValues := map[string]interface{}{
 		"duros": map[string]interface{}{
 			"enabled": false,
 		},
 	}
 
-	seedConfig, ok := storageConfig.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
+	partitionConfig, ok := storageConfig.Duros.PartitionConfig[infrastructure.PartitionID]
 	if !ok {
-		logger.Info("skipping duros storage deployment because no storage configuration found for seed", "seed", *cluster.Shoot.Spec.SeedName)
+		logger.Info("skipping duros storage deployment because no storage configuration found for partition", "partition", infrastructure.PartitionID)
 		return disabledValues, nil
 	}
 
@@ -1233,7 +1225,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 
 		_, err := controllerutil.CreateOrUpdate(ctx, client, cp, func() error {
 			var to []networkingv1.IPBlock
-			for _, e := range seedConfig.Endpoints {
+			for _, e := range partitionConfig.Endpoints {
 				withoutPort := strings.Split(e, ":")
 				to = append(to, networkingv1.IPBlock{
 					CIDR: withoutPort[0] + "/32",
@@ -1273,7 +1265,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	var scs []map[string]interface{}
-	for _, sc := range seedConfig.StorageClasses {
+	for _, sc := range partitionConfig.StorageClasses {
 		scs = append(scs, map[string]interface{}{
 			"name":        sc.Name,
 			"replicas":    sc.ReplicaCount,
@@ -1287,9 +1279,9 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 			"storageClasses": scs,
 			"projectID":      infrastructure.ProjectID,
 			"controller": map[string]interface{}{
-				"endpoints":  seedConfig.Endpoints,
-				"adminKey":   seedConfig.AdminKey,
-				"adminToken": seedConfig.AdminToken,
+				"endpoints":  partitionConfig.Endpoints,
+				"adminKey":   partitionConfig.AdminKey,
+				"adminToken": partitionConfig.AdminToken,
 			},
 		},
 	}

@@ -134,12 +134,12 @@ type DurosConfiguration struct {
 	// Enabled enables duros storage when set to true.
 	Enabled bool `json:"enabled"`
 
-	// SeedConfig is a map of a seed name to the duros seed configuration
-	SeedConfig map[string]DurosSeedConfiguration `json:"seedConfig"`
+	// PartitionConfig is a map of a partition id to the duros partition configuration
+	PartitionConfig map[string]DurosPartitionConfiguration `json:"partitionConfig"`
 }
 
-// DurosSeedConfiguration is the configuration for duros for a particular seed
-type DurosSeedConfiguration struct {
+// DurosPartitionConfiguration is the configuration for duros for a particular partition
+type DurosPartitionConfiguration struct {
 	// Endpoints is the list of endpoints of the duros API
 	Endpoints []string `json:"endpoints"`
 	// AdminKey is the key used for generating storage credentials
