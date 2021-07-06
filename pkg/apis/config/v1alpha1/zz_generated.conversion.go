@@ -396,6 +396,10 @@ func autoConvert_v1alpha1_DurosPartitionConfiguration_To_config_DurosPartitionCo
 	out.AdminKey = in.AdminKey
 	out.AdminToken = in.AdminToken
 	out.StorageClasses = *(*[]config.DurosSeedStorageClass)(unsafe.Pointer(&in.StorageClasses))
+	out.APIEndpoint = in.APIEndpoint
+	out.APICA = in.APICA
+	out.APICert = in.APICert
+	out.APIKey = in.APIKey
 	return nil
 }
 
@@ -409,6 +413,10 @@ func autoConvert_config_DurosPartitionConfiguration_To_v1alpha1_DurosPartitionCo
 	out.AdminKey = in.AdminKey
 	out.AdminToken = in.AdminToken
 	out.StorageClasses = *(*[]DurosSeedStorageClass)(unsafe.Pointer(&in.StorageClasses))
+	out.APIEndpoint = in.APIEndpoint
+	out.APICA = in.APICA
+	out.APICert = in.APICert
+	out.APIKey = in.APIKey
 	return nil
 }
 

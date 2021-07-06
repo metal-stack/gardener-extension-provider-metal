@@ -157,6 +157,15 @@ type DurosPartitionConfiguration struct {
 	AdminToken string
 	// StorageClasses contain information on the storage classes that the duros-controller creates in the shoot cluster
 	StorageClasses []DurosSeedStorageClass
+
+	// APIEndpoint is the grpc-proxy endpoint which is secured by client cert
+	APIEndpoint string
+	// APICA is the ca of the client cert to access the grpc-proxy
+	APICA string
+	// APICert is the cert of the client cert to access the grpc-proxy
+	APICert string
+	// APIKey is the key of the client cert to access the grpc-proxy
+	APIKey string
 }
 
 type DurosSeedStorageClass struct {
