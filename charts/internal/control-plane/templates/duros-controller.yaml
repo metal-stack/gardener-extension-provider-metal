@@ -66,7 +66,7 @@ data:
 {{- if .Values.duros.controller.apiEndpoint }}
   api-ca: {{ required ".Values.duros.controller.apiCA is required" (b64enc .Values.duros.controller.apiCA) }}
   api-cert: {{ required ".Values.duros.controller.apiCert is required" (b64enc .Values.duros.controller.apiCert) }}
-  api-key: {{ required ".Values.duros.controller.apiKey is required" (b64enc .Values.duros.controller.api) }}
+  api-key: {{ required ".Values.duros.controller.apiKey is required" (b64enc .Values.duros.controller.apiKey) }}
 {{- end }}
 ---
 apiVersion: apps/v1
@@ -97,7 +97,7 @@ spec:
           - -admin-key=/duros/admin-key
           - -shoot-kubeconfig=/duros/client/kubeconfig
 {{- if .Values.duros.controller.apiEndpoint }}
-          - -api-endpoint={{ .Values.duros.controller.api-endpoint }}
+          - -api-endpoint={{ .Values.duros.controller.apiEndpoint }}
           - -api-ca=/duros/api-ca
           - -api-cert=/duros/api-cert
           - -api-key=/duros/api-key

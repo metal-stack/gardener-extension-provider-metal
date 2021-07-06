@@ -1273,16 +1273,25 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 		})
 	}
 
+	controllerValues := map[string]interface{}{
+		"endpoints":  partitionConfig.Endpoints,
+		"adminKey":   partitionConfig.AdminKey,
+		"adminToken": partitionConfig.AdminToken,
+	}
+
+	if partitionConfig.APIEndpoint != nil {
+		controllerValues["apiEndpoint"] = *partitionConfig.APIEndpoint
+		controllerValues["apiCA"] = partitionConfig.APICA
+		controllerValues["apiKey"] = partitionConfig.APIKey
+		controllerValues["apiCert"] = partitionConfig.APICert
+	}
+
 	values := map[string]interface{}{
 		"duros": map[string]interface{}{
 			"enabled":        storageConfig.Duros.Enabled,
 			"storageClasses": scs,
 			"projectID":      infrastructure.ProjectID,
-			"controller": map[string]interface{}{
-				"endpoints":  partitionConfig.Endpoints,
-				"adminKey":   partitionConfig.AdminKey,
-				"adminToken": partitionConfig.AdminToken,
-			},
+			"controller":     controllerValues,
 		},
 	}
 

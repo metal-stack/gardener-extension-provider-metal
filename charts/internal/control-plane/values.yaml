@@ -91,5 +91,9 @@ duros:
     - ip:port
     adminKey: KEY
     adminToken: tok
+    apiEndpoint:
+    apiCA:
+    apiKey:
+    apiCert:
 
 imagePullSecret:
