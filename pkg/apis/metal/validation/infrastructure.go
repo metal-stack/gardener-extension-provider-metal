@@ -6,13 +6,13 @@ import (
 
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
-
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 )
 
 // ValidateInfrastructureConfigAgainstCloudProfile validates the given `InfrastructureConfig` against the given `CloudProfile`.
@@ -38,10 +38,16 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 	}
 
 	availableFirewallImages := sets.NewString()
+	var availableFirewallControllerVersions []apismetal.FirewallControllerVersion
 	for _, mcp := range cloudProfileConfig.MetalControlPlanes {
 		availableFirewallImages.Insert(mcp.FirewallImages...)
+		availableFirewallControllerVersions = append(
+			availableFirewallControllerVersions,
+			mcp.FirewallControllerVersions...,
+		)
 	}
 
+	// Check if firewall image is allowed
 	found := false
 	for _, image := range availableFirewallImages.List() {
 		if infra.Firewall.Image == image {
@@ -51,6 +57,15 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 	}
 	if !found {
 		allErrs = append(allErrs, field.Invalid(firewallPath.Child("image"), infra.Firewall.Image, fmt.Sprintf("supported values: %v", availableFirewallImages.List())))
+	}
+
+	// Check if firewall-controller version is allowed
+	if _, err := ValidateFirewallControllerVersion(
+		imagevector.ImageVector(),
+		availableFirewallControllerVersions,
+		infra.Firewall.ControllerVersion,
+	); err != nil {
+		allErrs = append(allErrs, field.Required(field.NewPath("controllerVersion"), err.Error()))
 	}
 
 	_, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infra.PartitionID)
@@ -78,7 +93,7 @@ func validateInfrastructureConfigZones(infra *apismetal.InfrastructureConfig, zo
 }
 
 // ValidateInfrastructureConfig validates a InfrastructureConfig object.
-func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig, firewallControllerVersions []apismetal.FirewallControllerVersion) field.ErrorList {
+func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if infra.ProjectID == "" {
@@ -94,11 +109,6 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig, firewal
 	}
 	if infra.Firewall.Size == "" {
 		allErrs = append(allErrs, field.Required(firewallPath.Child("size"), "firewall size must be specified"))
-	}
-
-	_, err := ValidateFirewallControllerVersion(imagevector.ImageVector(), firewallControllerVersions, infra.Firewall.ControllerVersion)
-	if err != nil {
-		allErrs = append(allErrs, field.Required(field.NewPath("controllerVersion"), err.Error()))
 	}
 
 	availableNetworks := sets.NewString()
