@@ -15,7 +15,7 @@
 package loader
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/install"
@@ -46,7 +46,7 @@ func init() {
 
 // LoadFromFile takes a filename and de-serializes the contents into ControllerConfiguration object.
 func LoadFromFile(filename string) (*config.ControllerConfiguration, error) {
-	bytes, err := ioutil.ReadFile(filename)
+	bytes, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
