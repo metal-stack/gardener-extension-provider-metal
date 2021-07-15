@@ -26,6 +26,16 @@ type MetalControlPlane struct {
 	Partitions map[string]Partition `json:"partitions"`
 	// FirewallImages is a list of available firewall images in this control plane.
 	FirewallImages []string `json:"firewallImages,omitempty"`
+	// FirewallControllerVersions is a list of available firewall controller binary versions
+	FirewallControllerVersions []FirewallControllerVersion `json:"firewallControllerVersions,omitempty"`
+}
+
+// FirewallControllerVersion describes the version of the firewall controller binary
+type FirewallControllerVersion struct {
+	// Version is the version name of the firewall controller
+	Version string `json:"version"`
+	// URL points to the downloadable binary artifact of the firewall controller
+	URL string `json:"url"`
 }
 
 // Partition contains configuration specific for this metal stack control plane partition

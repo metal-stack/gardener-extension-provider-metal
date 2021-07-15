@@ -600,7 +600,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		nws[*n.ID] = n
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cpConfig, cluster, nws, infrastructureConfig, mclient)
+	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cp, cpConfig, cluster, nws, infrastructureConfig, mclient)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -624,10 +624,10 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cp *extensionsv1alpha1.ControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	fwSpec, err := vp.getFirewallSpec(ctx, infrastructure, cluster, nws, mclient)
+	fwSpec, err := vp.getFirewallSpec(ctx, metalControlPlane, infrastructure, cluster, nws, mclient)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not assemble firewall values")
 	}
@@ -692,7 +692,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallSpec(ctx context.Context, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient *metalgo.Driver) (*firewallv1.FirewallSpec, error) {
+func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient *metalgo.Driver) (*firewallv1.FirewallSpec, error) {
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
@@ -767,12 +767,14 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, infrastructureCon
 		},
 	}
 
-	fwcv, err := validation.ValidateFirewallControllerVersion(imagevector.ImageVector(), infrastructureConfig.Firewall.ControllerVersion)
-	if err != nil && err != validation.ErrSpecVersionUndefined {
-		return nil, fmt.Errorf("could not validate firewall controller version: %w", err)
+	fwcv, err := validation.ValidateFirewallControllerVersion(imagevector.ImageVector(), metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
+	if err != nil  {
+		return nil, err
 	}
 
-	spec.ControllerVersion = fwcv
+	spec.ControllerVersion = fwcv.Version
+	spec.ControllerURL = fwcv.URL
+
 	return &spec, nil
 }
 

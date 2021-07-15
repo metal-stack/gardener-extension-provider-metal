@@ -78,7 +78,7 @@ func validateInfrastructureConfigZones(infra *apismetal.InfrastructureConfig, zo
 }
 
 // ValidateInfrastructureConfig validates a InfrastructureConfig object.
-func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.ErrorList {
+func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig, firewallControllerVersions []apismetal.FirewallControllerVersion) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if infra.ProjectID == "" {
@@ -96,8 +96,8 @@ func ValidateInfrastructureConfig(infra *apismetal.InfrastructureConfig) field.E
 		allErrs = append(allErrs, field.Required(firewallPath.Child("size"), "firewall size must be specified"))
 	}
 
-	_, err := ValidateFirewallControllerVersion(imagevector.ImageVector(), infra.Firewall.ControllerVersion)
-	if err != nil && err != ErrSpecVersionUndefined {
+	_, err := ValidateFirewallControllerVersion(imagevector.ImageVector(), firewallControllerVersions, infra.Firewall.ControllerVersion)
+	if err != nil {
 		allErrs = append(allErrs, field.Required(field.NewPath("controllerVersion"), err.Error()))
 	}
 
