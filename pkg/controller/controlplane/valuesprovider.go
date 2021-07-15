@@ -768,7 +768,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 	}
 
 	fwcv, err := validation.ValidateFirewallControllerVersion(imagevector.ImageVector(), metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
-	if err != nil  {
+	if err != nil {
 		return nil, err
 	}
 
