@@ -14,7 +14,8 @@ const (
 )
 
 func ValidateFirewallControllerVersion(availableVersions []apismetal.FirewallControllerVersion, specVersion string) (*apismetal.FirewallControllerVersion, error) {
-	if specVersion == FirewallControllerVersionAuto {
+	// If auto or "" is specified in the shoot spec, take the latest available version
+	if specVersion == FirewallControllerVersionAuto || specVersion == "" {
 		return getLatestFirewallControllerVersion(availableVersions)
 	}
 
