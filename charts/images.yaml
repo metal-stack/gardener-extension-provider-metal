@@ -46,6 +46,7 @@ images:
 # firewall-controller tag must be semver compatible with golang dependency!
 - name: firewall-controller
   sourceRepository: https://github.com/metal-stack/firewall-controller
+  repository: "TODO, since g/g 1.22 repository must be set"
   tag: "v1.0.9"
 
 # can be provided via image override:
