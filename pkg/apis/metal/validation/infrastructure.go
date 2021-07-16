@@ -12,7 +12,6 @@ import (
 
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 )
 
 // ValidateInfrastructureConfigAgainstCloudProfile validates the given `InfrastructureConfig` against the given `CloudProfile`.
@@ -61,7 +60,6 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 
 	// Check if firewall-controller version is allowed
 	if _, err := ValidateFirewallControllerVersion(
-		imagevector.ImageVector(),
 		availableFirewallControllerVersions,
 		infra.Firewall.ControllerVersion,
 	); err != nil {

@@ -7,7 +7,6 @@ import (
 
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -223,10 +222,6 @@ var _ = Describe("InfrastructureConfig validation", func() {
 })
 
 func createCloudProfileConfig() *apismetal.CloudProfileConfig {
-	iv := imagevector.ImageVector()
-	ivi, err := iv.FindImage("firewall-controller")
-	Expect(err).To(BeNil())
-	specVersion := *ivi.Tag
 	return &apismetal.CloudProfileConfig{
 		MetalControlPlanes: map[string]apismetal.MetalControlPlane{
 			"prod": {
@@ -235,7 +230,7 @@ func createCloudProfileConfig() *apismetal.CloudProfileConfig {
 					"partition-a": {},
 				},
 				FirewallControllerVersions: []apismetal.FirewallControllerVersion{
-					{Version: specVersion},
+					{Version: "v1.0.1"},
 				},
 			},
 		},
