@@ -11,14 +11,13 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/ignition v0.35.0 // indirect
-	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
-	github.com/gardener/etcd-druid v0.3.0
+	github.com/gardener/etcd-druid v0.5.0
 	github.com/gardener/external-dns-management v0.8.1
-	github.com/gardener/gardener v1.19.3
+	github.com/gardener/gardener v1.23.0
 	github.com/gardener/machine-controller-manager v0.36.0
 	github.com/go-logr/logr v0.4.0
-	github.com/golang/mock v1.5.0
+	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/uuid v1.3.0
@@ -36,7 +35,7 @@ require (
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50 // indirect
 	go4.org v0.0.0-20201209231011-d4a079459e60 // indirect
 	k8s.io/api v0.20.8
-	k8s.io/apiextensions-apiserver v0.20.7
+	k8s.io/apiextensions-apiserver v0.20.8
 	k8s.io/apimachinery v0.20.8
 	k8s.io/apiserver v0.20.8
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible

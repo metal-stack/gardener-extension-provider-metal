@@ -577,9 +577,11 @@ func createFirewallControllerKubeconfig(ctx context.Context, r *firewallReconcil
 						CertType:     secrets.ClientCert,
 						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 					},
-					KubeConfigRequest: &secrets.KubeConfigRequest{
-						ClusterName:  clusterName,
-						APIServerURL: apiServerURL,
+					KubeConfigRequests: []secrets.KubeConfigRequest{
+						{
+							ClusterName:   clusterName,
+							APIServerHost: apiServerURL,
+						},
 					},
 				},
 			}
