@@ -27,6 +27,18 @@ func Test_getLatestFirewallControllerVersion(t *testing.T) {
 			wantErr:           false,
 		},
 		{
+			name:              "one version is specified with git sha",
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "v1.0.1"}, {Version: "2fb7fd7"}, {Version: "v2.0.3"}, {Version: "v0.0.3"}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3"},
+			wantErr:           false,
+		},
+		{
+			name:              "only one version is specified semver compatible",
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "1fb7fd7"}, {Version: "2fb7fd7"}, {Version: "v2.0.3"}, {Version: "4fb7fd7"}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3"},
+			wantErr:           false,
+		},
+		{
 			name:              "empty list",
 			availableVersions: []apismetal.FirewallControllerVersion{},
 			want:              nil,

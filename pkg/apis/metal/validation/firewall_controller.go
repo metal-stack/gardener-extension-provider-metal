@@ -35,7 +35,7 @@ func getLatestFirewallControllerVersion(availableVersions []apismetal.FirewallCo
 		rj := av[j]
 		vi, err := semver.NewVersion(ri.Version)
 		if err != nil {
-			return false
+			return true
 		}
 		vj, err := semver.NewVersion(rj.Version)
 		if err != nil {
