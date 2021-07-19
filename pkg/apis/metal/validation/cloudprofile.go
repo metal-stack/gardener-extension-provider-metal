@@ -17,7 +17,6 @@ package validation
 import (
 	"fmt"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/gardener/gardener/pkg/apis/core"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
@@ -42,12 +41,6 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 		versionSet := sets.NewString()
 		for _, v := range mcp.FirewallControllerVersions {
 			versionSet.Insert(v.Version)
-
-			_, err := semver.NewVersion(v.Version)
-			if err != nil {
-				allErrs = append(allErrs, field.Invalid(controlPlanesPath.Child(mcpName), v.Version, "given firewallcontrollerversion is not in semantic form"))
-			}
-
 		}
 		if versionSet.Len() != len(mcp.FirewallControllerVersions) {
 			allErrs = append(allErrs, field.Invalid(controlPlanesPath.Child(mcpName), "firewallcontrollerversions", "contains duplicate entries"))
