@@ -25,7 +25,7 @@ func ValidateFirewallControllerVersion(availableVersions []apismetal.FirewallCon
 		}
 	}
 
-	return nil, fmt.Errorf("firewall controller url was not found in available versions: %s", specVersion)
+	return nil, fmt.Errorf("firewall controller version:%s was not found in available versions: %s", specVersion, availableVersions)
 }
 
 func getLatestFirewallControllerVersion(availableVersions []apismetal.FirewallControllerVersion) (*apismetal.FirewallControllerVersion, error) {
