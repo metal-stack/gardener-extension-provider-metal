@@ -31,8 +31,10 @@ type MetalControlPlane struct {
 }
 
 // FirewallControllerVersion describes the version of the firewall controller binary
-// Version v0.0.1 URL: https://images.metal-stack.io/firewall-controller/pull-requests/101-upload-to-gcp/firewall-controller
-// Version v0.0.2 URL: https://images.metal-stack.io/firewall-controller/pull-requests/102-dns-cwnp/firewall-controller
+// version must not be semver compatible, the version of the created PR binary is also valid
+// but for the calculation of the most recent version, only semver compatible versions are considered.
+// Version 2fb7fd7 URL: https://images.metal-stack.io/firewall-controller/pull-requests/101-upload-to-gcp/firewall-controller
+// Version a273591 URL: https://images.metal-stack.io/firewall-controller/pull-requests/102-dns-cwnp/firewall-controller
 // Version v1.0.10 URL: https://images.metal-stack.io/firewall-controller/v1.0.10/firewall-controller
 // Version v1.0.11 URL: https://images.metal-stack.io/firewall-controller/v1.0.11/firewall-controller
 type FirewallControllerVersion struct {
