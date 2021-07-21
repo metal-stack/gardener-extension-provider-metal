@@ -39,6 +39,12 @@ func Test_getLatestFirewallControllerVersion(t *testing.T) {
 			wantErr:           false,
 		},
 		{
+			name:              "no version is specified semver compatible",
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "1fb7fd7"}, {Version: "2fb7fd7"}, {Version: "4fb7fd7"}},
+			want:              nil,
+			wantErr:           true,
+		},
+		{
 			name:              "empty list",
 			availableVersions: []apismetal.FirewallControllerVersion{},
 			want:              nil,

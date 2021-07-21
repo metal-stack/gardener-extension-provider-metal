@@ -29,7 +29,16 @@ func ValidateFirewallControllerVersion(availableVersions []apismetal.FirewallCon
 }
 
 func getLatestFirewallControllerVersion(availableVersions []apismetal.FirewallControllerVersion) (*apismetal.FirewallControllerVersion, error) {
-	av := availableVersions
+
+	av := []apismetal.FirewallControllerVersion{}
+	for _, v := range availableVersions {
+		_, err := semver.NewVersion(v.Version)
+		if err != nil {
+			continue
+		}
+		av = append(av, v)
+	}
+
 	sort.Slice(av, func(i, j int) bool {
 		ri := av[i]
 		rj := av[j]
@@ -48,5 +57,5 @@ func getLatestFirewallControllerVersion(availableVersions []apismetal.FirewallCo
 	if len(av) == 0 {
 		return nil, fmt.Errorf("unable to detect most recent firewallcontrollerversion")
 	}
-	return &av[len(availableVersions)-1], nil
+	return &av[len(av)-1], nil
 }
