@@ -3,9 +3,10 @@ package validation_test
 import (
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,6 +28,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 				Networks: []string{
 					"internet",
 				},
+				ControllerVersion: "auto",
 			},
 		}
 	})
@@ -62,16 +64,8 @@ var _ = Describe("InfrastructureConfig validation", func() {
 						Region: "region-a",
 					},
 				}
-				cloudProfileConfig = &apismetal.CloudProfileConfig{
-					MetalControlPlanes: map[string]apismetal.MetalControlPlane{
-						"prod": {
-							FirewallImages: []string{"image"},
-							Partitions: map[string]apismetal.Partition{
-								"partition-a": {},
-							},
-						},
-					},
-				}
+
+				cloudProfileConfig = createCloudProfileConfig()
 			})
 
 			It("should pass because zone is configured in CloudProfile", func() {
@@ -225,5 +219,20 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			}))))
 		})
 	})
-
 })
+
+func createCloudProfileConfig() *apismetal.CloudProfileConfig {
+	return &apismetal.CloudProfileConfig{
+		MetalControlPlanes: map[string]apismetal.MetalControlPlane{
+			"prod": {
+				FirewallImages: []string{"image"},
+				Partitions: map[string]apismetal.Partition{
+					"partition-a": {},
+				},
+				FirewallControllerVersions: []apismetal.FirewallControllerVersion{
+					{Version: "v1.0.1"},
+				},
+			},
+		},
+	}
+}
