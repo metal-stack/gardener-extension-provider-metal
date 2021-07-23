@@ -1,129 +1,61 @@
 package validation
 
 import (
-	"context"
 	"fmt"
-	"strings"
+	"sort"
 
-	"github.com/blang/semver"
-	"github.com/gardener/gardener/pkg/utils/imagevector"
-	"github.com/google/go-github/github"
-	"github.com/pkg/errors"
+	"github.com/Masterminds/semver/v3"
+
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 )
 
 const (
 	FirewallControllerVersionAuto = "auto"
 )
 
-var (
-	ErrSpecVersionUndefined = fmt.Errorf("firewall-controller version was not specified in the spec")
-	ErrNoSemver             = fmt.Errorf("firewall-controller versions must adhere to semver spec")
-	ErrControllerTooOld     = fmt.Errorf("firewall-controller on machine is too old")
-
-	ghclient      = github.NewClient(nil)
-	versionsCache = make(map[string]bool)
-)
-
-func ValidateFirewallControllerVersion(iv imagevector.ImageVector, specVersion string) (string, error) {
-	versionTag, err := validateFirewallControllerVersionWithoutGithub(iv, specVersion)
-	if err != nil {
-		return "", err
+func ValidateFirewallControllerVersion(availableVersions []apismetal.FirewallControllerVersion, specVersion string) (*apismetal.FirewallControllerVersion, error) {
+	// If auto or "" is specified in the shoot spec, take the latest available version
+	if specVersion == FirewallControllerVersionAuto || specVersion == "" {
+		return getLatestFirewallControllerVersion(availableVersions)
 	}
 
-	err = isFirewallControllerVersionValid(versionTag)
-	if err != nil {
-		return "", err
-	}
-
-	return versionTag, nil
-}
-
-func isFirewallControllerVersionValid(versionTag string) error {
-	if versionsCache[versionTag] {
-		return nil
-	}
-
-	releases, _, err := ghclient.Repositories.ListReleases(context.Background(), "metal-stack", "firewall-controller", &github.ListOptions{})
-	if err != nil {
-		return errors.Wrap(err, "unable to list github firewall-controller releases")
-	}
-
-	var rel *github.RepositoryRelease
-	for _, r := range releases {
-		if r.TagName != nil && *r.TagName == versionTag {
-			rel = r
-			break
+	for _, availableVersion := range availableVersions {
+		if availableVersion.Version == specVersion {
+			return &availableVersion, nil
 		}
 	}
 
-	if rel == nil {
-		return fmt.Errorf("could not find release with tag %s", versionTag)
-	}
-
-	var asset *github.ReleaseAsset
-	for _, ra := range rel.Assets {
-		if ra.GetName() == "firewall-controller" {
-			asset = &ra
-			break
-		}
-	}
-
-	if asset == nil {
-		return fmt.Errorf("could not find artifact %q in github release with tag %s", "firewall-controller", versionTag)
-	}
-
-	versionsCache[versionTag] = true
-
-	return nil
+	return nil, fmt.Errorf("firewall controller version:%s was not found in available versions: %s", specVersion, availableVersions)
 }
 
-func validateFirewallControllerVersionWithoutGithub(iv imagevector.ImageVector, specVersion string) (string, error) {
-	imageVectorVersion, err := getImageVectorVersion(iv)
-	if err != nil {
-		return "", err
-	}
+func getLatestFirewallControllerVersion(availableVersions []apismetal.FirewallControllerVersion) (*apismetal.FirewallControllerVersion, error) {
 
-	wantedVersion, err := determineWantedVersion(specVersion, imageVectorVersion)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("v%s", wantedVersion.String()), nil
-}
-
-func getImageVectorVersion(imageVector imagevector.ImageVector) (*semver.Version, error) {
-	ivi, err := imageVector.FindImage("firewall-controller")
-	if err != nil {
-		return nil, fmt.Errorf("firewall-controller is not present in image-vector")
-	}
-
-	version := *ivi.Tag
-	semv, err := semver.Make(strings.TrimPrefix(version, "v"))
-	if err != nil {
-		return nil, ErrNoSemver
-	}
-	return &semv, nil
-}
-
-func determineWantedVersion(specVersion string, ivSemv *semver.Version) (*semver.Version, error) {
-	if specVersion == "" {
-		return nil, ErrSpecVersionUndefined
-	}
-
-	var wantedSemv *semver.Version
-	if specVersion == FirewallControllerVersionAuto {
-		wantedSemv = ivSemv
-	} else {
-		specSemv, err := semver.Make(strings.TrimPrefix(specVersion, "v"))
+	av := []apismetal.FirewallControllerVersion{}
+	for _, v := range availableVersions {
+		_, err := semver.NewVersion(v.Version)
 		if err != nil {
-			return nil, ErrNoSemver
+			continue
 		}
-		wantedSemv = &specSemv
+		av = append(av, v)
 	}
 
-	if wantedSemv.Major != ivSemv.Major {
-		return nil, ErrControllerTooOld
-	}
+	sort.Slice(av, func(i, j int) bool {
+		ri := av[i]
+		rj := av[j]
+		vi, err := semver.NewVersion(ri.Version)
+		if err != nil {
+			return true
+		}
+		vj, err := semver.NewVersion(rj.Version)
+		if err != nil {
+			return false
+		}
 
-	return wantedSemv, nil
+		return vi.LessThan(vj)
+	})
+
+	if len(av) == 0 {
+		return nil, fmt.Errorf("unable to detect most recent firewallcontrollerversion")
+	}
+	return &av[len(av)-1], nil
 }
