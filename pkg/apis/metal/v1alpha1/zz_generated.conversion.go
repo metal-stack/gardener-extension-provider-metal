@@ -424,6 +424,7 @@ func Convert_metal_Firewall_To_v1alpha1_Firewall(in *metal.Firewall, out *Firewa
 func autoConvert_v1alpha1_FirewallControllerVersion_To_metal_FirewallControllerVersion(in *FirewallControllerVersion, out *metal.FirewallControllerVersion, s conversion.Scope) error {
 	out.Version = in.Version
 	out.URL = in.URL
+	out.Classification = (*metal.VersionClassification)(unsafe.Pointer(in.Classification))
 	return nil
 }
 
@@ -435,6 +436,7 @@ func Convert_v1alpha1_FirewallControllerVersion_To_metal_FirewallControllerVersi
 func autoConvert_metal_FirewallControllerVersion_To_v1alpha1_FirewallControllerVersion(in *metal.FirewallControllerVersion, out *FirewallControllerVersion, s conversion.Scope) error {
 	out.Version = in.Version
 	out.URL = in.URL
+	out.Classification = (*VersionClassification)(unsafe.Pointer(in.Classification))
 	return nil
 }
 
