@@ -43,7 +43,7 @@ type FirewallControllerVersion struct {
 	// URL points to the downloadable binary artifact of the firewall controller
 	URL string `json:"url"`
 	// Classification defines the state of a version (preview, supported, deprecated)
-	Classification *VersionClassification
+	Classification *VersionClassification `json:"classification,omitempty"`
 }
 
 // VersionClassification is the logical state of a version according to https://github.com/gardener/gardener/blob/master/docs/operations/versioning.md
