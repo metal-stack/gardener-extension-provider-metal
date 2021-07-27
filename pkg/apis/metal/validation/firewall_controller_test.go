@@ -8,6 +8,9 @@ import (
 )
 
 func Test_getLatestFirewallControllerVersion(t *testing.T) {
+	preview := apismetal.ClassificationPreview
+	supported := apismetal.ClassificationSupported
+
 	tests := []struct {
 		name              string
 		availableVersions []apismetal.FirewallControllerVersion
@@ -16,31 +19,37 @@ func Test_getLatestFirewallControllerVersion(t *testing.T) {
 	}{
 		{
 			name:              "simple",
-			availableVersions: []apismetal.FirewallControllerVersion{{Version: "v1.0.1"}, {Version: "v1.0.2"}, {Version: "v1.0.3"}},
-			want:              &apismetal.FirewallControllerVersion{Version: "v1.0.3"},
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "v1.0.1", Classification: &supported}, {Version: "v1.0.2", Classification: &supported}, {Version: "v1.0.3", Classification: &supported}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v1.0.3", Classification: &supported},
 			wantErr:           false,
 		},
 		{
 			name:              "even more simple",
-			availableVersions: []apismetal.FirewallControllerVersion{{Version: "v1.0.1"}, {Version: "v0.0.2"}, {Version: "v2.0.3"}, {Version: "v0.0.3"}},
-			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3"},
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "v1.0.1", Classification: &preview}, {Version: "v0.0.2", Classification: &supported}, {Version: "v2.0.3", Classification: &supported}, {Version: "v0.0.3", Classification: &supported}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3", Classification: &supported},
 			wantErr:           false,
 		},
 		{
 			name:              "one version is specified with git sha",
-			availableVersions: []apismetal.FirewallControllerVersion{{Version: "v1.0.1"}, {Version: "2fb7fd7"}, {Version: "v2.0.3"}, {Version: "v0.0.3"}},
-			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3"},
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "v1.0.1", Classification: &supported}, {Version: "2fb7fd7", Classification: &preview}, {Version: "v2.0.3", Classification: &supported}, {Version: "v0.0.3", Classification: &supported}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3", Classification: &supported},
 			wantErr:           false,
 		},
 		{
 			name:              "only one version is specified semver compatible",
-			availableVersions: []apismetal.FirewallControllerVersion{{Version: "1fb7fd7"}, {Version: "2fb7fd7"}, {Version: "v2.0.3"}, {Version: "4fb7fd7"}},
-			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3"},
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "1fb7fd7"}, {Version: "2fb7fd7", Classification: &preview}, {Version: "v2.0.3", Classification: &supported}, {Version: "4fb7fd7", Classification: &supported}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3", Classification: &supported},
+			wantErr:           false,
+		},
+		{
+			name:              "latest version is preview",
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "1fb7fd7"}, {Version: "2fb7fd7", Classification: &preview}, {Version: "v2.0.3", Classification: &supported}, {Version: "v2.1.0", Classification: &preview}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3", Classification: &supported},
 			wantErr:           false,
 		},
 		{
 			name:              "no version is specified semver compatible",
-			availableVersions: []apismetal.FirewallControllerVersion{{Version: "1fb7fd7"}, {Version: "2fb7fd7"}, {Version: "4fb7fd7"}},
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "1fb7fd7", Classification: &preview}, {Version: "2fb7fd7", Classification: &preview}, {Version: "4fb7fd7", Classification: &preview}},
 			want:              nil,
 			wantErr:           true,
 		},

@@ -222,6 +222,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 })
 
 func createCloudProfileConfig() *apismetal.CloudProfileConfig {
+	supported := apismetal.ClassificationSupported
 	return &apismetal.CloudProfileConfig{
 		MetalControlPlanes: map[string]apismetal.MetalControlPlane{
 			"prod": {
@@ -230,7 +231,7 @@ func createCloudProfileConfig() *apismetal.CloudProfileConfig {
 					"partition-a": {},
 				},
 				FirewallControllerVersions: []apismetal.FirewallControllerVersion{
-					{Version: "v1.0.1"},
+					{Version: "v1.0.1", Classification: &supported},
 				},
 			},
 		},

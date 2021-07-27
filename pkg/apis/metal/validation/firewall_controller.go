@@ -25,7 +25,7 @@ func ValidateFirewallControllerVersion(availableVersions []apismetal.FirewallCon
 		}
 	}
 
-	return nil, fmt.Errorf("firewall controller version:%s was not found in available versions: %s", specVersion, availableVersions)
+	return nil, fmt.Errorf("firewall controller version:%s was not found in available versions: %v", specVersion, availableVersions)
 }
 
 func getLatestFirewallControllerVersion(availableVersions []apismetal.FirewallControllerVersion) (*apismetal.FirewallControllerVersion, error) {
@@ -34,6 +34,14 @@ func getLatestFirewallControllerVersion(availableVersions []apismetal.FirewallCo
 	for _, v := range availableVersions {
 		_, err := semver.NewVersion(v.Version)
 		if err != nil {
+			continue
+		}
+		// no given classification considered as preview
+		if v.Classification == nil {
+			continue
+		}
+		// only "supported" counts
+		if v.Classification != nil && *v.Classification != apismetal.ClassificationSupported {
 			continue
 		}
 		av = append(av, v)
