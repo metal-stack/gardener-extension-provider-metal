@@ -36,6 +36,11 @@ func getLatestFirewallControllerVersion(availableVersions []apismetal.FirewallCo
 		if err != nil {
 			continue
 		}
+		// no given classification considered as preview
+		if v.Classification == nil {
+			continue
+		}
+		// only "supported" counts
 		if v.Classification != nil && *v.Classification != apismetal.ClassificationSupported {
 			continue
 		}
