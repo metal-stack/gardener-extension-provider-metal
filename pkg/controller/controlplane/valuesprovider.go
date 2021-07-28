@@ -720,7 +720,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	apiserverIPs := []string{}
-	var intDNS *dnsv1alpha1.DNSEntry
 	if !extensionscontroller.IsHibernated(cluster) {
 		// get apiserver ip adresses from external dns entry
 		// DNSEntry was replaced by DNSRecord and will be dropped in a future gardener release
@@ -739,7 +738,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	cwnpsValues := map[string]interface{}{
-		"internalDNSAddr":    intDNS.Spec.DNSName,
 		"onlyApiserverHttps": infrastructure.OnlyHTTPSToAPIServer,
 	}
 

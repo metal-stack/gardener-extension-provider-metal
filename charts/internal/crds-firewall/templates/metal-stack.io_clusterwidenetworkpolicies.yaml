@@ -4,7 +4,11 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+<<<<<<< HEAD
     controller-gen.kubebuilder.io/version: v0.7.0
+=======
+    controller-gen.kubebuilder.io/version: v0.6.1
+>>>>>>> remove only apiserver https cwnp
   creationTimestamp: null
   name: clusterwidenetworkpolicies.metal-stack.io
 spec:
@@ -33,6 +37,7 @@ spec:
               description: 'Kind is a string value representing the REST resource this
               object represents. Servers may infer this from the endpoint the client
               submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+<<<<<<< HEAD
             type: string
           metadata:
             type: object
@@ -117,6 +122,53 @@ spec:
                               or "2001:db9::/64" Except values will be rejected if
                               they are outside the CIDR range
                             items:
+=======
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: PolicySpec defines the rules to create for ingress and egress
+              properties:
+                description:
+                  description: Description is a free form string, it can be used by
+                    the creator of the rule to store human readable explanation of the
+                    purpose of this rule. Rules cannot be identified by comment.
+                  type: string
+                egress:
+                  description: List of egress rules to be applied. Outgoing traffic
+                    is allowed if there is a ClusterwideNetworkPolicy that allows it.
+                    Clusters are isolated by default.
+                  items:
+                    description: EgressRule describes a particular set of traffic that
+                      is allowed out of the cluster The traffic must match both ports
+                      and to.
+                    properties:
+                      ports:
+                        description: List of destination ports for outgoing traffic.
+                          Each item in this list is combined using a logical OR. If
+                          this field is empty or missing, this rule matches all ports
+                          (traffic not restricted by port). If this field is present
+                          and contains at least one item, then this rule allows traffic
+                          only if the traffic matches at least one port in the list.
+                        items:
+                          description: NetworkPolicyPort describes a port to allow traffic
+                            on
+                          properties:
+                            port:
+                              anyOf:
+                                - type: integer
+                                - type: string
+                              description: The port on the given protocol. This can
+                                either be a numerical or named port on a pod. If this
+                                field is not provided, this matches all port names and
+                                numbers.
+                              x-kubernetes-int-or-string: true
+                            protocol:
+                              default: TCP
+                              description: The protocol (TCP, UDP, or SCTP) which traffic
+                                must match. If not specified, this field defaults to
+                                TCP.
+>>>>>>> remove only apiserver https cwnp
                               type: string
                           type: object
                         type: array
