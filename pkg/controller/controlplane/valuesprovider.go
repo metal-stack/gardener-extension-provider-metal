@@ -29,9 +29,8 @@ import (
 
 	metalgo "github.com/metal-stack/metal-go"
 
-	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
-
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
+	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -739,7 +738,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	cwnpsValues := map[string]interface{}{
-		"allowHttps": !infrastructure.HTTPSToApiserverOnly,
+		"allowHttps": !infrastructure.HTTPSToAPIServerOnly,
 	}
 
 	values := map[string]interface{}{

@@ -556,6 +556,7 @@ func autoConvert_v1alpha1_InfrastructureConfig_To_metal_InfrastructureConfig(in 
 	}
 	out.PartitionID = in.PartitionID
 	out.ProjectID = in.ProjectID
+	out.HTTPSToAPIServerOnly = in.HTTPSToAPIServerOnly
 	return nil
 }
 
@@ -570,6 +571,7 @@ func autoConvert_metal_InfrastructureConfig_To_v1alpha1_InfrastructureConfig(in 
 	}
 	out.PartitionID = in.PartitionID
 	out.ProjectID = in.ProjectID
+	out.HTTPSToAPIServerOnly = in.HTTPSToAPIServerOnly
 	return nil
 }
 
