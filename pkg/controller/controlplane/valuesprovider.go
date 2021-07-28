@@ -286,7 +286,7 @@ func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerCon
 	cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 		{Type: &corev1.ConfigMap{}, Name: "shoot-info-node-cidr"},
 	}...)
-	
+
 	if controllerConfig.Auth.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
 			{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
@@ -720,6 +720,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	apiserverIPs := []string{}
+	var intDNS *dnsv1alpha1.DNSEntry
 	if !extensionscontroller.IsHibernated(cluster) {
 		// get apiserver ip adresses from external dns entry
 		// DNSEntry was replaced by DNSRecord and will be dropped in a future gardener release
@@ -738,7 +739,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	cwnpsValues := map[string]interface{}{
-		"allowHttps": !infrastructure.HTTPSToAPIServerOnly,
+		"internalDNSAddr":    intDNS.Spec.DNSName,
+		"onlyApiserverHttps": infrastructure.OnlyHTTPSToAPIServer,
 	}
 
 	values := map[string]interface{}{

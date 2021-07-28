@@ -28,7 +28,21 @@ spec:
       port: 53
     - protocol: TCP
       port: 53
-{{- if .Values.cwnps.allowHttps }}
+{{- if .Values.cwnps.onlyApiserverHttps }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-https-apiserver
+  namespace: firewall
+spec:
+  egress:
+    - toFQDNs:
+        - matchName: {{ .Values.cwnps.internalDNSAddr }}
+      ports:
+        - protocol: TCP
+          port: 443
+{{- else }}
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
@@ -37,11 +51,11 @@ metadata:
   namespace: firewall
 spec:
   egress:
-  - to:
-    - cidr: 0.0.0.0/0
-    ports:
-    - protocol: TCP
-      port: 443
+    - to:
+        - cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
 {{- end }}
 ---
 apiVersion: metal-stack.io/v1

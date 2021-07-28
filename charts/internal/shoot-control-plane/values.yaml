@@ -40,4 +40,4 @@ clusterAudit:
   enabled: false
 
 cwnps:
-    allowHttps: true
+  onlyApiserverHttps: false
