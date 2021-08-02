@@ -61,7 +61,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	dnsv1alpha1 "github.com/gardener/external-dns-management/pkg/apis/dns/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -650,18 +649,20 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		"enabled": clusterAuditEnabled,
 	}
 
-	// get apiserver ip adresses from external dns entry
-	dns := &dnsv1alpha1.DNSEntry{}
-
-	err = vp.client.Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
+	// get apiserver ip adress from istio ingress service
+	istioIngress := &corev1.Service{}
+	err = vp.client.Get(ctx, types.NamespacedName{Name: "istio-ingressgateway", Namespace: "istio-ingress"}, istioIngress)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get dnsEntry")
+		return nil, errors.Wrap(err, "failed to get istio ingress service")
 	}
-	apiserverIPs := dns.Spec.Targets
+	ingresses := istioIngress.Status.LoadBalancer.Ingress
+	if len(ingresses) != 1 {
+		return nil, errors.Wrap(err, "istio ingress service has no ingress ip")
+	}
 
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-		"apiserverIPs":      apiserverIPs,
+		"apiserverIPs":      []string{ingresses[0].IP},
 		"firewallSpec":      fwSpec,
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
