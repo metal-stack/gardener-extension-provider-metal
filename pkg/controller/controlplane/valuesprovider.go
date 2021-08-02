@@ -348,18 +348,6 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 				{Type: &corev1.Secret{}, Name: "audit-to-splunk-secret"},
 				{Type: &corev1.ConfigMap{}, Name: "audit-to-splunk-config"},
 			}...)
-			// cpShootChart.Images = append(cpShootChart.Images, []string{metal.AuditToSplunkImageName}...)
-			// cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
-			// 	// auditToSplunk
-			// 	{Type: &corev1.Namespace{}, Name: "fluentd-splunk-audit"},
-			// 	{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "fluentd-splunk-audit"},
-			// 	{Type: &corev1.ServiceAccount{}, Name: "fluentd-splunk-audit"},
-			// 	{Type: &corev1.Secret{}, Name: "fluentd-splunk-audit"},
-			// 	{Type: &corev1.ConfigMap{}, Name: "fluentd-splunk-audit"},
-			// 	{Type: &rbacv1.ClusterRole{}, Name: "fluentd-splunk-audit"},
-			// 	{Type: &rbacv1.ClusterRoleBinding{}, Name: "fluentd-splunk-audit"},
-			// 	{Type: &appsv1.DaemonSet{}, Name: "fluentd-splunk-audit"},
-			// }...)
 		}
 	}
 
@@ -452,7 +440,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 	auditToSplunkEnabled := false
 	if vp.controllerConfig.AuditToSplunk.Enabled {
 		if clusterAuditEnabled {
-			if cpConfig.FeatureGates.AuditToSplunk == nil || *cpConfig.FeatureGates.AuditToSplunk {
+			if cpConfig.FeatureGates.AuditToSplunk != nil && *cpConfig.FeatureGates.AuditToSplunk {
 				auditToSplunkEnabled = true
 			}
 		}
@@ -713,7 +701,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		},
 		"duros":        durosValues,
 		"clusterAudit": clusterAuditValues,
-		// "auditToSplunk": auditToSplunkValues,
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {

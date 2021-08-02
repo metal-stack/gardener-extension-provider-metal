@@ -39,7 +39,7 @@ type ControlPlaneFeatures struct {
 	// AuditToSplunk enables the forwarding of the apiserver auditlog to a defined splunk instance in addition to
 	// forwarding it into the cluster. Needs the clusterAudit featureGate to be active.
 	//
-	// If unset, defaults to true.
+	// If unset, defaults to false.
 	// +optional
 	AuditToSplunk *bool
 }

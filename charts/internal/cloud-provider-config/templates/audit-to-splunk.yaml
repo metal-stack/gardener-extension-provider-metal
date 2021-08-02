@@ -20,38 +20,27 @@ metadata:
 data:
   splunk.conf: |
     [FILTER]
-        Name            rewrite_tag
-        Match           audit
-        Rule            $kind Event tosplunk true
-
-    [FILTER]
-        Name            nest
-        Match           tosplunk
-        Operation       nest
-        Wildcard        *
-        Nest_under      event
-
-    [FILTER]
-        Name            record_modifier
-        Match           tosplunk
-        Record          host {{ .Values.auditToSplunk.clusterName }}
-        Record          sourcetype kube:apiserver:auditlog
-        Record          source ${MY_POD_NAME}
-        Record          index {{ .Values.auditToSplunk.index }}
+        Name                rewrite_tag
+        Match               audit
+        Rule                $kind Event tosplunk true
 
     [OUTPUT]
-        Name            splunk
-        Match           tosplunk
-        Host            {{ .Values.auditToSplunk.hecHost }}
-        Port            {{ .Values.auditToSplunk.hecPort }}
-        Splunk_Token    ${SPLUNK_HEC_TOKEN}
+        Name                splunk
+        Match               tosplunk
+        Host                {{ .Values.auditToSplunk.hecHost }}
+        Port                {{ .Values.auditToSplunk.hecPort }}
+        Splunk_Token        ${SPLUNK_HEC_TOKEN}
 {{- if .Values.auditToSplunk.tlsEnabled }}
-        TLS             On
-        TLS.Verify      On
+        TLS                 On
+        TLS.Verify          On
 {{- end }}
 {{- if .Values.auditToSplunk.hecCAFile }}
-        TLS.CA_File     /fluent-bit/etc/splunkca/splunk-ca.pem
+        TLS.CA_File         /fluent-bit/etc/splunkca/splunk-ca.pem
 {{- end }}
-        Retry_Limit     False
-        Splunk_Send_Raw On
+        Retry_Limit         False
+        Splunk_Send_Raw     Off
+        Event_Source        ${MY_POD_NAME}
+        Event_Sourcetype    kube:apiserver:auditlog
+        Event_Index         {{ .Values.auditToSplunk.index }}
+        Event_Host          {{ .Values.auditToSplunk.clusterName }}
 {{- end }}

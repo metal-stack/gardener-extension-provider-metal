@@ -60,7 +60,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		}
 		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
 			makeAuditForwarder = true
-			if cpConfig.FeatureGates.AuditToSplunk == nil || *cpConfig.FeatureGates.AuditToSplunk {
+			if cpConfig.FeatureGates.AuditToSplunk != nil && *cpConfig.FeatureGates.AuditToSplunk {
 				auditToSplunk = true
 			}
 		}
@@ -261,7 +261,7 @@ var (
 			},
 			Limits: corev1.ResourceList{
 				corev1.ResourceCPU:    resource.MustParse("100m"),
-				corev1.ResourceMemory: resource.MustParse("200Mi"),
+				corev1.ResourceMemory: resource.MustParse("500Mi"),
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
