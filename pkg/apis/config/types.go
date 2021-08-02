@@ -158,13 +158,13 @@ type StorageConfiguration struct {
 type DurosConfiguration struct {
 	// Enabled enables duros storage when set to true.
 	Enabled bool
-	// SeedConfig is a map of a seed name to the duros seed configuration
-	SeedConfig map[string]DurosSeedConfiguration
+	// PartitionConfig is a map of a partition id to the duros partition configuration
+	PartitionConfig map[string]DurosPartitionConfiguration
 }
 
-// DurosSeedConfiguration is the configuration for duros for a particular seed
-type DurosSeedConfiguration struct {
-	// Endpoints is the list of endpoints of the duros API
+// DurosPartitionConfiguration is the configuration for duros for a particular partition
+type DurosPartitionConfiguration struct {
+	// Endpoints is the list of endpoints for the storage data plane and control plane communication
 	Endpoints []string
 	// AdminKey is the key used for generating storage credentials
 	AdminKey string
@@ -172,6 +172,21 @@ type DurosSeedConfiguration struct {
 	AdminToken string
 	// StorageClasses contain information on the storage classes that the duros-controller creates in the shoot cluster
 	StorageClasses []DurosSeedStorageClass
+
+	// APIEndpoint is an optional endpoint used for control plane network communication.
+	//
+	// In certain scenarios the data plane network cannot be reached from the duros-controller in the seed
+	// (i.e. only the shoot is able to reach the storage network).
+	//
+	// In these cases, APIEndpoint can be utilized to point to a gRPC proxy such that the storage
+	// integration can be deployed anyway.
+	APIEndpoint *string
+	// APICA is the ca of the client cert to access the grpc-proxy
+	APICA string
+	// APICert is the cert of the client cert to access the grpc-proxy
+	APICert string
+	// APIKey is the key of the client cert to access the grpc-proxy
+	APIKey string
 }
 
 type DurosSeedStorageClass struct {

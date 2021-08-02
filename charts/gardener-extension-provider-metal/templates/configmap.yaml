@@ -67,8 +67,8 @@ data:
       duros:
         enabled: {{ .Values.config.storage.duros.enabled }}
 {{- if .Values.config.storage.duros.enabled }}
-        seedConfig:
-{{ toYaml .Values.config.storage.duros.seedConfig | indent 12 }}
+        partitionConfig:
+{{ toYaml .Values.config.storage.duros.partitionConfig | indent 12 }}
 {{- end }}
 {{- if .Values.config.imagePullSecret.encodedDockerConfigJSON }}
     imagePullSecret:

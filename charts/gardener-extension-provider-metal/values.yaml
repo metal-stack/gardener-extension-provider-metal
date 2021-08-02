@@ -76,7 +76,7 @@ config:
   storage:
     duros:
       enabled: false
-      seedConfig: {}
+      partitionConfig: {}
   imagePullSecret:
     encodedDockerConfigJSON:
 

@@ -3,13 +3,13 @@ module github.com/metal-stack/gardener-extension-provider-metal
 go 1.16
 
 require (
+	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
 	github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083 // indirect
 	github.com/ajeddeloh/yaml v0.0.0-20141224210557-6b16a5714269 // indirect
-	github.com/blang/semver v3.5.1+incompatible
 	github.com/coreos/container-linux-config-transpiler v0.9.0
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
-	github.com/coreos/go-systemd/v22 v22.1.0
+	github.com/coreos/go-systemd/v22 v22.3.1
 	github.com/coreos/ignition v0.35.0 // indirect
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
@@ -20,11 +20,10 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.5
-	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/uuid v1.2.0
 	github.com/imdario/mergo v0.3.11
 	github.com/metal-stack/duros-controller v0.1.1
-	github.com/metal-stack/firewall-controller v1.0.2
+	github.com/metal-stack/firewall-controller v1.0.10
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.3
 	github.com/metal-stack/metal-go v0.14.0
 	github.com/metal-stack/metal-lib v0.7.2

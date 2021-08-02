@@ -23,7 +23,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
@@ -641,7 +640,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		nws[*n.ID] = n
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, cp, cpConfig, cluster, nws, infrastructureConfig, mclient)
+	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cp, cpConfig, cluster, nws, infrastructureConfig, mclient)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -665,10 +664,10 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cp *extensionsv1alpha1.ControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	fwSpec, err := vp.getFirewallSpec(ctx, infrastructure, cluster, nws, mclient)
+	fwSpec, err := vp.getFirewallSpec(ctx, metalControlPlane, infrastructure, cluster, nws, mclient)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not assemble firewall values")
 	}
@@ -736,11 +735,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
-		if cluster.Shoot.Spec.SeedName == nil {
-			return nil, fmt.Errorf("shoot resource has not seed name")
-		}
-
-		seedConfig, ok := vp.controllerConfig.Storage.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
+		partitionConfig, ok := vp.controllerConfig.Storage.Duros.PartitionConfig[infrastructure.PartitionID]
 
 		found, err := hasDurosStorageNetwork(infrastructure, nws)
 		if err != nil {
@@ -748,7 +743,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 
 		if found && ok {
-			durosValues["endpoints"] = seedConfig.Endpoints
+			durosValues["endpoints"] = partitionConfig.Endpoints
 		} else {
 			durosValues["enabled"] = false
 		}
@@ -757,7 +752,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallSpec(ctx context.Context, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient *metalgo.Driver) (*firewallv1.FirewallSpec, error) {
+func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient *metalgo.Driver) (*firewallv1.FirewallSpec, error) {
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
@@ -832,12 +827,14 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, infrastructureCon
 		},
 	}
 
-	fwcv, err := validation.ValidateFirewallControllerVersion(imagevector.ImageVector(), infrastructureConfig.Firewall.ControllerVersion)
-	if err != nil && err != validation.ErrSpecVersionUndefined {
-		return nil, fmt.Errorf("could not validate firewall controller version: %w", err)
+	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
+	if err != nil {
+		return nil, err
 	}
 
-	spec.ControllerVersion = fwcv
+	spec.ControllerVersion = fwcv.Version
+	spec.ControllerURL = fwcv.URL
+
 	return &spec, nil
 }
 
@@ -1258,19 +1255,15 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 }
 
 func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, nws networkMap) (map[string]interface{}, error) {
-	if cluster.Shoot.Spec.SeedName == nil {
-		return nil, fmt.Errorf("shoot resource has not seed name")
-	}
-
 	disabledValues := map[string]interface{}{
 		"duros": map[string]interface{}{
 			"enabled": false,
 		},
 	}
 
-	seedConfig, ok := storageConfig.Duros.SeedConfig[*cluster.Shoot.Spec.SeedName]
+	partitionConfig, ok := storageConfig.Duros.PartitionConfig[infrastructure.PartitionID]
 	if !ok {
-		logger.Info("skipping duros storage deployment because no storage configuration found for seed", "seed", *cluster.Shoot.Spec.SeedName)
+		logger.Info("skipping duros storage deployment because no storage configuration found for partition", "partition", infrastructure.PartitionID)
 		return disabledValues, nil
 	}
 
@@ -1294,7 +1287,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 
 		_, err := controllerutil.CreateOrUpdate(ctx, client, cp, func() error {
 			var to []networkingv1.IPBlock
-			for _, e := range seedConfig.Endpoints {
+			for _, e := range partitionConfig.Endpoints {
 				withoutPort := strings.Split(e, ":")
 				to = append(to, networkingv1.IPBlock{
 					CIDR: withoutPort[0] + "/32",
@@ -1334,7 +1327,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	var scs []map[string]interface{}
-	for _, sc := range seedConfig.StorageClasses {
+	for _, sc := range partitionConfig.StorageClasses {
 		scs = append(scs, map[string]interface{}{
 			"name":        sc.Name,
 			"replicas":    sc.ReplicaCount,
@@ -1342,16 +1335,25 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 		})
 	}
 
+	controllerValues := map[string]interface{}{
+		"endpoints":  partitionConfig.Endpoints,
+		"adminKey":   partitionConfig.AdminKey,
+		"adminToken": partitionConfig.AdminToken,
+	}
+
+	if partitionConfig.APIEndpoint != nil {
+		controllerValues["apiEndpoint"] = *partitionConfig.APIEndpoint
+		controllerValues["apiCA"] = partitionConfig.APICA
+		controllerValues["apiKey"] = partitionConfig.APIKey
+		controllerValues["apiCert"] = partitionConfig.APICert
+	}
+
 	values := map[string]interface{}{
 		"duros": map[string]interface{}{
 			"enabled":        storageConfig.Duros.Enabled,
 			"storageClasses": scs,
 			"projectID":      infrastructure.ProjectID,
-			"controller": map[string]interface{}{
-				"endpoints":  seedConfig.Endpoints,
-				"adminKey":   seedConfig.AdminKey,
-				"adminToken": seedConfig.AdminToken,
-			},
+			"controller":     controllerValues,
 		},
 	}
 
