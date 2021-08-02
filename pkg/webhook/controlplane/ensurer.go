@@ -62,6 +62,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		}
 	}
 
+	// FIXME: This is very hacky as we modify another resource than the one passed into the function
+	// konnektivity support will be dropped in the near future anyway, so this hack should be removed asap
 	var konnektivityServerDeployment appsv1.Deployment
 	err := e.client.Get(ctx, types.NamespacedName{Namespace: new.Namespace, Name: "konnectivity-server"}, &konnektivityServerDeployment)
 	if err != nil {
