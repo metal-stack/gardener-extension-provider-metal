@@ -61,7 +61,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	dnsv1alpha1 "github.com/gardener/external-dns-management/pkg/apis/dns/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -691,37 +690,20 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		"enabled": clusterAuditEnabled,
 	}
 
-	// vp.logger.Info("SPLUNKDEBUG Reading values", "cluster", cluster.ObjectMeta.Name, "controllerConfig.AuditToSplunk.Enabled", vp.controllerConfig.AuditToSplunk.Enabled,
-	// 	"cpConfig.FeatureGates.AuditToSplunk", cpConfig.FeatureGates.AuditToSplunk)
-	// auditToSplunkEnabled := false
-	// if vp.controllerConfig.AuditToSplunk.Enabled {
-	// 	if cpConfig.FeatureGates.AuditToSplunk == nil || *cpConfig.FeatureGates.AuditToSplunk {
-	// 		auditToSplunkEnabled = true
-	// 	}
-	// }
-	// auditToSplunkValues := map[string]interface{}{
-	// 	"enabled":     auditToSplunkEnabled,
-	// 	"hecToken":    vp.controllerConfig.AuditToSplunk.HECToken,
-	// 	"index":       vp.controllerConfig.AuditToSplunk.Index,
-	// 	"hecHost":     vp.controllerConfig.AuditToSplunk.HECHost,
-	// 	"hecPort":     vp.controllerConfig.AuditToSplunk.HECPort,
-	// 	"hecCAFile":   vp.controllerConfig.AuditToSplunk.HECCAFile,
-	// 	"clusterName": cluster.ObjectMeta.Name,
-	// }
-	// vp.logger.Info("SPLUNKDEBUG", "cluster", cluster.ObjectMeta.Name, "values", auditToSplunkValues)
-
-	// get apiserver ip adresses from external dns entry
-	dns := &dnsv1alpha1.DNSEntry{}
-
-	err = vp.client.Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
+	// get apiserver ip adress from istio ingress service
+	istioIngress := &corev1.Service{}
+	err = vp.client.Get(ctx, types.NamespacedName{Name: "istio-ingressgateway", Namespace: "istio-ingress"}, istioIngress)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get dnsEntry")
+		return nil, errors.Wrap(err, "failed to get istio ingress service")
 	}
-	apiserverIPs := dns.Spec.Targets
+	ingresses := istioIngress.Status.LoadBalancer.Ingress
+	if len(ingresses) != 1 {
+		return nil, errors.Wrap(err, "istio ingress service has no ingress ip")
+	}
 
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-		"apiserverIPs":      apiserverIPs,
+		"apiserverIPs":      []string{ingresses[0].IP},
 		"firewallSpec":      fwSpec,
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
@@ -1380,4 +1362,14 @@ func hasDurosStorageNetwork(infrastructure *apismetal.InfrastructureConfig, nws 
 		}
 	}
 	return false, nil
+}
+
+// GetControlPlaneShootCRDsChartValues returns the values for the control plane shoot CRDs chart applied by the generic actuator.
+// Currently the provider extension does not specify a control plane shoot CRDs chart. That's why we simply return empty values.
+func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
+	_ context.Context,
+	_ *extensionsv1alpha1.ControlPlane,
+	_ *extensionscontroller.Cluster,
+) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
 }
