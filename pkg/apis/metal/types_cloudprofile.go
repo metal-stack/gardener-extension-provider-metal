@@ -26,7 +26,34 @@ type MetalControlPlane struct {
 	Partitions map[string]Partition
 	// FirewallImages is a list of available firewall images in this control plane.
 	FirewallImages []string
+	// FirewallControllerVersions is a list of available firewall controller binary versions
+	FirewallControllerVersions []FirewallControllerVersion
 }
+
+// FirewallControllerVersion describes the version of the firewall controller binary
+type FirewallControllerVersion struct {
+	// Version is the version name of the firewall controller
+	Version string
+	// URL points to the downloadable binary artifact of the firewall controller
+	URL string
+	// Classification defines the state of a version (preview, supported, deprecated)
+	Classification *VersionClassification
+}
+
+// VersionClassification is the logical state of a version according to https://github.com/gardener/gardener/blob/master/docs/operations/versioning.md
+type VersionClassification string
+
+const (
+	// ClassificationPreview indicates that a version has recently been added and not promoted to "Supported" yet.
+	// ClassificationPreview versions will not be considered for automatic firewallcontroller version updates.
+	ClassificationPreview VersionClassification = "preview"
+	// ClassificationSupported indicates that a patch version is the recommended version for a shoot.
+	// Supported versions are eligible for the automated firewallcontroller version update.
+	ClassificationSupported VersionClassification = "supported"
+	// ClassificationDeprecated indicates that a patch version should not be used anymore, should be updated to a new version
+	// and will eventually expire.
+	ClassificationDeprecated VersionClassification = "deprecated"
+)
 
 // Partition contains configuration specific for this metal stack control plane partition
 type Partition struct{}

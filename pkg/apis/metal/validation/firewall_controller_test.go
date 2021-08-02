@@ -1,100 +1,74 @@
 package validation
 
 import (
+	"reflect"
 	"testing"
 
-	"github.com/gardener/gardener/pkg/utils/imagevector"
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 )
 
-func Test_validateFirewallControllerVersionWithoutGithub(t *testing.T) {
-	v0_1_0 := "v0.1.0"
-	v0_2_0 := "v0.2.0"
-	v1_0_0 := "v1.0.0"
-	abc := "abc"
+func Test_getLatestFirewallControllerVersion(t *testing.T) {
+	preview := apismetal.ClassificationPreview
+	supported := apismetal.ClassificationSupported
+
 	tests := []struct {
-		name        string
-		iv          imagevector.ImageVector
-		specVersion string
-		want        string
-		wantErr     error
+		name              string
+		availableVersions []apismetal.FirewallControllerVersion
+		want              *apismetal.FirewallControllerVersion
+		wantErr           bool
 	}{
 		{
-			name: "do not modify former shoot spec",
-			iv: imagevector.ImageVector{
-				&imagevector.ImageSource{
-					Name: "firewall-controller",
-					Tag:  &v0_2_0,
-				},
-			},
-			specVersion: "",
-			want:        "",
-			wantErr:     ErrSpecVersionUndefined,
+			name:              "simple",
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "v1.0.1", Classification: &supported}, {Version: "v1.0.2", Classification: &supported}, {Version: "v1.0.3", Classification: &supported}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v1.0.3", Classification: &supported},
+			wantErr:           false,
 		},
 		{
-			name: "update to newer minor version given in image vector",
-			iv: imagevector.ImageVector{
-				&imagevector.ImageSource{
-					Name: "firewall-controller",
-					Tag:  &v0_2_0,
-				},
-			},
-			specVersion: FirewallControllerVersionAuto,
-			want:        v0_2_0,
+			name:              "even more simple",
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "v1.0.1", Classification: &preview}, {Version: "v0.0.2", Classification: &supported}, {Version: "v2.0.3", Classification: &supported}, {Version: "v0.0.3", Classification: &supported}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3", Classification: &supported},
+			wantErr:           false,
 		},
 		{
-			name: "downgrade to older minor version given in image vector",
-			iv: imagevector.ImageVector{
-				&imagevector.ImageSource{
-					Name: "firewall-controller",
-					Tag:  &v0_1_0,
-				},
-			},
-			specVersion: FirewallControllerVersionAuto,
-			want:        v0_1_0,
+			name:              "one version is specified with git sha",
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "v1.0.1", Classification: &supported}, {Version: "2fb7fd7", Classification: &preview}, {Version: "v2.0.3", Classification: &supported}, {Version: "v0.0.3", Classification: &supported}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3", Classification: &supported},
+			wantErr:           false,
 		},
 		{
-			name: "major version updates may contain api changes btw. gepm and firewall-controller and are not supported",
-			iv: imagevector.ImageVector{
-				&imagevector.ImageSource{
-					Name: "firewall-controller",
-					Tag:  &v1_0_0,
-				},
-			},
-			specVersion: v0_1_0,
-			wantErr:     ErrControllerTooOld,
+			name:              "only one version is specified semver compatible",
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "1fb7fd7"}, {Version: "2fb7fd7", Classification: &preview}, {Version: "v2.0.3", Classification: &supported}, {Version: "4fb7fd7", Classification: &supported}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3", Classification: &supported},
+			wantErr:           false,
 		},
 		{
-			name: "spec contains no semver version",
-			iv: imagevector.ImageVector{
-				&imagevector.ImageSource{
-					Name: "firewall-controller",
-					Tag:  &v0_1_0,
-				},
-			},
-			specVersion: abc,
-			wantErr:     ErrNoSemver,
+			name:              "latest version is preview",
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "1fb7fd7"}, {Version: "2fb7fd7", Classification: &preview}, {Version: "v2.0.3", Classification: &supported}, {Version: "v2.1.0", Classification: &preview}},
+			want:              &apismetal.FirewallControllerVersion{Version: "v2.0.3", Classification: &supported},
+			wantErr:           false,
 		},
 		{
-			name: "image vector contains no semver version",
-			iv: imagevector.ImageVector{
-				&imagevector.ImageSource{
-					Name: "firewall-controller",
-					Tag:  &abc,
-				},
-			},
-			specVersion: v0_1_0,
-			wantErr:     ErrNoSemver,
+			name:              "no version is specified semver compatible",
+			availableVersions: []apismetal.FirewallControllerVersion{{Version: "1fb7fd7", Classification: &preview}, {Version: "2fb7fd7", Classification: &preview}, {Version: "4fb7fd7", Classification: &preview}},
+			want:              nil,
+			wantErr:           true,
+		},
+		{
+			name:              "empty list",
+			availableVersions: []apismetal.FirewallControllerVersion{},
+			want:              nil,
+			wantErr:           true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := validateFirewallControllerVersionWithoutGithub(tt.iv, tt.specVersion)
-			if err != tt.wantErr {
-				t.Errorf("validateFirewallControllerVersionWithoutGithub() error = %v, wantErr %v", err, tt.wantErr)
+			got, err := getLatestFirewallControllerVersion(tt.availableVersions)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getLatestFirewallControllerVersion() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("validateFirewallControllerVersionWithoutGithub() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getLatestFirewallControllerVersion() = %v, want %v", got, tt.want)
 			}
 		})
 	}
