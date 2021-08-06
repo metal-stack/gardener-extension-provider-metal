@@ -1,6 +1,7 @@
 name: Build image from pull request
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - master

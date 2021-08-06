@@ -53,10 +53,6 @@ spec:
                   description: ControllerVersion holds the firewall-controller version
                     to reconcile.
                   type: string
-                cwnpInterval:
-                  description: CWNPInterval on which CWNP reconciliation should happen.
-                    By default set to 30 seconds.
-                  type: string
                 dnsPort:
                   description: DNSPort specifies port to which DNS proxy should be bound
                   type: integer
@@ -166,6 +162,8 @@ spec:
             status:
               description: FirewallStatus defines the observed state of Firewall
               properties:
+                controllerVersion:
+                  type: string
                 lastRun:
                   format: date-time
                   type: string
@@ -247,6 +245,7 @@ spec:
                     - rules
                   type: object
               required:
+                - controllerVersion
                 - stats
               type: object
           type: object
