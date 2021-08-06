@@ -405,7 +405,6 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 	}
 
 	r.providerStatus.Firewall.MachineID = machineID
-	r.providerStatus.Firewall.Succeeded = true
 
 	return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
 }
