@@ -210,9 +210,31 @@ var (
 		MountPath: "/konnectivity-uds",
 		ReadOnly:  false,
 	}
-	konnectivityEnvVar = corev1.EnvVar{
+	konnectivityUdsEnvVar = corev1.EnvVar{
 		Name:  "AUDIT_KONNECTIVITY_UDS_SOCKET",
 		Value: "/konnectivity-uds/konnectivity-server.socket",
+	}
+	konnectivityMtlsVolumeMounts = []corev1.VolumeMount{
+		{
+			Name:      "ca",
+			MountPath: "/konnectivity-proxy/ca",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "konnectivity-server-client-tls",
+			MountPath: "/konnectivity-proxy/client",
+			ReadOnly:  true,
+		},
+	}
+	konnectivityMtlsEnvVars = []corev1.EnvVar{
+		{
+			Name:  "AUDIT_PROXY_HOST",
+			Value: "konnectivity-server",
+		},
+		{
+			Name:  "AUDIT_PROXY_PORT",
+			Value: "9443",
+		},
 	}
 	auditForwarderSidecar = corev1.Container{
 		Name: "auditforwarder",
@@ -364,18 +386,37 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool, controllerConf
 	auditForwarderSidecar.Image = auditForwarderImage.String()
 
 	udsVolumeFound := false
+	clientTLSVolumeFound := false
+
 	for _, volume := range ps.Volumes {
-		if volume.Name == "konnectivity-uds" {
+		switch volume.Name {
+		case "konnectivity-uds":
 			udsVolumeFound = true
-			break
+		case "konnectivity-server-client-tls":
+			clientTLSVolumeFound = true
 		}
 	}
 	if udsVolumeFound {
 		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, konnectivityEnvVar)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, konnectivityUdsEnvVar)
 	} else {
 		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount.Name)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, konnectivityEnvVar.Name)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, konnectivityUdsEnvVar.Name)
+	}
+	if clientTLSVolumeFound {
+		for _, mount := range konnectivityMtlsVolumeMounts {
+			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
+		}
+		for _, envVar := range konnectivityMtlsEnvVars {
+			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
+		}
+	} else {
+		for _, mount := range konnectivityMtlsVolumeMounts {
+			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
+		}
+		for _, envVar := range konnectivityMtlsEnvVars {
+			auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
+		}
 	}
 
 	if auditToSplunk {
