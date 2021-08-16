@@ -444,7 +444,6 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 			}
 		}
 	}
-	// TODO Read splunk config secret from shoot if available
 	auditToSplunkValues := map[string]interface{}{
 		"enabled":     auditToSplunkEnabled,
 		"hecToken":    vp.controllerConfig.AuditToSplunk.HECToken,
@@ -455,7 +454,41 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 		"hecCAFile":   vp.controllerConfig.AuditToSplunk.HECCAFile,
 		"clusterName": cluster.ObjectMeta.Name,
 	}
-	vp.logger.Info("SPLUNKDEBUG", "cluster", cluster.ObjectMeta.Name, "values", auditToSplunkValues)
+	vp.logger.Info("SPLUNKDEBUG", "cluster", cluster.ObjectMeta.Name, "auditToSplunk values from controllerConfig", auditToSplunkValues)
+
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create shoot client")
+	}
+
+	cs, err := kubernetes.NewForConfig(shootConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create shoot kubernetes client")
+	}
+
+	splunkConfigSecret, err := cs.CoreV1().Secrets(metal.AudittailerNamespace).Get(ctx, "splunk-config", metav1.GetOptions{})
+	if err == nil {
+		if splunkConfigSecret.Data != nil {
+			for key, value := range splunkConfigSecret.Data {
+				switch key {
+				case "hecToken":
+					auditToSplunkValues[key] = string(value)
+				case "index":
+					auditToSplunkValues[key] = string(value)
+				case "hecHost":
+					auditToSplunkValues[key] = string(value)
+				case "hecPort":
+					auditToSplunkValues[key] = string(value)
+				case "tlsEnabled":
+					auditToSplunkValues[key] = string(value)
+				case "hecCAFile":
+					auditToSplunkValues[key] = string(value)
+				}
+			}
+		}
+		vp.logger.Info("SPLUNKDEBUG", "cluster", cluster.ObjectMeta.Name, "auditToSplunk values after reading splunk-config secret", auditToSplunkValues)
+
+	} // If the splunk config secret can not be read, we use the default values from the controller config.
 
 	values := map[string]interface{}{
 		"clusterAudit": map[string]interface{}{
