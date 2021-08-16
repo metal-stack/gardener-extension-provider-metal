@@ -58,9 +58,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 			logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
 			return err
 		}
-		if e.controllerConfig.AuditToSplunk.Enabled {
-			if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
-				makeAuditForwarder = true
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
+			makeAuditForwarder = true
+			if e.controllerConfig.AuditToSplunk.Enabled {
 				if cpConfig.FeatureGates.AuditToSplunk != nil && *cpConfig.FeatureGates.AuditToSplunk {
 					auditToSplunk = true
 				}
@@ -90,7 +90,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, e.controllerConfig)
 	}
 	if makeAuditForwarder {
-		err := ensureAuditForwarder(ps, auditToSplunk, e.controllerConfig)
+		err := ensureAuditForwarder(ps, auditToSplunk)
 		if err != nil {
 			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
 			return err
@@ -377,7 +377,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder 
 
 }
 
-func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool, controllerConfig config.ControllerConfiguration) error {
+func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
 	if err != nil {
 		logger.Error(err, "Could not find auditforwarder image in imagevector")

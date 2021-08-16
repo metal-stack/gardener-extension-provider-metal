@@ -429,7 +429,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 
 	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
 			clusterAuditEnabled = true
 		}
 	}
@@ -444,6 +444,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 			}
 		}
 	}
+	// TODO Read splunk config secret from shoot if available
 	auditToSplunkValues := map[string]interface{}{
 		"enabled":     auditToSplunkEnabled,
 		"hecToken":    vp.controllerConfig.AuditToSplunk.HECToken,
@@ -633,7 +634,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
 			err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
 			if err != nil {
 				vp.logger.Error(err, "error deploying audittailer certs")
@@ -669,7 +670,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 
 	clusterAuditEnabled := false
 	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit == nil || *cpConfig.FeatureGates.ClusterAudit {
+		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
 			clusterAuditEnabled = true
 		}
 	}

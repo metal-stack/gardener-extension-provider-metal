@@ -20,8 +20,6 @@ const (
 	AuthNWebhookImageName = "authn-webhook"
 	// AudittailerImageName is the name of the Audittailer to deploy to the shoot.
 	AudittailerImageName = "audittailer"
-	// AuditToSplunkImageName is the name of the fluentd with splunk plugin image to deploy to the shoot.
-	AuditToSplunkImageName = "fluentd-splunk-audit"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
 	DroptailerImageName = "droptailer"
 	// MetallbSpeakerImageName is the name of the metallb speaker to deploy to the shoot.
