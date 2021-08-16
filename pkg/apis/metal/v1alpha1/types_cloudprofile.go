@@ -26,7 +26,40 @@ type MetalControlPlane struct {
 	Partitions map[string]Partition `json:"partitions"`
 	// FirewallImages is a list of available firewall images in this control plane.
 	FirewallImages []string `json:"firewallImages,omitempty"`
+	// FirewallControllerVersions is a list of available firewall controller binary versions
+	FirewallControllerVersions []FirewallControllerVersion `json:"firewallControllerVersions,omitempty"`
 }
+
+// FirewallControllerVersion describes the version of the firewall controller binary
+// version must not be semver compatible, the version of the created PR binary is also valid
+// but for the calculation of the most recent version, only semver compatible versions are considered.
+// Version 2fb7fd7 URL: https://images.metal-stack.io/firewall-controller/pull-requests/101-upload-to-gcp/firewall-controller
+// Version a273591 URL: https://images.metal-stack.io/firewall-controller/pull-requests/102-dns-cwnp/firewall-controller
+// Version v1.0.10 URL: https://images.metal-stack.io/firewall-controller/v1.0.10/firewall-controller
+// Version v1.0.11 URL: https://images.metal-stack.io/firewall-controller/v1.0.11/firewall-controller
+type FirewallControllerVersion struct {
+	// Version is the version name of the firewall controller
+	Version string `json:"version"`
+	// URL points to the downloadable binary artifact of the firewall controller
+	URL string `json:"url"`
+	// Classification defines the state of a version (preview, supported, deprecated)
+	Classification *VersionClassification `json:"classification,omitempty"`
+}
+
+// VersionClassification is the logical state of a version according to https://github.com/gardener/gardener/blob/master/docs/operations/versioning.md
+type VersionClassification string
+
+const (
+	// ClassificationPreview indicates that a version has recently been added and not promoted to "Supported" yet.
+	// ClassificationPreview versions will not be considered for automatic firewallcontroller version updates.
+	ClassificationPreview VersionClassification = "preview"
+	// ClassificationSupported indicates that a patch version is the recommended version for a shoot.
+	// Supported versions are eligible for the automated firewallcontroller version update.
+	ClassificationSupported VersionClassification = "supported"
+	// ClassificationDeprecated indicates that a patch version should not be used anymore, should be updated to a new version
+	// and will eventually expire.
+	ClassificationDeprecated VersionClassification = "deprecated"
+)
 
 // Partition contains configuration specific for this metal stack control plane partition
 type Partition struct{}

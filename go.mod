@@ -3,10 +3,10 @@ module github.com/metal-stack/gardener-extension-provider-metal
 go 1.16
 
 require (
+	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
 	github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083 // indirect
 	github.com/ajeddeloh/yaml v0.0.0-20141224210557-6b16a5714269 // indirect
-	github.com/blang/semver v3.5.1+incompatible
 	github.com/coreos/container-linux-config-transpiler v0.9.0
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2
@@ -19,7 +19,6 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.6
-	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/imdario/mergo v0.3.12
 	github.com/metal-stack/duros-controller v0.2.1
