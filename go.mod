@@ -22,12 +22,12 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/imdario/mergo v0.3.12
 	github.com/metal-stack/duros-controller v0.2.1
-	github.com/metal-stack/firewall-controller v1.0.9
+	github.com/metal-stack/firewall-controller v1.1.2
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.6
-	github.com/metal-stack/metal-go v0.15.1
+	github.com/metal-stack/metal-go v0.15.3
 	github.com/metal-stack/metal-lib v0.8.0
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.14.0
+	github.com/onsi/gomega v1.15.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
@@ -54,6 +54,5 @@ replace (
 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.20.8
 	k8s.io/code-generator => k8s.io/code-generator v0.20.8
 	k8s.io/component-base => k8s.io/component-base v0.20.8
-	k8s.io/helm => k8s.io/helm v2.13.1+incompatible
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.20.8
 )

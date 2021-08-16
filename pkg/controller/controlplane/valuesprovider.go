@@ -781,6 +781,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 	}
 
 	spec.ControllerVersion = fwcv.Version
+	spec.ControllerURL = fwcv.URL
 
 	return &spec, nil
 }
