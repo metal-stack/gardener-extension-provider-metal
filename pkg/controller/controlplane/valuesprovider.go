@@ -30,7 +30,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
-
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
