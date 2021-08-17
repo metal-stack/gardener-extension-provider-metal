@@ -22,7 +22,7 @@ images:
 - name: droptailer
   sourceRepository: github.com/metal-stack/droptailer
   repository: ghcr.io/metal-stack/droptailer
-  tag: "v0.2.5"
+  tag: "v0.2.7"
 - name: csi-lvm-controller
   sourceRepository: github.com/metal-stack/csi-lvm-controller
   repository: ghcr.io/metal-stack/csi-lvm-controller
@@ -43,10 +43,7 @@ images:
   sourceRepository: https://github.com/metal-stack/duros-controller
   repository: ghcr.io/metal-stack/duros-controller
   tag: "v0.2.0"
-# firewall-controller tag must be semver compatible with golang dependency!
-- name: firewall-controller
-  sourceRepository: https://github.com/metal-stack/firewall-controller
-  tag: "v1.0.9"
+
 
 # can be provided via image override:
 # - name: authn-webhook

@@ -45,8 +45,11 @@ spec:
         - name: fluentbuffer
           mountPath: /fluentbuffer
         resources:
-          limits:
+          requests:
             cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 150m
             memory: 512Mi
       restartPolicy: Always
       volumes:
