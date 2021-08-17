@@ -95,6 +95,18 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
 			return err
 		}
+		if auditToSplunk {
+			err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkConfigName)
+			if err != nil {
+				logger.Error(err, "Could not ensure the splunk config map checksum annotation", "Cluster name", cluster.ObjectMeta.Name, "configmap", metal.AuditForwarderSplunkConfigName)
+				return err
+			}
+			err = controlplane.EnsureSecretChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkSecretName)
+			if err != nil {
+				logger.Error(err, "Could not ensure the splunk secret checksum annotation", "Cluster name", cluster.ObjectMeta.Name, "secret", metal.AuditForwarderSplunkSecretName)
+				return err
+			}
+		}
 	}
 
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
