@@ -20,7 +20,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/types"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -65,20 +64,6 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 					auditToSplunk = true
 				}
 			}
-		}
-	}
-
-	// FIXME: This is very hacky as we modify another resource than the one passed into the function
-	// konnektivity support will be dropped in the near future anyway, so this hack should be removed asap
-	var konnektivityServerDeployment appsv1.Deployment
-	err := e.client.Get(ctx, types.NamespacedName{Namespace: new.Namespace, Name: "konnectivity-server"}, &konnektivityServerDeployment)
-	if err != nil {
-		logger.Info("not applying konnektivity server fix", "error", err)
-	} else {
-		fixKonnektivityHostPort(&konnektivityServerDeployment.Spec.Template.Spec, e.logger)
-		err = e.client.Update(ctx, &konnektivityServerDeployment)
-		if err != nil {
-			logger.Error(err, "error applying konnektivity server fix")
 		}
 	}
 
@@ -336,41 +321,6 @@ func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, c
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditForwarderSplunkConfigVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditForwarderSplunkSecretVolume)
 	}
-}
-
-// fixKonnektivityHostPort fixes a Gardener bug introduced in v1.16 where host port is preventing multiple
-// API servers in a seed to be scheduled because host ports can only be taken once
-// TODO: Remove when a fix is available from Gardener upstream
-func fixKonnektivityHostPort(ps *corev1.PodSpec, log logr.Logger) {
-	var containers []corev1.Container
-	for _, c := range ps.Containers {
-		if c.Name != "konnectivity-server" {
-			containers = append(containers, c)
-			continue
-		}
-
-		var ports []corev1.ContainerPort
-		for _, p := range c.Ports {
-			p := p
-
-			if p.Name == "server" || p.Name == "agent" || p.Name == "admin" || p.Name == "health" {
-				p = corev1.ContainerPort{
-					Name:          p.Name,
-					Protocol:      p.Protocol,
-					ContainerPort: p.ContainerPort,
-				}
-			}
-
-			ports = append(ports, p)
-		}
-
-		c.Ports = ports
-		c.LivenessProbe.HTTPGet.Host = ""
-
-		containers = append(containers, c)
-	}
-
-	ps.Containers = containers
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {

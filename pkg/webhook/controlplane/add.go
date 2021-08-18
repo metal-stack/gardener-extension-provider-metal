@@ -3,13 +3,10 @@ package controlplane
 import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
-	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/operation/botanist/component/extensions/operatingsystemconfig/original/components/kubelet"
-	oscutils "github.com/gardener/gardener/pkg/operation/botanist/component/extensions/operatingsystemconfig/utils"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,13 +28,11 @@ type AddOptions struct {
 
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionswebhook.Webhook, error) {
 	logger.Info("Adding webhook to manager")
-	fciCodec := oscutils.NewFileContentInlineCodec()
 	return controlplane.New(mgr, controlplane.Args{
 		Kind:     controlplane.KindShoot,
 		Provider: metal.Type,
 		Types:    []client.Object{&appsv1.Deployment{}, &extensionsv1alpha1.OperatingSystemConfig{}},
-		Mutator: genericmutator.NewMutator(NewEnsurer(logger, opts.ControllerConfig), oscutils.NewUnitSerializer(),
-			kubelet.NewConfigCodec(fciCodec), fciCodec, logger),
+		Mutator:  NewMutator(opts),
 	})
 }
 
