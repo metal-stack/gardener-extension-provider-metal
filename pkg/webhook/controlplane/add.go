@@ -56,7 +56,7 @@ func AddToManager(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	return AddToManagerWithOptions(mgr, DefaultAddOptions)
 }
 
-// AddToManager creates a webhook and adds it to the manager.
+// AddToManagerCustom creates a webhook and adds it to the manager.
 func AddToManagerCustom(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	return AddToManagerWithOptionsCustom(mgr, DefaultAddOptions)
 }

@@ -19,8 +19,7 @@ const (
 )
 
 type mutator struct {
-	logger         logr.Logger
-	genericMutator extensionswebhook.Mutator
+	logger logr.Logger
 }
 
 // NewMutator creates a new Mutator that mutates resources in the control plane.
