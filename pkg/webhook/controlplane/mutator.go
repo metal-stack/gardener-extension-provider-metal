@@ -4,9 +4,6 @@ import (
 	"context"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
-	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
-	"github.com/gardener/gardener/pkg/operation/botanist/component/extensions/operatingsystemconfig/original/components/kubelet"
-	oscutils "github.com/gardener/gardener/pkg/operation/botanist/component/extensions/operatingsystemconfig/utils"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -28,11 +25,8 @@ type mutator struct {
 
 // NewMutator creates a new Mutator that mutates resources in the control plane.
 func NewMutator(opts AddOptions) extensionswebhook.Mutator {
-	fciCodec := oscutils.NewFileContentInlineCodec()
-	g := genericmutator.NewMutator(NewEnsurer(logger, opts.ControllerConfig), oscutils.NewUnitSerializer(), kubelet.NewConfigCodec(fciCodec), fciCodec, logger)
 	return &mutator{
-		logger:         log.Log.WithName("controlplane-mutator"),
-		genericMutator: g,
+		logger: log.Log.WithName("controlplane-mutator"),
 	}
 }
 
@@ -45,7 +39,6 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	if acc.GetDeletionTimestamp() != nil {
 		return nil
 	}
-
 	switch x := new.(type) {
 	case *appsv1.Deployment:
 		switch x.Name {
@@ -56,7 +49,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 		}
 	}
 
-	return m.genericMutator.Mutate(ctx, new, old)
+	return nil
 }
 
 // fixKonnektivityHostPort fixes a Gardener bug introduced in v1.16 where host port is preventing multiple
