@@ -3,7 +3,6 @@ package controlplane
 import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
-	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
@@ -19,8 +18,9 @@ import (
 
 var (
 	// DefaultAddOptions are the default AddOptions for AddToManager.
-	DefaultAddOptions = AddOptions{}
-	logger            = log.Log.WithName("metal-controlplane-webhook")
+	DefaultAddOptions       = AddOptions{}
+	DefaultAddOptionsCustom = AddOptions{}
+	logger                  = log.Log.WithName("metal-controlplane-webhook")
 )
 
 // AddOptions are options to apply when adding the metal infrastructure controller to the manager.
@@ -36,27 +36,13 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 		Kind:     controlplane.KindShoot,
 		Provider: metal.Type,
 		Types:    []client.Object{&appsv1.Deployment{}, &extensionsv1alpha1.OperatingSystemConfig{}},
-		Mutator: genericmutator.NewMutator(NewEnsurer(logger, opts.ControllerConfig), oscutils.NewUnitSerializer(),
+		// FIXME: After konnectivity feature is dropped, go back to genericmutator from extensions package
+		Mutator: NewMutator(NewEnsurer(logger, opts.ControllerConfig), oscutils.NewUnitSerializer(),
 			kubelet.NewConfigCodec(fciCodec), fciCodec, logger),
-	})
-}
-
-func AddToManagerWithOptionsCustom(mgr manager.Manager, opts AddOptions) (*extensionswebhook.Webhook, error) {
-	logger.Info("Adding custom control plane webhook to manager")
-	return controlplane.New(mgr, controlplane.Args{
-		Kind:     controlplane.KindShoot,
-		Provider: metal.Type,
-		Types:    []client.Object{&appsv1.Deployment{}, &extensionsv1alpha1.OperatingSystemConfig{}},
-		Mutator:  NewMutator(opts),
 	})
 }
 
 // AddToManager creates a webhook and adds it to the manager.
 func AddToManager(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	return AddToManagerWithOptions(mgr, DefaultAddOptions)
-}
-
-// AddToManagerCustom creates a webhook and adds it to the manager.
-func AddToManagerCustom(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
-	return AddToManagerWithOptionsCustom(mgr, DefaultAddOptions)
 }
