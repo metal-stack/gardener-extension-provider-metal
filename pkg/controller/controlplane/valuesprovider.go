@@ -434,8 +434,6 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 		}
 	}
 
-	vp.logger.Info("SPLUNKDEBUG Reading values", "cluster", cluster.ObjectMeta.Name, "controllerConfig.AuditToSplunk.Enabled", vp.controllerConfig.AuditToSplunk.Enabled,
-		"cpConfig.FeatureGates.AuditToSplunk", cpConfig.FeatureGates.AuditToSplunk)
 	auditToSplunkEnabled := false
 	if vp.controllerConfig.AuditToSplunk.Enabled {
 		if clusterAuditEnabled {
@@ -454,18 +452,15 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 		"hecCAFile":   vp.controllerConfig.AuditToSplunk.HECCAFile,
 		"clusterName": cluster.ObjectMeta.Name,
 	}
-	vp.logger.Info("SPLUNKDEBUG", "cluster", cluster.ObjectMeta.Name, "auditToSplunk values from controllerConfig", auditToSplunkValues)
 
 	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
 	if err != nil {
 		vp.logger.Error(err, "could not create shoot client")
 	} else {
-
 		cs, err := kubernetes.NewForConfig(shootConfig)
 		if err != nil {
 			vp.logger.Error(err, "could not create shoot kubernetes client")
 		} else {
-
 			splunkConfigSecret, err := cs.CoreV1().Secrets(metal.AudittailerNamespace).Get(ctx, "splunk-config", metav1.GetOptions{})
 			if err == nil {
 				if splunkConfigSecret.Data != nil {
@@ -486,8 +481,6 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 						}
 					}
 				}
-				vp.logger.Info("SPLUNKDEBUG", "cluster", cluster.ObjectMeta.Name, "auditToSplunk values after reading splunk-config secret", auditToSplunkValues)
-
 			} // If the splunk config secret can not be read, we use the default values from the controller config.
 		}
 	}
