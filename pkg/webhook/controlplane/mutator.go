@@ -28,6 +28,14 @@ const (
 	KonnectivityContainerName  = "konnectivity-server"
 )
 
+/*
+FIXME:
+This is a copy of gardener's controlplane generic mutator https://github.com/gardener/gardener/blob/master/extensions/pkg/webhook/controlplane/genericmutator/mutator.go
+It is necessary so that we can fix the hostPort property of the konnectivity-server deployment, which is not possible with gardener's version
+
+This should be removed once we drop the konnectivity feature.
+*/
+
 // Ensurer ensures that various standard Kubernets controlplane objects conform to the provider requirements.
 // If they don't initially, they are mutated accordingly.
 type Ensurer interface {
