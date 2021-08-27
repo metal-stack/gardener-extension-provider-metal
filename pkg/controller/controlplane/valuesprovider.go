@@ -441,6 +441,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 			}
 		}
 	}
+
 	auditToSplunkValues := map[string]interface{}{
 		"enabled":     auditToSplunkEnabled,
 		"hecToken":    vp.controllerConfig.AuditToSplunk.HECToken,
@@ -452,35 +453,10 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 		"clusterName": cluster.ObjectMeta.Name,
 	}
 
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
-	if err != nil {
-		vp.logger.Error(err, "could not create shoot client")
-	} else {
-		cs, err := kubernetes.NewForConfig(shootConfig)
+	if auditToSplunkEnabled {
+		auditToSplunkValues, err = vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
 		if err != nil {
-			vp.logger.Error(err, "could not create shoot kubernetes client")
-		} else {
-			splunkConfigSecret, err := cs.CoreV1().Secrets(metal.AudittailerNamespace).Get(ctx, "splunk-config", metav1.GetOptions{})
-			if err == nil {
-				if splunkConfigSecret.Data != nil {
-					for key, value := range splunkConfigSecret.Data {
-						switch key {
-						case "hecToken":
-							auditToSplunkValues[key] = string(value)
-						case "index":
-							auditToSplunkValues[key] = string(value)
-						case "hecHost":
-							auditToSplunkValues[key] = string(value)
-						case "hecPort":
-							auditToSplunkValues[key] = string(value)
-						case "tlsEnabled":
-							auditToSplunkValues[key] = string(value)
-						case "hecCAFile":
-							auditToSplunkValues[key] = string(value)
-						}
-					}
-				}
-			} // If the splunk config secret can not be read, we use the default values from the controller config.
+			vp.logger.Error(err, "Could not read custom splunk values")
 		}
 	}
 
@@ -492,6 +468,50 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 	}
 
 	return values, nil
+}
+
+func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName string, auditToSplunkValues map[string]interface{}) (map[string]interface{}, error) {
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, clusterName, client.Options{})
+	if err != nil {
+		vp.logger.Error(err, "could not create shoot client")
+		return auditToSplunkValues, err
+	}
+
+	cs, err := kubernetes.NewForConfig(shootConfig)
+	if err != nil {
+		vp.logger.Error(err, "could not create shoot kubernetes client")
+		return auditToSplunkValues, err
+	}
+
+	splunkConfigSecret, err := cs.CoreV1().Secrets(metal.AudittailerNamespace).Get(ctx, "splunk-config", metav1.GetOptions{})
+	if err != nil {
+		return auditToSplunkValues, nil
+	}
+
+	if splunkConfigSecret.Data == nil {
+		err := errors.Errorf("Empty secret")
+		vp.logger.Error(err, "custom splunk config secret contains no data")
+		return auditToSplunkValues, err
+	}
+
+	for key, value := range splunkConfigSecret.Data {
+		switch key {
+		case "hecToken":
+			auditToSplunkValues[key] = string(value)
+		case "index":
+			auditToSplunkValues[key] = string(value)
+		case "hecHost":
+			auditToSplunkValues[key] = string(value)
+		case "hecPort":
+			auditToSplunkValues[key] = string(value)
+		case "tlsEnabled":
+			auditToSplunkValues[key] = string(value)
+		case "hecCAFile":
+			auditToSplunkValues[key] = string(value)
+		}
+	}
+
+	return auditToSplunkValues, nil
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
