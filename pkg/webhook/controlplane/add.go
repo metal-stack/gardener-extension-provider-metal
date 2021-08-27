@@ -18,9 +18,8 @@ import (
 
 var (
 	// DefaultAddOptions are the default AddOptions for AddToManager.
-	DefaultAddOptions       = AddOptions{}
-	DefaultAddOptionsCustom = AddOptions{}
-	logger                  = log.Log.WithName("metal-controlplane-webhook")
+	DefaultAddOptions = AddOptions{}
+	logger            = log.Log.WithName("metal-controlplane-webhook")
 )
 
 // AddOptions are options to apply when adding the metal infrastructure controller to the manager.
