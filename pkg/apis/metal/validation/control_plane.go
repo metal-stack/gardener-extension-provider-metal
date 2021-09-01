@@ -56,8 +56,6 @@ func validateFeatureGates(controlPlaneConfig *apismetal.ControlPlaneConfig, fldP
 
 	fgPath := fldPath.Child("featureGates")
 
-	if &controlPlaneConfig.FeatureGates != nil {
-	}
 	clusterAudit := controlPlaneConfig.FeatureGates.ClusterAudit
 	clusterAuditPath := fgPath.Child("clusterAudit")
 
