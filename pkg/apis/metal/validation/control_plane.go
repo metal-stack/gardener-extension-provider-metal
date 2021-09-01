@@ -64,7 +64,7 @@ func validateFeatureGates(controlPlaneConfig *apismetal.ControlPlaneConfig, fldP
 
 	if auditToSplunk != nil && *auditToSplunk {
 		if clusterAudit == nil || !*clusterAudit {
-			allErrs = append(allErrs, field.Invalid(auditToSplunkPath, clusterAuditPath, "auditToSplunk is set but clusterAudit is not set"))
+			allErrs = append(allErrs, field.Required(clusterAuditPath, "is required for "+auditToSplunkPath.String()+" but not set"))
 		}
 	}
 

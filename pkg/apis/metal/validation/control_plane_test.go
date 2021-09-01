@@ -100,10 +100,9 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
 
 			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Type":     Equal(field.ErrorTypeInvalid),
-				"Field":    Equal("spec.featureGates.auditToSplunk"),
-				"BadValue": Equal("spec.featureGates.clusterAudit"),
-				"Detail":   Equal("clientId must be specified"),
+				"Type":   Equal(field.ErrorTypeRequired),
+				"Field":  Equal("spec.featureGates.clusterAudit"),
+				"Detail": Equal("is required for spec.featureGates.auditToSplunk but not set"),
 			}))))
 		})
 	})
