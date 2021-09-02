@@ -13,6 +13,7 @@ import (
 	"github.com/go-logr/logr"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
@@ -48,23 +49,20 @@ func (e *ensurer) InjectClient(client client.Client) error {
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
 	cluster, _ := gctx.GetCluster(ctx)
-	makeAuditForwarder := false
-	auditToSplunk := false
+	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+	if err != nil {
+		logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
+		return err
+	}
 
-	if e.controllerConfig.ClusterAudit.Enabled {
-		cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
-		if err != nil {
-			logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
-			return err
-		}
-		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-			makeAuditForwarder = true
-			if e.controllerConfig.AuditToSplunk.Enabled {
-				if cpConfig.FeatureGates.AuditToSplunk != nil && *cpConfig.FeatureGates.AuditToSplunk {
-					auditToSplunk = true
-				}
-			}
-		}
+	makeAuditForwarder := false
+	if validation.ClusterAuditEnabled(&e.controllerConfig, cpConfig) {
+		makeAuditForwarder = true
+	}
+
+	auditToSplunk := false
+	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
+		auditToSplunk = true
 	}
 
 	template := &new.Spec.Template
