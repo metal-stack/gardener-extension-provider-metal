@@ -1,5 +1,12 @@
 {{- if .Values.clusterAudit.enabled }}
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    k8s-app: audittailer
+  name: audit
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
