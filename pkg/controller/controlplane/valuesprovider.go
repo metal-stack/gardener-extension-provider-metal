@@ -479,7 +479,7 @@ func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName
 		return auditToSplunkValues, err
 	}
 
-	splunkConfigSecret, err := cs.CoreV1().Secrets(metal.AudittailerNamespace).Get(ctx, "splunk-config", metav1.GetOptions{})
+	splunkConfigSecret, err := cs.CoreV1().Secrets("kube-system").Get(ctx, "splunk-config", metav1.GetOptions{})
 	if err != nil {
 		return auditToSplunkValues, nil
 	}
