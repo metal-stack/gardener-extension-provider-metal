@@ -4,3 +4,12 @@ authnWebhook:
     url: https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
 clusterAudit:
     enabled: false
+auditToSplunk:
+  enabled: false
+  hecToken: dummy-token
+  index: splunk-logging-index
+  hecHost: splunk.example.org
+  hecPort: 8123
+  tlsEnabled: false
+  hecCAFile: base64-encoded ca cert for the splunk hec endpoint
+  clusterName: cluster-name

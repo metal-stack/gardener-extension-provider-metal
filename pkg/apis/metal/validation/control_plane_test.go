@@ -19,6 +19,9 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 	)
 
 	BeforeEach(func() {
+		oot := true
+		ca := true
+		as := false
 		controlPlaneConfig = &apismetal.ControlPlaneConfig{
 			IAMConfig: &apismetal.IAMConfig{
 				IssuerConfig: &apismetal.IssuerConfig{
@@ -28,6 +31,11 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 				IdmConfig: &apismetal.IDMConfig{
 					Idmtype: "UX",
 				},
+			},
+			FeatureGates: apismetal.ControlPlaneFeatures{
+				MachineControllerManagerOOT: &oot,
+				ClusterAudit:                &ca,
+				AuditToSplunk:               &as,
 			},
 		}
 	})
@@ -82,6 +90,20 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 				"Type":   Equal(field.ErrorTypeRequired),
 				"Field":  Equal("spec.iamconfig.groupConfig.namespaceMaxLength"),
 				"Detail": Equal("namespaceMaxLength must be a positive integer"),
+			}))))
+		})
+
+		It("should not allow auditToSplunk without clusterAudit", func() {
+			*controlPlaneConfig.FeatureGates.ClusterAudit = false
+			*controlPlaneConfig.FeatureGates.AuditToSplunk = true
+
+			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
+
+			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Type":     Equal(field.ErrorTypeInvalid),
+				"Field":    Equal("spec.featureGates.auditToSplunk"),
+				"BadValue": Equal(true),
+				"Detail":   Equal("cluster audit feature gate has to be enabled when using audit to splunk feature gate"),
 			}))))
 		})
 	})

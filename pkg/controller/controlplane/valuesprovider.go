@@ -29,7 +29,6 @@ import (
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
-	dnsv1alpha1 "github.com/gardener/external-dns-management/pkg/apis/dns/v1alpha1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -61,6 +60,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	dnsv1alpha1 "github.com/gardener/external-dns-management/pkg/apis/dns/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -343,6 +343,12 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &rbacv1.Role{}, Name: "audittailer"},
 			{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
 		}...)
+		if controllerConfig.AuditToSplunk.Enabled {
+			configChart.Objects = append(configChart.Objects, []*chart.Object{
+				{Type: &corev1.Secret{}, Name: "audit-to-splunk-secret"},
+				{Type: &corev1.ConfigMap{}, Name: "audit-to-splunk-config"},
+			}...)
+		}
 	}
 
 	return &valuesProvider{
@@ -422,20 +428,85 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 		return nil, err
 	}
 
-	clusterAuditEnabled := false
-	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-			clusterAuditEnabled = true
+	var (
+		clusterAuditValues = map[string]interface{}{
+			"enabled": false,
 		}
+		auditToSplunkValues = map[string]interface{}{
+			"enabled": false,
+		}
+		values = map[string]interface{}{
+			"clusterAudit":  clusterAuditValues,
+			"auditToSplunk": auditToSplunkValues,
+		}
+	)
+
+	if !validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
+		return values, nil
 	}
 
-	values := map[string]interface{}{
-		"clusterAudit": map[string]interface{}{
-			"enabled": clusterAuditEnabled,
-		},
+	clusterAuditValues["enabled"] = true
+
+	if !validation.AuditToSplunkEnabled(&vp.controllerConfig, cpConfig) {
+		return values, nil
+	}
+
+	auditToSplunkValues["enabled"] = true
+	auditToSplunkValues["hecToken"] = vp.controllerConfig.AuditToSplunk.HECToken
+	auditToSplunkValues["index"] = vp.controllerConfig.AuditToSplunk.Index
+	auditToSplunkValues["hecHost"] = vp.controllerConfig.AuditToSplunk.HECHost
+	auditToSplunkValues["hecPort"] = vp.controllerConfig.AuditToSplunk.HECPort
+	auditToSplunkValues["tlsEnabled"] = vp.controllerConfig.AuditToSplunk.TLSEnabled
+	auditToSplunkValues["hecCAFile"] = vp.controllerConfig.AuditToSplunk.HECCAFile
+	auditToSplunkValues["clusterName"] = cluster.ObjectMeta.Name
+
+	values["auditToSplunk"], err = vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
+	if err != nil {
+		vp.logger.Error(err, "could not read custom splunk values")
 	}
 
 	return values, nil
+}
+
+func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName string, auditToSplunkValues map[string]interface{}) (map[string]interface{}, error) {
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, clusterName, client.Options{})
+	if err != nil {
+		return auditToSplunkValues, err
+	}
+
+	cs, err := kubernetes.NewForConfig(shootConfig)
+	if err != nil {
+		return auditToSplunkValues, err
+	}
+
+	splunkConfigSecret, err := cs.CoreV1().Secrets("kube-system").Get(ctx, "splunk-config", metav1.GetOptions{})
+	if err != nil {
+		return auditToSplunkValues, nil
+	}
+
+	if splunkConfigSecret.Data == nil {
+		vp.logger.Error(errors.Errorf("secret is empty"), "custom splunk config secret contains no data")
+		return auditToSplunkValues, nil
+	}
+
+	for key, value := range splunkConfigSecret.Data {
+		switch key {
+		case "hecToken":
+			auditToSplunkValues[key] = string(value)
+		case "index":
+			auditToSplunkValues[key] = string(value)
+		case "hecHost":
+			auditToSplunkValues[key] = string(value)
+		case "hecPort":
+			auditToSplunkValues[key] = string(value)
+		case "tlsEnabled":
+			auditToSplunkValues[key] = string(value)
+		case "hecCAFile":
+			auditToSplunkValues[key] = string(value)
+		}
+	}
+
+	return auditToSplunkValues, nil
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
@@ -604,17 +675,13 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-			err = vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster)
-			if err != nil {
-				vp.logger.Error(err, "error deploying audittailer certs")
-			}
+	if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
+		if err := vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster); err != nil {
+			vp.logger.Error(err, "error deploying audittailer certs")
 		}
 	}
 
-	err = vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster)
-	if err != nil {
+	if err := vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster); err != nil {
 		vp.logger.Error(err, "error deploying droptailer certs")
 	}
 
@@ -639,14 +706,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
-	clusterAuditEnabled := false
-	if vp.controllerConfig.ClusterAudit.Enabled {
-		if cpConfig.FeatureGates.ClusterAudit != nil && *cpConfig.FeatureGates.ClusterAudit {
-			clusterAuditEnabled = true
-		}
-	}
 	clusterAuditValues := map[string]interface{}{
-		"enabled": clusterAuditEnabled,
+		"enabled": false,
+	}
+	if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
+		clusterAuditValues["enabled"] = true
 	}
 
 	// get apiserver ip adresses from external dns entry
@@ -836,43 +900,7 @@ func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Co
 		},
 	}
 
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
-	if err != nil {
-		return errors.Wrap(err, "could not create shoot client")
-	}
-
-	cs, err := kubernetes.NewForConfig(shootConfig)
-	if err != nil {
-		return errors.Wrap(err, "could not create shoot kubernetes client")
-	}
-	gcs, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(shootConfig))
-	if err != nil {
-		return errors.Wrap(err, "could not create shoot Gardener client")
-	}
-
-	_, err = cs.CoreV1().Namespaces().Get(ctx, metal.AudittailerNamespace, metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			ns := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: metal.AudittailerNamespace,
-				},
-			}
-			_, err := cs.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
-			if err != nil {
-				return errors.Wrap(err, "could not create audittailer namespace")
-			}
-		} else {
-			return errors.Wrap(err, "could not search for existence of audittailer namespace")
-		}
-	}
-
-	_, err = wanted.Deploy(ctx, cs, gcs, metal.AudittailerNamespace)
-	if err != nil {
-		return errors.Wrap(err, "could not deploy audittailer secrets to shoot cluster")
-	}
-
-	return nil
+	return vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, wanted)
 }
 
 func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
@@ -914,6 +942,10 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 		},
 	}
 
+	return vp.deploySecretsToShoot(ctx, cluster, metal.DroptailerNamespace, wanted)
+}
+
+func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, wanted *secrets.Secrets) error {
 	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
 	if err != nil {
 		return errors.Wrap(err, "could not create shoot client")
@@ -923,31 +955,32 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 	if err != nil {
 		return errors.Wrap(err, "could not create shoot kubernetes client")
 	}
+
 	gcs, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(shootConfig))
 	if err != nil {
 		return errors.Wrap(err, "could not create shoot Gardener client")
 	}
 
-	_, err = cs.CoreV1().Namespaces().Get(ctx, metal.DroptailerNamespace, metav1.GetOptions{})
+	_, err = cs.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			ns := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: metal.DroptailerNamespace,
+					Name: namespace,
 				},
 			}
 			_, err := cs.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 			if err != nil {
-				return errors.Wrap(err, "could not create droptailer namespace")
+				return errors.Wrap(err, "could not create namespace")
 			}
 		} else {
-			return errors.Wrap(err, "could not search for existence of droptailer namespace")
+			return errors.Wrap(err, "could not search for existence of namespace")
 		}
 	}
 
-	_, err = wanted.Deploy(ctx, cs, gcs, metal.DroptailerNamespace)
+	_, err = wanted.Deploy(ctx, cs, gcs, namespace)
 	if err != nil {
-		return errors.Wrap(err, "could not deploy droptailer secrets to shoot cluster")
+		return errors.Wrap(err, "could not deploy secrets to shoot cluster")
 	}
 
 	return nil

@@ -62,6 +62,14 @@ config:
       certkey:
   clusterAudit:
     enabled: false
+  auditToSplunk:
+    enabled: false
+    hecToken:
+    index:
+    hecHost:
+    hecPort:
+    tlsEnabled:
+    hecCAFile:
   auth:
     enabled: false
     providerTenant: provider-tenant
