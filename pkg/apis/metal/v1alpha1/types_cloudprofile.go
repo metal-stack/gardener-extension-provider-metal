@@ -24,7 +24,7 @@ type MetalControlPlane struct {
 	IAMConfig *IAMConfig `json:"iamconfig,omitempty"`
 	// Partitions is a map of a region name from the regions defined in the cloud profile to region-specific control plane settings
 	Partitions map[string]Partition `json:"partitions"`
-	// FirewallImages is a list of available firewall images in this control plane.
+	// FirewallImages is a list of available firewall images in this control plane. When empty, allows all values.
 	FirewallImages []string `json:"firewallImages,omitempty"`
 	// FirewallControllerVersions is a list of available firewall controller binary versions
 	FirewallControllerVersions []FirewallControllerVersion `json:"firewallControllerVersions,omitempty"`
@@ -62,7 +62,10 @@ const (
 )
 
 // Partition contains configuration specific for this metal stack control plane partition
-type Partition struct{}
+type Partition struct {
+	// FirewallTypes is a list of available firewall machine types in this partition. When empty, allows all values.
+	FirewallTypes []string `json:"firewallTypes"`
+}
 
 // IAMConfig contains the config for all AuthN/AuthZ related components
 type IAMConfig struct {
