@@ -3,6 +3,7 @@ package healthcheck
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -76,11 +77,24 @@ func (healthChecker *DurosHealthChecker) Check(ctx context.Context, request type
 }
 
 func DurosIsHealthy(duros *durosv1.Duros) (bool, *string, error) {
-	// TODO: Implement check
+	reason := "DurosUnhealthy"
 	if duros == nil {
-		reason := "DurosUnhealthy"
-		err := fmt.Errorf("duros resource %s in namespace %s is unhealthy: %v", duros.Name, duros.Namespace, fmt.Errorf("reason"))
+		return false, &reason, fmt.Errorf("duros resource not deployed")
+	}
+
+	var problems []string
+	for _, r := range duros.Status.ManagedResourceStatuses {
+		if r.State == durosv1.HealthStateRunning {
+			continue
+		}
+
+		problems = append(problems, fmt.Sprintf("%s is not running because: %s", r.Name, r.Description))
+	}
+
+	if len(problems) > 0 {
+		err := fmt.Errorf("duros resource %s in namespace %s is unhealthy: %v", duros.Name, duros.Namespace, strings.Join(problems, ", "))
 		return false, &reason, err
 	}
+
 	return true, nil, nil
 }
