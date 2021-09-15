@@ -947,8 +947,8 @@ github.com/mdlayher/netlink v0.0.0-20191009155606-de872b0d824b/go.mod h1:KxeJAFO
 github.com/mdlayher/netlink v1.0.0/go.mod h1:KxeJAFOFLG6AjpyDkQ/iIhxygIUKD+vcwqcnu43w/+M=
 github.com/mdlayher/netlink v1.1.0/go.mod h1:H4WCitaheIsdF9yOYu8CFmCgQthAPIWZmcKp9uZHgmY=
 github.com/mdlayher/netlink v1.1.1/go.mod h1:WTYpFb/WTvlRJAyKhZL5/uy69TDDpHHu2VZmb2XgV7o=
-github.com/metal-stack/duros-controller v0.2.2-0.20210914142201-20adc68545bd h1:vkL6Bc7374GdLTB0BK+jSEZjBrnoLWw/89cewgc4ZKo=
-github.com/metal-stack/duros-controller v0.2.2-0.20210914142201-20adc68545bd/go.mod h1:ugEYX7eCRG8TfdLxaYM2LJJq9eEhgtORh2AVdxooAuk=
+github.com/metal-stack/duros-controller v0.3.0 h1:m2D0AjgtMRNDRH4mvKFkE1IRZjHkKbv/FCMTAKn24P0=
+github.com/metal-stack/duros-controller v0.3.0/go.mod h1:ugEYX7eCRG8TfdLxaYM2LJJq9eEhgtORh2AVdxooAuk=
 github.com/metal-stack/duros-go v0.2.3/go.mod h1:XvhzasHCARbrIk7zXx4jFl4Ck3VfzlmbFVP21kzus2s=
 github.com/metal-stack/firewall-controller v1.1.2 h1:1ztS65IWGCnPA03xu4i5swuIaETBuLxP1rKNhFa7VhA=
 github.com/metal-stack/firewall-controller v1.1.2/go.mod h1:G4Ps7N47TxUHxT5Gw57Su46zErUH324e0d2LpnzwiNk=

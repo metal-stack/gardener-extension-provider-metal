@@ -22,7 +22,7 @@ require (
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
 	github.com/imdario/mergo v0.3.12
-	github.com/metal-stack/duros-controller v0.2.2-0.20210914142201-20adc68545bd
+	github.com/metal-stack/duros-controller v0.3.0
 	github.com/metal-stack/firewall-controller v1.1.2
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.6
 	github.com/metal-stack/metal-go v0.15.3
