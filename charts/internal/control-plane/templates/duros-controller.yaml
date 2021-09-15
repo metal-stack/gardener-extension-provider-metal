@@ -31,6 +31,7 @@ rules:
   resources:
   - configmaps
   - leases
+  - events
   verbs:
   - get
   - watch

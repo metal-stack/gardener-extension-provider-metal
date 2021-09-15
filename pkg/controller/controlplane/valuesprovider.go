@@ -321,7 +321,7 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &rbacv1.RoleBinding{}, Name: "duros-controller"},
 			{Type: &corev1.Secret{}, Name: "duros-admin"},
 			{Type: &appsv1.Deployment{}, Name: "duros-controller"},
-			{Type: &durosv1.Duros{}, Name: "shoot-default-storage"},
+			{Type: &durosv1.Duros{}, Name: metal.DurosResourceName},
 			{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-storage"},
 		}...)
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
