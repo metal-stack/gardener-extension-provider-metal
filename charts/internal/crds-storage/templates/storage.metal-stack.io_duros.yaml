@@ -101,10 +101,6 @@ spec:
                   - state
                   type: object
                 type: array
-              secret:
-                description: SecretRef to the create JWT Token TODO, this can be used
-                  to detect required key rotation
-                type: string
             required:
             - managedResourceStatuses
             type: object
