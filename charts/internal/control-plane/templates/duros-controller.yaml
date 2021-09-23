@@ -5,12 +5,16 @@ kind: ServiceAccount
 metadata:
   name: duros-controller
   namespace: {{ .Release.Namespace }}
+  labels:
+    shoot.gardener.cloud/no-cleanup: "true"
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: duros-controller
   namespace: {{ .Release.Namespace }}
+  labels:
+    shoot.gardener.cloud/no-cleanup: "true"
 rules:
 - apiGroups:
   - storage.metal-stack.io
@@ -44,6 +48,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: duros-controller
   namespace: {{ .Release.Namespace }}
+  labels:
+    shoot.gardener.cloud/no-cleanup: "true"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -58,6 +64,7 @@ kind: Secret
 metadata:
   labels:
     app: duros-controller
+    shoot.gardener.cloud/no-cleanup: "true"
   name: duros-admin
   namespace: {{ .Release.Namespace }}
 type: Opaque
@@ -77,6 +84,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: duros-controller
+    shoot.gardener.cloud/no-cleanup: "true"
 spec:
   selector:
     matchLabels:
