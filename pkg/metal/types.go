@@ -32,6 +32,8 @@ const (
 	CSIProvisionerImageName = "csi-lvm-provisioner"
 	// DurosControllerImageName is the name of the duros controller to deploy to the seed's shoot namespace.
 	DurosControllerImageName = "duros-controller"
+	// DurosResourceName is the name of the duros resource to deploy to the seed's shoot namespace.
+	DurosResourceName = "shoot-default-storage"
 
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"
