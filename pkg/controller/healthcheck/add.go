@@ -49,6 +49,9 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 	authPreCheck := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.Auth.Enabled
 	}
+	durosPreCheck := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
+		return opts.ControllerConfig.Storage.Duros.Enabled
+	}
 
 	if err := healthcheck.DefaultRegistration(
 		metal.Type,
@@ -85,6 +88,11 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
 				HealthCheck:   general.CheckManagedResource(genericcontrolplaneactuator.StorageClassesChartResourceName),
+			},
+			{
+				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
+				HealthCheck:   CheckDuros(metal.DurosResourceName),
+				PreCheckFunc:  durosPreCheck,
 			},
 		}); err != nil {
 		return err
