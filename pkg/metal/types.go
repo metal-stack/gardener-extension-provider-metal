@@ -32,6 +32,8 @@ const (
 	CSIProvisionerImageName = "csi-lvm-provisioner"
 	// DurosControllerImageName is the name of the duros controller to deploy to the seed's shoot namespace.
 	DurosControllerImageName = "duros-controller"
+	// DurosResourceName is the name of the duros resource to deploy to the seed's shoot namespace.
+	DurosResourceName = "shoot-default-storage"
 
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"
@@ -57,6 +59,10 @@ const (
 	AudittailerClientSecretName = "audittailer-client"
 	// AudittailerServerSecretName is the name of the secret containing the certificates for the audittailer server.
 	AudittailerServerSecretName = "audittailer-server"
+	// AuditForwarderSplunkConfigName is the name of the configmap containing the splunk configuration for the auditforwarder.
+	AuditForwarderSplunkConfigName = "audit-to-splunk-config"
+	// AuditForwarderSplunkSecretName is the name of the secret containing the splunk hec token and, if required, the ca certificate.
+	AuditForwarderSplunkSecretName = "audit-to-splunk-secret"
 	// DroptailerNamespace is the namespace where the firewall droptailer will get deployed.
 	DroptailerNamespace = "firewall"
 	// DroptailerClientSecretName is the name of the secret containing the certificates for the droptailer client.

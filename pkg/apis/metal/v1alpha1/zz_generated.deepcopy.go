@@ -150,6 +150,11 @@ func (in *ControlPlaneFeatures) DeepCopyInto(out *ControlPlaneFeatures) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.AuditToSplunk != nil {
+		in, out := &in.AuditToSplunk, &out.AuditToSplunk
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

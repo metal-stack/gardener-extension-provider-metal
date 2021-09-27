@@ -34,6 +34,10 @@ type ControlPlaneFeatures struct {
 	// can be picked up by any of the available Kubernetes logging solutions.
 	// +optional
 	ClusterAudit *bool
+	// AuditToSplunk enables the forwarding of the apiserver auditlog to a defined splunk instance in addition to
+	// forwarding it into the cluster. Needs the clusterAudit featureGate to be active.
+	// +optional
+	AuditToSplunk *bool
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
