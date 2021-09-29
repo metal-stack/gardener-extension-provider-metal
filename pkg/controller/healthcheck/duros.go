@@ -62,12 +62,11 @@ func (healthChecker *DurosHealthChecker) Check(ctx context.Context, request type
 		healthChecker.logger.Error(err, "Health check failed")
 		return nil, err
 	}
-	if isHealthy, reason, err := DurosIsHealthy(duros); !isHealthy {
+	if isHealthy, err := DurosIsHealthy(duros); !isHealthy {
 		healthChecker.logger.Error(err, "Health check failed")
 		return &healthcheck.SingleCheckResult{
 			Status: gardencorev1beta1.ConditionFalse,
 			Detail: err.Error(),
-			Reason: *reason,
 		}, nil
 	}
 
@@ -76,10 +75,9 @@ func (healthChecker *DurosHealthChecker) Check(ctx context.Context, request type
 	}, nil
 }
 
-func DurosIsHealthy(duros *durosv1.Duros) (bool, *string, error) {
-	reason := "DurosUnhealthy"
+func DurosIsHealthy(duros *durosv1.Duros) (bool, error) {
 	if duros == nil {
-		return false, &reason, fmt.Errorf("duros resource not deployed")
+		return false, fmt.Errorf("duros resource not deployed")
 	}
 
 	var problems []string
@@ -93,8 +91,7 @@ func DurosIsHealthy(duros *durosv1.Duros) (bool, *string, error) {
 
 	if len(problems) > 0 {
 		err := fmt.Errorf("duros resource %s in namespace %s is unhealthy: %v", duros.Name, duros.Namespace, strings.Join(problems, ", "))
-		return false, &reason, err
+		return false, err
 	}
-
-	return true, nil, nil
+	return true, nil
 }
