@@ -14,8 +14,8 @@ require (
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
 	github.com/gardener/etcd-druid v0.3.0
-	github.com/gardener/external-dns-management v0.8.1
-	github.com/gardener/gardener v1.19.3
+	github.com/gardener/external-dns-management v0.9.0
+	github.com/gardener/gardener v1.21.2
 	github.com/gardener/machine-controller-manager v0.36.0
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.6.0
