@@ -4,28 +4,28 @@ go 1.16
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/ahmetb/gen-crd-api-reference-docs v0.2.0
+	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083 // indirect
 	github.com/ajeddeloh/yaml v0.0.0-20141224210557-6b16a5714269 // indirect
 	github.com/coreos/container-linux-config-transpiler v0.9.0
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/ignition v0.35.0 // indirect
-	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
+	github.com/emicklei/go-restful v2.15.0+incompatible // indirect
 	github.com/gardener/etcd-druid v0.5.0
-	github.com/gardener/external-dns-management v0.8.1
-	github.com/gardener/gardener v1.23.0
+	github.com/gardener/external-dns-management v0.10.7
+	github.com/gardener/gardener v1.23.4
 	github.com/gardener/machine-controller-manager v0.36.0
-	github.com/go-logr/logr v0.4.0
+	github.com/go-logr/logr v1.0.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
 	github.com/imdario/mergo v0.3.12
-	github.com/metal-stack/duros-controller v0.3.0
+	github.com/metal-stack/duros-controller v0.3.2
 	github.com/metal-stack/firewall-controller v1.1.2
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.6
-	github.com/metal-stack/metal-go v0.15.3
-	github.com/metal-stack/metal-lib v0.8.0
+	github.com/metal-stack/metal-go v0.15.7
+	github.com/metal-stack/metal-lib v0.8.2
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
 	github.com/pkg/errors v0.9.1
@@ -42,11 +42,12 @@ require (
 	k8s.io/component-base v0.22.1
 	k8s.io/kubelet v0.20.8
 	k8s.io/utils v0.0.0-20210802155522-efc7438f0176
-	sigs.k8s.io/controller-runtime v0.10.0
+	sigs.k8s.io/controller-runtime v0.10.2
 )
 
 replace (
 	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd // indirect
+	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
 	k8s.io/api => k8s.io/api v0.20.8
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.8
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.8

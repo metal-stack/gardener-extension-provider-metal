@@ -93,6 +93,5 @@ func DurosIsHealthy(duros *durosv1.Duros) (bool, error) {
 		err := fmt.Errorf("duros resource %s in namespace %s is unhealthy: %v", duros.Name, duros.Namespace, strings.Join(problems, ", "))
 		return false, err
 	}
-
 	return true, nil
 }
