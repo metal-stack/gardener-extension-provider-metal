@@ -24,7 +24,7 @@ type MetalControlPlane struct {
 	IAMConfig *IAMConfig
 	// Partitions is a map of a region name from the regions defined in the cloud profile to region-specific control plane settings
 	Partitions map[string]Partition
-	// FirewallImages is a list of available firewall images in this control plane.
+	// FirewallImages is a list of available firewall images in this control plane. When empty, allows all values.
 	FirewallImages []string
 	// FirewallControllerVersions is a list of available firewall controller binary versions
 	FirewallControllerVersions []FirewallControllerVersion
@@ -56,7 +56,10 @@ const (
 )
 
 // Partition contains configuration specific for this metal stack control plane partition
-type Partition struct{}
+type Partition struct {
+	// FirewallTypes is a list of available firewall machine types in this partition. When empty, allows all values.
+	FirewallTypes []string
+}
 
 // IAMConfig contains the config for all AuthN/AuthZ related components
 type IAMConfig struct {
