@@ -106,7 +106,7 @@ generate:
 .PHONY: generate-in-docker
 generate-in-docker: revendor
 	echo $(shell git describe --abbrev=0 --tags) > VERSION
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.16 \
+	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.17 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 				&& make install-requirements generate \
 				&& chown -R $(shell id -u):$(shell id -g) ."
@@ -121,7 +121,7 @@ test:
 
 .PHONY: test-in-docker
 test-in-docker: revendor
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.16 \
+	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.17 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 				&& make install-requirements check test"
 
