@@ -50,8 +50,6 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/pkg/errors"
-
 	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -495,7 +493,7 @@ func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName
 	}
 
 	if splunkConfigSecret.Data == nil {
-		vp.logger.Error(errors.Errorf("secret is empty"), "custom splunk config secret contains no data")
+		vp.logger.Error(fmt.Errorf("secret is empty"), "custom splunk config secret contains no data")
 		return auditToSplunkValues, nil
 	}
 
@@ -529,7 +527,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 ) (map[string]interface{}, error) {
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
 	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
-		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+		return nil, fmt.Errorf("could not decode providerConfig of infrastructure %w", err)
 	}
 
 	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
@@ -564,7 +562,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	resp, err := mclient.NetworkList()
 	if err != nil {
-		return nil, errors.Wrap(err, "could not retrieve networks from metal-api")
+		return nil, fmt.Errorf("could not retrieve networks from metal-api %w", err)
 	}
 
 	nws := networkMap{}
@@ -584,7 +582,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	p, err := mclient.ProjectGet(infrastructureConfig.ProjectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not retrieve project from metal-api")
+		return nil, fmt.Errorf("could not retrieve project from metal-api %w", err)
 	}
 
 	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
@@ -645,7 +643,7 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, checksums map[string]string) (map[string]interface{}, error) {
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
 	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
-		return nil, errors.Wrapf(err, "could not decode providerConfig of infrastructure")
+		return nil, fmt.Errorf("could not decode providerConfig of infrastructure %w", err)
 	}
 
 	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
@@ -670,7 +668,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	resp, err := mclient.NetworkList()
 	if err != nil {
-		return nil, errors.Wrap(err, "could not retrieve networks from metal-api")
+		return nil, fmt.Errorf("could not retrieve networks from metal-api %w", err)
 	}
 
 	nws := networkMap{}
@@ -704,12 +702,12 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 
 	fwSpec, err := vp.getFirewallSpec(ctx, metalControlPlane, infrastructure, cluster, nws, mclient)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not assemble firewall values")
+		return nil, fmt.Errorf("could not assemble firewall values %w", err)
 	}
 
 	err = vp.signFirewallValues(ctx, namespace, fwSpec)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not sign firewall values")
+		return nil, fmt.Errorf("could not sign firewall values %w", err)
 	}
 
 	durosValues := map[string]interface{}{
@@ -728,7 +726,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 
 	err = vp.client.Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get dnsEntry")
+		return nil, fmt.Errorf("failed to get dnsEntry %w", err)
 	}
 	apiserverIPs := dns.Spec.Targets
 
@@ -751,7 +749,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 
 		found, err := hasDurosStorageNetwork(infrastructure, nws)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to determine storage network")
+			return nil, fmt.Errorf("unable to determine storage network %w", err)
 		}
 
 		if found && ok {
@@ -790,7 +788,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 	projectID := infrastructureConfig.ProjectID
 	firewalls, err := metalclient.FindClusterFirewalls(mclient, clusterTag(clusterID), projectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not find firewall for cluster")
+		return nil, fmt.Errorf("could not find firewall for cluster %w", err)
 	}
 	if len(firewalls) != 1 {
 		return nil, fmt.Errorf("cluster %s has %d firewalls", clusterID, len(firewalls))
@@ -853,18 +851,18 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace string, spec *firewallv1.FirewallSpec) error {
 	secret, err := vp.getSecret(ctx, namespace, v1alpha1constants.SecretNameCACluster)
 	if err != nil {
-		return errors.Wrap(err, "could not find ca secret for signing firewall values")
+		return fmt.Errorf("could not find ca secret for signing firewall values %w", err)
 	}
 
 	privateKey, err := utils.DecodePrivateKey(secret.Data[secrets.DataKeyPrivateKeyCA])
 	if err != nil {
-		return errors.Wrap(err, "could not decode private key from ca secret for signing firewall values")
+		return fmt.Errorf("could not decode private key from ca secret for signing firewall values %w", err)
 	}
 
 	vp.logger.Info("signing firewall", "data", spec.Data)
 	signature, err := spec.Data.Sign(privateKey)
 	if err != nil {
-		return errors.Wrap(err, "could not sign firewall values")
+		return fmt.Errorf("could not sign firewall values %w", err)
 	}
 
 	spec.Signature = signature
@@ -958,17 +956,17 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, wanted *secrets.Secrets) error {
 	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, cluster.ObjectMeta.Name, client.Options{})
 	if err != nil {
-		return errors.Wrap(err, "could not create shoot client")
+		return fmt.Errorf("could not create shoot client %w", err)
 	}
 
 	cs, err := kubernetes.NewForConfig(shootConfig)
 	if err != nil {
-		return errors.Wrap(err, "could not create shoot kubernetes client")
+		return fmt.Errorf("could not create shoot kubernetes client %w", err)
 	}
 
 	gcs, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(shootConfig))
 	if err != nil {
-		return errors.Wrap(err, "could not create shoot Gardener client")
+		return fmt.Errorf("could not create shoot Gardener client %w", err)
 	}
 
 	_, err = cs.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
@@ -981,16 +979,16 @@ func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *ext
 			}
 			_, err := cs.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 			if err != nil {
-				return errors.Wrap(err, "could not create namespace")
+				return fmt.Errorf("could not create namespace %w", err)
 			}
 		} else {
-			return errors.Wrap(err, "could not search for existence of namespace")
+			return fmt.Errorf("could not search for existence of namespace %w", err)
 		}
 	}
 
 	_, err = wanted.Deploy(ctx, cs, gcs, namespace)
 	if err != nil {
-		return errors.Wrap(err, "could not deploy secrets to shoot cluster")
+		return fmt.Errorf("could not deploy secrets to shoot cluster %w", err)
 	}
 
 	return nil
@@ -1047,7 +1045,7 @@ func getCCMChartValues(
 		defaultExternalNetwork = *cpConfig.CloudControllerManager.DefaultExternalNetwork
 		resp, err := mclient.NetworkGet(defaultExternalNetwork)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("could not retrieve user-given default external network: %s", defaultExternalNetwork))
+			return nil, fmt.Errorf("could not retrieve user-given default external network: %s %w", defaultExternalNetwork, err)
 		}
 
 		if resp.Network.Shared && resp.Network.Partitionid != infrastructureConfig.PartitionID {
@@ -1204,7 +1202,7 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 		})
 
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to deploy clusterwide network policy for accounting-api into firewall namespace")
+			return nil, fmt.Errorf("unable to deploy clusterwide network policy for accounting-api into firewall namespace %w", err)
 		}
 	}
 
@@ -1250,7 +1248,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 
 	found, err := hasDurosStorageNetwork(infrastructure, nws)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to determine storage network")
+		return nil, fmt.Errorf("unable to determine storage network %w", err)
 	}
 
 	if !found {
@@ -1303,7 +1301,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 			return nil
 		})
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to deploy clusterwide network policy for duros storage into firewall namespace")
+			return nil, fmt.Errorf("unable to deploy clusterwide network policy for duros storage into firewall namespace %w", err)
 		}
 	}
 
