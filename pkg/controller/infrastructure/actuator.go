@@ -81,7 +81,7 @@ func decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, dec
 	infrastructureStatus := &metalapi.InfrastructureStatus{}
 	if infrastructure.Status.ProviderStatus != nil {
 		if _, _, err := decoder.Decode(infrastructure.Status.ProviderStatus.Raw, nil, infrastructureStatus); err != nil {
-			return nil, nil, fmt.Errorf("could not decode infrastructure status: %+v", err)
+			return nil, nil, fmt.Errorf("could not decode infrastructure status: %w", err)
 		}
 	}
 

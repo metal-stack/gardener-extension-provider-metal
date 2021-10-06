@@ -151,7 +151,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 		case KonnectivityDeploymentName:
 			// konnektivity support will be dropped in the near future, so this hack / mutator hook should be removed
 			extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
-			return fixKonnektivityHostPort(&x.Spec.Template.Spec, m.logger)
+			return fixKonnektivityHostPort(&x.Spec.Template.Spec)
 		case v1beta1constants.DeploymentNameKubeAPIServer:
 			extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
 			return m.ensurer.EnsureKubeAPIServerDeployment(ctx, gctx, x, oldDep)
@@ -401,7 +401,7 @@ func (m *mutator) ensureKubeletCloudProviderConfig(ctx context.Context, gctx gco
 // fixKonnektivityHostPort fixes a Gardener bug introduced in v1.16 where host port is preventing multiple
 // API servers in a seed to be scheduled because host ports can only be taken once
 // TODO: Remove when a fix is available from Gardener upstream
-func fixKonnektivityHostPort(ps *corev1.PodSpec, log logr.Logger) error {
+func fixKonnektivityHostPort(ps *corev1.PodSpec) error {
 	var containers []corev1.Container
 	for _, c := range ps.Containers {
 		if c.Name != KonnectivityContainerName {

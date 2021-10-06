@@ -75,7 +75,7 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 
 func delete(ctx context.Context, d *firewallDeleter) error {
 	if d.machineID != "" {
-		err := deleteFirewall(d.logger, d.machineID, d.projectID, d.clusterTag, d.mclient)
+		err := deleteFirewall(d.machineID, d.projectID, d.clusterTag, d.mclient)
 		if err != nil {
 			return err
 		}
@@ -166,7 +166,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	return nil
 }
 
-func deleteFirewall(logger logr.Logger, machineID string, projectID string, clusterTag string, mclient *metalgo.Driver) error {
+func deleteFirewall(machineID string, projectID string, clusterTag string, mclient *metalgo.Driver) error {
 	firewalls, err := metalclient.FindClusterFirewalls(mclient, clusterTag, projectID)
 	if err != nil {
 		return &controllererrors.RequeueAfterError{

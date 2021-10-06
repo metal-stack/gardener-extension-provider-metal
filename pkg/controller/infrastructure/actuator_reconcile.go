@@ -111,7 +111,7 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 		clusterID:            string(cluster.Shoot.GetUID()),
 		egressTag:            egressTag(string(cluster.Shoot.GetUID())),
 	}
-	err = reconcileEgressIPs(ctx, egressIPReconciler)
+	err = reconcileEgressIPs(egressIPReconciler)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 }
 
 func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
-	action, err := firewallNextAction(ctx, r)
+	action, err := firewallNextAction(r)
 	if err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 		r.logger.Info("firewall created", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.providerStatus.Firewall.MachineID)
 		return nil
 	case firewallActionDeleteAndRecreate:
-		err := deleteFirewall(r.logger, r.machineID, r.infrastructureConfig.ProjectID, r.clusterTag, r.mclient)
+		err := deleteFirewall(r.machineID, r.infrastructureConfig.ProjectID, r.clusterTag, r.mclient)
 		if err != nil {
 			return err
 		}
@@ -200,7 +200,7 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 	}
 }
 
-func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallReconcileAction, error) {
+func firewallNextAction(r *firewallReconciler) (firewallReconcileAction, error) {
 	if r.providerStatus.Firewall.Succeeded {
 		firewalls, err := metalclient.FindClusterFirewalls(r.mclient, r.clusterTag, r.infrastructureConfig.ProjectID)
 		if err != nil {
@@ -293,6 +293,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 func hasFirewallSucceeded(machineID string, mclient *metalgo.Driver) (bool, error) {
 	resp, err := mclient.FirewallGet(machineID)
 	if err != nil {
+		// nolint:errorlint
 		switch e := err.(type) {
 		case *metalfirewall.FindFirewallDefault:
 			if e.Code() >= 500 {
@@ -314,7 +315,7 @@ func hasFirewallSucceeded(machineID string, mclient *metalgo.Driver) (bool, erro
 }
 
 func createFirewall(ctx context.Context, r *firewallReconciler) error {
-	nodeCIDR, err := ensureNodeNetwork(ctx, r)
+	nodeCIDR, err := ensureNodeNetwork(r)
 	if err != nil {
 		r.logger.Error(err, "firewalls node network", "nodecidr", nodeCIDR)
 		return &controllererrors.RequeueAfterError{
@@ -409,7 +410,7 @@ func createFirewall(ctx context.Context, r *firewallReconciler) error {
 	return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
 }
 
-func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
+func reconcileEgressIPs(r *egressIPReconciler) error {
 	static := metalgo.IPTypeStatic
 	currentEgressIPs := sets.NewString()
 	resp, err := r.mclient.IPFind(&metalgo.IPFindRequest{
@@ -432,6 +433,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 		wantEgressIPs.Insert(egressRule.IPs...)
 
 		for _, ip := range egressRule.IPs {
+			ip := ip
 			if currentEgressIPs.Has(ip) {
 				continue
 			}
@@ -519,7 +521,7 @@ func clearIPTags(mclient *metalgo.Driver, ip string) error {
 	return err
 }
 
-func ensureNodeNetwork(ctx context.Context, r *firewallReconciler) (string, error) {
+func ensureNodeNetwork(r *firewallReconciler) (string, error) {
 	if r.cluster.Shoot.Spec.Networking.Nodes != nil {
 		return *r.cluster.Shoot.Spec.Networking.Nodes, nil
 	}
