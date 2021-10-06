@@ -14,7 +14,7 @@ require (
 	github.com/emicklei/go-restful v2.15.0+incompatible // indirect
 	github.com/gardener/etcd-druid v0.5.0
 	github.com/gardener/external-dns-management v0.10.7
-	github.com/gardener/gardener v1.23.4
+	github.com/gardener/gardener v1.27.0
 	github.com/gardener/machine-controller-manager v0.36.0
 	github.com/go-logr/logr v1.0.0
 	github.com/golang/mock v1.6.0
@@ -28,7 +28,6 @@ require (
 	github.com/metal-stack/metal-lib v0.8.2
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
-	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50 // indirect
@@ -36,11 +35,11 @@ require (
 	k8s.io/api v0.22.1
 	k8s.io/apiextensions-apiserver v0.22.1
 	k8s.io/apimachinery v0.22.1
-	k8s.io/apiserver v0.20.8
+	k8s.io/apiserver v0.21.2
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/code-generator v0.20.8
+	k8s.io/code-generator v0.21.2
 	k8s.io/component-base v0.22.1
-	k8s.io/kubelet v0.20.8
+	k8s.io/kubelet v0.21.2
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 	sigs.k8s.io/controller-runtime v0.10.2
 )
@@ -48,14 +47,14 @@ require (
 replace (
 	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd // indirect
 	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
-	k8s.io/api => k8s.io/api v0.20.8
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.8
-	k8s.io/apimachinery => k8s.io/apimachinery v0.20.8
-	k8s.io/apiserver => k8s.io/apiserver v0.20.8
-	k8s.io/client-go => k8s.io/client-go v0.20.8
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.20.8
-	k8s.io/code-generator => k8s.io/code-generator v0.20.8
-	k8s.io/component-base => k8s.io/component-base v0.20.8
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.20.8
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.8.3
+	k8s.io/api => k8s.io/api v0.21.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.21.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.21.2
+	k8s.io/apiserver => k8s.io/apiserver v0.21.2
+	k8s.io/client-go => k8s.io/client-go v0.21.2
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.21.2
+	k8s.io/code-generator => k8s.io/code-generator v0.21.2
+	k8s.io/component-base => k8s.io/component-base v0.21.2
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.21.2
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.3
 )
