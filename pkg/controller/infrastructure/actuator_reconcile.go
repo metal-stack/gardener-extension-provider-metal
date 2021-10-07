@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -293,17 +294,15 @@ func firewallNextAction(r *firewallReconciler) (firewallReconcileAction, error) 
 func hasFirewallSucceeded(machineID string, mclient *metalgo.Driver) (bool, error) {
 	resp, err := mclient.FirewallGet(machineID)
 	if err != nil {
-		// nolint:errorlint
-		switch e := err.(type) {
-		case *metalfirewall.FindFirewallDefault:
-			if e.Code() >= 500 {
+		var f *metalfirewall.FindFirewallDefault
+		if errors.As(err, &f) {
+			if f.Code() >= 500 {
 				return false, &controllererrors.RequeueAfterError{
-					Cause:        e,
+					Cause:        err,
 					RequeueAfter: 5 * time.Second,
 				}
 			}
-		default:
-			return false, e
+			return false, err
 		}
 	}
 
