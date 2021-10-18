@@ -345,7 +345,7 @@ spec:
         - name: METALLB_HOST
           valueFrom:
             fieldRef:
-              fieldPath: status.hostIP
+              fieldPath: status.podIP
         image: {{ index .Values.images "metallb-speaker" }}
         name: speaker
         ports:
