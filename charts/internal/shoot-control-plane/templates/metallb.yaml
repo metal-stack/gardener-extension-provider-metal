@@ -226,14 +226,6 @@ rules:
   verbs:
   - create
 - apiGroups:
-  - ''
-  resources:
-  - secrets
-  resourceNames:
-  - memberlist
-  verbs:
-  - list
-- apiGroups:
   - apps
   resources:
   - deployments
@@ -354,32 +346,11 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.hostIP
-        - name: METALLB_ML_BIND_ADDR
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-        # needed when another software is also using memberlist / port 7946
-        # when changing this default you also need to update the container ports definition
-        # and the PodSecurityPolicy hostPorts definition
-        #- name: METALLB_ML_BIND_PORT
-        #  value: "7946"
-        - name: METALLB_ML_LABELS
-          value: "app=metallb,component=speaker"
-        - name: METALLB_ML_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: memberlist
-              key: secretkey
         image: {{ index .Values.images "metallb-speaker" }}
         name: speaker
         ports:
         - containerPort: 7472
           name: monitoring
-        - containerPort: 7946
-          name: memberlist-tcp
-        - containerPort: 7946
-          name: memberlist-udp
-          protocol: UDP
         resources:
           limits:
             cpu: 100m
@@ -433,8 +404,6 @@ spec:
         - --port=7472
         - --config=config
         env:
-        - name: METALLB_ML_SECRET_NAME
-          value: memberlist
         - name: METALLB_DEPLOYMENT
           value: controller
         image: {{ index .Values.images "metallb-controller" }}
