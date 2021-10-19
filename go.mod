@@ -15,7 +15,7 @@ require (
 	github.com/gardener/etcd-druid v0.5.0
 	github.com/gardener/external-dns-management v0.10.7
 	github.com/gardener/gardener v1.23.4
-	github.com/gardener/machine-controller-manager v0.36.0
+	github.com/gardener/machine-controller-manager v0.41.0
 	github.com/go-logr/logr v1.0.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.6
