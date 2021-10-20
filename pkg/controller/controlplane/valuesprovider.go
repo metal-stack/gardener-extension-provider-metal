@@ -82,9 +82,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
-				KubeConfigRequest: &secrets.KubeConfigRequest{
-					ClusterName:  clusterName,
-					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
+				KubeConfigRequests: []secrets.KubeConfigRequest{
+					{
+						ClusterName:   clusterName,
+						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
+					},
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -96,9 +98,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
-				KubeConfigRequest: &secrets.KubeConfigRequest{
-					ClusterName:  clusterName,
-					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
+				KubeConfigRequests: []secrets.KubeConfigRequest{
+					{
+						ClusterName:   clusterName,
+						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
+					},
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -110,9 +114,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
-				KubeConfigRequest: &secrets.KubeConfigRequest{
-					ClusterName:  clusterName,
-					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
+				KubeConfigRequests: []secrets.KubeConfigRequest{
+					{
+						ClusterName:   clusterName,
+						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
+					},
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -123,9 +129,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
-				KubeConfigRequest: &secrets.KubeConfigRequest{
-					ClusterName:  clusterName,
-					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
+				KubeConfigRequests: []secrets.KubeConfigRequest{
+					{
+						ClusterName:   clusterName,
+						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
+					},
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
@@ -146,9 +154,11 @@ var controlPlaneSecrets = &secrets.Secrets{
 					CertType:     secrets.ClientCert,
 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
 				},
-				KubeConfigRequest: &secrets.KubeConfigRequest{
-					ClusterName:  clusterName,
-					APIServerURL: v1alpha1constants.DeploymentNameKubeAPIServer,
+				KubeConfigRequests: []secrets.KubeConfigRequest{
+					{
+						ClusterName:   clusterName,
+						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
+					},
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
