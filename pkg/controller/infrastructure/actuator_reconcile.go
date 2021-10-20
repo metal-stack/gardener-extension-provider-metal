@@ -199,7 +199,7 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 		return nil
 	case firewallActionStatusUpdateOnMigrate:
 		r.providerStatus.Firewall = *status
-		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, r.infrastructure.Status.NodesCIDR)
+		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, r.cluster.Shoot.Spec.Networking.Nodes)
 	default:
 		return fmt.Errorf("unsupported firewall reconcile action: %s", action)
 	}
