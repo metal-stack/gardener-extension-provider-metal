@@ -1034,7 +1034,10 @@ func getCCMChartValues(
 	nodeCIDR := infrastructure.Status.NodesCIDR
 
 	if nodeCIDR == nil {
-		return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+		if cluster.Shoot.Spec.Networking.Nodes == nil {
+			return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+		}
+		nodeCIDR = cluster.Shoot.Spec.Networking.Nodes
 	}
 
 	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, *nodeCIDR)
