@@ -231,6 +231,28 @@ var (
 			Value: "9443",
 		},
 	}
+	reversedVpnVolumeMounts = []corev1.VolumeMount{
+		{
+			Name:      "kube-apiserver-http-proxy",
+			MountPath: "/konnectivity-proxy/ca",
+			ReadOnly:  true,
+		},
+		{
+			Name:      "kube-aggregator",
+			MountPath: "/konnectivity-proxy/client",
+			ReadOnly:  true,
+		},
+	}
+	reversedVpnEnvVars = []corev1.EnvVar{
+		{
+			Name:  "AUDIT_PROXY_HOST",
+			Value: "vpn-seed-server",
+		},
+		{
+			Name:  "AUDIT_PROXY_PORT",
+			Value: "9443",
+		},
+	}
 	auditForwarderSidecar = corev1.Container{
 		Name: "auditforwarder",
 		// Image:   // is added from the image vector in the ensure function
@@ -347,6 +369,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 
 	udsVolumeFound := false
 	clientTLSVolumeFound := false
+	kubeAggregatorVolumeFound := false
 
 	for _, volume := range ps.Volumes {
 		switch volume.Name {
@@ -354,6 +377,8 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 			udsVolumeFound = true
 		case "konnectivity-server-client-tls":
 			clientTLSVolumeFound = true
+		case "kube-aggregator":
+			kubeAggregatorVolumeFound = true
 		}
 	}
 	if udsVolumeFound {
@@ -375,6 +400,21 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
 		}
 		for _, envVar := range konnectivityMtlsEnvVars {
+			auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
+		}
+	}
+	if kubeAggregatorVolumeFound {
+		for _, mount := range reversedVpnVolumeMounts {
+			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
+		}
+		for _, envVar := range reversedVpnEnvVars {
+			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
+		}
+	} else {
+		for _, mount := range reversedVpnVolumeMounts {
+			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
+		}
+		for _, envVar := range reversedVpnEnvVars {
 			auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
 		}
 	}
