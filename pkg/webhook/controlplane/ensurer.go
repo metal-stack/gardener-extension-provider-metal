@@ -369,7 +369,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 
 	udsVolumeFound := false
 	clientTLSVolumeFound := false
-	kubeAggregatorVolumeFound := false
+	kubeApiserverHttpProxyFound := false
 
 	for _, volume := range ps.Volumes {
 		switch volume.Name {
@@ -377,8 +377,8 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 			udsVolumeFound = true
 		case "konnectivity-server-client-tls":
 			clientTLSVolumeFound = true
-		case "kube-aggregator":
-			kubeAggregatorVolumeFound = true
+		case "kube-apiserver-http-proxy":
+			kubeApiserverHttpProxyFound = true
 		}
 	}
 	if udsVolumeFound {
@@ -403,7 +403,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 			auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
 		}
 	}
-	if kubeAggregatorVolumeFound {
+	if kubeApiserverHttpProxyFound {
 		for _, mount := range reversedVpnVolumeMounts {
 			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
 		}
