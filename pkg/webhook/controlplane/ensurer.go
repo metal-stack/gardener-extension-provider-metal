@@ -221,16 +221,16 @@ var (
 			ReadOnly:  true,
 		},
 	}
-	konnectivityMtlsEnvVars = []corev1.EnvVar{
-		{
-			Name:  "AUDIT_PROXY_HOST",
-			Value: "konnectivity-server",
-		},
-		{
-			Name:  "AUDIT_PROXY_PORT",
-			Value: "9443",
-		},
-	}
+	// konnectivityMtlsEnvVars = []corev1.EnvVar{
+	// 	{
+	// 		Name:  "AUDIT_PROXY_HOST",
+	// 		Value: "konnectivity-server",
+	// 	},
+	// 	{
+	// 		Name:  "AUDIT_PROXY_PORT",
+	// 		Value: "9443",
+	// 	},
+	// }
 	reversedVpnVolumeMounts = []corev1.VolumeMount{
 		{
 			Name:      "kube-apiserver-http-proxy",
@@ -243,16 +243,16 @@ var (
 			ReadOnly:  true,
 		},
 	}
-	reversedVpnEnvVars = []corev1.EnvVar{
-		{
-			Name:  "AUDIT_PROXY_HOST",
-			Value: "vpn-seed-server",
-		},
-		{
-			Name:  "AUDIT_PROXY_PORT",
-			Value: "9443",
-		},
-	}
+	// reversedVpnEnvVars = []corev1.EnvVar{
+	// 	{
+	// 		Name:  "AUDIT_PROXY_HOST",
+	// 		Value: "vpn-seed-server",
+	// 	},
+	// 	{
+	// 		Name:  "AUDIT_PROXY_PORT",
+	// 		Value: "9443",
+	// 	},
+	// }
 	auditForwarderSidecar = corev1.Container{
 		Name: "auditforwarder",
 		// Image:   // is added from the image vector in the ensure function
