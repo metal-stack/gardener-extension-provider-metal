@@ -253,6 +253,16 @@ var (
 	// 		Value: "9443",
 	// 	},
 	// }
+	kubeAggregatorClientTlsEnvVars = []corev1.EnvVar{
+		{
+			Name:  "AUDIT_PROXY_CLIENT_CRT_FILE",
+			Value: "/konnectivity-proxy/client/kube-aggregator.crt",
+		},
+		{
+			Name:  "AUDIT_PROXY_CLIENT_KEY_FILE",
+			Value: "/konnectivity-proxy/client/kube-aggregator.key",
+		},
+	}
 	auditForwarderSidecar = corev1.Container{
 		Name: "auditforwarder",
 		// Image:   // is added from the image vector in the ensure function
@@ -428,10 +438,16 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 		}
 	}
 	if kubeApiserverHttpProxyFound {
+		for _, envVar := range kubeAggregatorClientTlsEnvVars {
+			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
+		}
 		for _, mount := range reversedVpnVolumeMounts {
 			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
 		}
 	} else {
+		for _, envVar := range kubeAggregatorClientTlsEnvVars {
+			auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
+		}
 		for _, mount := range reversedVpnVolumeMounts {
 			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
 		}
