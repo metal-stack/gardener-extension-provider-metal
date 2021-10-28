@@ -388,30 +388,50 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount.Name)
 		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, konnectivityUdsEnvVar.Name)
 	}
+
+	var proxyHost string
+
+	if clientTLSVolumeFound {
+		proxyHost = "konnectivity-server"
+	} else if kubeApiserverHttpProxyFound {
+		proxyHost = "vpn-seed-server"
+	}
+
+	proxyEnvVars := []corev1.EnvVar{
+		{
+			Name:  "AUDIT_PROXY_HOST",
+			Value: proxyHost,
+		},
+		{
+			Name:  "AUDIT_PROXY_PORT",
+			Value: "9443",
+		},
+	}
+
+	if clientTLSVolumeFound || kubeApiserverHttpProxyFound {
+		for _, envVar := range proxyEnvVars {
+			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
+		}
+	} else {
+		for _, envVar := range proxyEnvVars {
+			auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
+		}
+	}
+
 	if clientTLSVolumeFound {
 		for _, mount := range konnectivityMtlsVolumeMounts {
 			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
-		}
-		for _, envVar := range konnectivityMtlsEnvVars {
-			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
-		}
-	} else if kubeApiserverHttpProxyFound {
-		for _, mount := range konnectivityMtlsVolumeMounts {
-			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
-		}
-		for _, mount := range reversedVpnVolumeMounts {
-			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
-		}
-		for _, envVar := range reversedVpnEnvVars {
-			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
 		}
 	} else {
 		for _, mount := range konnectivityMtlsVolumeMounts {
 			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
 		}
-		for _, envVar := range konnectivityMtlsEnvVars {
-			auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
+	}
+	if kubeApiserverHttpProxyFound {
+		for _, mount := range reversedVpnVolumeMounts {
+			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
 		}
+	} else {
 		for _, mount := range reversedVpnVolumeMounts {
 			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
 		}
