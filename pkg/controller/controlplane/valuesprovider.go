@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -11,8 +12,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"path/filepath"
-
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
@@ -20,16 +19,17 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/pkg/utils"
+
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
-	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
+
+	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
@@ -37,6 +37,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -424,8 +426,9 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 
 	values := map[string]interface{}{
 		"authnWebhook": map[string]interface{}{
-			"url":     url,
-			"enabled": vp.controllerConfig.Auth.Enabled,
+			"replicas": extensionscontroller.GetReplicas(cluster, 1),
+			"url":      url,
+			"enabled":  vp.controllerConfig.Auth.Enabled,
 		},
 	}
 
@@ -1158,6 +1161,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 
 		"groupRolebindingController": map[string]interface{}{
 			"enabled":     config.Enabled,
+			"replicas":    extensionscontroller.GetReplicas(cluster, 1),
 			"clusterName": clusterName,
 		},
 	}
@@ -1210,7 +1214,8 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 
 	values := map[string]interface{}{
 		"accountingExporter": map[string]interface{}{
-			"enabled": accountingConfig.Enabled,
+			"enabled":  accountingConfig.Enabled,
+			"replicas": extensionscontroller.GetReplicas(cluster, 1),
 			"networkTraffic": map[string]interface{}{
 				"enabled": accountingConfig.NetworkTraffic.Enabled,
 			},
@@ -1238,7 +1243,8 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, nws networkMap) (map[string]interface{}, error) {
 	disabledValues := map[string]interface{}{
 		"duros": map[string]interface{}{
-			"enabled": false,
+			"enabled":  false,
+			"replicas": extensionscontroller.GetReplicas(cluster, 1),
 		},
 	}
 

@@ -81,7 +81,7 @@ spec:
   selector:
     matchLabels:
       app: duros-controller
-  replicas: 1
+  replicas: {{ .Values.duros.replicas }}
   template:
     metadata:
       labels:
