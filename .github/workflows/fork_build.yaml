@@ -30,6 +30,6 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        export GITHUB_TAG_NAME=${GITHUB_REF##*/}
+        export GITHUB_TAG_NAME=fork-pr-${GITHUB_REF##*/}
         make docker-image
         make docker-push
