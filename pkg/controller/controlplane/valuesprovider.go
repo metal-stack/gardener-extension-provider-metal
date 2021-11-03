@@ -426,9 +426,8 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 
 	values := map[string]interface{}{
 		"authnWebhook": map[string]interface{}{
-			"replicas": extensionscontroller.GetReplicas(cluster, 1),
-			"url":      url,
-			"enabled":  vp.controllerConfig.Auth.Enabled,
+			"url":     url,
+			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
 	}
 
@@ -1144,6 +1143,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	values := map[string]interface{}{
 		"authnWebhook": map[string]interface{}{
 			"enabled":        config.Enabled,
+			"replicas":       extensionscontroller.GetReplicas(cluster, 1),
 			"tenant":         p.TenantID,
 			"providerTenant": config.ProviderTenant,
 			"clusterName":    clusterName,
@@ -1243,8 +1243,7 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, nws networkMap) (map[string]interface{}, error) {
 	disabledValues := map[string]interface{}{
 		"duros": map[string]interface{}{
-			"enabled":  false,
-			"replicas": extensionscontroller.GetReplicas(cluster, 1),
+			"enabled": false,
 		},
 	}
 
@@ -1338,6 +1337,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	values := map[string]interface{}{
 		"duros": map[string]interface{}{
 			"enabled":        storageConfig.Duros.Enabled,
+			"replicas":       extensionscontroller.GetReplicas(cluster, 1),
 			"storageClasses": scs,
 			"projectID":      infrastructure.ProjectID,
 			"controller":     controllerValues,
