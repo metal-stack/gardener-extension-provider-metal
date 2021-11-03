@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fork-build/*
+      - fork-build/**
 
 jobs:
   build:
