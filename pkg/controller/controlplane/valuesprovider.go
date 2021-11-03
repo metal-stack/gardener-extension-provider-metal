@@ -472,9 +472,11 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 	auditToSplunkValues["hecCAFile"] = vp.controllerConfig.AuditToSplunk.HECCAFile
 	auditToSplunkValues["clusterName"] = cluster.ObjectMeta.Name
 
-	values["auditToSplunk"], err = vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
-	if err != nil {
-		vp.logger.Error(err, "could not read custom splunk values")
+	if !extensionscontroller.IsHibernated(cluster) {
+		values["auditToSplunk"], err = vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
+		if err != nil {
+			vp.logger.Error(err, "could not read custom splunk values")
+		}
 	}
 
 	return values, nil
@@ -687,14 +689,16 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
-		if err := vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster); err != nil {
-			vp.logger.Error(err, "error deploying audittailer certs")
+	if !extensionscontroller.IsHibernated(cluster) {
+		if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
+			if err := vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster); err != nil {
+				vp.logger.Error(err, "error deploying audittailer certs")
+			}
 		}
-	}
 
-	if err := vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster); err != nil {
-		vp.logger.Error(err, "error deploying droptailer certs")
+		if err := vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster); err != nil {
+			vp.logger.Error(err, "error deploying droptailer certs")
+		}
 	}
 
 	return values, nil
@@ -725,14 +729,17 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		clusterAuditValues["enabled"] = true
 	}
 
-	// get apiserver ip adresses from external dns entry
-	dns := &dnsv1alpha1.DNSEntry{}
+	apiserverIPs := []string{}
+	if !extensionscontroller.IsHibernated(cluster) {
+		// get apiserver ip adresses from external dns entry
+		dns := &dnsv1alpha1.DNSEntry{}
 
-	err = vp.client.Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get dnsEntry")
+		err = vp.client.Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get dnsEntry")
+		}
+		apiserverIPs = dns.Spec.Targets
 	}
-	apiserverIPs := dns.Spec.Targets
 
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
