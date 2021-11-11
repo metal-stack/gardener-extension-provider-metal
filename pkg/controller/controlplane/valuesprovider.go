@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -11,8 +12,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"path/filepath"
-
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
@@ -20,16 +19,17 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/pkg/utils"
+
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
-	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
+
+	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
@@ -37,6 +37,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -470,9 +472,11 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 	auditToSplunkValues["hecCAFile"] = vp.controllerConfig.AuditToSplunk.HECCAFile
 	auditToSplunkValues["clusterName"] = cluster.ObjectMeta.Name
 
-	values["auditToSplunk"], err = vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
-	if err != nil {
-		vp.logger.Error(err, "could not read custom splunk values")
+	if !extensionscontroller.IsHibernated(cluster) {
+		values["auditToSplunk"], err = vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
+		if err != nil {
+			vp.logger.Error(err, "could not read custom splunk values")
+		}
 	}
 
 	return values, nil
@@ -685,14 +689,16 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
-		if err := vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster); err != nil {
-			vp.logger.Error(err, "error deploying audittailer certs")
+	if !extensionscontroller.IsHibernated(cluster) {
+		if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
+			if err := vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster); err != nil {
+				vp.logger.Error(err, "error deploying audittailer certs")
+			}
 		}
-	}
 
-	if err := vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster); err != nil {
-		vp.logger.Error(err, "error deploying droptailer certs")
+		if err := vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster); err != nil {
+			vp.logger.Error(err, "error deploying droptailer certs")
+		}
 	}
 
 	return values, nil
@@ -723,14 +729,17 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		clusterAuditValues["enabled"] = true
 	}
 
-	// get apiserver ip adresses from external dns entry
-	dns := &dnsv1alpha1.DNSEntry{}
+	apiserverIPs := []string{}
+	if !extensionscontroller.IsHibernated(cluster) {
+		// get apiserver ip adresses from external dns entry
+		dns := &dnsv1alpha1.DNSEntry{}
 
-	err = vp.client.Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get dnsEntry")
+		err = vp.client.Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get dnsEntry")
+		}
+		apiserverIPs = dns.Spec.Targets
 	}
-	apiserverIPs := dns.Spec.Targets
 
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
@@ -1144,6 +1153,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	values := map[string]interface{}{
 		"authnWebhook": map[string]interface{}{
 			"enabled":        config.Enabled,
+			"replicas":       extensionscontroller.GetReplicas(cluster, 1),
 			"tenant":         p.TenantID,
 			"providerTenant": config.ProviderTenant,
 			"clusterName":    clusterName,
@@ -1161,6 +1171,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 
 		"groupRolebindingController": map[string]interface{}{
 			"enabled":     config.Enabled,
+			"replicas":    extensionscontroller.GetReplicas(cluster, 1),
 			"clusterName": clusterName,
 		},
 	}
@@ -1213,7 +1224,8 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 
 	values := map[string]interface{}{
 		"accountingExporter": map[string]interface{}{
-			"enabled": accountingConfig.Enabled,
+			"enabled":  accountingConfig.Enabled,
+			"replicas": extensionscontroller.GetReplicas(cluster, 1),
 			"networkTraffic": map[string]interface{}{
 				"enabled": accountingConfig.NetworkTraffic.Enabled,
 			},
@@ -1335,6 +1347,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	values := map[string]interface{}{
 		"duros": map[string]interface{}{
 			"enabled":        storageConfig.Duros.Enabled,
+			"replicas":       extensionscontroller.GetReplicas(cluster, 1),
 			"storageClasses": scs,
 			"projectID":      infrastructure.ProjectID,
 			"controller":     controllerValues,

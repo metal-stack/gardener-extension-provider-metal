@@ -21,7 +21,7 @@ metadata:
   labels:
     k8s-app: kube-jwt-authn-webhook
 spec:
-  replicas: 1
+  replicas: {{ .Values.authnWebhook.replicas }}
   selector:
     matchLabels:
       k8s-app: kube-jwt-authn-webhook
