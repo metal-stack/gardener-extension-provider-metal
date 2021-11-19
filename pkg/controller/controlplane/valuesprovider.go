@@ -1116,6 +1116,7 @@ func getCCMChartValues(
 			"networkID":              *privateNetwork.ID,
 			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
 			"defaultExternalNetwork": defaultExternalNetwork,
+			"additionalNetworks":     strings.Join(infrastructureConfig.Firewall.Networks, ","),
 			"metal": map[string]interface{}{
 				"endpoint": mcp.Endpoint,
 			},

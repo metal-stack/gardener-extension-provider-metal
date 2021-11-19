@@ -19,6 +19,7 @@ cloudControllerManager:
   networkID: network-id
   clusterID: cluster-id
   defaultExternalNetwork: external-network-id
+  additionalNetworks: internet,mpls
   metal:
     endpoint: api-url
   resources:
