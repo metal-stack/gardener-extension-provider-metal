@@ -229,7 +229,6 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 }
 
 func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallReconcileAction, *metalapi.FirewallStatus, error) {
-	//
 	if !r.providerStatus.Firewall.Succeeded && r.machineIDInStatus != "" {
 		return firewallActionUpdateCreationProgress, nil, nil
 	}
