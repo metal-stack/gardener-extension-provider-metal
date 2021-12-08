@@ -154,10 +154,7 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 // reconcileFirewall creates,recreates firewall and updates the infrastructure status accordingly
 // TODO migrate to a state-machine or to a dedicated controller
 func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
-<<<<<<< HEAD
-=======
 	// detect which next action is required
->>>>>>> 39ec1117a8413021a12e368cf380cf4e320df9d1
 	action, status, err := firewallNextAction(ctx, r)
 	if err != nil {
 		return err
@@ -219,14 +216,10 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 			return err
 		}
 		r.logger.Info("firewall created", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.providerStatus.Firewall.MachineID)
-<<<<<<< HEAD
-		return nil
-=======
 		r.providerStatus.Firewall.MachineID = machineID
 		// TODO this is a BUG, see https://github.com/metal-stack/metal-api/issues/209
 		r.providerStatus.Firewall.Succeeded = true
 		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
->>>>>>> 39ec1117a8413021a12e368cf380cf4e320df9d1
 	case firewallActionStatusUpdateOnMigrate:
 		r.providerStatus.Firewall = *status
 		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, r.cluster.Shoot.Spec.Networking.Nodes)
@@ -236,11 +229,7 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 }
 
 func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallReconcileAction, *metalapi.FirewallStatus, error) {
-<<<<<<< HEAD
-	if !r.providerStatus.Firewall.Succeeded && r.machineID != "" {
-=======
 	if !r.providerStatus.Firewall.Succeeded && r.machineIDInStatus != "" {
->>>>>>> 39ec1117a8413021a12e368cf380cf4e320df9d1
 		return firewallActionUpdateCreationProgress, nil, nil
 	}
 
@@ -256,17 +245,6 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 	clusterFirewallAmount := len(firewalls)
 	switch clusterFirewallAmount {
 	case 0:
-<<<<<<< HEAD
-		if r.machineID != "" {
-			r.logger.Info("firewall does not exist anymore, recreation required", "clusterid", r.clusterID, "machineid", r.machineID)
-			return firewallActionRecreate, nil, nil
-		}
-		return firewallActionCreate, nil, nil
-	case 1:
-		fw := firewalls[0]
-		if r.machineID == "" {
-			r.logger.Info("firewall exists but status is empty, assuming migration", "clusterid", r.clusterID, "machineid", r.machineID)
-=======
 		// No machine created yet or existing machine was deleted, create one
 		if r.machineIDInStatus == "" {
 			return firewallActionCreate, nil, nil
@@ -277,38 +255,25 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 		fw := firewalls[0]
 		if r.machineIDInStatus == "" {
 			r.logger.Info("firewall exists but status is empty, assuming migration", "clusterid", r.clusterID, "machineid", r.machineIDInStatus)
->>>>>>> 39ec1117a8413021a12e368cf380cf4e320df9d1
 			return firewallActionStatusUpdateOnMigrate, &metalapi.FirewallStatus{
 				MachineID: encodeMachineID(*fw.Partition.ID, *fw.ID),
 				Succeeded: *fw.Allocation.Succeeded,
 			}, nil
 		}
 
-<<<<<<< HEAD
-		if *fw.ID != r.machineID {
-=======
 		if *fw.ID != r.machineIDInStatus {
->>>>>>> 39ec1117a8413021a12e368cf380cf4e320df9d1
 			r.logger.Error(
 				fmt.Errorf("machine id of this cluster's firewall differs from infrastructure status"),
 				"leaving as it is, but something unexpected must have happened in the past. if you want to get to a clean state, remove the firewall by hand (causes downtime!) and reconcile infrastructure again",
 				"clusterID", r.clusterID,
-<<<<<<< HEAD
-				"expectedMachineID", r.machineID,
-=======
 				"expectedMachineID", r.machineIDInStatus,
->>>>>>> 39ec1117a8413021a12e368cf380cf4e320df9d1
 				"actualMachineID", *fw.ID,
 			)
 			return firewallActionDoNothing, nil, nil
 		}
 
 		if fw.Size.ID != nil && *fw.Size.ID != r.infrastructureConfig.Firewall.Size {
-<<<<<<< HEAD
-			r.logger.Info("firewall size has changed", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Size.ID, "new", r.infrastructureConfig.Firewall.Size)
-=======
 			r.logger.Info("firewall size has changed", "clusterid", r.clusterID, "machineid", r.machineIDInStatus, "current", *fw.Size.ID, "new", r.infrastructureConfig.Firewall.Size)
->>>>>>> 39ec1117a8413021a12e368cf380cf4e320df9d1
 			return firewallActionDeleteAndRecreate, nil, nil
 		}
 
@@ -324,11 +289,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 			}
 
 			if image.Image != nil && image.Image.ID != nil && *image.Image.ID != *fw.Allocation.Image.ID {
-<<<<<<< HEAD
-				r.logger.Info("firewall image has changed", "clusterid", r.clusterID, "machineid", r.machineID, "current", *fw.Allocation.Image.ID, "new", *image.Image.ID)
-=======
 				r.logger.Info("firewall image has changed", "clusterid", r.clusterID, "machineid", r.machineIDInStatus, "current", *fw.Allocation.Image.ID, "new", *image.Image.ID)
->>>>>>> 39ec1117a8413021a12e368cf380cf4e320df9d1
 				return firewallActionDeleteAndRecreate, nil, nil
 			}
 		}
@@ -348,29 +309,17 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 			wantNetworks.Insert(n)
 		}
 		if !currentNetworks.Equal(wantNetworks) {
-<<<<<<< HEAD
-			r.logger.Info("firewall networks have changed", "clusterid", r.clusterID, "machineid", r.machineID, "current", currentNetworks.List(), "new", wantNetworks.List())
-=======
 			r.logger.Info("firewall networks have changed", "clusterid", r.clusterID, "machineid", r.machineIDInStatus, "current", currentNetworks.List(), "new", wantNetworks.List())
->>>>>>> 39ec1117a8413021a12e368cf380cf4e320df9d1
 			return firewallActionDeleteAndRecreate, nil, nil
 		}
 
 		return firewallActionDoNothing, nil, nil
 	default:
-<<<<<<< HEAD
-		err := fmt.Errorf("multiple firewalls exist for this cluster, which is currently unsupported. delete these firewalls and try to keep the one with machine id %q", r.machineID)
-		r.logger.Error(
-			err,
-			"clusterID", r.clusterID,
-			"expectedMachineID", r.machineID,
-=======
 		err := fmt.Errorf("multiple firewalls exist for this cluster, which is currently unsupported. delete these firewalls and try to keep the one with machine id %q", r.machineIDInStatus)
 		r.logger.Error(
 			err,
 			"clusterID", r.clusterID,
 			"expectedMachineID", r.machineIDInStatus,
->>>>>>> 39ec1117a8413021a12e368cf380cf4e320df9d1
 		)
 		return firewallActionDoNothing, nil, err
 	}
