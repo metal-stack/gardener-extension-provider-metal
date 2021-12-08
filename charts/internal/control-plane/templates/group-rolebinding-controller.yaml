@@ -21,7 +21,7 @@ metadata:
   name: group-rolebinding-controller
   namespace: {{ .Release.Namespace }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.groupRolebindingController.replicas }}
   selector:
     matchLabels:
       app: group-rolebinding-controller

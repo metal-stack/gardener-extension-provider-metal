@@ -19,6 +19,7 @@ cloudControllerManager:
   networkID: network-id
   clusterID: cluster-id
   defaultExternalNetwork: external-network-id
+  additionalNetworks: internet,mpls
   metal:
     endpoint: api-url
   resources:
@@ -31,9 +32,11 @@ cloudControllerManager:
 
 groupRolebindingController:
   enabled: false
+  replicas: 1
   clusterName: cluster-name
 
 authnWebhook:
+  replicas: 1
   metalapi:
     url: https://metal-api
     hmac: ABC123
@@ -55,6 +58,7 @@ limitValidatingWebhook:
 
 accountingExporter:
   enabled: false
+  replicas: 1
   enrichments:
     projectID: project-id
     projectName: project-name
@@ -82,6 +86,7 @@ accountingExporter:
 
 duros:
   enabled: false
+  replicas: 1
   storageClasses: []
   projectID: project-id
   controller:
