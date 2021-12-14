@@ -2,6 +2,7 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/coreos/go-systemd/v22/unit"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
@@ -361,6 +362,10 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 
 	if proxyHost != "" {
 		ensureAuditForwarderProxy(ps, proxyHost)
+		if err != nil {
+			logger.Error(err, "could not ensure auditForwarder proxy")
+			return err
+		}
 	}
 
 	if auditToSplunk {
@@ -408,6 +413,8 @@ func ensureAuditForwarderProxy(ps *corev1.PodSpec, proxyHost string) error {
 		for _, mount := range reversedVpnVolumeMounts {
 			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
 		}
+	default:
+		return fmt.Errorf("%q is not a valid proxy name", proxyHost)
 	}
 
 	return nil
