@@ -381,11 +381,14 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar.Name)
 	}
 
+	logger.Info("Ensuring auditforwarder sidecar", "container:", auditForwarderSidecar)
+
 	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
 	return nil
 }
 
 func ensureAuditForwarderProxy(ps *corev1.PodSpec, proxyHost string) error {
+	logger.Info("ensureAuditForwarderProxy called", "proxyHost=", proxyHost)
 	proxyEnvVars := []corev1.EnvVar{
 		{
 			Name:  "AUDIT_PROXY_HOST",
