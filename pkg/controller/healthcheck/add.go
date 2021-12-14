@@ -94,6 +94,10 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 				HealthCheck:   CheckDuros(metal.DurosResourceName),
 				PreCheckFunc:  durosPreCheck,
 			},
+			{
+				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
+				HealthCheck:   CheckMetalLB(),
+			},
 		}); err != nil {
 		return err
 	}

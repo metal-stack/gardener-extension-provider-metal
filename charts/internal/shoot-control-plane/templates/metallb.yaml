@@ -436,10 +436,10 @@ spec:
           - |
             set -eo pipefail
             while true; do
-              sleep 10
+              sleep 30
               stale=$(curl -s localhost:7472/metrics | grep '^metallb_k8s_client_config_stale_bool' | awk '{ print $2 }')
-              echo "metallb_k8s_client_config_stale_bool=${stale}"
-              kubectl create configmap health --from-literal=configStale=${stale} | kubectl apply -f -
+              loaded=$(curl -s localhost:7472/metrics | grep '^metallb_k8s_client_config_loaded_bool' | awk '{ print $2 }')
+              kubectl create configmap health --from-literal=configStale=${stale} --from-literal=configLoaded=${loaded} | kubectl apply -f -
             done
 
       nodeSelector:
