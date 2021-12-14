@@ -200,67 +200,38 @@ var (
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
-	konnectivityUdsVolumeMount = corev1.VolumeMount{
-		Name:      "konnectivity-uds",
-		MountPath: "/konnectivity-uds",
-		ReadOnly:  false,
-	}
-	konnectivityUdsEnvVar = corev1.EnvVar{
-		Name:  "AUDIT_KONNECTIVITY_UDS_SOCKET",
-		Value: "/konnectivity-uds/konnectivity-server.socket",
-	}
 	konnectivityMtlsVolumeMounts = []corev1.VolumeMount{
 		{
 			Name:      "ca",
-			MountPath: "/konnectivity-proxy/ca",
+			MountPath: "/proxy/ca",
 			ReadOnly:  true,
 		},
 		{
 			Name:      "konnectivity-server-client-tls",
-			MountPath: "/konnectivity-proxy/client",
+			MountPath: "/proxy/client",
 			ReadOnly:  true,
 		},
 	}
-	// konnectivityMtlsEnvVars = []corev1.EnvVar{
-	// 	{
-	// 		Name:  "AUDIT_PROXY_HOST",
-	// 		Value: "konnectivity-server",
-	// 	},
-	// 	{
-	// 		Name:  "AUDIT_PROXY_PORT",
-	// 		Value: "9443",
-	// 	},
-	// }
 	reversedVpnVolumeMounts = []corev1.VolumeMount{
 		{
 			Name:      "kube-apiserver-http-proxy",
-			MountPath: "/konnectivity-proxy/ca",
+			MountPath: "/proxy/ca",
 			ReadOnly:  true,
 		},
 		{
 			Name:      "kube-aggregator",
-			MountPath: "/konnectivity-proxy/client",
+			MountPath: "/proxy/client",
 			ReadOnly:  true,
 		},
 	}
-	// reversedVpnEnvVars = []corev1.EnvVar{
-	// 	{
-	// 		Name:  "AUDIT_PROXY_HOST",
-	// 		Value: "vpn-seed-server",
-	// 	},
-	// 	{
-	// 		Name:  "AUDIT_PROXY_PORT",
-	// 		Value: "9443",
-	// 	},
-	// }
 	kubeAggregatorClientTlsEnvVars = []corev1.EnvVar{
 		{
 			Name:  "AUDIT_PROXY_CLIENT_CRT_FILE",
-			Value: "/konnectivity-proxy/client/kube-aggregator.crt",
+			Value: "/proxy/client/kube-aggregator.crt",
 		},
 		{
 			Name:  "AUDIT_PROXY_CLIENT_KEY_FILE",
-			Value: "/konnectivity-proxy/client/kube-aggregator.key",
+			Value: "/proxy/client/kube-aggregator.key",
 		},
 	}
 	auditForwarderSidecar = corev1.Container{
@@ -377,36 +348,39 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	}
 	auditForwarderSidecar.Image = auditForwarderImage.String()
 
-	udsVolumeFound := false
-	clientTLSVolumeFound := false
-	kubeApiserverHttpProxyFound := false
+	var proxyHost string
 
 	for _, volume := range ps.Volumes {
 		switch volume.Name {
-		case "konnectivity-uds":
-			udsVolumeFound = true
 		case "konnectivity-server-client-tls":
-			clientTLSVolumeFound = true
+			proxyHost = "konnectivity-server"
 		case "kube-apiserver-http-proxy":
-			kubeApiserverHttpProxyFound = true
+			proxyHost = "vpn-seed-server"
 		}
 	}
-	if udsVolumeFound {
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, konnectivityUdsEnvVar)
+
+	if proxyHost != "" {
+		ensureAuditForwarderProxy(ps, proxyHost)
+	}
+
+	if auditToSplunk {
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkConfigVolumeMount)
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkSecretVolumeMount)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkPodNameEnvVar)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar)
 	} else {
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount.Name)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, konnectivityUdsEnvVar.Name)
+		logger.Info("AUDITDEBUG: Removing splunk volumes and variables")
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkConfigVolumeMount.Name)
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkSecretVolumeMount.Name)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkPodNameEnvVar.Name)
+		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar.Name)
 	}
 
-	var proxyHost string
+	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
+	return nil
+}
 
-	if clientTLSVolumeFound {
-		proxyHost = "konnectivity-server"
-	} else if kubeApiserverHttpProxyFound {
-		proxyHost = "vpn-seed-server"
-	}
-
+func ensureAuditForwarderProxy(ps *corev1.PodSpec, proxyHost string) error {
 	proxyEnvVars := []corev1.EnvVar{
 		{
 			Name:  "AUDIT_PROXY_HOST",
@@ -418,54 +392,24 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 		},
 	}
 
-	if clientTLSVolumeFound || kubeApiserverHttpProxyFound {
-		for _, envVar := range proxyEnvVars {
-			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
-		}
-	} else {
-		for _, envVar := range proxyEnvVars {
-			auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
-		}
+	for _, envVar := range proxyEnvVars {
+		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
 	}
 
-	if clientTLSVolumeFound {
+	switch proxyHost {
+	case "konnectivity-server":
 		for _, mount := range konnectivityMtlsVolumeMounts {
 			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
 		}
-	} else {
-		for _, mount := range konnectivityMtlsVolumeMounts {
-			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
-		}
-	}
-	if kubeApiserverHttpProxyFound {
+	case "vpn-seed-server":
 		for _, envVar := range kubeAggregatorClientTlsEnvVars {
 			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
 		}
 		for _, mount := range reversedVpnVolumeMounts {
 			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
 		}
-	} else {
-		for _, envVar := range kubeAggregatorClientTlsEnvVars {
-			auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
-		}
-		for _, mount := range reversedVpnVolumeMounts {
-			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
-		}
 	}
 
-	if auditToSplunk {
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkConfigVolumeMount)
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkSecretVolumeMount)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkPodNameEnvVar)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar)
-	} else {
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkConfigVolumeMount.Name)
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkSecretVolumeMount.Name)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkPodNameEnvVar.Name)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar.Name)
-	}
-
-	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
 	return nil
 }
 
