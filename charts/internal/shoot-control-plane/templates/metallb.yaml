@@ -429,7 +429,7 @@ spec:
       # helps us to identify stale configs easily:
       # https://github.com/metallb/metallb/issues/462
       - name: health
-        image: "bitnami/kubectl:{{ .Values.kubernetesVersion }}"
+        image: "bitnami/kubectl:latest"
         command:
           - bash
           - -c
@@ -439,7 +439,7 @@ spec:
               sleep 30
               stale=$(curl -s localhost:7472/metrics | grep '^metallb_k8s_client_config_stale_bool' | awk '{ print $2 }')
               loaded=$(curl -s localhost:7472/metrics | grep '^metallb_k8s_client_config_loaded_bool' | awk '{ print $2 }')
-              kubectl create configmap health --from-literal=configStale=${stale} --from-literal=configLoaded=${loaded} | kubectl apply -f -
+              kubectl create --save-config configmap health --dry-run=client -o yaml --from-literal=configStale=${stale} --from-literal=configLoaded=${loaded} | kubectl apply -f -
             done
 
       nodeSelector:
@@ -467,7 +467,7 @@ rules:
   - configmaps
   verbs:
   - create
-  - update
+  - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
