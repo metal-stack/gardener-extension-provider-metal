@@ -421,6 +421,27 @@ spec:
             drop:
             - all
           readOnlyRootFilesystem: true
+
+      # we write the controller health state into a config map to make
+      # the state easily check-able through Gardener and make it part of
+      # the shoot health
+      #
+      # helps us to identify stale configs easily:
+      # https://github.com/metallb/metallb/issues/462
+      - name: health
+        image: "bitnami/kubectl:1.21"
+        command:
+          - bash
+          - -c
+          - |
+            set -eo pipefail
+            while true; do
+              sleep 10
+              stale=$(curl -s localhost:7472/metrics | grep '^metallb_k8s_client_config_stale_bool' | awk '{ print $2 }')
+              echo "metallb_k8s_client_config_stale_bool=${stale}"
+              kubectl create configmap health --from-literal=configStale=${stale} | kubectl apply -f -
+            done
+
       nodeSelector:
         kubernetes.io/os: linux
       securityContext:
@@ -429,3 +450,36 @@ spec:
         fsGroup: 65534
       serviceAccountName: controller
       terminationGracePeriodSeconds: 0
+
+---
+# belongs to the health check sidecar
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: metallb
+  name: health-monitoring
+  namespace: metallb-system
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app: metallb
+  name: health-monitoring
+  namespace: metallb-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: health-monitoring
+subjects:
+- kind: ServiceAccount
+  name: controller
