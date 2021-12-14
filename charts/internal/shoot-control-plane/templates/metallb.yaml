@@ -429,7 +429,7 @@ spec:
       # helps us to identify stale configs easily:
       # https://github.com/metallb/metallb/issues/462
       - name: health
-        image: "bitnami/kubectl:1.21"
+        image: "bitnami/kubectl:{{ .Values.kubernetesVersion }}"
         command:
           - bash
           - -c
