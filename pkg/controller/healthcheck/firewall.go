@@ -6,7 +6,6 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-logr/logr"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
@@ -49,19 +48,14 @@ func (healthChecker *FirewallHealthChecker) DeepCopy() healthcheck.HealthCheck {
 func (healthChecker *FirewallHealthChecker) Check(ctx context.Context, request types.NamespacedName) (*healthcheck.SingleCheckResult, error) {
 	firewall := &firewallv1.Firewall{}
 
-	if err := healthChecker.shootClient.Get(ctx, client.ObjectKey{Namespace: request.Namespace, Name: healthChecker.firewallResourceName}, firewall); err != nil {
-		if apierrors.IsNotFound(err) {
-			// we skip the health check when there is no firewall resource deployed
-			return &healthcheck.SingleCheckResult{
-				Status: gardencorev1beta1.ConditionTrue,
-			}, nil
-		}
-
-		err := fmt.Errorf("check firewall resource failed. Unable to retrieve firewall resource '%s' in namespace '%s': %v", healthChecker.firewallResourceName, request.Namespace, err)
+	// TODO make namespace a const
+	namespace := "firewall"
+	if err := healthChecker.shootClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: healthChecker.firewallResourceName}, firewall); err != nil {
+		err := fmt.Errorf("check firewall resource failed. Unable to retrieve firewall resource '%s' in namespace '%s': %v", healthChecker.firewallResourceName, namespace, err)
 		healthChecker.logger.Error(err, "Health check failed")
 		return nil, err
 	}
-	if isHealthy, err := FirewallIsHealthy(firewall); !isHealthy {
+	if isHealthy, err := firewallIsHealthy(firewall); !isHealthy {
 		healthChecker.logger.Error(err, "Health check failed")
 		return &healthcheck.SingleCheckResult{
 			Status: gardencorev1beta1.ConditionFalse,
@@ -74,7 +68,7 @@ func (healthChecker *FirewallHealthChecker) Check(ctx context.Context, request t
 	}, nil
 }
 
-func FirewallIsHealthy(firewall *firewallv1.Firewall) (bool, error) {
+func firewallIsHealthy(firewall *firewallv1.Firewall) (bool, error) {
 	if firewall == nil {
 		return false, fmt.Errorf("firewall resource not deployed")
 	}
