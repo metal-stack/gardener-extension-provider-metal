@@ -361,11 +361,13 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	}
 
 	if proxyHost != "" {
-		err := ensureAuditForwarderProxy(ps, proxyHost)
+		err := ensureAuditForwarderProxy(proxyHost)
 		if err != nil {
 			logger.Error(err, "could not ensure auditForwarder proxy")
 			return err
 		}
+	} else {
+		ensureNoAuditForwarderProxy()
 	}
 
 	if auditToSplunk {
@@ -387,7 +389,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	return nil
 }
 
-func ensureAuditForwarderProxy(ps *corev1.PodSpec, proxyHost string) error {
+func ensureAuditForwarderProxy(proxyHost string) error {
 	logger.Info("ensureAuditForwarderProxy called", "proxyHost=", proxyHost)
 	proxyEnvVars := []corev1.EnvVar{
 		{
@@ -421,6 +423,21 @@ func ensureAuditForwarderProxy(ps *corev1.PodSpec, proxyHost string) error {
 	}
 
 	return nil
+}
+
+func ensureNoAuditForwarderProxy() {
+	logger.Info("ensureNoAuditForwarderProxy called")
+	auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, "AUDIT_PROXY_HOST")
+	auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, "AUDIT_PROXY_PORT")
+	for _, mount := range konnectivityMtlsVolumeMounts {
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
+	}
+	for _, envVar := range kubeAggregatorClientTlsEnvVars {
+		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
+	}
+	for _, mount := range reversedVpnVolumeMounts {
+		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
+	}
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
