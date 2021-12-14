@@ -361,7 +361,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	}
 
 	if proxyHost != "" {
-		ensureAuditForwarderProxy(ps, proxyHost)
+		err := ensureAuditForwarderProxy(ps, proxyHost)
 		if err != nil {
 			logger.Error(err, "could not ensure auditForwarder proxy")
 			return err
