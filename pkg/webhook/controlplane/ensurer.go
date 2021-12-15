@@ -114,7 +114,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 				}
 			} else {
 				logger.Info("AUDITDEBUG custom auditpolicy configmap found, patching", "old configmap data", ocm.Data, "new configmap data", customAuditPolicyShootCm.Data, "patch", client.MergeFrom(customAuditPolicyShootCm))
-				err := e.client.Patch(ctx, ocm, client.MergeFrom(customAuditPolicyShootCm), &client.PatchOptions{})
+				patch := client.MergeFrom(ocm.DeepCopy())
+				ocm.Data = customAuditPolicyShootCm.Data
+				err := e.client.Patch(ctx, ocm, patch)
 				if err != nil {
 					return err
 				}
