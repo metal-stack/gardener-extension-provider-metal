@@ -106,7 +106,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 			logger.Info("AUDITDEBUG found custom auditpolicy configmap in shoot", "shoot-configmap", customAuditPolicyShootCm)
 			customAuditPolicyCm.Data = customAuditPolicyShootCm.Data
 			logger.Info("AUDITDEBUG trying to apply custom auditpolicy configmap", "configmap", customAuditPolicyCm)
-			if ocm == nil {
+			if ocm.Name != "custom-audit-policy" {
 				logger.Info("AUDITDEBUG no custom auditpolicy configmap yet, creating")
 				err := e.client.Create(ctx, customAuditPolicyCm)
 				if err != nil {
@@ -120,7 +120,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 				}
 			}
 		} else {
-			if ocm != nil {
+			if ocm.Name == "custom-audit-policy" {
 				logger.Info("AUDITDEBUG no custom auditpolicy configmap in shoot, deleting custom auditpolicy configmap", "configmap", customAuditPolicyCm)
 				err := e.client.Delete(ctx, customAuditPolicyCm)
 				if err != nil {
