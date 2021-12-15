@@ -362,7 +362,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	}
 
 	if proxyHost != "" {
-		err := ensureAuditForwarderProxy(auditForwarderSidecar, proxyHost)
+		err := ensureAuditForwarderProxy(&auditForwarderSidecar, proxyHost)
 		if err != nil {
 			logger.Error(err, "could not ensure auditForwarder proxy")
 			return err
@@ -382,7 +382,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	return nil
 }
 
-func ensureAuditForwarderProxy(auditForwarderSidecar corev1.Container, proxyHost string) error {
+func ensureAuditForwarderProxy(auditForwarderSidecar *corev1.Container, proxyHost string) error {
 	logger.Info("ensureAuditForwarderProxy called", "proxyHost=", proxyHost)
 	proxyEnvVars := []corev1.EnvVar{
 		{
