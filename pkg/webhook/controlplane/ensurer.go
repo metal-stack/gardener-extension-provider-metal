@@ -95,14 +95,18 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 			},
 		}
 
+		ocm := &corev1.ConfigMap{}
+		err = e.client.Get(ctx, types.NamespacedName{Namespace: cluster.ObjectMeta.Name, Name: "custom-audit-policy"}, ocm)
+		if err != nil {
+			logger.Info("AUDITDEBUG no custom auditpolicy in shoot")
+		}
+
 		customAuditPolicyShootCm, _ := cs.CoreV1().ConfigMaps("kube-system").Get(ctx, "custom-audit-policy", metav1.GetOptions{})
 		if customAuditPolicyShootCm != nil && customAuditPolicyShootCm.Name == "custom-audit-policy" {
 			logger.Info("AUDITDEBUG found custom auditpolicy configmap in shoot", "shoot-configmap", customAuditPolicyShootCm)
 			customAuditPolicyCm.Data = customAuditPolicyShootCm.Data
 			logger.Info("AUDITDEBUG trying to apply custom auditpolicy configmap", "configmap", customAuditPolicyCm)
-			ocm := &corev1.ConfigMap{}
-			err := e.client.Get(ctx, types.NamespacedName{Namespace: cluster.ObjectMeta.Name, Name: "custom-audit-policy"}, ocm)
-			if err != nil {
+			if ocm == nil {
 				logger.Info("AUDITDEBUG no custom auditpolicy configmap yet, creating")
 				err := e.client.Create(ctx, customAuditPolicyCm)
 				if err != nil {
@@ -116,10 +120,12 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 				}
 			}
 		} else {
-			logger.Info("AUDITDEBUG no custom auditpolicy configmap in shoot, deleting custom auditpolicy configmap", "configmap", customAuditPolicyCm)
-			err := e.client.Delete(ctx, customAuditPolicyCm)
-			if err != nil {
-				return err
+			if ocm != nil {
+				logger.Info("AUDITDEBUG no custom auditpolicy configmap in shoot, deleting custom auditpolicy configmap", "configmap", customAuditPolicyCm)
+				err := e.client.Delete(ctx, customAuditPolicyCm)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
