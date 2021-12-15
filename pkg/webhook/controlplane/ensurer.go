@@ -96,7 +96,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		}
 
 		customAuditPolicyShootCm, _ := cs.CoreV1().ConfigMaps("kube-system").Get(ctx, "custom-audit-policy", metav1.GetOptions{})
-		if customAuditPolicyShootCm != nil {
+		if customAuditPolicyShootCm != nil && customAuditPolicyShootCm.Name == "custom-audit-policy" {
 			logger.Info("AUDITDEBUG found custom auditpolicy configmap in shoot", "shoot-configmap", customAuditPolicyShootCm)
 			customAuditPolicyCm.Data = customAuditPolicyShootCm.Data
 			logger.Info("AUDITDEBUG trying to apply custom auditpolicy configmap", "configmap", customAuditPolicyCm)
