@@ -16,12 +16,16 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
+	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -74,7 +78,49 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, e.controllerConfig)
 	}
 	if makeAuditForwarder {
-		err := ensureAuditForwarder(ps, auditToSplunk)
+		shootConfig, _, err := util.NewClientForShoot(ctx, e.client, cluster.ObjectMeta.Name, client.Options{})
+		if err != nil {
+			return err
+		}
+
+		cs, err := kubernetes.NewForConfig(shootConfig)
+		if err != nil {
+			return err
+		}
+
+		customAuditPolicyCm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "custom-audit-policy",
+				Namespace: cluster.ObjectMeta.Name,
+			},
+		}
+
+		customAuditPolicyShootCm, _ := cs.CoreV1().ConfigMaps("kube-system").Get(ctx, "custom-audit-policy", metav1.GetOptions{})
+		if customAuditPolicyShootCm != nil {
+			customAuditPolicyCm.Data = customAuditPolicyShootCm.Data
+			ocm := &corev1.ConfigMap{}
+			err := e.client.Get(ctx, types.NamespacedName{Namespace: cluster.ObjectMeta.Name, Name: "custom-audit-policy"}, ocm)
+			if err != nil {
+				err := e.client.Create(ctx, customAuditPolicyCm)
+				if err != nil {
+					return err
+				}
+			} else {
+				err := e.client.Patch(ctx, ocm, client.MergeFrom(customAuditPolicyCm), &client.PatchOptions{})
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			err := e.client.Delete(ctx, customAuditPolicyCm)
+			if err != nil {
+				return err
+			}
+		}
+
+		// TODO need to actually use the custom audit policy -> volumeMount in kube-apiserver
+
+		err = ensureAuditForwarder(ps, auditToSplunk)
 		if err != nil {
 			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
 			return err
