@@ -16,6 +16,7 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
@@ -78,55 +79,58 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, e.controllerConfig)
 	}
 	if makeAuditForwarder {
-		shootConfig, _, err := util.NewClientForShoot(ctx, e.client, cluster.ObjectMeta.Name, client.Options{})
-		if err != nil {
-			return err
-		}
+		if !extensionscontroller.IsHibernated(cluster) {
 
-		cs, err := kubernetes.NewForConfig(shootConfig)
-		if err != nil {
-			return err
-		}
+			shootConfig, _, err := util.NewClientForShoot(ctx, e.client, cluster.ObjectMeta.Name, client.Options{})
+			if err != nil {
+				return err
+			}
 
-		customAuditPolicyCm := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "custom-audit-policy",
-				Namespace: cluster.ObjectMeta.Name,
-			},
-		}
+			cs, err := kubernetes.NewForConfig(shootConfig)
+			if err != nil {
+				return err
+			}
 
-		ocm := &corev1.ConfigMap{}
-		err = e.client.Get(ctx, types.NamespacedName{Namespace: cluster.ObjectMeta.Name, Name: "custom-audit-policy"}, ocm)
-		if err != nil {
-			logger.Info("AUDITDEBUG no custom auditpolicy in shoot")
-		}
+			customAuditPolicyCm := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "custom-audit-policy",
+					Namespace: cluster.ObjectMeta.Name,
+				},
+			}
 
-		customAuditPolicyShootCm, _ := cs.CoreV1().ConfigMaps("kube-system").Get(ctx, "custom-audit-policy", metav1.GetOptions{})
-		if customAuditPolicyShootCm != nil && customAuditPolicyShootCm.Name == "custom-audit-policy" {
-			logger.Info("AUDITDEBUG found custom auditpolicy configmap in shoot", "shoot-configmap", customAuditPolicyShootCm)
-			customAuditPolicyCm.Data = customAuditPolicyShootCm.Data
-			logger.Info("AUDITDEBUG trying to apply custom auditpolicy configmap", "configmap", customAuditPolicyCm)
-			if ocm.Name != "custom-audit-policy" {
-				logger.Info("AUDITDEBUG no custom auditpolicy configmap yet, creating")
-				err := e.client.Create(ctx, customAuditPolicyCm)
-				if err != nil {
-					return err
+			ocm := &corev1.ConfigMap{}
+			err = e.client.Get(ctx, types.NamespacedName{Namespace: cluster.ObjectMeta.Name, Name: "custom-audit-policy"}, ocm)
+			if err != nil {
+				logger.Info("AUDITDEBUG no custom auditpolicy in shoot")
+			}
+
+			customAuditPolicyShootCm, _ := cs.CoreV1().ConfigMaps("kube-system").Get(ctx, "custom-audit-policy", metav1.GetOptions{})
+			if customAuditPolicyShootCm != nil && customAuditPolicyShootCm.Name == "custom-audit-policy" {
+				logger.Info("AUDITDEBUG found custom auditpolicy configmap in shoot", "shoot-configmap", customAuditPolicyShootCm)
+				customAuditPolicyCm.Data = customAuditPolicyShootCm.Data
+				logger.Info("AUDITDEBUG trying to apply custom auditpolicy configmap", "configmap", customAuditPolicyCm)
+				if ocm.Name != "custom-audit-policy" {
+					logger.Info("AUDITDEBUG no custom auditpolicy configmap yet, creating")
+					err := e.client.Create(ctx, customAuditPolicyCm)
+					if err != nil {
+						return err
+					}
+				} else {
+					logger.Info("AUDITDEBUG custom auditpolicy configmap found, patching", "old configmap data", ocm.Data, "new configmap data", customAuditPolicyShootCm.Data, "patch", client.MergeFrom(customAuditPolicyShootCm))
+					patch := client.MergeFrom(ocm.DeepCopy())
+					ocm.Data = customAuditPolicyShootCm.Data
+					err := e.client.Patch(ctx, ocm, patch)
+					if err != nil {
+						return err
+					}
 				}
 			} else {
-				logger.Info("AUDITDEBUG custom auditpolicy configmap found, patching", "old configmap data", ocm.Data, "new configmap data", customAuditPolicyShootCm.Data, "patch", client.MergeFrom(customAuditPolicyShootCm))
-				patch := client.MergeFrom(ocm.DeepCopy())
-				ocm.Data = customAuditPolicyShootCm.Data
-				err := e.client.Patch(ctx, ocm, patch)
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			if ocm.Name == "custom-audit-policy" {
-				logger.Info("AUDITDEBUG no custom auditpolicy configmap in shoot, deleting custom auditpolicy configmap", "configmap", customAuditPolicyCm)
-				err := e.client.Delete(ctx, customAuditPolicyCm)
-				if err != nil {
-					return err
+				if ocm.Name == "custom-audit-policy" {
+					logger.Info("AUDITDEBUG no custom auditpolicy configmap in shoot, deleting custom auditpolicy configmap", "configmap", customAuditPolicyCm)
+					err := e.client.Delete(ctx, customAuditPolicyCm)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}
