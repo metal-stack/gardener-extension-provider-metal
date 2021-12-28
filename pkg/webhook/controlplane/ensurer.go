@@ -11,6 +11,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+	"github.com/gardener/gardener/pkg/extensions"
 	"github.com/go-logr/logr"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
@@ -66,6 +67,12 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		makeAuditForwarder = true
 	}
 
+	customAuditPolicyExists := false
+	customAuditPolicyExists, err = e.getCustomAuditPolicy(ctx, cluster)
+	if err != nil {
+		return err
+	}
+
 	auditToSplunk := false
 	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
 		auditToSplunk = true
@@ -76,64 +83,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
-		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, e.controllerConfig)
+		ensureVolumes(ps, makeAuditForwarder, customAuditPolicyExists, auditToSplunk, e.controllerConfig)
 	}
 	if makeAuditForwarder {
-		if !extensionscontroller.IsHibernated(cluster) {
-
-			shootConfig, _, err := util.NewClientForShoot(ctx, e.client, cluster.ObjectMeta.Name, client.Options{})
-			if err != nil {
-				return err
-			}
-
-			cs, err := kubernetes.NewForConfig(shootConfig)
-			if err != nil {
-				return err
-			}
-
-			customAuditPolicyCm := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "custom-audit-policy",
-					Namespace: cluster.ObjectMeta.Name,
-				},
-			}
-
-			currentCustomAuditPolicy := &corev1.ConfigMap{}
-			err = e.client.Get(ctx, types.NamespacedName{Namespace: cluster.ObjectMeta.Name, Name: "custom-audit-policy"}, currentCustomAuditPolicy)
-			if err != nil {
-				logger.Info("AUDITDEBUG no custom auditpolicy in shoot namespace")
-			}
-
-			customAuditPolicyShootCm, _ := cs.CoreV1().ConfigMaps("kube-system").Get(ctx, "custom-audit-policy", metav1.GetOptions{})
-			if customAuditPolicyShootCm != nil && customAuditPolicyShootCm.Name == "custom-audit-policy" {
-				logger.Info("AUDITDEBUG found custom auditpolicy configmap in shoot", "shoot-configmap", customAuditPolicyShootCm)
-				customAuditPolicyCm.Data = customAuditPolicyShootCm.Data
-				logger.Info("AUDITDEBUG trying to apply custom auditpolicy configmap", "configmap", customAuditPolicyCm)
-				if currentCustomAuditPolicy.Name != "custom-audit-policy" {
-					logger.Info("AUDITDEBUG no custom auditpolicy configmap in shoot namespace, creating")
-					err := e.client.Create(ctx, customAuditPolicyCm)
-					if err != nil {
-						return err
-					}
-				} else {
-					logger.Info("AUDITDEBUG custom auditpolicy configmap exists in shoot namespace, patching", "old configmap data", currentCustomAuditPolicy.Data, "new configmap data", customAuditPolicyShootCm.Data)
-					patch := client.MergeFrom(currentCustomAuditPolicy.DeepCopy())
-					currentCustomAuditPolicy.Data = customAuditPolicyShootCm.Data
-					err := e.client.Patch(ctx, currentCustomAuditPolicy, patch)
-					if err != nil {
-						return err
-					}
-				}
-			} else {
-				if currentCustomAuditPolicy.Name == "custom-audit-policy" {
-					logger.Info("AUDITDEBUG no custom auditpolicy configmap in shoot, deleting custom auditpolicy configmap in shoot namespace", "configmap", customAuditPolicyCm)
-					err := e.client.Delete(ctx, customAuditPolicyCm)
-					if err != nil {
-						return err
-					}
-				}
-			}
-		}
 
 		// TODO need to actually use the custom audit policy -> volumeMount in kube-apiserver
 
@@ -141,6 +93,13 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		if err != nil {
 			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
 			return err
+		}
+		if customAuditPolicyExists {
+			err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, "custom-audit-policy")
+			if err != nil {
+				logger.Error(err, "Could not ensure the custom audit policy config map checksum annotation", "Cluster name", cluster.ObjectMeta.Name, "configmap", "custom-audit-policy")
+				return err
+			}
 		}
 		if auditToSplunk {
 			err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkConfigName)
@@ -194,11 +153,20 @@ var (
 		MountPath: "/etc/kubernetes/audit-override",
 		ReadOnly:  true,
 	}
-	auditPolicyVolume = corev1.Volume{
+	// default audit policy; can be overridden with custom audit policy
+	defaultAuditPolicyVolume = corev1.Volume{
 		Name: metal.AuditPolicyName,
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditPolicyName},
+			},
+		},
+	}
+	customAuditPolicyVolume = corev1.Volume{
+		Name: metal.AuditPolicyName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: "custom-audit-policy"},
 			},
 		},
 	}
@@ -372,13 +340,17 @@ func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool, controller
 	}
 }
 
-func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, controllerConfig config.ControllerConfiguration) {
+func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, customAuditPolicyExists, auditToSplunk bool, controllerConfig config.ControllerConfiguration) {
 	if controllerConfig.Auth.Enabled {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
 	}
 	if makeAuditForwarder {
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
+		if customAuditPolicyExists {
+			ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, customAuditPolicyVolume)
+		} else {
+			ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, defaultAuditPolicyVolume)
+		}
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
 	}
@@ -402,6 +374,69 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder 
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-maxbackup=", "1")
 	}
 
+}
+
+func (e *ensurer) getCustomAuditPolicy(ctx context.Context, cluster *extensions.Cluster) (bool, error) {
+	if extensionscontroller.IsHibernated(cluster) { // Cluster is hibernated - no Apiserver to ask
+		return false, nil
+	}
+
+	shootConfig, _, err := util.NewClientForShoot(ctx, e.client, cluster.ObjectMeta.Name, client.Options{})
+	if err != nil {
+		return false, err
+	}
+
+	cs, err := kubernetes.NewForConfig(shootConfig)
+	if err != nil {
+		return false, err
+	}
+
+	customAuditPolicyCm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "custom-audit-policy",
+			Namespace: cluster.ObjectMeta.Name,
+		},
+	}
+
+	currentCustomAuditPolicy := &corev1.ConfigMap{}
+	err = e.client.Get(ctx, types.NamespacedName{Namespace: cluster.ObjectMeta.Name, Name: "custom-audit-policy"}, currentCustomAuditPolicy)
+	if err != nil {
+		logger.Info("AUDITDEBUG no custom auditpolicy in shoot namespace")
+	}
+
+	customAuditPolicyShootCm, _ := cs.CoreV1().ConfigMaps("kube-system").Get(ctx, "custom-audit-policy", metav1.GetOptions{})
+	if customAuditPolicyShootCm == nil || customAuditPolicyShootCm.Name != "custom-audit-policy" {
+		if currentCustomAuditPolicy.Name == "custom-audit-policy" {
+			logger.Info("AUDITDEBUG no custom auditpolicy configmap in shoot, deleting custom auditpolicy configmap in shoot namespace", "configmap", customAuditPolicyCm)
+			err := e.client.Delete(ctx, customAuditPolicyCm)
+			if err != nil {
+				return false, err
+			}
+		}
+		return false, nil
+	}
+
+	logger.Info("AUDITDEBUG found custom auditpolicy configmap in shoot", "shoot-configmap", customAuditPolicyShootCm)
+	customAuditPolicyCm.Data = customAuditPolicyShootCm.Data
+	logger.Info("AUDITDEBUG trying to apply custom auditpolicy configmap", "configmap", customAuditPolicyCm)
+
+	if currentCustomAuditPolicy.Name != "custom-audit-policy" {
+		logger.Info("AUDITDEBUG no custom auditpolicy configmap in shoot namespace, creating")
+		err := e.client.Create(ctx, customAuditPolicyCm)
+		if err != nil {
+			return true, err
+		}
+		return true, nil
+	}
+
+	logger.Info("AUDITDEBUG custom auditpolicy configmap exists in shoot namespace, patching", "old configmap data", currentCustomAuditPolicy.Data, "new configmap data", customAuditPolicyShootCm.Data)
+	patch := client.MergeFrom(currentCustomAuditPolicy.DeepCopy())
+	currentCustomAuditPolicy.Data = customAuditPolicyShootCm.Data
+	err = e.client.Patch(ctx, currentCustomAuditPolicy, patch)
+	if err != nil {
+		return true, err
+	}
+	return true, nil
 }
 
 func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
