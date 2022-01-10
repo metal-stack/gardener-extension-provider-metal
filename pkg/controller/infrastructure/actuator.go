@@ -9,7 +9,6 @@ import (
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
-	"github.com/pkg/errors"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
@@ -61,12 +60,12 @@ func (a *actuator) InjectConfig(config *rest.Config) error {
 	var err error
 	a.clientset, err = kubernetes.NewForConfig(config)
 	if err != nil {
-		return errors.Wrap(err, "could not create Kubernetes client")
+		return fmt.Errorf("could not create Kubernetes client %w", err)
 	}
 
 	a.gardenerClientset, err = gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(config))
 	if err != nil {
-		return errors.Wrap(err, "could not create Gardener client")
+		return fmt.Errorf("could not create Gardener client %w", err)
 	}
 
 	a.restConfig = config

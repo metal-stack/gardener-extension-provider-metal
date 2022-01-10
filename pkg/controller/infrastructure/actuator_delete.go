@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -128,7 +127,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	})
 	if err != nil {
 		return &controllererrors.RequeueAfterError{
-			Cause:        errors.Wrap(err, "failed to list egress ips of cluster"),
+			Cause:        fmt.Errorf("failed to list egress ips of cluster %w", err),
 			RequeueAfter: 30 * time.Second,
 		}
 	}
@@ -136,7 +135,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	for _, ip := range resp.IPs {
 		if err := clearIPTags(d.mclient, *ip.Ipaddress); err != nil {
 			return &controllererrors.RequeueAfterError{
-				Cause:        errors.Wrap(err, fmt.Sprintf("could not remove egress tag from ip %s", *ip.Ipaddress)),
+				Cause:        fmt.Errorf("could not remove egress tag from ip %s %w", *ip.Ipaddress, err),
 				RequeueAfter: 30 * time.Second,
 			}
 		}
@@ -188,7 +187,7 @@ func deleteFirewall(logger logr.Logger, machineID string, projectID string, clus
 		_, err = mclient.MachineDelete(machineID)
 		if err != nil {
 			return &controllererrors.RequeueAfterError{
-				Cause:        errors.Wrap(err, "failed to delete firewall"),
+				Cause:        fmt.Errorf("failed to delete firewall %w", err),
 				RequeueAfter: 30 * time.Second,
 			}
 		}

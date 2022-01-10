@@ -2,13 +2,13 @@ package controlplaneexposure
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
-	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -60,7 +60,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	// Get load balancer address of the kube-apiserver service
 	address, err := kutil.GetLoadBalancerIngress(ctx, e.client, &corev1.Service{ObjectMeta: v1.ObjectMeta{Namespace: new.Namespace, Name: v1beta1constants.DeploymentNameKubeAPIServer}})
 	if err != nil {
-		return errors.Wrap(err, "could not get kube-apiserver service load balancer address")
+		return fmt.Errorf("could not get kube-apiserver service load balancer address %w", err)
 	}
 
 	if c := extensionswebhook.ContainerWithName(new.Spec.Template.Spec.Containers, "kube-apiserver"); c != nil {
@@ -85,7 +85,7 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 		if e.c.Backup.DeltaSnapshotPeriod != nil {
 			d, err := time.ParseDuration(*e.c.Backup.DeltaSnapshotPeriod)
 			if err != nil {
-				return errors.Wrap(err, "unable to set delta snapshot period")
+				return fmt.Errorf("unable to set delta snapshot period %w", err)
 			}
 			new.Spec.Backup.DeltaSnapshotPeriod = &v1.Duration{Duration: d}
 		}
