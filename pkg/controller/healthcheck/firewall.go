@@ -73,6 +73,11 @@ func firewallIsHealthy(firewall *firewallv1.Firewall) (bool, error) {
 		return false, fmt.Errorf("firewall resource not deployed")
 	}
 
+	// FIXME remove this once firewall-controller >= v1.1.3 is deployed to all clusters
+	if firewall.Status.ControllerVersion == "" {
+		return true, nil
+	}
+
 	if firewall.Spec.ControllerVersion != firewall.Status.ControllerVersion {
 		return false, fmt.Errorf("firewall version specified at version:%s but still on:%s", firewall.Spec.ControllerVersion, firewall.Status.ControllerVersion)
 	}
