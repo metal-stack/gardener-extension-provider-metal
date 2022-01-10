@@ -437,8 +437,8 @@ spec:
             set -eo pipefail
             while true; do
               sleep 30
-              stale=$(curl -s localhost:7472/metrics | grep '^metallb_k8s_client_config_stale_bool' | awk '{ print $2 }')
-              loaded=$(curl -s localhost:7472/metrics | grep '^metallb_k8s_client_config_loaded_bool' | awk '{ print $2 }')
+              stale=$(curl -m 3 -s localhost:7472/metrics | grep '^metallb_k8s_client_config_stale_bool' | awk '{ print $2 }')
+              loaded=$(curl -m 3 -s localhost:7472/metrics | grep '^metallb_k8s_client_config_loaded_bool' | awk '{ print $2 }')
               kubectl create --save-config configmap health --dry-run=client -o yaml --from-literal=configStale=${stale} --from-literal=configLoaded=${loaded} | kubectl apply -f -
             done
 
