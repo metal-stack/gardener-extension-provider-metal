@@ -34,6 +34,8 @@ const (
 	DurosControllerImageName = "duros-controller"
 	// DurosResourceName is the name of the duros resource to deploy to the seed's shoot namespace.
 	DurosResourceName = "shoot-default-storage"
+	// FirewallResourceName is the name of the firewall resource deployed to the shoot's namespace.
+	FirewallResourceName = "firewall"
 
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"
