@@ -1,4 +1,16 @@
 ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: droptailer
+  namespace: firewall
+spec:
+  podSelector:
+    matchLabels:
+      k8s-app: droptailer
+  policyTypes:
+  - Egress
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
