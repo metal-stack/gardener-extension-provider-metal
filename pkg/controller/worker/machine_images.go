@@ -9,26 +9,24 @@ import (
 	apismetalhelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-
-	"github.com/pkg/errors"
 )
 
 // UpdateMachineImagesStatus implements genericactuator.WorkerDelegate.
 func (w *workerDelegate) UpdateMachineImagesStatus(ctx context.Context) error {
 	if w.machineImages == nil {
 		if err := w.generateMachineConfig(ctx); err != nil {
-			return errors.Wrapf(err, "unable to generate the machine config")
+			return fmt.Errorf("unable to generate the machine config %w", err)
 		}
 	}
 
 	workerStatus, err := w.decodeWorkerProviderStatus()
 	if err != nil {
-		return errors.Wrapf(err, "unable to decode the worker provider status")
+		return fmt.Errorf("unable to decode the worker provider status %w", err)
 	}
 
 	workerStatus.MachineImages = w.machineImages
 	if err := w.updateWorkerProviderStatus(ctx, workerStatus); err != nil {
-		return errors.Wrapf(err, "unable to update worker provider status")
+		return fmt.Errorf("unable to update worker provider status %w", err)
 	}
 
 	return nil
@@ -44,7 +42,7 @@ func (w *workerDelegate) findMachineImage(name, version string) (string, error) 
 	if providerStatus := w.worker.Status.ProviderStatus; providerStatus != nil {
 		workerStatus := &apismetal.WorkerStatus{}
 		if _, _, err := w.decoder.Decode(providerStatus.Raw, nil, workerStatus); err != nil {
-			return "", errors.Wrapf(err, "could not decode worker status of worker '%s'", kutil.ObjectName(w.worker))
+			return "", fmt.Errorf("could not decode worker status of worker '%s' %w", kutil.ObjectName(w.worker), err)
 		}
 
 		machineImage, err := apismetalhelper.FindMachineImage(workerStatus.MachineImages, name, version)
