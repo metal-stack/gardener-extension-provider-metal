@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -107,12 +106,12 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 
 	clientset, err := kubernetes.NewForConfig(a.restConfig)
 	if err != nil {
-		return errors.Wrap(err, "could not create kubernetes clientset")
+		return fmt.Errorf("could not create kubernetes clientset %w", err)
 	}
 
 	gardenerClientset, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(a.restConfig))
 	if err != nil {
-		return errors.Wrap(err, "could not create gardener clientset")
+		return fmt.Errorf("could not create gardener clientset %w", err)
 	}
 
 	egressIPReconciler := &egressIPReconciler{
@@ -426,7 +425,7 @@ func createFirewall(ctx context.Context, r *firewallReconciler) (machineID strin
 	if err != nil {
 		r.logger.Error(err, "firewall create error")
 		return "", "", &controllererrors.RequeueAfterError{
-			Cause:        errors.Wrap(err, "failed to create firewall"),
+			Cause:        fmt.Errorf("failed to create firewall %w", err),
 			RequeueAfter: 30 * time.Second,
 		}
 	}
@@ -451,7 +450,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 	})
 	if err != nil {
 		return &controllererrors.RequeueAfterError{
-			Cause:        errors.Wrap(err, "failed to list egress ips of cluster"),
+			Cause:        fmt.Errorf("failed to list egress ips of cluster %w", err),
 			RequeueAfter: 30 * time.Second,
 		}
 	}
@@ -476,7 +475,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 
 			if err != nil {
 				return &controllererrors.RequeueAfterError{
-					Cause:        errors.Wrap(err, fmt.Sprintf("error when retrieving ip %s for egress rule", ip)),
+					Cause:        fmt.Errorf("error when retrieving ip %s for egress rule %w", ip, err),
 					RequeueAfter: 30 * time.Second,
 				}
 			}
@@ -515,7 +514,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 			_, err = r.mclient.IPUpdate(&iur)
 			if err != nil {
 				return &controllererrors.RequeueAfterError{
-					Cause:        errors.Wrap(err, fmt.Sprintf("could not tag ip %s for egress usage", ip)),
+					Cause:        fmt.Errorf("could not tag ip %s for egress usage %w", ip, err),
 					RequeueAfter: 30 * time.Second,
 				}
 			}
@@ -528,7 +527,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 			err := clearIPTags(r.mclient, ip)
 			if err != nil {
 				return &controllererrors.RequeueAfterError{
-					Cause:        errors.Wrap(err, fmt.Sprintf("could not remove egress tag from ip %s", ip)),
+					Cause:        fmt.Errorf("could not remove egress tag from ip %s %w", ip, err),
 					RequeueAfter: 30 * time.Second,
 				}
 			}
