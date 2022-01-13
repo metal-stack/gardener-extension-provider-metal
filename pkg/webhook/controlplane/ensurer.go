@@ -417,6 +417,34 @@ func (e *ensurer) getCustomAuditPolicy(ctx context.Context, cluster *extensions.
 	}
 
 	logger.Info("AUDITDEBUG found custom auditpolicy configmap in shoot", "shoot-configmap", customAuditPolicyShootCm)
+
+	if customAuditPolicyShootCm.Data == nil {
+		logger.Info("AUDITDEBUG shoot custom auditpolicy configmap contains no data")
+		if currentCustomAuditPolicy.Name == "custom-audit-policy" {
+			logger.Info("AUDITDEBUG Deleting custom auditpolicy configmap in shoot namespace", "configmap", customAuditPolicyCm)
+			err := e.client.Delete(ctx, customAuditPolicyCm)
+			if err != nil {
+				return false, err
+			}
+		}
+		return false, nil
+	}
+
+	for key, value := range customAuditPolicyShootCm.Data {
+		logger.Info("AUDITDEBUG Shoot custom auditpolicy configmap content", "key", key, "value", value)
+		if key != "custom-audit-policy" {
+			logger.Info("AUDITDEBUG Shoot custom auditpolicy contains a wrong key, aborting")
+			if currentCustomAuditPolicy.Name == "custom-audit-policy" {
+				logger.Info("AUDITDEBUG Deleting custom auditpolicy configmap in shoot namespace", "configmap", customAuditPolicyCm)
+				err := e.client.Delete(ctx, customAuditPolicyCm)
+				if err != nil {
+					return false, err
+				}
+			}
+			return false, nil
+		}
+	}
+
 	customAuditPolicyCm.Data = customAuditPolicyShootCm.Data
 	logger.Info("AUDITDEBUG trying to apply custom auditpolicy configmap", "configmap", customAuditPolicyCm)
 
