@@ -404,45 +404,37 @@ func (e *ensurer) getCustomAuditPolicy(ctx context.Context, cluster *extensions.
 		logger.Info("AUDITDEBUG no custom auditpolicy in shoot namespace")
 	}
 
+	validCustomAuditPolicyShootCm := true
 	customAuditPolicyShootCm, _ := cs.CoreV1().ConfigMaps("kube-system").Get(ctx, "custom-audit-policy", metav1.GetOptions{})
 	if customAuditPolicyShootCm == nil || customAuditPolicyShootCm.Name != "custom-audit-policy" {
-		if currentCustomAuditPolicy.Name == "custom-audit-policy" {
-			logger.Info("AUDITDEBUG no custom auditpolicy configmap in shoot, deleting custom auditpolicy configmap in shoot namespace", "configmap", customAuditPolicyCm)
-			err := e.client.Delete(ctx, customAuditPolicyCm)
-			if err != nil {
-				return false, err
-			}
-		}
-		return false, nil
+		validCustomAuditPolicyShootCm = false
 	}
-
 	logger.Info("AUDITDEBUG found custom auditpolicy configmap in shoot", "shoot-configmap", customAuditPolicyShootCm)
 
-	if customAuditPolicyShootCm.Data == nil {
+	if validCustomAuditPolicyShootCm && customAuditPolicyShootCm.Data == nil {
 		logger.Info("AUDITDEBUG shoot custom auditpolicy configmap contains no data")
+		validCustomAuditPolicyShootCm = false
+	}
+
+	if validCustomAuditPolicyShootCm {
+		for key, value := range customAuditPolicyShootCm.Data {
+			logger.Info("AUDITDEBUG Shoot custom auditpolicy configmap content", "key", key, "value", value)
+			if key != "custom-audit-policy" {
+				validCustomAuditPolicyShootCm = false
+			}
+		}
+	}
+
+	if !validCustomAuditPolicyShootCm {
 		if currentCustomAuditPolicy.Name == "custom-audit-policy" {
-			logger.Info("AUDITDEBUG Deleting custom auditpolicy configmap in shoot namespace", "configmap", customAuditPolicyCm)
+			logger.Info("AUDITDEBUG no valid custom auditpolicy configmap in shoot, deleting custom auditpolicy configmap in shoot namespace", "configmap", customAuditPolicyCm)
 			err := e.client.Delete(ctx, customAuditPolicyCm)
 			if err != nil {
 				return false, err
 			}
 		}
 		return false, nil
-	}
 
-	for key, value := range customAuditPolicyShootCm.Data {
-		logger.Info("AUDITDEBUG Shoot custom auditpolicy configmap content", "key", key, "value", value)
-		if key != "custom-audit-policy" {
-			logger.Info("AUDITDEBUG Shoot custom auditpolicy contains a wrong key, aborting")
-			if currentCustomAuditPolicy.Name == "custom-audit-policy" {
-				logger.Info("AUDITDEBUG Deleting custom auditpolicy configmap in shoot namespace", "configmap", customAuditPolicyCm)
-				err := e.client.Delete(ctx, customAuditPolicyCm)
-				if err != nil {
-					return false, err
-				}
-			}
-			return false, nil
-		}
 	}
 
 	customAuditPolicyCm.Data = customAuditPolicyShootCm.Data
