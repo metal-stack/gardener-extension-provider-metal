@@ -86,9 +86,6 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureVolumes(ps, makeAuditForwarder, customAuditPolicyExists, auditToSplunk, e.controllerConfig)
 	}
 	if makeAuditForwarder {
-
-		// TODO need to actually use the custom audit policy -> volumeMount in kube-apiserver
-
 		err = ensureAuditForwarder(ps, auditToSplunk)
 		if err != nil {
 			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
@@ -383,12 +380,14 @@ func (e *ensurer) getCustomAuditPolicy(ctx context.Context, cluster *extensions.
 
 	shootConfig, _, err := util.NewClientForShoot(ctx, e.client, cluster.ObjectMeta.Name, client.Options{})
 	if err != nil {
-		return false, err
+		logger.Info("Could not get client for shoot (yet?)", "shoot", cluster.ObjectMeta.Name, "error", err)
+		return false, nil
 	}
 
 	cs, err := kubernetes.NewForConfig(shootConfig)
 	if err != nil {
-		return false, err
+		logger.Info("Could not get Clientset for shoot (yet?)", "shoot", cluster.ObjectMeta.Name, "error", err)
+		return false, nil
 	}
 
 	customAuditPolicyCm := &corev1.ConfigMap{
@@ -430,7 +429,7 @@ func (e *ensurer) getCustomAuditPolicy(ctx context.Context, cluster *extensions.
 			logger.Info("AUDITDEBUG no valid custom auditpolicy configmap in shoot, deleting custom auditpolicy configmap in shoot namespace", "configmap", customAuditPolicyCm)
 			err := e.client.Delete(ctx, customAuditPolicyCm)
 			if err != nil {
-				return false, err
+				return false, err // QUESTION should we return nil here as well? We did get a Clientset already when we came that far.
 			}
 		}
 		return false, nil
@@ -460,7 +459,7 @@ func (e *ensurer) getCustomAuditPolicy(ctx context.Context, cluster *extensions.
 }
 
 func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
-	auditForwarderSidecar := auditForwarderSidecarTemplate
+	auditForwarderSidecar := auditForwarderSidecarTemplate.DeepCopy()
 	auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
 	if err != nil {
 		logger.Error(err, "Could not find auditforwarder image in imagevector")
@@ -480,7 +479,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	}
 
 	if proxyHost != "" {
-		err := ensureAuditForwarderProxy(&auditForwarderSidecar, proxyHost)
+		err := ensureAuditForwarderProxy(auditForwarderSidecar, proxyHost)
 		if err != nil {
 			logger.Error(err, "could not ensure auditForwarder proxy")
 			return err
@@ -496,7 +495,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 
 	logger.Info("Ensuring auditforwarder sidecar", "container:", auditForwarderSidecar)
 
-	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
+	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, *auditForwarderSidecar)
 	return nil
 }
 
