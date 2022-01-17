@@ -342,7 +342,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder 
 }
 
 func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
-	auditForwarderSidecar := auditForwarderSidecarTemplate
+	auditForwarderSidecar := auditForwarderSidecarTemplate.DeepCopy()
 	auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
 	if err != nil {
 		logger.Error(err, "Could not find auditforwarder image in imagevector")
