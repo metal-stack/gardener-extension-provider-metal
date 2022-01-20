@@ -2,6 +2,7 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/coreos/go-systemd/v22/unit"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
@@ -200,38 +201,41 @@ var (
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
-	konnectivityUdsVolumeMount = corev1.VolumeMount{
-		Name:      "konnectivity-uds",
-		MountPath: "/konnectivity-uds",
-		ReadOnly:  false,
-	}
-	konnectivityUdsEnvVar = corev1.EnvVar{
-		Name:  "AUDIT_KONNECTIVITY_UDS_SOCKET",
-		Value: "/konnectivity-uds/konnectivity-server.socket",
-	}
 	konnectivityMtlsVolumeMounts = []corev1.VolumeMount{
 		{
 			Name:      "ca",
-			MountPath: "/konnectivity-proxy/ca",
+			MountPath: "/proxy/ca",
 			ReadOnly:  true,
 		},
 		{
 			Name:      "konnectivity-server-client-tls",
-			MountPath: "/konnectivity-proxy/client",
+			MountPath: "/proxy/client",
 			ReadOnly:  true,
 		},
 	}
-	konnectivityMtlsEnvVars = []corev1.EnvVar{
+	reversedVpnVolumeMounts = []corev1.VolumeMount{
 		{
-			Name:  "AUDIT_PROXY_HOST",
-			Value: "konnectivity-server",
+			Name:      "kube-apiserver-http-proxy",
+			MountPath: "/proxy/ca",
+			ReadOnly:  true,
 		},
 		{
-			Name:  "AUDIT_PROXY_PORT",
-			Value: "9443",
+			Name:      "kube-aggregator",
+			MountPath: "/proxy/client",
+			ReadOnly:  true,
 		},
 	}
-	auditForwarderSidecar = corev1.Container{
+	kubeAggregatorClientTlsEnvVars = []corev1.EnvVar{
+		{
+			Name:  "AUDIT_PROXY_CLIENT_CRT_FILE",
+			Value: "/proxy/client/kube-aggregator.crt",
+		},
+		{
+			Name:  "AUDIT_PROXY_CLIENT_KEY_FILE",
+			Value: "/proxy/client/kube-aggregator.key",
+		},
+	}
+	auditForwarderSidecarTemplate = corev1.Container{
 		Name: "auditforwarder",
 		// Image:   // is added from the image vector in the ensure function
 		ImagePullPolicy: "Always",
@@ -338,6 +342,7 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder 
 }
 
 func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
+	auditForwarderSidecar := auditForwarderSidecarTemplate.DeepCopy()
 	auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
 	if err != nil {
 		logger.Error(err, "Could not find auditforwarder image in imagevector")
@@ -345,37 +350,22 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	}
 	auditForwarderSidecar.Image = auditForwarderImage.String()
 
-	udsVolumeFound := false
-	clientTLSVolumeFound := false
+	var proxyHost string
 
 	for _, volume := range ps.Volumes {
 		switch volume.Name {
-		case "konnectivity-uds":
-			udsVolumeFound = true
 		case "konnectivity-server-client-tls":
-			clientTLSVolumeFound = true
+			proxyHost = "konnectivity-server"
+		case "kube-apiserver-http-proxy":
+			proxyHost = "vpn-seed-server"
 		}
 	}
-	if udsVolumeFound {
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, konnectivityUdsEnvVar)
-	} else {
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, konnectivityUdsVolumeMount.Name)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, konnectivityUdsEnvVar.Name)
-	}
-	if clientTLSVolumeFound {
-		for _, mount := range konnectivityMtlsVolumeMounts {
-			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
-		}
-		for _, envVar := range konnectivityMtlsEnvVars {
-			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
-		}
-	} else {
-		for _, mount := range konnectivityMtlsVolumeMounts {
-			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount.Name)
-		}
-		for _, envVar := range konnectivityMtlsEnvVars {
-			auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, envVar.Name)
+
+	if proxyHost != "" {
+		err := ensureAuditForwarderProxy(auditForwarderSidecar, proxyHost)
+		if err != nil {
+			logger.Error(err, "could not ensure auditForwarder proxy")
+			return err
 		}
 	}
 
@@ -384,14 +374,47 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkSecretVolumeMount)
 		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkPodNameEnvVar)
 		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar)
-	} else {
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkConfigVolumeMount.Name)
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureNoVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkSecretVolumeMount.Name)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkPodNameEnvVar.Name)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureNoEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar.Name)
 	}
 
-	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, auditForwarderSidecar)
+	logger.Info("Ensuring auditforwarder sidecar", "container:", auditForwarderSidecar)
+
+	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, *auditForwarderSidecar)
+	return nil
+}
+
+func ensureAuditForwarderProxy(auditForwarderSidecar *corev1.Container, proxyHost string) error {
+	logger.Info("ensureAuditForwarderProxy called", "proxyHost=", proxyHost)
+	proxyEnvVars := []corev1.EnvVar{
+		{
+			Name:  "AUDIT_PROXY_HOST",
+			Value: proxyHost,
+		},
+		{
+			Name:  "AUDIT_PROXY_PORT",
+			Value: "9443",
+		},
+	}
+
+	for _, envVar := range proxyEnvVars {
+		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
+	}
+
+	switch proxyHost {
+	case "konnectivity-server":
+		for _, mount := range konnectivityMtlsVolumeMounts {
+			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
+		}
+	case "vpn-seed-server":
+		for _, envVar := range kubeAggregatorClientTlsEnvVars {
+			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
+		}
+		for _, mount := range reversedVpnVolumeMounts {
+			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
+		}
+	default:
+		return fmt.Errorf("%q is not a valid proxy name", proxyHost)
+	}
+
 	return nil
 }
 
