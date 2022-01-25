@@ -98,7 +98,9 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 	new.Spec.StorageCapacity = &capacity
 
 	memoryLimit := resource.MustParse("8Gi")
+	cpuLimit := resource.MustParse("4")
 	new.Spec.Etcd.Resources.Limits["memory"] = memoryLimit
+	new.Spec.Etcd.Resources.Limits["cpu"] = cpuLimit
 
 	return nil
 }
