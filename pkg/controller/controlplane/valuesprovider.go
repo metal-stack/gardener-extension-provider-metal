@@ -794,6 +794,11 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		})
 	}
 
+	acceptLog := false
+	if infrastructureConfig.Firewall.AcceptLog {
+		acceptLog = true
+	}
+
 	clusterID := string(cluster.Shoot.GetUID())
 	projectID := infrastructureConfig.ProjectID
 	firewalls, err := metalclient.FindClusterFirewalls(mclient, clusterTag(clusterID), projectID)
@@ -840,6 +845,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 	spec := firewallv1.FirewallSpec{
 		Data: firewallv1.Data{
 			Interval:         "10s",
+			AcceptLog:        acceptLog,
 			FirewallNetworks: firewallNetworks,
 			InternalPrefixes: internalPrefixes,
 			RateLimits:       rateLimits,

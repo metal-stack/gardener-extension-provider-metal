@@ -20,6 +20,7 @@ type Firewall struct {
 	Networks          []string     `json:"networks"`
 	RateLimits        []RateLimit  `json:"rateLimits"`
 	EgressRules       []EgressRule `json:"egressRules"`
+	AcceptLog         bool         `json:"acceptlog"`
 	ControllerVersion string       `json:"controllerVersion"`
 }
 

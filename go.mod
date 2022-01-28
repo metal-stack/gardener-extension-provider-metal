@@ -22,7 +22,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/imdario/mergo v0.3.12
 	github.com/metal-stack/duros-controller v0.3.2
-	github.com/metal-stack/firewall-controller v1.1.3
+	github.com/metal-stack/firewall-controller v1.1.4-0.20220114184833-ffa72b8f4c39
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.9
 	github.com/metal-stack/metal-go v0.16.1
 	github.com/metal-stack/metal-lib v0.9.0

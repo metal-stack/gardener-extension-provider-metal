@@ -1032,8 +1032,8 @@ github.com/mdlayher/socket v0.0.0-20211102153432-57e3fa563ecb/go.mod h1:nFZ1EtZY
 github.com/metal-stack/duros-controller v0.3.2 h1:f+IYMF3CBU9BtDJVBi8rlzIANvj/EeeK3WQHhv57xK8=
 github.com/metal-stack/duros-controller v0.3.2/go.mod h1:dlx+nw0ysofhW/hd8On4hNs3065QhPYa0nb+RkFVJSQ=
 github.com/metal-stack/duros-go v0.2.3/go.mod h1:XvhzasHCARbrIk7zXx4jFl4Ck3VfzlmbFVP21kzus2s=
-github.com/metal-stack/firewall-controller v1.1.3 h1:Y37Ywd0lGWRZedh0Ug9soWS2wBdftvNRp1JLIj+ddn0=
-github.com/metal-stack/firewall-controller v1.1.3/go.mod h1:k17h5oRZspDzeKsozRo8VGIXiP+2h/6nv7iQY8xjT10=
+github.com/metal-stack/firewall-controller v1.1.4-0.20220114184833-ffa72b8f4c39 h1:X2bnN9TZ4zDBuvd3hDFAoVCaQhCzwsK4DXhUr25m4KM=
+github.com/metal-stack/firewall-controller v1.1.4-0.20220114184833-ffa72b8f4c39/go.mod h1:k17h5oRZspDzeKsozRo8VGIXiP+2h/6nv7iQY8xjT10=
 github.com/metal-stack/machine-controller-manager-provider-metal v0.1.9 h1:RKX0w3y2c4AwgOR3XfZU17aWxIbt8In8vn8otqe4Ie0=
 github.com/metal-stack/machine-controller-manager-provider-metal v0.1.9/go.mod h1:bWcCzrcbxQUZnY/aEOpFJIpvHcTASwC70nsIkaOla+I=
 github.com/metal-stack/masterdata-api v0.8.5/go.mod h1:IZcsFYhfT8pXRgJHhmhlw+EbYd89hxlBICJi/0RCIf8=

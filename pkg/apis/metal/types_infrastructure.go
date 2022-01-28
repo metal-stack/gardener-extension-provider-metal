@@ -20,6 +20,7 @@ type Firewall struct {
 	Networks          []string
 	RateLimits        []RateLimit
 	EgressRules       []EgressRule
+	AcceptLog         bool
 	ControllerVersion string
 }
 

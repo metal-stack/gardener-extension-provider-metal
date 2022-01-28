@@ -12,6 +12,7 @@ images:
 firewallSpec:
     interval: 10s
     dryrun: false
+    acceptlog: false
     rateLimits: []
     internalprefixes: []
     egressRules: []
