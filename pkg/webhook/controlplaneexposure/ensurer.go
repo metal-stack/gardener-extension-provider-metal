@@ -9,10 +9,14 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
@@ -22,21 +26,27 @@ import (
 	v1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 // NewEnsurer creates a new controlplaneexposure ensurer.
 func NewEnsurer(etcdStorage *config.ETCD, logger logr.Logger) genericmutator.Ensurer {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(metalv1alpha1.AddToScheme(scheme))
+	decoder := serializer.NewCodecFactory(scheme).UniversalDecoder()
 	return &ensurer{
-		c:      etcdStorage,
-		logger: logger.WithName("metal-controlplaneexposure-ensurer"),
+		c:       etcdStorage,
+		logger:  logger.WithName("metal-controlplaneexposure-ensurer"),
+		decoder: decoder,
 	}
 }
 
 type ensurer struct {
 	genericmutator.NoopEnsurer
-	c      *config.ETCD
-	client client.Client
-	logger logr.Logger
+	c       *config.ETCD
+	client  client.Client
+	logger  logr.Logger
+	decoder runtime.Decoder
 }
 
 // InjectClient injects the given client into the ensurer.
@@ -92,10 +102,50 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 		if e.c.Backup.Schedule != nil {
 			new.Spec.Backup.FullSnapshotSchedule = e.c.Backup.Schedule
 		}
+
+		etcMainStorageClass, ok := e.getETCDMainStorageClassFromCloudProfile(ctx, gctx)
+		if ok {
+			class = etcMainStorageClass
+		}
 	}
 
 	new.Spec.StorageClass = &class
 	new.Spec.StorageCapacity = &capacity
 
 	return nil
+}
+
+func (e *ensurer) getETCDMainStorageClassFromCloudProfile(ctx context.Context, gctx gcontext.GardenContext) (string, bool) {
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		e.logger.Error(err, "unable to get cluster from context")
+		return "", false
+	}
+	cp := cluster.CloudProfile
+	seedName := cluster.Seed.Name
+	infrastructureConfig := &metalv1alpha1.InfrastructureConfig{}
+	if _, _, err := e.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		e.logger.Error(err, "could not decode providerConfig of infrastructure")
+		return "", false
+	}
+	partitionID := infrastructureConfig.PartitionID
+
+	cloudProfile, err := helper.DecodeCloudProfileConfig(cp)
+	if err != nil {
+		e.logger.Error(err, "unable to decode cloudprofile")
+		return "", false
+	}
+
+	mcp, _, err := helper.FindMetalControlPlane(cloudProfile, partitionID)
+	if err != nil {
+		e.logger.Error(err, "unable to find metalControlPlane")
+		return "", false
+	}
+
+	seedConfig, ok := mcp.SeedConfigs[seedName]
+	if ok {
+		class := *seedConfig.ETCDMainStorageClassName
+		return class, true
+	}
+	return "", false
 }

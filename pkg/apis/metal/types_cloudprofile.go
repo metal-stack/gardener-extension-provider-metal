@@ -28,6 +28,14 @@ type MetalControlPlane struct {
 	FirewallImages []string
 	// FirewallControllerVersions is a list of available firewall controller binary versions
 	FirewallControllerVersions []FirewallControllerVersion
+
+	// SeedConfigs maps configurations per seedname
+	SeedConfigs map[string]SeedConfig
+}
+
+type SeedConfig struct {
+	// ETCDStorageClassName overrides the storageClassName for the etcd-main statefulset
+	ETCDMainStorageClassName *string
 }
 
 // FirewallControllerVersion describes the version of the firewall controller binary
