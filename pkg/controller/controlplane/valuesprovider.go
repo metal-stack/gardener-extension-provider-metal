@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -1023,7 +1022,6 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
 func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, _ *extensionscontroller.Cluster) (map[string]interface{}, error) {
-
 	cp, err := helper.ControlPlaneConfigFromControlPlane(controlPlane)
 	if err != nil {
 		return nil, err
@@ -1035,7 +1033,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 	}
 
 	values := map[string]interface{}{
-		"isDefaultStorageClass": strconv.FormatBool(isDefaultSC),
+		"isDefaultStorageClass": isDefaultSC,
 	}
 
 	return values, nil
