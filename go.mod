@@ -21,13 +21,13 @@ require (
 	github.com/google/go-cmp v0.5.6
 	github.com/google/uuid v1.3.0
 	github.com/imdario/mergo v0.3.12
-	github.com/metal-stack/duros-controller v0.3.2
+	github.com/metal-stack/duros-controller v0.3.3
 	github.com/metal-stack/firewall-controller v1.1.3
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.9
 	github.com/metal-stack/metal-go v0.16.1
 	github.com/metal-stack/metal-lib v0.9.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.16.0
+	github.com/onsi/gomega v1.17.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50 // indirect
