@@ -386,7 +386,6 @@ func Convert_metal_ControlPlaneFeatures_To_v1alpha1_ControlPlaneFeatures(in *met
 
 func autoConvert_v1alpha1_CustomDefaultStorageClass_To_metal_CustomDefaultStorageClass(in *CustomDefaultStorageClass, out *metal.CustomDefaultStorageClass, s conversion.Scope) error {
 	out.ClassName = in.ClassName
-	out.Enabled = in.Enabled
 	return nil
 }
 
@@ -397,7 +396,6 @@ func Convert_v1alpha1_CustomDefaultStorageClass_To_metal_CustomDefaultStorageCla
 
 func autoConvert_metal_CustomDefaultStorageClass_To_v1alpha1_CustomDefaultStorageClass(in *metal.CustomDefaultStorageClass, out *CustomDefaultStorageClass, s conversion.Scope) error {
 	out.ClassName = in.ClassName
-	out.Enabled = in.Enabled
 	return nil
 }
 

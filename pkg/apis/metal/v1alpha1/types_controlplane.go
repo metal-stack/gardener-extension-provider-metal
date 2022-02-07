@@ -25,15 +25,13 @@ type ControlPlaneConfig struct {
 	CustomDefaultStorageClass *CustomDefaultStorageClass `json:"customDefaultStorageClass,omitempty"`
 }
 
-// CustomDefaultStorageClass defines the  custom storageclass which should be set as default
+// CustomDefaultStorageClass defines the custom storageclass which should be set as default
 // This applies only to storageClasses managed by metal-stack.
+// If set to nil, our default storageClass (e.g. csi-lvm) is set as default
 type CustomDefaultStorageClass struct {
 	// ClassName name of the storageclass to be set as default
-	// If you want to have your own SC be set as default, set classname to "" and enabled to true
+	// If you want to have your own SC be set as default, set classname to ""
 	ClassName string `json:"className"`
-	// Enabled, only if set to true the given classname will be set as default storageClass
-	// if set to false our default storageClass, e.g. csi-lvm is set as default
-	Enabled bool `json:"enabled"`
 }
 
 // ControlPlaneFeatures contains feature gates for the control plane.

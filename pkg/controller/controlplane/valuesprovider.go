@@ -1028,7 +1028,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 	}
 
 	isDefaultSC := true
-	if cp.CustomDefaultStorageClass != nil && cp.CustomDefaultStorageClass.Enabled && cp.CustomDefaultStorageClass.ClassName != "csi-lvm" {
+	if cp.CustomDefaultStorageClass != nil && cp.CustomDefaultStorageClass.ClassName != "csi-lvm" {
 		isDefaultSC = false
 	}
 
@@ -1340,7 +1340,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	for _, sc := range partitionConfig.StorageClasses {
 
 		isDefaultSC := false
-		if cp.CustomDefaultStorageClass != nil && cp.CustomDefaultStorageClass.Enabled && cp.CustomDefaultStorageClass.ClassName == sc.Name {
+		if cp.CustomDefaultStorageClass != nil && cp.CustomDefaultStorageClass.ClassName == sc.Name {
 			isDefaultSC = true
 		}
 
