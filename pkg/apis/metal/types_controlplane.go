@@ -20,6 +20,15 @@ type ControlPlaneConfig struct {
 
 	// FeatureGates contains feature gates for the control plane.
 	FeatureGates ControlPlaneFeatures
+
+	// CustomDefaultStorageClass
+	CustomDefaultStorageClass *CustomDefaultStorageClass
+}
+
+// CustomDefaultStorageClass defines the  custom storageclass which should be set as default
+type CustomDefaultStorageClass struct {
+	ClassName string
+	Enabled   bool
 }
 
 // ControlPlaneFeatures contains feature gates for the control plane.
