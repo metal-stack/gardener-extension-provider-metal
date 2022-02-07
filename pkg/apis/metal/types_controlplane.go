@@ -20,6 +20,18 @@ type ControlPlaneConfig struct {
 
 	// FeatureGates contains feature gates for the control plane.
 	FeatureGates ControlPlaneFeatures
+
+	// CustomDefaultStorageClass
+	CustomDefaultStorageClass *CustomDefaultStorageClass
+}
+
+// CustomDefaultStorageClass defines the  custom storageclass which should be set as default
+// This applies only to storageClasses managed by metal-stack.
+// If set to nil, our default storageClass (e.g. csi-lvm) is set as default
+type CustomDefaultStorageClass struct {
+	// ClassName name of the storageclass to be set as default
+	// If you want to have your own SC be set as default, set classname to ""
+	ClassName string
 }
 
 // ControlPlaneFeatures contains feature gates for the control plane.

@@ -9,7 +9,9 @@ kind: StorageClass
 metadata:
   name: csi-lvm
   annotations:
+{{ if .Values.isDefaultStorageClass }}
     storageclass.kubernetes.io/is-default-class: "true"
+{{ end }}
 provisioner: metal-stack.io/csi-lvm
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
