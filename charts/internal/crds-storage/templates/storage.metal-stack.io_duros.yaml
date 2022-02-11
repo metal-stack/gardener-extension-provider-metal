@@ -65,7 +65,6 @@ spec:
                   required:
                   - compression
                   - default
-                  - encryption
                   - name
                   - replicas
                   type: object
