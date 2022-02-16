@@ -10,7 +10,6 @@ metadata:
   name: csi-lvm
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
-    resources.gardener.cloud/ignore: "true"
 provisioner: metal-stack.io/csi-lvm
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
