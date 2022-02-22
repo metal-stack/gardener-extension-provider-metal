@@ -22,8 +22,6 @@ func (a *actuator) Migrate(ctx context.Context, infrastructure *extensionsv1alph
 		deleteFinalizerName = "machine.sapcloud.io/machine-controller"
 	)
 
-	a.logger.Info("debugmigrate")
-
 	var secrets corev1.SecretList
 	err := a.client.List(ctx, &secrets, client.MatchingLabels{
 		"garden.sapcloud.io/purpose": "machineclass",
@@ -32,17 +30,12 @@ func (a *actuator) Migrate(ctx context.Context, infrastructure *extensionsv1alph
 		return err
 	}
 
-	a.logger.Info("debugmigrate", "secrets", len(secrets.Items))
-
 	for _, secret := range secrets.Items {
 		secret := secret.DeepCopy()
-
-		a.logger.Info("debugmigrate", "number", 1)
 
 		if !strings.HasPrefix(secret.Name, "shoot--") {
 			continue
 		}
-		a.logger.Info("debugmigrate", "number", 2)
 
 		if controllerutil.ContainsFinalizer(secret, deleteFinalizerName) {
 			a.logger.Info("removing dangling finalizer from mcm secret", "secret", secret.Name)
