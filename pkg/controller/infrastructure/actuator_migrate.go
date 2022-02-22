@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -45,22 +44,15 @@ func (a *actuator) Migrate(ctx context.Context, infrastructure *extensionsv1alph
 		}
 		a.logger.Info("debugmigrate", "number", 2)
 
-		if secret.DeletionTimestamp == nil || secret.DeletionTimestamp.IsZero() {
-			continue
-		}
-		a.logger.Info("debugmigrate", "number", 3)
+		if controllerutil.ContainsFinalizer(secret, deleteFinalizerName) {
+			a.logger.Info("removing dangling finalizer from mcm secret", "secret", secret.Name)
 
-		if !sets.NewString(secret.Finalizers...).Has(deleteFinalizerName) {
-			continue
-		}
-		a.logger.Info("debugmigrate", "number", 4)
+			controllerutil.RemoveFinalizer(secret, deleteFinalizerName)
 
-		a.logger.Info("removing dangling finalizer from mcm secret", "secret", secret.Name)
-		controllerutil.RemoveFinalizer(secret, deleteFinalizerName)
-
-		err = a.client.Update(ctx, secret)
-		if err != nil {
-			return err
+			err = a.client.Update(ctx, secret)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
