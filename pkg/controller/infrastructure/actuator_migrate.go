@@ -23,8 +23,8 @@ func (a *actuator) Migrate(ctx context.Context, infrastructure *extensionsv1alph
 		deleteFinalizerName = "machine.sapcloud.io/machine-controller"
 	)
 
-	var secrets *corev1.SecretList
-	err := a.client.List(ctx, secrets, client.MatchingLabels{
+	var secrets corev1.SecretList
+	err := a.client.List(ctx, &secrets, client.MatchingLabels{
 		"garden.sapcloud.io/purpose": "machineclass",
 	}, client.InNamespace(cluster.ObjectMeta.Name))
 	if err != nil {
