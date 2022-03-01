@@ -9,6 +9,7 @@ import (
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalvalidation "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
@@ -63,6 +64,11 @@ func (s *shoot) Validate(ctx context.Context, new, old client.Object) error {
 func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 	// Provider validation
 	fldPath := field.NewPath("spec", "provider")
+
+	_, ok := shoot.Annotations[tag.ClusterTenant]
+	if !ok {
+		return field.Required(fldPath.Child("annotations"), fmt.Sprintf("cluster must be annotated with a tenant using the annotations: %s", tag.ClusterTenant))
+	}
 
 	// InfrastructureConfig
 	infraConfigFldPath := fldPath.Child("infrastructureConfig")
@@ -159,6 +165,10 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 		if errList := metalvalidation.ValidateInfrastructureConfigUpdate(oldInfraConfig, infraConfig, cloudProfileConfig); len(errList) != 0 {
 			return errList.ToAggregate()
 		}
+	}
+
+	if shoot.Annotations[tag.ClusterTenant] != oldShoot.Annotations[tag.ClusterTenant] {
+		return field.Forbidden(fldPath.Child("annotations"), "tenant annotation of a shoot is immutable")
 	}
 
 	return s.validateShoot(ctx, shoot)
