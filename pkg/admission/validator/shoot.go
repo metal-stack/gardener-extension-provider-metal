@@ -67,7 +67,7 @@ func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 
 	_, ok := shoot.Annotations[tag.ClusterTenant]
 	if !ok {
-		return field.Required(fldPath.Child("annotations"), fmt.Sprintf("cluster must be annotated with a tenant using the annotations: %s", tag.ClusterTenant))
+		return field.Required(field.NewPath("metadata", "annotations"), fmt.Sprintf("cluster must be annotated with a tenant using the annotations: %s", tag.ClusterTenant))
 	}
 
 	// InfrastructureConfig
@@ -168,7 +168,7 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 	}
 
 	if shoot.Annotations[tag.ClusterTenant] != oldShoot.Annotations[tag.ClusterTenant] {
-		return field.Forbidden(fldPath.Child("annotations"), "tenant annotation of a shoot is immutable")
+		return field.Forbidden(field.NewPath("metadata", "annotations"), "tenant annotation of a shoot is immutable")
 	}
 
 	return s.validateShoot(ctx, shoot)
