@@ -500,8 +500,8 @@ github.com/gardener/landscaper/apis v0.7.0/go.mod h1:++MW27PlSnbWM4AJipikw62RSpr
 github.com/gardener/machine-controller-manager v0.27.0/go.mod h1:zlIxuLQMtRO+aXOFsG6qtYkBmggbWY82K7MSO051ARU=
 github.com/gardener/machine-controller-manager v0.33.0/go.mod h1:jxxE+mGgXwg4iPlCHTG4GtUfK2CcHA6yYoIIowoxOZU=
 github.com/gardener/machine-controller-manager v0.41.0/go.mod h1:43OABkCemMS6b35z3OprbfaT3p2HxKAZkJekjCO2T48=
-github.com/gardener/machine-controller-manager v0.43.0 h1:8W3XbP1EWrywOfejWiqyVK6KZYM+d6ZCqRhIUT+hiBY=
-github.com/gardener/machine-controller-manager v0.43.0/go.mod h1:oMaIZMJ0pU6Z8j885v4a4+wxkzC1mpoqfqDUH34SQ58=
+github.com/gardener/machine-controller-manager v0.43.1 h1:Kdog/ElWL13DG36rvXa6fJF4jR0P7VLPeWTMoFBir+c=
+github.com/gardener/machine-controller-manager v0.43.1/go.mod h1:oMaIZMJ0pU6Z8j885v4a4+wxkzC1mpoqfqDUH34SQ58=
 github.com/garyburd/redigo v0.0.0-20150301180006-535138d7bcd7/go.mod h1:NR3MbYisc3/PwhQ00EMzDiPmrwpPxAn5GI05/YaO1SY=
 github.com/getkin/kin-openapi v0.76.0/go.mod h1:660oXbgy5JFMKreazJaQTw7o+X00qeSyhcnluiMv+Xg=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
