@@ -21,10 +21,6 @@ spec:
       labels:
 {{ include "labels" . | indent 8 }}
     spec:
-      hostAliases:
-      - ip: "172.17.0.1"
-        hostnames:
-        - "api.0.0.0.0.nip.io"
       containers:
       - name: {{ include "name" . }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
