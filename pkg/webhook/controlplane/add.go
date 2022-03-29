@@ -3,6 +3,7 @@ package controlplane
 import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
+	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
@@ -35,8 +36,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 		Kind:     controlplane.KindShoot,
 		Provider: metal.Type,
 		Types:    []client.Object{&appsv1.Deployment{}, &extensionsv1alpha1.OperatingSystemConfig{}},
-		// FIXME: After konnectivity feature is dropped, go back to genericmutator from extensions package
-		Mutator: NewMutator(NewEnsurer(logger, opts.ControllerConfig), oscutils.NewUnitSerializer(),
+		Mutator: genericmutator.NewMutator(NewEnsurer(logger, opts.ControllerConfig), oscutils.NewUnitSerializer(),
 			kubelet.NewConfigCodec(fciCodec), fciCodec, logger),
 	})
 }
