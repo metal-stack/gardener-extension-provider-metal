@@ -19,7 +19,6 @@ import (
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalgo "github.com/metal-stack/metal-go"
-	metalfirewall "github.com/metal-stack/metal-go/api/client/firewall"
 	mn "github.com/metal-stack/metal-lib/pkg/net"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -73,8 +72,6 @@ var (
 	firewallActionDeleteAndRecreate firewallReconcileAction = "delete"
 	// firewallActionDoNothing nothing needs to be done for this firewall
 	firewallActionDoNothing firewallReconcileAction = "nothing"
-	// firewallActionUpdateCreationProgress firewall creation has not yet succeeded
-	firewallActionUpdateCreationProgress firewallReconcileAction = "update-creation-progress"
 	// firewallActionCreate create a new firewall and write infrastructure status
 	firewallActionCreate firewallReconcileAction = "create"
 	// firewallActionStatusUpdateOnMigrate infrastructure status is not present, but a metal firewall machine is present.
@@ -154,7 +151,7 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 // TODO migrate to a state-machine or to a dedicated controller
 func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 	// detect which next action is required
-	action, status, err := firewallNextAction(ctx, r)
+	action, status, err := firewallNextAction(r)
 	if err != nil {
 		return err
 	}
@@ -171,18 +168,7 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 		r.logger.Info("firewall created", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.providerStatus.Firewall.MachineID)
 
 		r.providerStatus.Firewall.MachineID = machineID
-		// TODO this is a BUG, see https://github.com/metal-stack/metal-api/issues/209
-		r.providerStatus.Firewall.Succeeded = true
 		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
-	case firewallActionUpdateCreationProgress:
-		succeeded, err := hasFirewallSucceeded(r.machineIDInStatus, r.mclient)
-		if err != nil {
-			return err
-		}
-
-		r.logger.Info("firewall creation in progress", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "succeeded", succeeded)
-		r.providerStatus.Firewall.Succeeded = succeeded
-		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, r.infrastructure.Status.NodesCIDR)
 	case firewallActionRecreate:
 		err := deleteFirewallFromStatus(ctx, r)
 		if err != nil {
@@ -196,8 +182,7 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 		r.logger.Info("firewall created", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.providerStatus.Firewall.MachineID)
 
 		r.providerStatus.Firewall.MachineID = machineID
-		// TODO this is a BUG, see https://github.com/metal-stack/metal-api/issues/209
-		r.providerStatus.Firewall.Succeeded = true
+
 		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
 	case firewallActionDeleteAndRecreate:
 		err := deleteFirewall(r.logger, r.machineIDInStatus, r.infrastructureConfig.ProjectID, r.clusterTag, r.mclient)
@@ -216,8 +201,6 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 		}
 		r.logger.Info("firewall created", "cluster-id", r.clusterID, "cluster", r.cluster.Shoot.Name, "machine-id", r.providerStatus.Firewall.MachineID)
 		r.providerStatus.Firewall.MachineID = machineID
-		// TODO this is a BUG, see https://github.com/metal-stack/metal-api/issues/209
-		r.providerStatus.Firewall.Succeeded = true
 		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
 	case firewallActionStatusUpdateOnMigrate:
 		r.providerStatus.Firewall = *status
@@ -227,14 +210,10 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 	}
 }
 
-func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallReconcileAction, *metalapi.FirewallStatus, error) {
-	if !r.providerStatus.Firewall.Succeeded && r.machineIDInStatus != "" {
-		return firewallActionUpdateCreationProgress, nil, nil
-	}
-
+func firewallNextAction(r *firewallReconciler) (firewallReconcileAction, *metalapi.FirewallStatus, error) {
 	firewalls, err := metalclient.FindClusterFirewalls(r.mclient, r.clusterTag, r.infrastructureConfig.ProjectID)
 	if err != nil {
-		r.logger.Error(err, "firewalls not found", "clustertag", r.clusterTag, "projectid", r.infrastructureConfig.ProjectID)
+		r.logger.Error(err, "unable to fetch cluster firewalls", "clustertag", r.clusterTag, "projectid", r.infrastructureConfig.ProjectID)
 		return firewallActionDoNothing, nil, &controllererrors.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
@@ -256,13 +235,12 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 			r.logger.Info("firewall exists but status is empty, assuming migration", "clusterid", r.clusterID, "machineid", r.machineIDInStatus)
 			return firewallActionStatusUpdateOnMigrate, &metalapi.FirewallStatus{
 				MachineID: encodeMachineID(*fw.Partition.ID, *fw.ID),
-				Succeeded: *fw.Allocation.Succeeded,
 			}, nil
 		}
 
 		if *fw.ID != r.machineIDInStatus {
 			r.logger.Error(
-				fmt.Errorf("machine id of this cluster's firewall differs from infrastructure status"),
+				fmt.Errorf("machine id of this cluster's firewall differs from infrastructure status, not reconciling firewall anymore"),
 				"leaving as it is, but something unexpected must have happened in the past. if you want to get to a clean state, remove the firewall by hand (causes downtime!) and reconcile infrastructure again",
 				"clusterID", r.clusterID,
 				"expectedMachineID", r.machineIDInStatus,
@@ -324,31 +302,8 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 	}
 }
 
-func hasFirewallSucceeded(machineID string, mclient *metalgo.Driver) (bool, error) {
-	resp, err := mclient.FirewallGet(machineID)
-	if err != nil {
-		switch e := err.(type) {
-		case *metalfirewall.FindFirewallDefault:
-			if e.Code() >= 500 {
-				return false, &controllererrors.RequeueAfterError{
-					Cause:        e,
-					RequeueAfter: 5 * time.Second,
-				}
-			}
-		default:
-			return false, e
-		}
-	}
-
-	if resp.Firewall == nil || resp.Firewall.Allocation == nil || resp.Firewall.Allocation.Succeeded == nil {
-		return false, fmt.Errorf("firewall %q was created but has no allocation", machineID)
-	}
-
-	return *resp.Firewall.Allocation.Succeeded, nil
-}
-
 func createFirewall(ctx context.Context, r *firewallReconciler) (machineID string, nodeCIDR string, err error) {
-	nodeCIDR, err = ensureNodeNetwork(ctx, r)
+	nodeCIDR, err = ensureNodeNetwork(r)
 	if err != nil {
 		r.logger.Error(err, "firewalls node network", "nodecidr", nodeCIDR)
 		return "", "", &controllererrors.RequeueAfterError{
@@ -550,7 +505,7 @@ func clearIPTags(mclient *metalgo.Driver, ip string) error {
 	return err
 }
 
-func ensureNodeNetwork(ctx context.Context, r *firewallReconciler) (string, error) {
+func ensureNodeNetwork(r *firewallReconciler) (string, error) {
 	if r.cluster.Shoot.Spec.Networking.Nodes != nil {
 		return *r.cluster.Shoot.Spec.Networking.Nodes, nil
 	}
@@ -684,7 +639,6 @@ func renderFirewallUserData(kubeconfig string) (string, error) {
 
 func deleteFirewallFromStatus(ctx context.Context, r *firewallReconciler) error {
 	r.providerStatus.Firewall.MachineID = ""
-	r.providerStatus.Firewall.Succeeded = false
 	err := updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, r.infrastructure.Status.NodesCIDR)
 	if err != nil {
 		return err
