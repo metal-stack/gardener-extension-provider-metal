@@ -201,18 +201,6 @@ var (
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
-	konnectivityMtlsVolumeMounts = []corev1.VolumeMount{
-		{
-			Name:      "ca",
-			MountPath: "/proxy/ca",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "konnectivity-server-client-tls",
-			MountPath: "/proxy/client",
-			ReadOnly:  true,
-		},
-	}
 	reversedVpnVolumeMounts = []corev1.VolumeMount{
 		{
 			Name:      "kube-apiserver-http-proxy",
@@ -354,8 +342,6 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 
 	for _, volume := range ps.Volumes {
 		switch volume.Name {
-		case "konnectivity-server-client-tls":
-			proxyHost = "konnectivity-server"
 		case "kube-apiserver-http-proxy":
 			proxyHost = "vpn-seed-server"
 		}
@@ -400,10 +386,6 @@ func ensureAuditForwarderProxy(auditForwarderSidecar *corev1.Container, proxyHos
 	}
 
 	switch proxyHost {
-	case "konnectivity-server":
-		for _, mount := range konnectivityMtlsVolumeMounts {
-			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
-		}
 	case "vpn-seed-server":
 		for _, envVar := range kubeAggregatorClientTlsEnvVars {
 			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
