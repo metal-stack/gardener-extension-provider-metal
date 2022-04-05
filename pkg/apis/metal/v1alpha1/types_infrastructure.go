@@ -42,6 +42,5 @@ type InfrastructureStatus struct {
 }
 
 type FirewallStatus struct {
-	Succeeded bool   `json:"succeeded"`
 	MachineID string `json:"machineID"`
 }
