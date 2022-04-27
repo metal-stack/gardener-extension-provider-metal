@@ -15,13 +15,13 @@ type InfrastructureConfig struct {
 }
 
 type Firewall struct {
-	Size              string       `json:"size"`
-	Image             string       `json:"image"`
-	Networks          []string     `json:"networks"`
-	RateLimits        []RateLimit  `json:"rateLimits"`
-	EgressRules       []EgressRule `json:"egressRules"`
-	AcceptLog         bool         `json:"acceptlog"`
-	ControllerVersion string       `json:"controllerVersion"`
+	Size                   string       `json:"size"`
+	Image                  string       `json:"image"`
+	Networks               []string     `json:"networks"`
+	RateLimits             []RateLimit  `json:"rateLimits"`
+	EgressRules            []EgressRule `json:"egressRules"`
+	LogAcceptedConnections bool         `json:"logAcceptedConnections"`
+	ControllerVersion      string       `json:"controllerVersion"`
 }
 
 type RateLimit struct {
