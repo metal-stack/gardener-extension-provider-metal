@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.2
+    controller-gen.kubebuilder.io/version: v0.7.0
   creationTimestamp: null
   name: duros.storage.metal-stack.io
 spec:
@@ -54,12 +54,15 @@ spec:
                   properties:
                     compression:
                       type: boolean
+                    default:
+                      type: boolean
                     name:
                       type: string
                     replicas:
                       type: integer
                   required:
                   - compression
+                  - default
                   - name
                   - replicas
                   type: object

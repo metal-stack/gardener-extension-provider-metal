@@ -96,7 +96,6 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 				Kind:       "InfrastructureStatus",
 			},
 			Firewall: metalv1alpha1.FirewallStatus{
-				Succeeded: providerStatus.Firewall.Succeeded,
 				MachineID: providerStatus.Firewall.MachineID,
 			},
 		}}

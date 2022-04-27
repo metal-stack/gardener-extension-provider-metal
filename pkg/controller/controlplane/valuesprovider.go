@@ -612,7 +612,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.client, vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, nws)
+	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.client, vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -1027,8 +1027,22 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
-func (vp *valuesProvider) GetStorageClassesChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (map[string]interface{}, error) {
-	return nil, nil
+func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, _ *extensionscontroller.Cluster) (map[string]interface{}, error) {
+	cp, err := helper.ControlPlaneConfigFromControlPlane(controlPlane)
+	if err != nil {
+		return nil, err
+	}
+
+	isDefaultSC := true
+	if cp.CustomDefaultStorageClass != nil && cp.CustomDefaultStorageClass.ClassName != "csi-lvm" {
+		isDefaultSC = false
+	}
+
+	values := map[string]interface{}{
+		"isDefaultStorageClass": isDefaultSC,
+	}
+
+	return values, nil
 }
 
 // getCCMChartValues collects and returns the CCM chart values.
@@ -1256,7 +1270,7 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 	return values, nil
 }
 
-func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, nws networkMap) (map[string]interface{}, error) {
+func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, cp *apismetal.ControlPlaneConfig, nws networkMap) (map[string]interface{}, error) {
 	disabledValues := map[string]interface{}{
 		"duros": map[string]interface{}{
 			"enabled": false,
@@ -1330,10 +1344,17 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 
 	var scs []map[string]interface{}
 	for _, sc := range partitionConfig.StorageClasses {
+
+		isDefaultSC := false
+		if cp.CustomDefaultStorageClass != nil && cp.CustomDefaultStorageClass.ClassName == sc.Name {
+			isDefaultSC = true
+		}
+
 		scs = append(scs, map[string]interface{}{
 			"name":        sc.Name,
 			"replicas":    sc.ReplicaCount,
 			"compression": sc.Compression,
+			"default":     isDefaultSC,
 		})
 	}
 
