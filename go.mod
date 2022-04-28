@@ -9,7 +9,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/gardener/etcd-druid v0.7.3
 	github.com/gardener/external-dns-management v0.12.0
-	github.com/gardener/gardener v1.28.0
+	github.com/gardener/gardener v1.30.2
 	github.com/gardener/machine-controller-manager v0.44.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
