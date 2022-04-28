@@ -1,4 +1,4 @@
-FROM golang:1.17 AS builder
+FROM golang:1.18 AS builder
 
 WORKDIR /go/src/github.com/metal-stack/gardener-extension-provider-metal
 COPY . .
