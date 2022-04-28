@@ -20,12 +20,17 @@ jobs:
         username: ${{ secrets.DOCKER_REGISTRY_USER }}
         password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
 
-    - name: Set up Go 1.17
+    - name: Set up Go 1.18
       uses: actions/setup-go@v2
       with:
-        go-version: '1.17.x'
+        go-version: '1.18.x'
 
-    - name: Check (lint) and Test
+    - name: Lint
+      uses: golangci/golangci-lint-action@v2
+      with:
+        args: -p bugs -p unused --timeout=5m
+
+    - name: Test
       run: |
         make test-in-docker
 

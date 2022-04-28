@@ -58,19 +58,19 @@ const (
 	// AudittailerNamespace is the namespace where the audit tailer will get deployed.
 	AudittailerNamespace = "audit"
 	// AudittailerClientSecretName is the name of the secret containing the certificates for the audittailer client.
-	AudittailerClientSecretName = "audittailer-client"
+	AudittailerClientSecretName = "audittailer-client" // nolint:gosec
 	// AudittailerServerSecretName is the name of the secret containing the certificates for the audittailer server.
-	AudittailerServerSecretName = "audittailer-server"
+	AudittailerServerSecretName = "audittailer-server" // nolint:gosec
 	// AuditForwarderSplunkConfigName is the name of the configmap containing the splunk configuration for the auditforwarder.
 	AuditForwarderSplunkConfigName = "audit-to-splunk-config"
 	// AuditForwarderSplunkSecretName is the name of the secret containing the splunk hec token and, if required, the ca certificate.
-	AuditForwarderSplunkSecretName = "audit-to-splunk-secret"
+	AuditForwarderSplunkSecretName = "audit-to-splunk-secret" // nolint:gosec
 	// DroptailerNamespace is the namespace where the firewall droptailer will get deployed.
 	DroptailerNamespace = "firewall"
 	// DroptailerClientSecretName is the name of the secret containing the certificates for the droptailer client.
-	DroptailerClientSecretName = "droptailer-client"
+	DroptailerClientSecretName = "droptailer-client" // nolint:gosec
 	// DroptailerServerSecretName is the name of the secret containing the certificates for the droptailer server.
-	DroptailerServerSecretName = "droptailer-server"
+	DroptailerServerSecretName = "droptailer-server" // nolint:gosec
 	// CloudControllerManagerDeploymentName is the name of the deployment for the cloud controller manager.
 	CloudControllerManagerDeploymentName = "cloud-controller-manager"
 	// CloudControllerManagerServerName is the name of the secret containing the certificates for the cloud controller manager server.

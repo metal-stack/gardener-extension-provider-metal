@@ -58,7 +58,7 @@ func (healthChecker *DurosHealthChecker) Check(ctx context.Context, request type
 			}, nil
 		}
 
-		err := fmt.Errorf("check duros resource failed. Unable to retrieve duros resource '%s' in namespace '%s': %v", healthChecker.durosResourceName, request.Namespace, err)
+		err := fmt.Errorf("check duros resource failed. Unable to retrieve duros resource '%s' in namespace '%s': %w", healthChecker.durosResourceName, request.Namespace, err)
 		healthChecker.logger.Error(err, "Health check failed")
 		return nil, err
 	}

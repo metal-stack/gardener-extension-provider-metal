@@ -20,6 +20,7 @@ func Test_decodeMachineID(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := decodeMachineID(tt.id); got != tt.want {
 				t.Errorf("decodeMachineID() = %v, want %v", got, tt.want)
