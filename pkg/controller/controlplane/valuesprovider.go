@@ -716,6 +716,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	if err != nil {
 		return nil, fmt.Errorf("could not sign firewall values %w", err)
 	}
+	vp.logger.Info("ACCEPTDEBUG", "cluster", cluster.ObjectMeta.Name, "signed firewall spec", fwSpec)
 
 	durosValues := map[string]interface{}{
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
@@ -773,6 +774,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 }
 
 func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient *metalgo.Driver) (*firewallv1.FirewallSpec, error) {
+	vp.logger.Info("ACCEPTDEBUG Function getFirewallSpec", "cluster", cluster.ObjectMeta.Name, "infrastructureConfig", infrastructureConfig)
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
@@ -798,6 +800,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 	if infrastructureConfig.Firewall.LogAcceptedConnections {
 		logAcceptedConnections = true
 	}
+	vp.logger.Info("ACCEPTDEBUG Function getFirewallSpec", "cluster", cluster.ObjectMeta.Name, "logAcceptedConnections", logAcceptedConnections)
 
 	clusterID := string(cluster.Shoot.GetUID())
 	projectID := infrastructureConfig.ProjectID
@@ -861,6 +864,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 	spec.ControllerVersion = fwcv.Version
 	spec.ControllerURL = fwcv.URL
 
+	vp.logger.Info("ACCEPTDEBUG Function getFirewallSpec", "cluster", cluster.ObjectMeta.Name, "firewall spec", spec)
 	return &spec, nil
 }
 
