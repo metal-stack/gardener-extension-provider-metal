@@ -12,11 +12,16 @@ rules:
   - pods
   - persistentvolumes
   - persistentvolumeclaims
-  - storageclasses
   verbs:
   - get
   - list
   - watch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - get
 - apiGroups:
   - metal-stack.io
   resources:
