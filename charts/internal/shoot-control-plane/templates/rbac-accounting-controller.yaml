@@ -12,6 +12,7 @@ rules:
   - pods
   - persistentvolumes
   - persistentvolumeclaims
+  - storageclasses
   verbs:
   - get
   - list
