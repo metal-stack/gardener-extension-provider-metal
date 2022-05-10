@@ -844,13 +844,13 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 
 	spec := firewallv1.FirewallSpec{
 		Data: firewallv1.Data{
-			Interval:               "10s",
-			LogAcceptedConnections: logAcceptedConnections,
-			FirewallNetworks:       firewallNetworks,
-			InternalPrefixes:       internalPrefixes,
-			RateLimits:             rateLimits,
-			EgressRules:            egressRules,
+			Interval:         "10s",
+			FirewallNetworks: firewallNetworks,
+			InternalPrefixes: internalPrefixes,
+			RateLimits:       rateLimits,
+			EgressRules:      egressRules,
 		},
+		LogAcceptedConnections: logAcceptedConnections,
 	}
 
 	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
