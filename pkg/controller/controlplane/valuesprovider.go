@@ -794,6 +794,11 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		})
 	}
 
+	logAcceptedConnections := false
+	if infrastructureConfig.Firewall.LogAcceptedConnections {
+		logAcceptedConnections = true
+	}
+
 	clusterID := string(cluster.Shoot.GetUID())
 	projectID := infrastructureConfig.ProjectID
 	firewalls, err := metalclient.FindClusterFirewalls(mclient, clusterTag(clusterID), projectID)
@@ -845,6 +850,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 			RateLimits:       rateLimits,
 			EgressRules:      egressRules,
 		},
+		LogAcceptedConnections: logAcceptedConnections,
 	}
 
 	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
