@@ -355,10 +355,21 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 			{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
 		}...)
 		if controllerConfig.AuditToSplunk.Enabled {
-			configChart.Objects = append(configChart.Objects, []*chart.Object{
-				{Type: &corev1.Secret{}, Name: "audit-to-splunk-secret"},
-				{Type: &corev1.ConfigMap{}, Name: "audit-to-splunk-config"},
+			cpShootChart.Images = append(cpShootChart.Images, []string{metal.AuditToSplunkImageName}...)
+			cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+				// fluentd-splunk-audit
+				{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "fluentd-splunk-audit"},
+				{Type: &corev1.ServiceAccount{}, Name: "fluentd-splunk-audit"},
+				{Type: &corev1.Secret{}, Name: "fluentd-splunk-audit"},
+				{Type: &corev1.ConfigMap{}, Name: "fluentd-splunk-audit"},
+				{Type: &rbacv1.ClusterRole{}, Name: "fluentd-splunk-audit"},
+				{Type: &rbacv1.ClusterRoleBinding{}, Name: "fluentd-splunk-audit"},
+				{Type: &appsv1.DaemonSet{}, Name: "fluentd-splunk-audit"},
 			}...)
+			// 	configChart.Objects = append(configChart.Objects, []*chart.Object{
+			// 	{Type: &corev1.Secret{}, Name: "audit-to-splunk-secret"},
+			// 	{Type: &corev1.ConfigMap{}, Name: "audit-to-splunk-config"},
+			// }...)
 		}
 	}
 
@@ -721,11 +732,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
-	clusterAuditValues := map[string]interface{}{
-		"enabled": false,
-	}
-	if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
-		clusterAuditValues["enabled"] = true
+	clusterAuditValues, err := vp.getClusterAuditConfigValues(ctx, cp, cluster)
+	if err != nil {
+		return nil, err
 	}
 
 	apiserverIPs := []string{}
@@ -750,9 +759,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		"accountingExporter": map[string]interface{}{
 			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
 		},
-		"duros":        durosValues,
-		"clusterAudit": clusterAuditValues,
+		"duros": durosValues,
 	}
+	merge(values, clusterAuditValues)
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
 		partitionConfig, ok := vp.controllerConfig.Storage.Duros.PartitionConfig[infrastructure.PartitionID]
