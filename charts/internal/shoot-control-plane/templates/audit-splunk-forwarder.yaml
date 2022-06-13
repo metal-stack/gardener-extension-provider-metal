@@ -94,7 +94,7 @@ data:
       @type tail
       @label @SPLUNK
       tag tail.containers.*
-      path /var/log/containers/audittailer*_audit_audittailer*.log
+      path /var/log/containers/audittailer*_audit_audittailer*.log,/var/log/containers/droptailer*_firewall_droptailer*.log
       pos_file /var/log/splunk-fluentd-containers.log.pos
       path_key source
       read_from_head true
@@ -286,7 +286,6 @@ spec:
       containers:
       - name: fluentd
         image: {{ index .Values.images "fluentd-splunk-audit" }}
-        # image: fluent/fluentd-kubernetes-daemonset:v1.14.5-debian-forward-1.1 # FIXME make this configurable
         imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 0
