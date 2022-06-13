@@ -286,7 +286,7 @@ spec:
       containers:
       - name: fluentd
         image: {{ index .Values.images "fluentd-splunk-audit" }}
-        image: fluent/fluentd-kubernetes-daemonset:v1.14.5-debian-forward-1.1 # FIXME make this configurable
+        # image: fluent/fluentd-kubernetes-daemonset:v1.14.5-debian-forward-1.1 # FIXME make this configurable
         imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 0
