@@ -173,6 +173,15 @@ data:
         @type jq_transformer
         jq '.record | . + (.source | capture("/var/log/pods/(?<pod_uid>[^/]+)/(?<container_name>[^/]+)/(?<container_retry>[0-9]+).log")) | .sourcetype = ("kube:container:" + .container_name) | .splunk_index = "{{ .Values.auditToSplunk.index }}"'
       </filter>
+      # extract firewall droptailer json fields
+      <filter tail.containers.**.droptailer**>
+        @type parser
+        key_name log
+        reserve_time true
+        <parse>
+          @type json
+        </parse>
+      </filter>
 
 
       # = output =
