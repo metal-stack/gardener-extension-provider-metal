@@ -366,10 +366,6 @@ func NewValuesProvider(mgr manager.Manager, logger logr.Logger, controllerConfig
 				{Type: &rbacv1.ClusterRoleBinding{}, Name: "fluentd-splunk-audit"},
 				{Type: &appsv1.DaemonSet{}, Name: "fluentd-splunk-audit"},
 			}...)
-			// 	configChart.Objects = append(configChart.Objects, []*chart.Object{
-			// 	{Type: &corev1.Secret{}, Name: "audit-to-splunk-secret"},
-			// 	{Type: &corev1.ConfigMap{}, Name: "audit-to-splunk-config"},
-			// }...)
 		}
 	}
 
