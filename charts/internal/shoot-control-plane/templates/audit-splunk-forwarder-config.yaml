@@ -1,0 +1,203 @@
+{{- if .Values.auditToSplunk.enabled }}
+---
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: fluentd-splunk-audit
+      namespace: audit
+      labels:
+        app: fluentd-splunk-audit
+    type: Opaque
+    data:
+      splunk_hec_token: {{ .Values.auditToSplunk.hecToken | b64enc }}
+    {{- if .Values.auditToSplunk.hecCAFile }}
+      hec_ca_file: {{ .Values.auditToSplunk.hecCAFile | b64enc }}
+    {{- end }}
+    ---
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: fluentd-splunk-audit
+      namespace: audit
+      labels:
+        app: fluentd-splunk-audit
+    data:
+      fluent.conf: |-
+        @include system.conf
+        @include source.containers.conf
+        @include output.conf
+    
+      system.conf: |-
+        # system wide configurations
+        <system>
+          log_level info
+          root_dir /tmp/fluentd
+        </system>
+    
+      source.containers.conf: |-
+        # This configuration file for Fluentd / td-agent is used
+        # to watch changes to Docker log files. The kubelet creates symlinks that
+        # capture the pod name, namespace, container name & Docker container ID
+        # to the docker logs for pods in the /var/log/containers directory on the host.
+        # If running this fluentd configuration in a Docker container, the /var/log
+        # directory should be mounted in the container.
+        # reading kubelet logs from journal
+        #
+        # Reference:
+        # https://github.com/kubernetes/community/blob/20d2f6f5498a5668bae2aea9dcaf4875b9c06ccb/contributors/design-proposals/node/kubelet-cri-logging.md
+        #
+        # Json Log Example:
+        # {"log":"[info:2016-02-16T16:04:05.930-08:00] Some log text here\n","stream":"stdout","time":"2016-02-17T00:04:05.931087621Z"}
+        # CRI Log Example (not supported):
+        # 2016-02-17T00:04:05.931087621Z stdout P { 'long': { 'json', 'object output' },
+        # 2016-02-17T00:04:05.931087621Z stdout F 'splitted': 'partial-lines' }
+        # 2016-02-17T00:04:05.931087621Z stdout F [info:2016-02-16T16:04:05.930-08:00] Some log text here
+        <source>
+          @id containers.log
+          @type tail
+          @label @SPLUNK
+          tag tail.containers.*
+          path /var/log/containers/audittailer*_audit_audittailer*.log,/var/log/containers/droptailer*_firewall_droptailer*.log
+          pos_file /var/log/splunk-fluentd-containers.log.pos
+          path_key source
+          read_from_head true
+          refresh_interval 60
+          <parse>
+            @type multi_format
+            <pattern>
+              format json
+              time_format %Y-%m-%dT%H:%M:%S.%NZ
+              time_key time
+              time_type string
+              localtime false
+            </pattern>
+            <pattern>
+              format regexp
+              expression /^(?<time>.+) (?<stream>stdout|stderr)( (?<logtag>.))? (?<log>.*)$/
+              time_format  %Y-%m-%dT%H:%M:%S.%N%:z
+              time_key time
+              time_type string
+              localtime false
+            </pattern>
+          </parse>
+        </source>
+    
+    
+      output.conf: |-
+        <label @SPLUNK>
+          # filter to  remove empty lines
+          <filter tail.containers.**>
+            @type grep
+            <exclude>
+             key log
+             pattern ^$
+            </exclude>
+          </filter>
+          # cut extraneous time from firewall droptailer logs that would mess up json parsing
+          <filter tail.containers.**.droptailer**>
+            @type parser
+            key_name log
+            reserve_time true
+            reserve_data true
+            remove_key_name_field true
+            <parse>
+              @type regexp
+              expression /^.+(?<log>\{.+\})$/
+            </parse>
+          </filter>
+          # Enrich log with k8s metadata
+          <filter tail.containers.**>
+            @type kubernetes_metadata
+            annotation_match [ ".*" ]
+            de_dot false
+            watch true
+            cache_ttl 3600
+          </filter>
+          <filter tail.containers.**>
+            @type record_transformer
+            enable_ruby
+            <record>
+              # set the sourcetype from splunk.com/sourcetype pod annotation or set it to kube:container:CONTAINER_NAME
+              sourcetype ${record.dig("kubernetes", "annotations", "splunk.com/sourcetype") ? record.dig("kubernetes", "annotations", "splunk.com/sourcetype") : "kube:container:"+record.dig("kubernetes","container_name")}
+              container_name ${record.dig("kubernetes","container_name")}
+              namespace ${record.dig("kubernetes","namespace_name")}
+              pod ${record.dig("kubernetes","pod_name")}
+              container_id ${record.dig("docker","container_id")}
+              pod_uid ${record.dig("kubernetes","pod_id")}
+              container_image ${record.dig("kubernetes","container_image")}
+              # set the cluster_name field to the configured value, or default to "cluster_name"
+              cluster_name {{ .Values.auditToSplunk.clusterName }}
+              # set the splunk_index field to the value found in the pod splunk.com/index annotations. if not set, use namespace annotation, or default to the default_index
+              splunk_index ${record.dig("kubernetes", "annotations", "splunk.com/index") ? record.dig("kubernetes", "annotations", "splunk.com/index") : record.dig("kubernetes", "namespace_annotations", "splunk.com/index") ? (record["kubernetes"]["namespace_annotations"]["splunk.com/index"]) : ("{{ .Values.auditToSplunk.index }}")}
+              label_app ${record.dig("kubernetes","labels","app")}
+              label_k8s-app ${record.dig("kubernetes","labels","k8s-app")}
+              label_release ${record.dig("kubernetes","labels","release")}
+              exclude_list ${record.dig("kubernetes", "annotations", "splunk.com/exclude") ? record.dig("kubernetes", "annotations", "splunk.com/exclude") : record.dig("kubernetes", "namespace_annotations", "splunk.com/exclude") ? (record["kubernetes"]["namespace_annotations"]["splunk.com/exclude"]) : ("false")}
+            </record>
+          </filter>
+          <filter tail.containers.**>
+            # Exclude all logs that are marked
+            @type grep
+            <exclude>
+              key exclude_list
+              pattern /^true$/
+            </exclude>
+          </filter>
+          # extract pod_uid and container_name for CRIO runtime
+          <filter tail.containers.var.log.pods.**>
+            @type jq_transformer
+            jq '.record | . + (.source | capture("/var/log/pods/(?<pod_uid>[^/]+)/(?<container_name>[^/]+)/(?<container_retry>[0-9]+).log")) | .sourcetype = ("kube:container:" + .container_name) | .splunk_index = "{{ .Values.auditToSplunk.index }}"'
+          </filter>
+    
+          # = output =
+          <match **>
+            @type splunk_hec
+            hec_host "{{ .Values.auditToSplunk.hecHost }}"
+            hec_port {{ .Values.auditToSplunk.hecPort }}
+            hec_token "#{ENV['SPLUNK_HEC_TOKEN']}"
+            index_key splunk_index
+    {{- if .Values.auditToSplunk.tlsEnabled }}
+            insecure_ssl false
+    {{- end }}
+    {{- if .Values.auditToSplunk.hecCAFile }}
+            ca_file /fluentd/etc/splunk/hec_ca_file
+    {{- end }}
+            host "#{ENV['K8S_NODE_NAME']}"
+            source_key source
+            sourcetype_key sourcetype
+            <fields>
+              # currently CRI does not produce log paths with all the necessary
+              # metadata to parse out pod, namespace, container_name, container_id.
+              # this may be resolved in the future by this issue: https://github.com/kubernetes/kubernetes/issues/58638#issuecomment-385126031
+              container_image
+              pod_uid
+              pod
+              container_name
+              namespace
+              container_id
+              cluster_name
+              label_app
+              label_k8s-app
+              label_release
+            </fields>
+            app_name fluentd-splunk-audit
+            <buffer>
+              @type memory
+              chunk_limit_records 100000
+              chunk_limit_size 20m
+              flush_interval 5s
+              flush_thread_count 1
+              overflow_action block
+              retry_max_times 5
+              retry_type periodic
+              total_limit_size 600m
+            </buffer>
+            <format>
+              # we just want to keep the raw logs, not the structure created by docker or journald
+              @type single_value
+              message_key log
+              add_newline false
+            </format>
+          </match>
+        </label>
+{{- end }}
