@@ -156,8 +156,11 @@ data:
         hec_port {{ .Values.auditToSplunk.hecPort }}
         hec_token "#{ENV['SPLUNK_HEC_TOKEN']}"
         index_key splunk_index
-{{- if .Values.auditToSplunk.tlsEnabled }}
+{{- if eq .Values.auditToSplunk.tlsEnabled "true" }}
+        protocol https
         insecure_ssl false
+{{- else }}
+        protocol http
 {{- end }}
 {{- if .Values.auditToSplunk.hecCAFile }}
         ca_file /fluentd/etc/splunk/hec_ca_file
