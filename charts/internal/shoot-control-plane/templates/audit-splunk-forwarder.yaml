@@ -78,8 +78,6 @@ kind: DaemonSet
 metadata:
   name: fluentd-splunk-audit
   namespace: audit
-  annotations:
-    checksum/fluentd-splunk-audit-config: {{ include (print $.Template.BasePath "/audit-splunk-forwarder-config.yaml") . | sha256sum }}
   labels:
     app: fluentd-splunk-audit
 spec:
@@ -91,6 +89,7 @@ spec:
       labels:
         app: fluentd-splunk-audit
       annotations:
+        checksum/fluentd-splunk-audit-config: {{ include (print $.Template.BasePath "/audit-splunk-forwarder-config.yaml") . | sha256sum }}
         prometheus.io/scrape: 'true'
         prometheus.io/port: '24231'
     spec:
