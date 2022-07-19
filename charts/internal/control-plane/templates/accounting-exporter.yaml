@@ -64,6 +64,7 @@ spec:
             port: 3000
             scheme: HTTP
           failureThreshold: 1
+          initialDelaySeconds: 120
         readinessProbe:
           httpGet:
             path: /health
