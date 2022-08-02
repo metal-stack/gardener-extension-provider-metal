@@ -9,26 +9,26 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/gardener/etcd-druid v0.7.3
 	github.com/gardener/external-dns-management v0.12.5
-	github.com/gardener/gardener v1.30.2
-	github.com/gardener/machine-controller-manager v0.44.0
+	github.com/gardener/gardener v1.31.4
+	github.com/gardener/machine-controller-manager v0.45.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.8
 	github.com/google/uuid v1.3.0
-	github.com/imdario/mergo v0.3.12
+	github.com/imdario/mergo v0.3.13
 	github.com/metal-stack/duros-controller v0.3.3
 	github.com/metal-stack/firewall-controller v1.1.5
-	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.10
+	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.11
 	github.com/metal-stack/metal-go v0.18.5
 	github.com/metal-stack/metal-lib v0.10.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.19.0
-	github.com/spf13/cobra v1.4.0
+	github.com/onsi/gomega v1.20.0
+	github.com/spf13/cobra v1.5.0
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.23.6
 	k8s.io/apiextensions-apiserver v0.23.6
 	k8s.io/apimachinery v0.23.6
-	k8s.io/apiserver v0.21.10
+	k8s.io/apiserver v0.23.5
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.23.3
 	k8s.io/component-base v0.23.6
@@ -73,7 +73,7 @@ require (
 	github.com/go-openapi/spec v0.20.6 // indirect
 	github.com/go-openapi/strfmt v0.21.2 // indirect
 	github.com/go-openapi/swag v0.21.1 // indirect
-	github.com/go-openapi/validate v0.21.0 // indirect
+	github.com/go-openapi/validate v0.22.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/flect v0.2.3 // indirect
@@ -88,7 +88,6 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -133,10 +132,10 @@ require (
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/net v0.0.0-20220622184535-263ec571b305 // indirect
 	golang.org/x/oauth2 v0.0.0-20220628200809-02e64fa58f26 // indirect
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
+	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d // indirect
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
+	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 	golang.org/x/tools v0.1.10 // indirect
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
@@ -157,6 +156,7 @@ require (
 	k8s.io/klog/v2 v2.60.1 // indirect
 	k8s.io/kube-aggregator v0.21.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf // indirect
+	k8s.io/metrics v0.21.2 // indirect
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20210609022947-fbf50b04fe17 // indirect
 	sigs.k8s.io/controller-tools v0.8.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
@@ -168,15 +168,16 @@ replace (
 	github.com/gardener/gardener-resource-manager/api => github.com/gardener/gardener-resource-manager/api v0.25.0
 	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
-	k8s.io/api => k8s.io/api v0.21.10
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.21.10
-	k8s.io/apimachinery => k8s.io/apimachinery v0.21.10
-	k8s.io/apiserver => k8s.io/apiserver v0.21.10
-	k8s.io/client-go => k8s.io/client-go v0.21.10
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.21.10
-	k8s.io/code-generator => k8s.io/code-generator v0.21.10
-	k8s.io/component-base => k8s.io/component-base v0.21.10
+	k8s.io/api => k8s.io/api v0.22.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.22.2
+	k8s.io/apiserver => k8s.io/apiserver v0.22.2
+	k8s.io/client-go => k8s.io/client-go v0.22.2
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.22.2
+	k8s.io/code-generator => k8s.io/code-generator v0.22.2
+	k8s.io/component-base => k8s.io/component-base v0.22.2
+	k8s.io/helm => k8s.io/helm v2.13.1+incompatible
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.10.0
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.21.10
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.22.2
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.1
 )
