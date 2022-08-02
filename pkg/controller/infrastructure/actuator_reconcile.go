@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/google/uuid"
@@ -19,6 +20,13 @@ import (
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalgo "github.com/metal-stack/metal-go"
+	"github.com/metal-stack/metal-go/api/client/firewall"
+	"github.com/metal-stack/metal-go/api/client/image"
+	"github.com/metal-stack/metal-go/api/client/ip"
+	metalip "github.com/metal-stack/metal-go/api/client/ip"
+	"github.com/metal-stack/metal-go/api/client/network"
+	"github.com/metal-stack/metal-go/api/models"
+
 	mn "github.com/metal-stack/metal-lib/pkg/net"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -43,7 +51,7 @@ type firewallReconciler struct {
 	infrastructureConfig *metalapi.InfrastructureConfig
 	providerStatus       *metalapi.InfrastructureStatus
 	cluster              *extensionscontroller.Cluster
-	mclient              *metalgo.Driver
+	mclient              metalgo.Client
 	clusterID            string
 	clusterTag           string
 	machineIDInStatus    string
@@ -52,7 +60,7 @@ type firewallReconciler struct {
 type egressIPReconciler struct {
 	logger               logr.Logger
 	infrastructureConfig *metalapi.InfrastructureConfig
-	mclient              *metalgo.Driver
+	mclient              metalgo.Client
 	clusterID            string
 	egressTag            string
 }
@@ -151,7 +159,7 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 // TODO migrate to a state-machine or to a dedicated controller
 func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 	// detect which next action is required
-	action, status, err := firewallNextAction(r)
+	action, status, err := firewallNextAction(ctx, r)
 	if err != nil {
 		return err
 	}
@@ -185,7 +193,7 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 
 		return updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
 	case firewallActionDeleteAndRecreate:
-		err := deleteFirewall(r.logger, r.machineIDInStatus, r.infrastructureConfig.ProjectID, r.clusterTag, r.mclient)
+		err := deleteFirewall(ctx, r.machineIDInStatus, r.infrastructureConfig.ProjectID, r.clusterTag, r.mclient)
 		if err != nil {
 			return err
 		}
@@ -210,8 +218,8 @@ func reconcileFirewall(ctx context.Context, r *firewallReconciler) error {
 	}
 }
 
-func firewallNextAction(r *firewallReconciler) (firewallReconcileAction, *metalapi.FirewallStatus, error) {
-	firewalls, err := metalclient.FindClusterFirewalls(r.mclient, r.clusterTag, r.infrastructureConfig.ProjectID)
+func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallReconcileAction, *metalapi.FirewallStatus, error) {
+	firewalls, err := metalclient.FindClusterFirewalls(ctx, r.mclient, r.clusterTag, r.infrastructureConfig.ProjectID)
 	if err != nil {
 		r.logger.Error(err, "unable to fetch cluster firewalls", "clustertag", r.clusterTag, "projectid", r.infrastructureConfig.ProjectID)
 		return firewallActionDoNothing, nil, &controllererrors.RequeueAfterError{
@@ -256,7 +264,7 @@ func firewallNextAction(r *firewallReconciler) (firewallReconcileAction, *metala
 
 		if fw.Allocation != nil && fw.Allocation.Image != nil && fw.Allocation.Image.ID != nil && *fw.Allocation.Image.ID != r.infrastructureConfig.Firewall.Image {
 			want := r.infrastructureConfig.Firewall.Image
-			image, err := r.mclient.ImageGetLatest(want)
+			image, err := r.mclient.Image().FindLatestImage(image.NewFindLatestImageParams().WithID(want).WithContext(ctx), nil)
 			if err != nil {
 				r.logger.Error(err, "firewall latest image not found", "clustertag", r.clusterTag, "projectid", r.infrastructureConfig.ProjectID, "image", want)
 				return firewallActionDoNothing, nil, &controllererrors.RequeueAfterError{
@@ -265,8 +273,8 @@ func firewallNextAction(r *firewallReconciler) (firewallReconcileAction, *metala
 				}
 			}
 
-			if image.Image != nil && image.Image.ID != nil && *image.Image.ID != *fw.Allocation.Image.ID {
-				r.logger.Info("firewall image has changed", "clusterid", r.clusterID, "machineid", r.machineIDInStatus, "current", *fw.Allocation.Image.ID, "new", *image.Image.ID)
+			if image.Payload != nil && image.Payload.ID != nil && *image.Payload.ID != *fw.Allocation.Image.ID {
+				r.logger.Info("firewall image has changed", "clusterid", r.clusterID, "machineid", r.machineIDInStatus, "current", *fw.Allocation.Image.ID, "new", *image.Payload.ID)
 				return firewallActionDeleteAndRecreate, nil, nil
 			}
 		}
@@ -303,7 +311,7 @@ func firewallNextAction(r *firewallReconciler) (firewallReconcileAction, *metala
 }
 
 func createFirewall(ctx context.Context, r *firewallReconciler) (machineID string, nodeCIDR string, err error) {
-	nodeCIDR, err = ensureNodeNetwork(r)
+	nodeCIDR, err = ensureNodeNetwork(ctx, r)
 	if err != nil {
 		r.logger.Error(err, "firewalls node network", "nodecidr", nodeCIDR)
 		return "", "", &controllererrors.RequeueAfterError{
@@ -330,7 +338,7 @@ func createFirewall(ctx context.Context, r *firewallReconciler) (machineID strin
 	name := clusterName + "-firewall-" + uuid.String()[:5]
 
 	// find private network
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(r.mclient, r.infrastructureConfig.ProjectID, nodeCIDR)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, r.mclient, r.infrastructureConfig.ProjectID, nodeCIDR)
 	if err != nil {
 		return "", "", err
 	}
@@ -346,37 +354,37 @@ func createFirewall(ctx context.Context, r *firewallReconciler) (machineID strin
 	}
 
 	// assemble firewall allocation request
-	var networks []metalgo.MachineAllocationNetwork
-	network := metalgo.MachineAllocationNetwork{
-		NetworkID:   *privateNetwork.ID,
-		Autoacquire: true,
+	networks := []*models.V1MachineAllocationNetwork{
+		{
+			Networkid:   privateNetwork.ID,
+			Autoacquire: pointer.Bool(true),
+		},
 	}
-	networks = append(networks, network)
+
 	for _, n := range r.infrastructureConfig.Firewall.Networks {
-		network := metalgo.MachineAllocationNetwork{
-			NetworkID:   n,
-			Autoacquire: true,
+		n := n
+		network := &models.V1MachineAllocationNetwork{
+			Networkid:   &n,
+			Autoacquire: pointer.Bool(true),
 		}
 		networks = append(networks, network)
 	}
 
-	createRequest := &metalgo.FirewallCreateRequest{
-		MachineCreateRequest: metalgo.MachineCreateRequest{
-			Description:   name + " created by Gardener",
-			Name:          name,
-			Hostname:      name,
-			Size:          r.infrastructureConfig.Firewall.Size,
-			Project:       r.infrastructureConfig.ProjectID,
-			Partition:     r.infrastructureConfig.PartitionID,
-			Image:         r.infrastructureConfig.Firewall.Image,
-			SSHPublicKeys: []string{string(r.infrastructure.Spec.SSHPublicKey)},
-			Networks:      networks,
-			UserData:      firewallUserData,
-			Tags:          []string{r.clusterTag},
-		},
+	createRequest := &models.V1FirewallCreateRequest{
+		Description: name + " created by Gardener",
+		Name:        name,
+		Hostname:    name,
+		Sizeid:      &r.infrastructureConfig.Firewall.Size,
+		Projectid:   &r.infrastructureConfig.ProjectID,
+		Partitionid: &r.infrastructureConfig.PartitionID,
+		Imageid:     &r.infrastructureConfig.Firewall.Image,
+		SSHPubKeys:  []string{string(r.infrastructure.Spec.SSHPublicKey)},
+		Networks:    networks,
+		UserData:    firewallUserData,
+		Tags:        []string{r.clusterTag},
 	}
 
-	fcr, err := r.mclient.FirewallCreate(createRequest)
+	fcr, err := r.mclient.Firewall().AllocateFirewall(firewall.NewAllocateFirewallParams().WithBody(createRequest).WithContext(ctx), nil)
 	if err != nil {
 		r.logger.Error(err, "firewall create error")
 		return "", "", &controllererrors.RequeueAfterError{
@@ -385,9 +393,9 @@ func createFirewall(ctx context.Context, r *firewallReconciler) (machineID strin
 		}
 	}
 
-	machineID = encodeMachineID(*fcr.Firewall.Partition.ID, *fcr.Firewall.ID)
+	machineID = encodeMachineID(*fcr.Payload.Partition.ID, *fcr.Payload.ID)
 
-	allocation := fcr.Firewall.Allocation
+	allocation := fcr.Payload.Allocation
 	if allocation == nil {
 		return "", "", fmt.Errorf("firewall %q was created but has no allocation", machineID)
 	}
@@ -396,20 +404,21 @@ func createFirewall(ctx context.Context, r *firewallReconciler) (machineID strin
 }
 
 func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
-	static := metalgo.IPTypeStatic
 	currentEgressIPs := sets.NewString()
-	resp, err := r.mclient.IPFind(&metalgo.IPFindRequest{
-		ProjectID: &r.infrastructureConfig.ProjectID,
+
+	resp, err := r.mclient.IP().FindIPs(ip.NewFindIPsParams().WithBody(&models.V1IPFindRequest{
+		Projectid: r.infrastructureConfig.ProjectID,
 		Tags:      []string{r.egressTag},
-		Type:      &static,
-	})
+		Type:      models.V1IPBaseTypeStatic,
+	}).WithContext(ctx), nil)
 	if err != nil {
 		return &controllererrors.RequeueAfterError{
 			Cause:        fmt.Errorf("failed to list egress ips of cluster %w", err),
 			RequeueAfter: 30 * time.Second,
 		}
 	}
-	for _, ip := range resp.IPs {
+
+	for _, ip := range resp.Payload {
 		currentEgressIPs.Insert(*ip.Ipaddress)
 	}
 
@@ -423,12 +432,11 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 				continue
 			}
 
-			resp, err := r.mclient.IPFind(&metalgo.IPFindRequest{
-				IPAddress: &ip,
-				ProjectID: &r.infrastructureConfig.ProjectID,
-				NetworkID: &egressRule.NetworkID,
-			})
-
+			resp, err := r.mclient.IP().FindIPs(metalip.NewFindIPsParams().WithBody(&models.V1IPFindRequest{
+				Ipaddress: ip,
+				Projectid: r.infrastructureConfig.ProjectID,
+				Networkid: egressRule.NetworkID,
+			}).WithContext(ctx), nil)
 			if err != nil {
 				return &controllererrors.RequeueAfterError{
 					Cause:        fmt.Errorf("error when retrieving ip %s for egress rule %w", ip, err),
@@ -436,7 +444,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 				}
 			}
 
-			switch len(resp.IPs) {
+			switch len(resp.Payload) {
 			case 0:
 				return &controllererrors.RequeueAfterError{
 					Cause:        fmt.Errorf("ip %s for egress rule does not exist", ip),
@@ -447,8 +455,8 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 				return fmt.Errorf("ip %s found multiple times", ip)
 			}
 
-			dbIP := resp.IPs[0]
-			if dbIP.Type != nil && *dbIP.Type != metalgo.IPTypeStatic {
+			dbIP := resp.Payload[0]
+			if dbIP.Type != nil && *dbIP.Type != models.V1IPBaseTypeStatic {
 				return &controllererrors.RequeueAfterError{
 					Cause:        fmt.Errorf("ips for egress rule must be static, but %s is not static", ip),
 					RequeueAfter: 30 * time.Second,
@@ -462,12 +470,10 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 				}
 			}
 
-			iur := metalgo.IPUpdateRequest{
-				IPAddress: *dbIP.Ipaddress,
+			_, err = r.mclient.IP().UpdateIP(metalip.NewUpdateIPParams().WithBody(&models.V1IPUpdateRequest{
+				Ipaddress: dbIP.Ipaddress,
 				Tags:      []string{r.egressTag},
-			}
-
-			_, err = r.mclient.IPUpdate(&iur)
+			}).WithContext(ctx), nil)
 			if err != nil {
 				return &controllererrors.RequeueAfterError{
 					Cause:        fmt.Errorf("could not tag ip %s for egress usage %w", ip, err),
@@ -480,7 +486,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 	if !currentEgressIPs.Equal(wantEgressIPs) {
 		toUnTag := currentEgressIPs.Difference(wantEgressIPs)
 		for _, ip := range toUnTag.List() {
-			err := clearIPTags(r.mclient, ip)
+			err := clearIPTags(ctx, r.mclient, ip)
 			if err != nil {
 				return &controllererrors.RequeueAfterError{
 					Cause:        fmt.Errorf("could not remove egress tag from ip %s %w", ip, err),
@@ -497,48 +503,48 @@ func egressTag(clusterID string) string {
 	return fmt.Sprintf("%s=%s", tag.ClusterEgress, clusterID)
 }
 
-func clearIPTags(mclient *metalgo.Driver, ip string) error {
-	iur := metalgo.IPUpdateRequest{
-		IPAddress: ip,
+func clearIPTags(ctx context.Context, mclient metalgo.Client, ip string) error {
+	_, err := mclient.IP().UpdateIP(metalip.NewUpdateIPParams().WithBody(&models.V1IPUpdateRequest{
+		Ipaddress: &ip,
 		Tags:      []string{},
-	}
-	_, err := mclient.IPUpdate(&iur)
+	}).WithContext(ctx), nil)
+
 	return err
 }
 
-func ensureNodeNetwork(r *firewallReconciler) (string, error) {
+func ensureNodeNetwork(ctx context.Context, r *firewallReconciler) (string, error) {
 	if r.cluster.Shoot.Spec.Networking.Nodes != nil {
 		return *r.cluster.Shoot.Spec.Networking.Nodes, nil
 	}
 	if r.infrastructure.Status.NodesCIDR != nil {
-		resp, err := r.mclient.NetworkFind(&metalgo.NetworkFindRequest{
-			ProjectID:   &r.infrastructureConfig.ProjectID,
-			PartitionID: &r.infrastructureConfig.PartitionID,
+		resp, err := r.mclient.Network().FindNetworks(network.NewFindNetworksParams().WithBody(&models.V1NetworkFindRequest{
+			Projectid:   r.infrastructureConfig.ProjectID,
+			Partitionid: r.infrastructureConfig.PartitionID,
 			Labels:      map[string]string{tag.ClusterID: r.clusterID},
-		})
+		}).WithContext(ctx), nil)
 		if err != nil {
 			return "", err
 		}
 
-		if len(resp.Networks) != 0 {
+		if len(resp.Payload) != 0 {
 			return *r.infrastructure.Status.NodesCIDR, nil
 		}
 
 		return "", fmt.Errorf("node network disappeared from cloud provider: %s", *r.infrastructure.Status.NodesCIDR)
 	}
 
-	resp, err := r.mclient.NetworkAllocate(&metalgo.NetworkAllocateRequest{
-		ProjectID:   r.infrastructureConfig.ProjectID,
-		PartitionID: r.infrastructureConfig.PartitionID,
+	resp, err := r.mclient.Network().AllocateNetwork(network.NewAllocateNetworkParams().WithBody(&models.V1NetworkAllocateRequest{
+		Projectid:   r.infrastructureConfig.ProjectID,
+		Partitionid: r.infrastructureConfig.PartitionID,
 		Name:        r.cluster.Shoot.GetName(),
 		Description: r.clusterID,
 		Labels:      map[string]string{tag.ClusterID: r.clusterID},
-	})
+	}).WithContext(ctx), nil)
 	if err != nil {
 		return "", err
 	}
 
-	nodeCIDR := resp.Network.Prefixes[0]
+	nodeCIDR := resp.Payload.Prefixes[0]
 
 	return nodeCIDR, nil
 }

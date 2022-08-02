@@ -113,7 +113,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		nodeCIDR = w.cluster.Shoot.Spec.Networking.Nodes
 	}
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, *nodeCIDR)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, *nodeCIDR)
 	if err != nil {
 		return err
 	}
