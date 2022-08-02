@@ -126,7 +126,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	resp, err := d.mclient.IP().FindIPs(metalip.NewFindIPsParams().WithBody(&models.V1IPFindRequest{
 		Projectid: d.projectID,
 		Tags:      []string{egressTag(d.clusterID)},
-		Type:      models.V1IPBaseTypeEphemeral,
+		Type:      models.V1IPBaseTypeStatic,
 	}).WithContext(ctx), nil)
 	if err != nil {
 		return &controllererrors.RequeueAfterError{
