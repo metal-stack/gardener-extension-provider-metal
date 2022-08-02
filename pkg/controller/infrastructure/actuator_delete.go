@@ -12,6 +12,10 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
+	metalip "github.com/metal-stack/metal-go/api/client/ip"
+	"github.com/metal-stack/metal-go/api/client/machine"
+	"github.com/metal-stack/metal-go/api/client/network"
+	"github.com/metal-stack/metal-go/api/models"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
@@ -27,7 +31,7 @@ type firewallDeleter struct {
 	infrastructureConfig *metalapi.InfrastructureConfig
 	providerStatus       *metalapi.InfrastructureStatus
 	cluster              *extensionscontroller.Cluster
-	mclient              *metalgo.Driver
+	mclient              metalgo.Client
 	clusterID            string
 	clusterTag           string
 	machineID            string
@@ -75,7 +79,7 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 
 func delete(ctx context.Context, d *firewallDeleter) error {
 	if d.machineID != "" {
-		err := deleteFirewall(d.logger, d.machineID, d.projectID, d.clusterTag, d.mclient)
+		err := deleteFirewall(ctx, d.machineID, d.projectID, d.clusterTag, d.mclient)
 		if err != nil {
 			return err
 		}
@@ -88,7 +92,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		}
 	}
 
-	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(d.mclient, d.projectID, d.clusterID)
+	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(ctx, d.mclient, d.projectID, d.clusterID)
 	if err != nil {
 		d.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
 		return &controllererrors.RequeueAfterError{
@@ -98,7 +102,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	}
 
 	for _, ip := range ipsToFree {
-		_, err := d.mclient.IPFree(*ip.Ipaddress)
+		_, err := d.mclient.IP().FreeIP(metalip.NewFreeIPParams().WithID(*ip.Ipaddress).WithContext(ctx), nil)
 		if err != nil {
 			d.logger.Error(err, "failed to release ephemeral cluster ip", "infrastructure", d.infrastructure.Name, "ip", *ip.Ipaddress)
 			return &controllererrors.RequeueAfterError{
@@ -109,7 +113,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	}
 
 	for _, ip := range ipsToUpdate {
-		err := metalclient.UpdateIPInCluster(d.mclient, ip, d.clusterID)
+		err := metalclient.UpdateIPInCluster(ctx, d.mclient, ip, d.clusterID)
 		if err != nil {
 			d.logger.Error(err, "failed to remove cluster tags from ip which is member of other clusters", "infrastructure", d.infrastructure.Name, "ip", *ip.Ipaddress)
 			return &controllererrors.RequeueAfterError{
@@ -119,12 +123,11 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		}
 	}
 
-	static := metalgo.IPTypeStatic
-	resp, err := d.mclient.IPFind(&metalgo.IPFindRequest{
-		ProjectID: &d.projectID,
+	resp, err := d.mclient.IP().FindIPs(metalip.NewFindIPsParams().WithBody(&models.V1IPFindRequest{
+		Projectid: d.projectID,
 		Tags:      []string{egressTag(d.clusterID)},
-		Type:      &static,
-	})
+		Type:      models.V1IPBaseTypeStatic,
+	}).WithContext(ctx), nil)
 	if err != nil {
 		return &controllererrors.RequeueAfterError{
 			Cause:        fmt.Errorf("failed to list egress ips of cluster %w", err),
@@ -132,8 +135,8 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		}
 	}
 
-	for _, ip := range resp.IPs {
-		if err := clearIPTags(d.mclient, *ip.Ipaddress); err != nil {
+	for _, ip := range resp.Payload {
+		if err := clearIPTags(ctx, d.mclient, *ip.Ipaddress); err != nil {
 			return &controllererrors.RequeueAfterError{
 				Cause:        fmt.Errorf("could not remove egress tag from ip %s %w", *ip.Ipaddress, err),
 				RequeueAfter: 30 * time.Second,
@@ -142,7 +145,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	}
 
 	if d.infrastructure.Status.NodesCIDR != nil {
-		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.mclient, d.projectID, *d.infrastructure.Status.NodesCIDR)
+		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(ctx, d.mclient, d.projectID, *d.infrastructure.Status.NodesCIDR)
 		if err != nil {
 			d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", *d.infrastructure.Status.NodesCIDR)
 			return &controllererrors.RequeueAfterError{
@@ -152,7 +155,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		}
 
 		for _, pn := range privateNetworks {
-			_, err := d.mclient.NetworkFree(*pn.ID)
+			_, err := d.mclient.Network().FreeNetwork(network.NewFreeNetworkParams().WithID(*pn.ID).WithContext(ctx), nil)
 			if err != nil {
 				d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID)
 				return &controllererrors.RequeueAfterError{
@@ -166,8 +169,8 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	return nil
 }
 
-func deleteFirewall(logger logr.Logger, machineID string, projectID string, clusterTag string, mclient *metalgo.Driver) error {
-	firewalls, err := metalclient.FindClusterFirewalls(mclient, clusterTag, projectID)
+func deleteFirewall(ctx context.Context, machineID string, projectID string, clusterTag string, mclient metalgo.Client) error {
+	firewalls, err := metalclient.FindClusterFirewalls(ctx, mclient, clusterTag, projectID)
 	if err != nil {
 		return &controllererrors.RequeueAfterError{
 			Cause:        err,
@@ -184,7 +187,7 @@ func deleteFirewall(logger logr.Logger, machineID string, projectID string, clus
 			return fmt.Errorf("firewall from provider status does not match actual cluster firewall, can't do anything")
 		}
 
-		_, err = mclient.MachineDelete(machineID)
+		_, err = mclient.Machine().FreeMachine(machine.NewFreeMachineParams().WithID(machineID).WithContext(ctx), nil)
 		if err != nil {
 			return &controllererrors.RequeueAfterError{
 				Cause:        fmt.Errorf("failed to delete firewall %w", err),

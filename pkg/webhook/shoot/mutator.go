@@ -36,7 +36,19 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 	switch x := new.(type) {
 	case *appsv1.Deployment:
 		switch x.Name {
+		case "metrics-server":
+			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
+			return m.mutateMetricsServerDeployment(ctx, x)
 		}
 	}
+	return nil
+}
+
+// TODO: can be removed in Gardener v1.34: https://github.com/gardener/gardener/pull/4884
+func (m *mutator) mutateMetricsServerDeployment(_ context.Context, deployment *appsv1.Deployment) error {
+	if c := extensionswebhook.ContainerWithName(deployment.Spec.Template.Spec.Containers, "metrics-server"); c != nil {
+		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--kubelet-preferred-address-types=", "InternalIP,InternalDNS,ExternalDNS,ExternalIP,Hostname")
+	}
+
 	return nil
 }

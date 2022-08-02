@@ -46,7 +46,7 @@ func (healthChecker *MetalLBHealthChecker) Check(ctx context.Context, request ty
 	health := &v1.ConfigMap{}
 
 	if err := healthChecker.shootClient.Get(ctx, client.ObjectKey{Namespace: "metallb-system", Name: "health"}, health); err != nil {
-		err := fmt.Errorf("check metallb health configmap failed. Unable to retrieve 'health' in namespace 'metallb-system': %v", err)
+		err := fmt.Errorf("check metallb health configmap failed. Unable to retrieve 'health' in namespace 'metallb-system': %w", err)
 		healthChecker.logger.Error(err, "Health check failed")
 		return nil, err
 	}

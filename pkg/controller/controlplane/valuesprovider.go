@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
+	"github.com/metal-stack/metal-go/api/client/network"
+	"github.com/metal-stack/metal-go/api/client/project"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -401,11 +403,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
-
-	authValues, err := vp.getAuthNConfigValues(ctx, cp, cluster)
-	if err != nil {
-		return nil, err
-	}
+	authValues := vp.getAuthNConfigValues(cluster)
 
 	clusterAuditValues, err := vp.getClusterAuditConfigValues(ctx, cp, cluster)
 	if err != nil {
@@ -416,7 +414,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	return authValues, nil
 }
 
-func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) getAuthNConfigValues(cluster *extensionscontroller.Cluster) map[string]interface{} {
 	namespace := cluster.ObjectMeta.Name
 
 	// this should work as the kube-apiserver is a pod in the same cluster as the kube-jwt-authn-webhook
@@ -430,7 +428,7 @@ func (vp *valuesProvider) getAuthNConfigValues(ctx context.Context, cp *extensio
 		},
 	}
 
-	return values, nil
+	return values
 }
 
 func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
@@ -494,7 +492,10 @@ func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName
 
 	splunkConfigSecret, err := cs.CoreV1().Secrets("kube-system").Get(ctx, "splunk-config", metav1.GetOptions{})
 	if err != nil {
-		return auditToSplunkValues, nil
+		if apierrors.IsNotFound(err) {
+			return auditToSplunkValues, nil
+		}
+		return nil, err
 	}
 
 	if splunkConfigSecret.Data == nil {
@@ -565,13 +566,13 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	resp, err := mclient.NetworkList()
+	resp, err := mclient.Network().ListNetworks(network.NewListNetworksParams().WithContext(ctx), nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve networks from metal-api %w", err)
 	}
 
 	nws := networkMap{}
-	for _, n := range resp.Networks {
+	for _, n := range resp.Payload {
 		n := n
 		nws[*n.ID] = n
 	}
@@ -585,12 +586,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	p, err := mclient.ProjectGet(infrastructureConfig.ProjectID)
+	p, err := mclient.Project().FindProject(project.NewFindProjectParams().WithID(infrastructureConfig.ProjectID).WithContext(ctx), nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve project from metal-api %w", err)
 	}
 
-	chartValues, err := getCCMChartValues(cpConfig, infrastructureConfig, infrastructure, cp, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
+	chartValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -602,12 +603,9 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		hmacAuthType: "", // currently default is used
 		apiToken:     metalCredentials.MetalAPIKey,
 	}
-	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth, p.Project, ma)
-	if err != nil {
-		return nil, err
-	}
+	authValues := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth, p.Payload, ma)
 
-	accValues, err := getAccountingExporterChartValues(ctx, vp.client, vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, p.Project)
+	accValues, err := getAccountingExporterChartValues(ctx, vp.client, vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, p.Payload)
 	if err != nil {
 		return nil, err
 	}
@@ -671,18 +669,18 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	resp, err := mclient.NetworkList()
+	resp, err := mclient.Network().ListNetworks(network.NewListNetworksParams().WithContext(ctx), nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve networks from metal-api %w", err)
 	}
 
 	nws := networkMap{}
-	for _, n := range resp.Networks {
+	for _, n := range resp.Payload {
 		n := n
 		nws[*n.ID] = n
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cp, cpConfig, cluster, nws, infrastructureConfig, mclient)
+	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructureConfig, mclient)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -690,12 +688,12 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	if !extensionscontroller.IsHibernated(cluster) {
 		if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
-			if err := vp.deployControlPlaneShootAudittailerCerts(ctx, cp, cluster); err != nil {
+			if err := vp.deployControlPlaneShootAudittailerCerts(ctx, cluster); err != nil {
 				vp.logger.Error(err, "error deploying audittailer certs")
 			}
 		}
 
-		if err := vp.deployControlPlaneShootDroptailerCerts(ctx, cp, cluster); err != nil {
+		if err := vp.deployControlPlaneShootDroptailerCerts(ctx, cluster); err != nil {
 			vp.logger.Error(err, "error deploying droptailer certs")
 		}
 	}
@@ -704,7 +702,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cp *extensionsv1alpha1.ControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig, mclient *metalgo.Driver) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig, mclient metalgo.Client) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	fwSpec, err := vp.getFirewallSpec(ctx, metalControlPlane, infrastructure, cluster, nws, mclient)
@@ -772,7 +770,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient *metalgo.Driver) (*firewallv1.FirewallSpec, error) {
+func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient metalgo.Client) (*firewallv1.FirewallSpec, error) {
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
 		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
@@ -801,7 +799,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 
 	clusterID := string(cluster.Shoot.GetUID())
 	projectID := infrastructureConfig.ProjectID
-	firewalls, err := metalclient.FindClusterFirewalls(mclient, clusterTag(clusterID), projectID)
+	firewalls, err := metalclient.FindClusterFirewalls(ctx, mclient, clusterTag(clusterID), projectID)
 	if err != nil {
 		return nil, fmt.Errorf("could not find firewall for cluster %w", err)
 	}
@@ -885,7 +883,7 @@ func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace stri
 	return nil
 }
 
-func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
+func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Context, cluster *extensionscontroller.Cluster) error {
 	// TODO: There is actually no nice way to deploy the certs into the shoot when we want to use
 	// the certificate helper functions from Gardener itself...
 	// Maybe we can find a better solution? This is actually only for chart values...
@@ -927,7 +925,7 @@ func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Co
 	return vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, wanted)
 }
 
-func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) error {
+func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cluster *extensionscontroller.Cluster) error {
 	// TODO: There is actually no nice way to deploy the certs into the shoot when we want to use
 	// the certificate helper functions from Gardener itself...
 	// Maybe we can find a better solution? This is actually only for chart values...
@@ -1047,14 +1045,14 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 
 // getCCMChartValues collects and returns the CCM chart values.
 func getCCMChartValues(
+	ctx context.Context,
 	cpConfig *apismetal.ControlPlaneConfig,
 	infrastructureConfig *apismetal.InfrastructureConfig,
 	infrastructure *extensionsv1alpha1.Infrastructure,
-	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 	checksums map[string]string,
 	scaledDown bool,
-	mclient *metalgo.Driver,
+	mclient metalgo.Client,
 	mcp *apismetal.MetalControlPlane,
 	nws networkMap,
 ) (map[string]interface{}, error) {
@@ -1068,7 +1066,7 @@ func getCCMChartValues(
 		nodeCIDR = cluster.Shoot.Spec.Networking.Nodes
 	}
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, *nodeCIDR)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, *nodeCIDR)
 	if err != nil {
 		return nil, err
 	}
@@ -1076,20 +1074,20 @@ func getCCMChartValues(
 	var defaultExternalNetwork string
 	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
 		defaultExternalNetwork = *cpConfig.CloudControllerManager.DefaultExternalNetwork
-		resp, err := mclient.NetworkGet(defaultExternalNetwork)
+		resp, err := mclient.Network().FindNetwork(network.NewFindNetworkParams().WithID(defaultExternalNetwork).WithContext(ctx), nil)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve user-given default external network: %s %w", defaultExternalNetwork, err)
 		}
 
-		if resp.Network.Shared && resp.Network.Partitionid != infrastructureConfig.PartitionID {
+		if resp.Payload.Shared && resp.Payload.Partitionid != infrastructureConfig.PartitionID {
 			return nil, fmt.Errorf("shared external network must be in same partition as shoot")
 		}
 
-		if resp.Network.Projectid != "" && resp.Network.Projectid != infrastructureConfig.ProjectID && !resp.Network.Shared {
+		if resp.Payload.Projectid != "" && resp.Payload.Projectid != infrastructureConfig.ProjectID && !resp.Payload.Shared {
 			return nil, fmt.Errorf("cannot define default external unshared network of another project")
 		}
 
-		if (resp.Network.Underlay != nil && *resp.Network.Underlay) || (resp.Network.Privatesuper != nil && *resp.Network.Privatesuper) {
+		if (resp.Payload.Underlay != nil && *resp.Payload.Underlay) || (resp.Payload.Privatesuper != nil && *resp.Payload.Privatesuper) {
 			return nil, fmt.Errorf("cannot declare underlay or private super networks as default external network")
 		}
 	} else {
@@ -1163,8 +1161,7 @@ type metalAccess struct {
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth, p *models.V1ProjectResponse, metalAccess metalAccess) (map[string]interface{}, error) {
-
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth, p *models.V1ProjectResponse, metalAccess metalAccess) map[string]interface{} {
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
 
@@ -1196,7 +1193,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 		},
 	}
 
-	return values, nil
+	return values
 }
 
 func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, p *models.V1ProjectResponse) (map[string]interface{}, error) {

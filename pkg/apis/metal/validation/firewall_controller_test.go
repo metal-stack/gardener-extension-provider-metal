@@ -61,6 +61,7 @@ func Test_getLatestFirewallControllerVersion(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := getLatestFirewallControllerVersion(tt.availableVersions)
 			if (err != nil) != tt.wantErr {

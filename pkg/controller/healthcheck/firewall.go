@@ -51,7 +51,7 @@ func (healthChecker *FirewallHealthChecker) Check(ctx context.Context, request t
 	// TODO make namespace a const
 	namespace := "firewall"
 	if err := healthChecker.shootClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: healthChecker.firewallResourceName}, firewall); err != nil {
-		err := fmt.Errorf("check firewall resource failed. Unable to retrieve firewall resource '%s' in namespace '%s': %v", healthChecker.firewallResourceName, namespace, err)
+		err := fmt.Errorf("check firewall resource failed. Unable to retrieve firewall resource '%s' in namespace '%s': %w", healthChecker.firewallResourceName, namespace, err)
 		healthChecker.logger.Error(err, "Health check failed")
 		return nil, err
 	}
