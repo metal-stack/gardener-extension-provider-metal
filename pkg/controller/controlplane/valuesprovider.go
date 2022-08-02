@@ -492,7 +492,10 @@ func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName
 
 	splunkConfigSecret, err := cs.CoreV1().Secrets("kube-system").Get(ctx, "splunk-config", metav1.GetOptions{})
 	if err != nil {
-		return auditToSplunkValues, nil
+		if apierrors.IsNotFound(err) {
+			return auditToSplunkValues, nil
+		}
+		return nil, err
 	}
 
 	if splunkConfigSecret.Data == nil {
