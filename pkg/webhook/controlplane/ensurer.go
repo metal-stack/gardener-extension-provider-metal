@@ -76,7 +76,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 			logger.Info("LIMITDEBUG Trying to remove memory limits from kube-apiserver", "Current limits", c.Resources.Limits, "Cluster name", cluster.ObjectMeta.Name)
 			if c.Resources.Limits.Memory() != nil {
 				logger.Info("LIMITDEBUG Limit is currently set", "Memory limit", c.Resources.Limits.Memory(), "Cluster name", cluster.ObjectMeta.Name)
-				delete(c.Resources.Limits, corev1.ResourceLimitsMemory)
+				delete(c.Resources.Limits, corev1.ResourceName("memory"))
 			} else {
 				logger.Info("LIMITDEBUG No memory limits are set, nothing to do", "Cluster name", cluster.ObjectMeta.Name)
 			}
