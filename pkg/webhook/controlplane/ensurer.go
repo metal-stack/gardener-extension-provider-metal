@@ -72,6 +72,11 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, e.controllerConfig)
+		if noApiserverMemLimits {
+			if c.Resources.Limits.Memory() != nil {
+				delete(c.Resources.Limits, corev1.ResourceLimitsMemory)
+			}
+		}
 	}
 	if makeAuditForwarder {
 		err := ensureAuditForwarder(ps, auditToSplunk)
@@ -95,6 +100,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
+
+const noApiserverMemLimits = true
 
 var (
 	// config mount for authn-webhook-config that is specified at kube-apiserver commandline
