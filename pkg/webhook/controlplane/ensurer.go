@@ -73,9 +73,14 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, e.controllerConfig)
 		if noApiserverMemLimits {
+			logger.Info("LIMITDEBUG Trying to remove memory limits from kube-apiserver", "Current limits", c.Resources.Limits, "Cluster name", cluster.ObjectMeta.Name)
 			if c.Resources.Limits.Memory() != nil {
+				logger.Info("LIMITDEBUG Limit is currently set", "Memory limit", c.Resources.Limits.Memory(), "Cluster name", cluster.ObjectMeta.Name)
 				delete(c.Resources.Limits, corev1.ResourceLimitsMemory)
+			} else {
+				logger.Info("LIMITDEBUG No memory limits are set, nothing to do", "Cluster name", cluster.ObjectMeta.Name)
 			}
+			logger.Info("LIMITDEBUG After dealing with memory limits", "New limits", c.Resources.Limits, "Cluster name", cluster.ObjectMeta.Name)
 		}
 	}
 	if makeAuditForwarder {
