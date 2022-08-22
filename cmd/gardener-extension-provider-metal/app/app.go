@@ -166,7 +166,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			reconcileOpts.Completed().Apply(&metalworker.DefaultAddOptions.IgnoreOperationAnnotation)
 			workerCtrlOpts.Completed().Apply(&metalworker.DefaultAddOptions.Controller)
 
-			_, shootWebhooks, err := webhookOptions.Completed().AddToManager(mgr)
+			_, shootWebhooks, err := webhookOptions.Completed().AddToManager(ctx, mgr)
 			if err != nil {
 				controllercmd.LogErrAndExit(err, "Could not add webhooks to manager")
 			}
