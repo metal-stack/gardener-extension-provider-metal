@@ -88,7 +88,6 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -157,7 +156,7 @@ require (
 	k8s.io/klog/v2 v2.60.1 // indirect
 	k8s.io/kube-aggregator v0.21.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf // indirect
-	k8s.io/metrics v0.21.2 // indirect
+	k8s.io/metrics v0.22.2 // indirect
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20210609022947-fbf50b04fe17 // indirect
 	sigs.k8s.io/controller-tools v0.8.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
@@ -171,15 +170,15 @@ replace (
 	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
 	github.com/zalando/postgres-operator v1.7.0 => github.com/ermajn/postgres-operator v1.0.1-0.20211123085256-711648b7fdde
 	gomodules.xyz/jsonpatch/v2 => gomodules.xyz/jsonpatch/v2 v2.2.0
-	k8s.io/api => k8s.io/api v0.21.2
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.21.2
-	k8s.io/apimachinery => k8s.io/apimachinery v0.21.2
-	k8s.io/apiserver => k8s.io/apiserver v0.21.2
-	k8s.io/client-go => k8s.io/client-go v0.21.2
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.21.2
-	k8s.io/code-generator => k8s.io/code-generator v0.21.2
-	k8s.io/component-base => k8s.io/component-base v0.21.2
+	k8s.io/api => k8s.io/api v0.22.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.22.2
+	k8s.io/apiserver => k8s.io/apiserver v0.22.2
+	k8s.io/client-go => k8s.io/client-go v0.22.2
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.22.2
+	k8s.io/code-generator => k8s.io/code-generator v0.22.2
+	k8s.io/component-base => k8s.io/component-base v0.22.2
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.10.0
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.21.2
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.22.2
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.1
 )
