@@ -7,7 +7,8 @@ import (
 	api "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
-	"github.com/gardener/gardener/extensions/pkg/controller"
+	"github.com/gardener/gardener/pkg/controllerutils"
+
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,7 +41,7 @@ func (w *workerDelegate) updateWorkerProviderStatus(ctx context.Context, workerS
 		return err
 	}
 
-	return controller.TryUpdateStatus(ctx, retry.DefaultBackoff, w.client, w.worker, func() error {
+	return controllerutils.TryUpdateStatus(ctx, retry.DefaultBackoff, w.client, w.worker, func() error {
 		w.worker.Status.ProviderStatus = &runtime.RawExtension{Object: workerStatusV1alpha1}
 		return nil
 	})

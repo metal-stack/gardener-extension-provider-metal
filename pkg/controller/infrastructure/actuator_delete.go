@@ -18,7 +18,7 @@ import (
 	"github.com/metal-stack/metal-go/api/models"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
+	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 )
@@ -95,7 +95,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(ctx, d.mclient, d.projectID, d.clusterID)
 	if err != nil {
 		d.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
-		return &controllererrors.RequeueAfterError{
+		return &reconciler.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
 		}
@@ -105,7 +105,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		_, err := d.mclient.IP().FreeIP(metalip.NewFreeIPParams().WithID(*ip.Ipaddress).WithContext(ctx), nil)
 		if err != nil {
 			d.logger.Error(err, "failed to release ephemeral cluster ip", "infrastructure", d.infrastructure.Name, "ip", *ip.Ipaddress)
-			return &controllererrors.RequeueAfterError{
+			return &reconciler.RequeueAfterError{
 				Cause:        err,
 				RequeueAfter: 30 * time.Second,
 			}
@@ -116,7 +116,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		err := metalclient.UpdateIPInCluster(ctx, d.mclient, ip, d.clusterID)
 		if err != nil {
 			d.logger.Error(err, "failed to remove cluster tags from ip which is member of other clusters", "infrastructure", d.infrastructure.Name, "ip", *ip.Ipaddress)
-			return &controllererrors.RequeueAfterError{
+			return &reconciler.RequeueAfterError{
 				Cause:        err,
 				RequeueAfter: 30 * time.Second,
 			}
@@ -129,7 +129,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		Type:      models.V1IPBaseTypeStatic,
 	}).WithContext(ctx), nil)
 	if err != nil {
-		return &controllererrors.RequeueAfterError{
+		return &reconciler.RequeueAfterError{
 			Cause:        fmt.Errorf("failed to list egress ips of cluster %w", err),
 			RequeueAfter: 30 * time.Second,
 		}
@@ -137,7 +137,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 
 	for _, ip := range resp.Payload {
 		if err := clearIPTags(ctx, d.mclient, *ip.Ipaddress); err != nil {
-			return &controllererrors.RequeueAfterError{
+			return &reconciler.RequeueAfterError{
 				Cause:        fmt.Errorf("could not remove egress tag from ip %s %w", *ip.Ipaddress, err),
 				RequeueAfter: 30 * time.Second,
 			}
@@ -148,7 +148,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(ctx, d.mclient, d.projectID, *d.infrastructure.Status.NodesCIDR)
 		if err != nil {
 			d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", *d.infrastructure.Status.NodesCIDR)
-			return &controllererrors.RequeueAfterError{
+			return &reconciler.RequeueAfterError{
 				Cause:        err,
 				RequeueAfter: 30 * time.Second,
 			}
@@ -158,7 +158,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 			_, err := d.mclient.Network().FreeNetwork(network.NewFreeNetworkParams().WithID(*pn.ID).WithContext(ctx), nil)
 			if err != nil {
 				d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID)
-				return &controllererrors.RequeueAfterError{
+				return &reconciler.RequeueAfterError{
 					Cause:        err,
 					RequeueAfter: 30 * time.Second,
 				}
@@ -172,7 +172,7 @@ func delete(ctx context.Context, d *firewallDeleter) error {
 func deleteFirewall(ctx context.Context, machineID string, projectID string, clusterTag string, mclient metalgo.Client) error {
 	firewalls, err := metalclient.FindClusterFirewalls(ctx, mclient, clusterTag, projectID)
 	if err != nil {
-		return &controllererrors.RequeueAfterError{
+		return &reconciler.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
 		}
@@ -189,7 +189,7 @@ func deleteFirewall(ctx context.Context, machineID string, projectID string, clu
 
 		_, err = mclient.Machine().FreeMachine(machine.NewFreeMachineParams().WithID(machineID).WithContext(ctx), nil)
 		if err != nil {
-			return &controllererrors.RequeueAfterError{
+			return &reconciler.RequeueAfterError{
 				Cause:        fmt.Errorf("failed to delete firewall %w", err),
 				RequeueAfter: 30 * time.Second,
 			}

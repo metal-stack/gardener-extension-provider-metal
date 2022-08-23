@@ -9,7 +9,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/gardener/etcd-druid v0.7.3
 	github.com/gardener/external-dns-management v0.12.5
-	github.com/gardener/gardener v1.32.3
+	github.com/gardener/gardener v1.37.0
 	github.com/gardener/machine-controller-manager v0.45.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
@@ -32,7 +32,7 @@ require (
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.23.3
 	k8s.io/component-base v0.23.6
-	k8s.io/kubelet v0.21.10
+	k8s.io/kubelet v0.22.2
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 	sigs.k8s.io/controller-runtime v0.11.2
 )
@@ -47,6 +47,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bronze1man/yaml2json v0.0.0-20201022121239-82e774ec909d // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/coreos/go-oidc/v3 v3.2.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
@@ -59,8 +60,6 @@ require (
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/gardener/gardener-resource-manager v0.25.0 // indirect
-	github.com/gardener/gardener-resource-manager/api v0.0.0-00010101000000-000000000000 // indirect
 	github.com/gardener/hvpa-controller v0.3.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
@@ -128,7 +127,6 @@ require (
 	go.uber.org/zap v1.21.0 // indirect
 	go4.org v0.0.0-20201209231011-d4a079459e60 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
-	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/net v0.0.0-20220622184535-263ec571b305 // indirect
 	golang.org/x/oauth2 v0.0.0-20220628200809-02e64fa58f26 // indirect
@@ -154,10 +152,10 @@ require (
 	k8s.io/helm v2.16.1+incompatible // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.60.1 // indirect
-	k8s.io/kube-aggregator v0.21.2 // indirect
+	k8s.io/kube-aggregator v0.22.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf // indirect
 	k8s.io/metrics v0.22.2 // indirect
-	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20210609022947-fbf50b04fe17 // indirect
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211005045149-78ce10e2ebad // indirect
 	sigs.k8s.io/controller-tools v0.8.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
@@ -179,5 +177,5 @@ replace (
 	k8s.io/component-base => k8s.io/component-base v0.22.2
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.10.0
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.22.2
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.1
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.10.2
 )
