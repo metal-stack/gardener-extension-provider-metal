@@ -10,6 +10,8 @@ LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
 
+GOLANGCI_LINT_VERSION := v1.48.0
+
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
 else
@@ -91,7 +93,7 @@ check-generate:
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-generate.sh $(REPO_ROOT)
 
 .PHONY: check
-check:
+check: $(GOIMPORTS) $(GOLANGCI_LINT) 
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/...
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-charts.sh ./charts
 
@@ -108,7 +110,7 @@ generate-in-docker: revendor $(HELM)
 				&& chown -R $(shell id -u):$(shell id -g) ."
 
 .PHONY: format
-format:
+format: $(GOIMPORTS) 
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/format.sh ./cmd ./pkg
 
 .PHONY: test
