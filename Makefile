@@ -18,6 +18,9 @@ endif
 
 export GO111MODULE := on
 
+TOOLS_DIR := hack/tools
+include vendor/github.com/gardener/gardener/hack/tools.mk
+
 #########################################
 # Rules for local development scenarios #
 #########################################
@@ -70,13 +73,6 @@ docker-push:
 # Rules for verification, formatting, linting, testing and cleaning #
 #####################################################################
 
-.PHONY: install-requirements
-install-requirements:
-	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/ahmetb/gen-crd-api-reference-docs
-	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/golang/mock/mockgen
-	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/onsi/ginkgo/ginkgo
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/install-requirements.sh
-
 .PHONY: revendor
 revendor:
 	@GO111MODULE=on go mod vendor
@@ -100,15 +96,15 @@ check:
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-charts.sh ./charts
 
 .PHONY: generate
-generate:
+generate: $(HELM)
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: generate-in-docker
-generate-in-docker: revendor
+generate-in-docker: revendor $(HELM)
 	echo $(shell git describe --abbrev=0 --tags) > VERSION
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.17 \
+	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.19 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
-				&& make install-requirements generate \
+				&& make install generate \
 				&& chown -R $(shell id -u):$(shell id -g) ."
 
 .PHONY: format
@@ -121,9 +117,9 @@ test:
 
 .PHONY: test-in-docker
 test-in-docker: revendor
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.17 \
+	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.19 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
-				&& make install-requirements check test"
+				&& make install check test"
 
 .PHONY: test-cov
 test-cov:
