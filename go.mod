@@ -9,7 +9,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/gardener/etcd-druid v0.7.3
 	github.com/gardener/external-dns-management v0.12.5
-	github.com/gardener/gardener v1.31.4
+	github.com/gardener/gardener v1.32.3
 	github.com/gardener/machine-controller-manager v0.45.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
@@ -19,8 +19,8 @@ require (
 	github.com/metal-stack/duros-controller v0.3.3
 	github.com/metal-stack/firewall-controller v1.1.5
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.11
-	github.com/metal-stack/metal-go v0.18.5
-	github.com/metal-stack/metal-lib v0.10.0
+	github.com/metal-stack/metal-go v0.19.0
+	github.com/metal-stack/metal-lib v0.10.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.20.0
 	github.com/spf13/cobra v1.5.0
@@ -120,7 +120,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/spf13/afero v1.6.0 // indirect
+	github.com/spf13/afero v1.8.2 // indirect
 	github.com/vincent-petithory/dataurl v1.0.0 // indirect
 	go.mongodb.org/mongo-driver v1.9.1 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
@@ -156,7 +156,7 @@ require (
 	k8s.io/klog/v2 v2.60.1 // indirect
 	k8s.io/kube-aggregator v0.21.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf // indirect
-	k8s.io/metrics v0.21.2 // indirect
+	k8s.io/metrics v0.22.2 // indirect
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20210609022947-fbf50b04fe17 // indirect
 	sigs.k8s.io/controller-tools v0.8.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
@@ -164,10 +164,11 @@ require (
 )
 
 replace (
-	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd
+	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd // indirect
 	github.com/gardener/gardener-resource-manager/api => github.com/gardener/gardener-resource-manager/api v0.25.0
 	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
+	github.com/zalando/postgres-operator v1.7.0 => github.com/ermajn/postgres-operator v1.0.1-0.20211123085256-711648b7fdde
 	k8s.io/api => k8s.io/api v0.22.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.22.2
@@ -176,7 +177,6 @@ replace (
 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.22.2
 	k8s.io/code-generator => k8s.io/code-generator v0.22.2
 	k8s.io/component-base => k8s.io/component-base v0.22.2
-	k8s.io/helm => k8s.io/helm v2.13.1+incompatible
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.10.0
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.22.2
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.9.1
