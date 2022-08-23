@@ -19,7 +19,7 @@ endif
 export GO111MODULE := on
 
 TOOLS_DIR := hack/tools
-include vendor/github.com/gardener/gardener/hack/tools.mk
+-include vendor/github.com/gardener/gardener/hack/tools.mk
 
 #########################################
 # Rules for local development scenarios #
