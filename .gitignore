@@ -4,3 +4,4 @@ tools/vendor
 VERSION
 helm
 .vscode
+hack/tools/bin/*
