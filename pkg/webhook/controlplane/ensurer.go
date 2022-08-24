@@ -344,7 +344,11 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder 
 }
 
 func ensureVPNSeedEnvVars(c *corev1.Container, nodeCIDR string) {
-	extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
+	// fixes a regression from https://github.com/gardener/gardener/pull/4691
+	// raising the timeout to 15 minutes leads to additional 15 minutes of provisioning time because
+	// the nodes cidr will only be set on next shoot reconcile
+	// with the following mutation we can immediately provide the proper nodes cidr and save time
+	c.Env = extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
 		Name:  "NODE_NETWORK",
 		Value: nodeCIDR,
 	})
