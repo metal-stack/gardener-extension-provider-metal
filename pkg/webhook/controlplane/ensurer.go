@@ -392,7 +392,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar)
 	}
 
-	logger.Info("ensuring auditforwarder sidecar", "container", auditForwarderSidecar)
+	logger.Info("ensuring audit forwarder sidecar", "container", auditForwarderSidecar.Name)
 
 	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, *auditForwarderSidecar)
 	return nil
