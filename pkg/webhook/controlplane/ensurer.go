@@ -51,7 +51,11 @@ func (e *ensurer) InjectClient(client client.Client) error {
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
-	cluster, _ := gctx.GetCluster(ctx)
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
 	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
 	if err != nil {
 		logger.Error(err, "could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
@@ -479,7 +483,10 @@ func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.
 
 // EnsureVPNSeedServerDeployment ensures that the vpn seed server deployment configuration conforms to the provider requirements.
 func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
-	cluster, _ := gctx.GetCluster(ctx)
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
 
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
 	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
