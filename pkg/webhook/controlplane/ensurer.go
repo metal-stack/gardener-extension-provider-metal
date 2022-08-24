@@ -91,18 +91,18 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if makeAuditForwarder {
 		err := ensureAuditForwarder(ps, auditToSplunk)
 		if err != nil {
-			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
+			logger.Error(err, "could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
 			return err
 		}
 		if auditToSplunk {
 			err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkConfigName)
 			if err != nil {
-				logger.Error(err, "Could not ensure the splunk config map checksum annotation", "Cluster name", cluster.ObjectMeta.Name, "configmap", metal.AuditForwarderSplunkConfigName)
+				logger.Error(err, "could not ensure the splunk config map checksum annotation", "cluster name", cluster.ObjectMeta.Name, "configmap", metal.AuditForwarderSplunkConfigName)
 				return err
 			}
 			err = controlplane.EnsureSecretChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkSecretName)
 			if err != nil {
-				logger.Error(err, "Could not ensure the splunk secret checksum annotation", "Cluster name", cluster.ObjectMeta.Name, "secret", metal.AuditForwarderSplunkSecretName)
+				logger.Error(err, "could not ensure the splunk secret checksum annotation", "cluster name", cluster.ObjectMeta.Name, "secret", metal.AuditForwarderSplunkSecretName)
 				return err
 			}
 		}
@@ -348,6 +348,7 @@ func ensureVPNSeedEnvVars(c *corev1.Container, nodeCIDR string) {
 	// raising the timeout to 15 minutes leads to additional 15 minutes of provisioning time because
 	// the nodes cidr will only be set on next shoot reconcile
 	// with the following mutation we can immediately provide the proper nodes cidr and save time
+	logger.Info("ensuring nodes cidr in container", "container", c.Name, "cidr", nodeCIDR)
 	c.Env = extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
 		Name:  "NODE_NETWORK",
 		Value: nodeCIDR,
@@ -387,7 +388,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar)
 	}
 
-	logger.Info("Ensuring auditforwarder sidecar", "container:", auditForwarderSidecar)
+	logger.Info("ensuring auditforwarder sidecar", "container", auditForwarderSidecar)
 
 	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, *auditForwarderSidecar)
 	return nil
