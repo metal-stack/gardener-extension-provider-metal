@@ -793,22 +793,24 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		}
 		n := n
 
-		// prefixes in the firewall machine allocation are just a snapshot when the firewall was created.
-		// -> when changing prefixes in the referenced network the firewall does not know about any prefix changes.
+		// prefixes and destination prefixes in the firewall machine allocation are just a snapshot when the firewall was created.
+		// -> when changing prefixes or destination prefixes in the referenced network the firewall does not know about any changes.
 		//
-		// we replace the prefixes from the snapshot with the actual prefixes that are currently attached to the network.
-		// this allows dynamic prefix reconfiguration of the firewall.
+		// we replace the prefixes and destination prefixes from the snapshot with the actual prefixes that are currently attached to the network.
+		// this allows dynamic prefix and destination prefix reconfiguration of the firewall.
 		prefixes := n.Prefixes
+		destinationprefixes := n.Destinationprefixes
 		networkRef, ok := nws[*n.Networkid]
 		if !ok {
 			vp.logger.Info("network in firewall allocation does not exist anymore")
 		} else {
 			prefixes = networkRef.Prefixes
+			destinationprefixes = networkRef.Destinationprefixes
 		}
 
 		firewallNetworks = append(firewallNetworks, firewallv1.FirewallNetwork{
 			Asn:                 n.Asn,
-			Destinationprefixes: n.Destinationprefixes,
+			Destinationprefixes: destinationprefixes,
 			Ips:                 n.Ips,
 			Nat:                 n.Nat,
 			Networkid:           n.Networkid,
