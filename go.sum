@@ -768,11 +768,11 @@ github.com/metal-stack/machine-controller-manager-provider-metal v0.1.11 h1:SG4K
 github.com/metal-stack/machine-controller-manager-provider-metal v0.1.11/go.mod h1:Eb2g9AvmCtRYUMIoUy00L+zZ93x5F6SRNt1Q/FfDsxI=
 github.com/metal-stack/masterdata-api v0.8.12 h1:hfg+g0W1tzs/5mV9RG4+l6pAtH/SMaeEUQujx+50Z7U=
 github.com/metal-stack/masterdata-api v0.8.12/go.mod h1:le/cvZ9nvw9QQ/eVJSrO7rNdwMMuIrQxFalaIcv/GUg=
-github.com/metal-stack/metal-go v0.19.0 h1:5HTZUdyn2oihbXLhkPZzzGQUNJr7xN0Y8AaaHK2hXvo=
-github.com/metal-stack/metal-go v0.19.0/go.mod h1:2JU77TT7PrN9PUwCBYreYEOeziCrYvwfzQ4DLFyKSMM=
+github.com/metal-stack/metal-go v0.19.2 h1:1vK+j0Wm8JETugGZp3c7mvb4nLejDlFUx/AIBVVkNMc=
+github.com/metal-stack/metal-go v0.19.2/go.mod h1:2JU77TT7PrN9PUwCBYreYEOeziCrYvwfzQ4DLFyKSMM=
 github.com/metal-stack/metal-lib v0.9.0/go.mod h1:MTHBa2gLIXfW251AiLeEF64z2LdYHWka9rtIopi8xQw=
-github.com/metal-stack/metal-lib v0.10.1 h1:KmgUNiqR8mpl7PahZjwluvrCIciHLlMZCsnJkMZKvP0=
-github.com/metal-stack/metal-lib v0.10.1/go.mod h1:Ge1ypz6aOf2ab98kr8GYMXD8eZ7VfKFUfUE3p/8Sm3g=
+github.com/metal-stack/metal-lib v0.11.0 h1:kA0eCIc2Emu5dDNvHg4FaGvWOuErJe8nZz2kTH9zvFA=
+github.com/metal-stack/metal-lib v0.11.0/go.mod h1:Ge1ypz6aOf2ab98kr8GYMXD8eZ7VfKFUfUE3p/8Sm3g=
 github.com/metal-stack/security v0.6.2/go.mod h1:sZC2Ezs+iAzPG9nqZcLf2qm6eBDxYTAcjSbF8RHaTNM=
 github.com/metal-stack/security v0.6.4 h1:nCr1Hf2a4qWRCBsNCifPA4Ic4sHfQlrGjxUvksWcRvM=
 github.com/metal-stack/security v0.6.4/go.mod h1:vP9TLOtIETfvqq6FvvYSHCKHrDXomuba2dSV3pS6BO0=
@@ -858,8 +858,8 @@ github.com/onsi/gomega v1.10.5/go.mod h1:gza4q3jKQJijlu05nKWRCW/GavJumGt8aNRxWg7
 github.com/onsi/gomega v1.14.0/go.mod h1:cIuvLEne0aoVhAgh/O6ac0Op8WWw9H6eYCriF+tEHG0=
 github.com/onsi/gomega v1.15.0/go.mod h1:cIuvLEne0aoVhAgh/O6ac0Op8WWw9H6eYCriF+tEHG0=
 github.com/onsi/gomega v1.17.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAlGdZY=
-github.com/onsi/gomega v1.20.0 h1:8W0cWlwFkflGPLltQvLRB7ZVD5HuP6ng320w2IS245Q=
-github.com/onsi/gomega v1.20.0/go.mod h1:DtrZpjmvpn2mPm4YWQa0/ALMDj9v4YxLgojwPeREyVo=
+github.com/onsi/gomega v1.20.1 h1:PA/3qinGoukvymdIDV8pii6tiZgC8kbmJO6Z5+b002Q=
+github.com/onsi/gomega v1.20.1/go.mod h1:DtrZpjmvpn2mPm4YWQa0/ALMDj9v4YxLgojwPeREyVo=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.0.1/go.mod h1:BtxoFyWECRxE4U/7sNtV5W15zMzWCbyJoFRP3s7yZA0=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=

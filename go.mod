@@ -19,10 +19,10 @@ require (
 	github.com/metal-stack/duros-controller v0.3.3
 	github.com/metal-stack/firewall-controller v1.1.5
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.11
-	github.com/metal-stack/metal-go v0.19.0
-	github.com/metal-stack/metal-lib v0.10.1
+	github.com/metal-stack/metal-go v0.19.2
+	github.com/metal-stack/metal-lib v0.11.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.20.0
+	github.com/onsi/gomega v1.20.1
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.23.6
