@@ -25,11 +25,6 @@ jobs:
       with:
         go-version: '1.19.x'
 
-    - name: Lint
-      uses: golangci/golangci-lint-action@v2
-      with:
-        args: -p bugs -p unused --timeout=3m
-
     - name: Check (lint) and Test
       run: |
         make test-in-docker
