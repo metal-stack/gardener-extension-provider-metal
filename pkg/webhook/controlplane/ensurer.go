@@ -11,6 +11,8 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
@@ -49,11 +51,25 @@ func (e *ensurer) InjectClient(client client.Client) error {
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
-	cluster, _ := gctx.GetCluster(ctx)
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
 	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
 	if err != nil {
-		logger.Error(err, "Could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
+		logger.Error(err, "could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
 		return err
+	}
+
+	infrastructure := &extensionsv1alpha1.Infrastructure{}
+	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
+		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
+		return err
+	}
+
+	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
+		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
 	}
 
 	makeAuditForwarder := false
@@ -73,21 +89,24 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, e.controllerConfig)
 	}
+	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
+		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
+	}
 	if makeAuditForwarder {
 		err := ensureAuditForwarder(ps, auditToSplunk)
 		if err != nil {
-			logger.Error(err, "Could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
+			logger.Error(err, "could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
 			return err
 		}
 		if auditToSplunk {
 			err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkConfigName)
 			if err != nil {
-				logger.Error(err, "Could not ensure the splunk config map checksum annotation", "Cluster name", cluster.ObjectMeta.Name, "configmap", metal.AuditForwarderSplunkConfigName)
+				logger.Error(err, "could not ensure the splunk config map checksum annotation", "cluster name", cluster.ObjectMeta.Name, "configmap", metal.AuditForwarderSplunkConfigName)
 				return err
 			}
 			err = controlplane.EnsureSecretChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkSecretName)
 			if err != nil {
-				logger.Error(err, "Could not ensure the splunk secret checksum annotation", "Cluster name", cluster.ObjectMeta.Name, "secret", metal.AuditForwarderSplunkSecretName)
+				logger.Error(err, "could not ensure the splunk secret checksum annotation", "cluster name", cluster.ObjectMeta.Name, "secret", metal.AuditForwarderSplunkSecretName)
 				return err
 			}
 		}
@@ -326,7 +345,18 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder 
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-maxsize=", "100")
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-maxbackup=", "1")
 	}
+}
 
+func ensureVPNSeedEnvVars(c *corev1.Container, nodeCIDR string) {
+	// fixes a regression from https://github.com/gardener/gardener/pull/4691
+	// raising the timeout to 15 minutes leads to additional 15 minutes of provisioning time because
+	// the nodes cidr will only be set on next shoot reconcile
+	// with the following mutation we can immediately provide the proper nodes cidr and save time
+	logger.Info("ensuring nodes cidr in container", "container", c.Name, "cidr", nodeCIDR)
+	c.Env = extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
+		Name:  "NODE_NETWORK",
+		Value: nodeCIDR,
+	})
 }
 
 func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
@@ -362,7 +392,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar)
 	}
 
-	logger.Info("Ensuring auditforwarder sidecar", "container:", auditForwarderSidecar)
+	logger.Info("ensuring audit forwarder sidecar", "container", auditForwarderSidecar.Name)
 
 	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, *auditForwarderSidecar)
 	return nil
@@ -448,5 +478,32 @@ func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.
 	delete(new.FeatureGates, "VolumeSnapshotDataSource")
 	delete(new.FeatureGates, "CSINodeInfo")
 	delete(new.FeatureGates, "CSIDriverRegistry")
+	return nil
+}
+
+// EnsureVPNSeedServerDeployment ensures that the vpn seed server deployment configuration conforms to the provider requirements.
+func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
+	infrastructure := &extensionsv1alpha1.Infrastructure{}
+	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
+		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
+		return err
+	}
+
+	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
+		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	}
+
+	template := &new.Spec.Template
+	ps := &template.Spec
+
+	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed-server"); c != nil {
+		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
+	}
+
 	return nil
 }
