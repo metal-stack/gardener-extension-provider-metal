@@ -20,15 +20,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up Go 1.18
+    - name: Set up Go 1.19
       uses: actions/setup-go@v2
       with:
-        go-version: '1.18.x'
-
-    - name: Lint
-      uses: golangci/golangci-lint-action@v2
-      with:
-        args: -p bugs -p unused --timeout=3m
+        go-version: '1.19.x'
 
     - name: Check (lint) and Test
       run: |

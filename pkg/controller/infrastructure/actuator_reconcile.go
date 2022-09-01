@@ -30,7 +30,7 @@ import (
 	mn "github.com/metal-stack/metal-lib/pkg/net"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	controllererrors "github.com/gardener/gardener/extensions/pkg/controller/error"
+	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
 
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
@@ -222,7 +222,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 	firewalls, err := metalclient.FindClusterFirewalls(ctx, r.mclient, r.clusterTag, r.infrastructureConfig.ProjectID)
 	if err != nil {
 		r.logger.Error(err, "unable to fetch cluster firewalls", "clustertag", r.clusterTag, "projectid", r.infrastructureConfig.ProjectID)
-		return firewallActionDoNothing, nil, &controllererrors.RequeueAfterError{
+		return firewallActionDoNothing, nil, &reconciler.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
 		}
@@ -267,7 +267,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 			image, err := r.mclient.Image().FindLatestImage(image.NewFindLatestImageParams().WithID(want).WithContext(ctx), nil)
 			if err != nil {
 				r.logger.Error(err, "firewall latest image not found", "clustertag", r.clusterTag, "projectid", r.infrastructureConfig.ProjectID, "image", want)
-				return firewallActionDoNothing, nil, &controllererrors.RequeueAfterError{
+				return firewallActionDoNothing, nil, &reconciler.RequeueAfterError{
 					Cause:        err,
 					RequeueAfter: 30 * time.Second,
 				}
@@ -314,7 +314,7 @@ func createFirewall(ctx context.Context, r *firewallReconciler) (machineID strin
 	nodeCIDR, err = ensureNodeNetwork(ctx, r)
 	if err != nil {
 		r.logger.Error(err, "firewalls node network", "nodecidr", nodeCIDR)
-		return "", "", &controllererrors.RequeueAfterError{
+		return "", "", &reconciler.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
 		}
@@ -323,7 +323,7 @@ func createFirewall(ctx context.Context, r *firewallReconciler) (machineID strin
 	err = updateProviderStatus(ctx, r.c, r.infrastructure, r.providerStatus, &nodeCIDR)
 	if err != nil {
 		r.logger.Error(err, "firewalls update provider status", "nodecidr", nodeCIDR)
-		return "", "", &controllererrors.RequeueAfterError{
+		return "", "", &reconciler.RequeueAfterError{
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
 		}
@@ -387,7 +387,7 @@ func createFirewall(ctx context.Context, r *firewallReconciler) (machineID strin
 	fcr, err := r.mclient.Firewall().AllocateFirewall(firewall.NewAllocateFirewallParams().WithBody(createRequest).WithContext(ctx), nil)
 	if err != nil {
 		r.logger.Error(err, "firewall create error")
-		return "", "", &controllererrors.RequeueAfterError{
+		return "", "", &reconciler.RequeueAfterError{
 			Cause:        fmt.Errorf("failed to create firewall %w", err),
 			RequeueAfter: 30 * time.Second,
 		}
@@ -412,7 +412,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 		Type:      models.V1IPBaseTypeStatic,
 	}).WithContext(ctx), nil)
 	if err != nil {
-		return &controllererrors.RequeueAfterError{
+		return &reconciler.RequeueAfterError{
 			Cause:        fmt.Errorf("failed to list egress ips of cluster %w", err),
 			RequeueAfter: 30 * time.Second,
 		}
@@ -438,7 +438,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 				Networkid: egressRule.NetworkID,
 			}).WithContext(ctx), nil)
 			if err != nil {
-				return &controllererrors.RequeueAfterError{
+				return &reconciler.RequeueAfterError{
 					Cause:        fmt.Errorf("error when retrieving ip %s for egress rule %w", ip, err),
 					RequeueAfter: 30 * time.Second,
 				}
@@ -446,7 +446,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 
 			switch len(resp.Payload) {
 			case 0:
-				return &controllererrors.RequeueAfterError{
+				return &reconciler.RequeueAfterError{
 					Cause:        fmt.Errorf("ip %s for egress rule does not exist", ip),
 					RequeueAfter: 30 * time.Second,
 				}
@@ -457,14 +457,14 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 
 			dbIP := resp.Payload[0]
 			if dbIP.Type != nil && *dbIP.Type != models.V1IPBaseTypeStatic {
-				return &controllererrors.RequeueAfterError{
+				return &reconciler.RequeueAfterError{
 					Cause:        fmt.Errorf("ips for egress rule must be static, but %s is not static", ip),
 					RequeueAfter: 30 * time.Second,
 				}
 			}
 
 			if len(dbIP.Tags) > 0 {
-				return &controllererrors.RequeueAfterError{
+				return &reconciler.RequeueAfterError{
 					Cause:        fmt.Errorf("won't use ip %s for egress rules because it does not have an egress tag but it has other tags", *dbIP.Ipaddress),
 					RequeueAfter: 30 * time.Second,
 				}
@@ -475,7 +475,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 				Tags:      []string{r.egressTag},
 			}).WithContext(ctx), nil)
 			if err != nil {
-				return &controllererrors.RequeueAfterError{
+				return &reconciler.RequeueAfterError{
 					Cause:        fmt.Errorf("could not tag ip %s for egress usage %w", ip, err),
 					RequeueAfter: 30 * time.Second,
 				}
@@ -488,7 +488,7 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 		for _, ip := range toUnTag.List() {
 			err := clearIPTags(ctx, r.mclient, ip)
 			if err != nil {
-				return &controllererrors.RequeueAfterError{
+				return &reconciler.RequeueAfterError{
 					Cause:        fmt.Errorf("could not remove egress tag from ip %s %w", ip, err),
 					RequeueAfter: 30 * time.Second,
 				}

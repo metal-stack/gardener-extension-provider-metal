@@ -10,6 +10,8 @@ LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
 
+GOLANGCI_LINT_VERSION := v1.48.0
+
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
 else
@@ -17,6 +19,9 @@ else
 endif
 
 export GO111MODULE := on
+
+TOOLS_DIR := hack/tools
+-include vendor/github.com/gardener/gardener/hack/tools.mk
 
 #########################################
 # Rules for local development scenarios #
@@ -51,7 +56,7 @@ start-admission-metal:
 #################################################################
 
 .PHONY: install
-install: revendor
+install: revendor $(HELM)
 	@LD_FLAGS="-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(VERSION)" \
 	$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/install.sh ./...
 
@@ -69,13 +74,6 @@ docker-push:
 #####################################################################
 # Rules for verification, formatting, linting, testing and cleaning #
 #####################################################################
-
-.PHONY: install-requirements
-install-requirements:
-	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/ahmetb/gen-crd-api-reference-docs
-	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/golang/mock/mockgen
-	@go install -mod=vendor $(REPO_ROOT)/vendor/github.com/onsi/ginkgo/ginkgo
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/install-requirements.sh
 
 .PHONY: revendor
 revendor:
@@ -95,24 +93,24 @@ check-generate:
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-generate.sh $(REPO_ROOT)
 
 .PHONY: check
-check:
+check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM)
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/...
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-charts.sh ./charts
 
 .PHONY: generate
-generate:
+generate: $(HELM)
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: generate-in-docker
-generate-in-docker: revendor
+generate-in-docker: revendor $(HELM)
 	echo $(shell git describe --abbrev=0 --tags) > VERSION
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.17 \
+	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.19 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
-				&& make install-requirements generate \
+				&& make install generate \
 				&& chown -R $(shell id -u):$(shell id -g) ."
 
 .PHONY: format
-format:
+format: $(GOIMPORTS) 
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/format.sh ./cmd ./pkg
 
 .PHONY: test
@@ -121,9 +119,9 @@ test:
 
 .PHONY: test-in-docker
 test-in-docker: revendor
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.17 \
+	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.19 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
-				&& make install-requirements check test"
+				&& make install check test"
 
 .PHONY: test-cov
 test-cov:
