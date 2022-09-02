@@ -9,8 +9,8 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/gardener/etcd-druid v0.7.3
 	github.com/gardener/external-dns-management v0.12.5
-	github.com/gardener/gardener v1.37.0
-	github.com/gardener/machine-controller-manager v0.45.0
+	github.com/gardener/gardener v1.37.7
+	github.com/gardener/machine-controller-manager v0.46.1
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.8
@@ -18,7 +18,7 @@ require (
 	github.com/imdario/mergo v0.3.13
 	github.com/metal-stack/duros-controller v0.3.3
 	github.com/metal-stack/firewall-controller v1.1.5
-	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.11
+	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.12
 	github.com/metal-stack/metal-go v0.19.2
 	github.com/metal-stack/metal-lib v0.11.0
 	github.com/onsi/ginkgo v1.16.5

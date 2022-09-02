@@ -298,8 +298,8 @@ github.com/gardener/gardener v1.6.5/go.mod h1:w5IHIQDccvSxZJFOtBa8YConyyFgt07DBH
 github.com/gardener/gardener v1.11.3/go.mod h1:5DzqfOm+G8UftKu5zUbYJ+9Cnfd4XrvRNDabkM9AIp4=
 github.com/gardener/gardener v1.17.1/go.mod h1:uucRHq0xV46xd9MpJJjRswx/Slq3+ipbbJg09FVUtvM=
 github.com/gardener/gardener v1.23.0/go.mod h1:xS/sYyzYsq2W0C79mT98G/qoOTvy/hHTfApHIVF3v2o=
-github.com/gardener/gardener v1.37.0 h1:YASgxxMt32FMjNLxBMeKnR0op3KZev2yV7b3nbYNUL8=
-github.com/gardener/gardener v1.37.0/go.mod h1:TH+TdpN9ccSB9mxPXzBC4UmjBWa+uHN786Fwk0ED4wg=
+github.com/gardener/gardener v1.37.7 h1:u4BPVIEEGbBNQxbqluJ+DrWh9cK0rlcuzWdebIWMay4=
+github.com/gardener/gardener v1.37.7/go.mod h1:TH+TdpN9ccSB9mxPXzBC4UmjBWa+uHN786Fwk0ED4wg=
 github.com/gardener/gardener-resource-manager v0.10.0/go.mod h1:0pKTHOhvU91eQB0EYr/6Ymd7lXc/5Hi8P8tF/gpV0VQ=
 github.com/gardener/gardener-resource-manager v0.13.1/go.mod h1:0No/XttYRUwDn5lSppq9EqlKdo/XJQ44aCZz5BVu3Vw=
 github.com/gardener/gardener-resource-manager v0.18.0/go.mod h1:k53Yw2iDAIpTxnChQY9qFHrRtuPQWJDNnCP9eE6TnWQ=
@@ -310,8 +310,8 @@ github.com/gardener/hvpa-controller v0.3.1/go.mod h1:rjsb3BPKJFMluudZ8/bhCCDQfFC
 github.com/gardener/landscaper/apis v0.7.0/go.mod h1:++MW27PlSnbWM4AJipikw62RSprxO5TKVxZ8nh0e4Yw=
 github.com/gardener/machine-controller-manager v0.27.0/go.mod h1:zlIxuLQMtRO+aXOFsG6qtYkBmggbWY82K7MSO051ARU=
 github.com/gardener/machine-controller-manager v0.33.0/go.mod h1:jxxE+mGgXwg4iPlCHTG4GtUfK2CcHA6yYoIIowoxOZU=
-github.com/gardener/machine-controller-manager v0.45.0 h1:rpf0PHRXJMGY93oMruNP+tnMawKJXhhzCACyNJsT8Lo=
-github.com/gardener/machine-controller-manager v0.45.0/go.mod h1:+4j/6ab3jqbM6tM6FPtlajYgaJHM0xZ44ErOjCBlsP8=
+github.com/gardener/machine-controller-manager v0.46.1 h1:ZvxwsIaQNl/FcrdR3ukIWQsvJzAoASDSNmGO5MOSFgA=
+github.com/gardener/machine-controller-manager v0.46.1/go.mod h1:Un8BoUdl+64nkkWfe69XwkwAJNRmSl9J6BTICI/qkbE=
 github.com/getkin/kin-openapi v0.76.0/go.mod h1:660oXbgy5JFMKreazJaQTw7o+X00qeSyhcnluiMv+Xg=
 github.com/getsentry/raven-go v0.2.0/go.mod h1:KungGk8q33+aIAZUIVWZDr2OfAEBsO49PX4NzFV5kcQ=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
@@ -764,8 +764,8 @@ github.com/metal-stack/duros-controller v0.3.3/go.mod h1:EB3odWq+jjyt7f/P3Md28QX
 github.com/metal-stack/duros-go v0.3.0/go.mod h1:7vf4YJa4QpP770hf26mhzFrv+SwZbt4M2Aj3HMysgOQ=
 github.com/metal-stack/firewall-controller v1.1.5 h1:ZULu9mwuHjg73340r3NoxO/KbqKO0EmOMs1hLrFLhM8=
 github.com/metal-stack/firewall-controller v1.1.5/go.mod h1:9YjltTPEXjH1Uo+IKwP6DEEryzxHlIvXOifiiRcTtU0=
-github.com/metal-stack/machine-controller-manager-provider-metal v0.1.11 h1:SG4KhyFMaKNc7aRK1ebnvWzA/a5fex6Ez6rsBiKJLXw=
-github.com/metal-stack/machine-controller-manager-provider-metal v0.1.11/go.mod h1:Eb2g9AvmCtRYUMIoUy00L+zZ93x5F6SRNt1Q/FfDsxI=
+github.com/metal-stack/machine-controller-manager-provider-metal v0.1.12 h1:+JGOy/N/yf5hxgyckaTJwSjSzLU4v/AplUsupSiCero=
+github.com/metal-stack/machine-controller-manager-provider-metal v0.1.12/go.mod h1:+lDJ5VTvsmQOphyju8u+wW0pzAWpGN8qA8T7QHFd9pk=
 github.com/metal-stack/masterdata-api v0.8.12 h1:hfg+g0W1tzs/5mV9RG4+l6pAtH/SMaeEUQujx+50Z7U=
 github.com/metal-stack/masterdata-api v0.8.12/go.mod h1:le/cvZ9nvw9QQ/eVJSrO7rNdwMMuIrQxFalaIcv/GUg=
 github.com/metal-stack/metal-go v0.19.2 h1:1vK+j0Wm8JETugGZp3c7mvb4nLejDlFUx/AIBVVkNMc=
