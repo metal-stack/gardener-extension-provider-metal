@@ -56,11 +56,11 @@ func (e *ensurer) InjectScheme(_ *runtime.Scheme) error {
 
 // EnsureCloudProviderSecret ensures that cloudprovider secret contain
 func (e *ensurer) EnsureCloudProviderSecret(ctx context.Context, _ gcontext.GardenContext, new, old *corev1.Secret) error {
-	if new.DeletionTimestamp != nil && !new.DeletionTimestamp.IsZero() {
+	if old.DeletionTimestamp != nil && !old.DeletionTimestamp.IsZero() {
 		return nil
 	}
 
-	e.logger.V(5).Info("mutate cloudprovider secret", "namespace", new.Namespace, "name", new.Name)
+	e.logger.V(5).Info("mutate cloudprovider secret", "namespace", old.Namespace, "name", old.Name)
 
 	new.Finalizers = []string{mcmProviderFinalizer}
 
