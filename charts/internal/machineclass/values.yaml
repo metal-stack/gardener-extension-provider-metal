@@ -13,3 +13,6 @@ machineClasses:
     metalAPIKey: abc
     metalAPIHMac: abc
     metalAPIURL: abc
+  credentialsSecretRef:
+    name: cloudprovider
+    namespace: shoot-namespace
