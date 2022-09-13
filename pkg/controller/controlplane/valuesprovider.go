@@ -709,6 +709,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		// get apiserver ip adresses from external dns entry
 		dns := &dnsv1alpha1.DNSEntry{}
 		err = vp.Client().Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return nil, fmt.Errorf("failed to get dnsEntry %w", err)
+		}
+
 		if err == nil {
 			apiserverIPs = dns.Spec.Targets
 		} else {
@@ -719,6 +723,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 				return nil, fmt.Errorf("failed to get dnsRecord %w", err)
 			}
 			apiserverIPs = dnsRecord.Spec.Values
+		}
+
+		if len(apiserverIPs) == 0 {
+			return nil, fmt.Errorf("apiserver dns records were not yet reconciled")
 		}
 	}
 
