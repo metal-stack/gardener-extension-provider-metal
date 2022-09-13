@@ -707,13 +707,29 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	apiserverIPs := []string{}
 	if !extensionscontroller.IsHibernated(cluster) {
 		// get apiserver ip adresses from external dns entry
+		// DNSEntry was replaced by DNSRecord and will be dropped in a future gardener release
+		// We can then remove reading the dns entry resources entirely
 		dns := &dnsv1alpha1.DNSEntry{}
-
 		err = vp.Client().Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get dnsEntry %w", err)
+			if !apierrors.IsNotFound(err) {
+				return nil, fmt.Errorf("failed to get dnsEntry %w", err)
+			}
+
+			// get apiserver ip adresses from external dns record
+			dnsRecord := &extensionsv1alpha1.DNSRecord{}
+			err := vp.Client().Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get dnsRecord %w", err)
+			}
+			apiserverIPs = dnsRecord.Spec.Values
+		} else {
+			apiserverIPs = dns.Spec.Targets
 		}
-		apiserverIPs = dns.Spec.Targets
+
+		if len(apiserverIPs) == 0 {
+			return nil, fmt.Errorf("apiserver dns records were not yet reconciled")
+		}
 	}
 
 	values := map[string]interface{}{
