@@ -708,12 +708,18 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	if !extensionscontroller.IsHibernated(cluster) {
 		// get apiserver ip adresses from external dns entry
 		dns := &dnsv1alpha1.DNSEntry{}
-
 		err = vp.Client().Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get dnsEntry %w", err)
+		if err == nil {
+			apiserverIPs = dns.Spec.Targets
+		} else {
+			// get apiserver ip adresses from external dns record
+			dnsRecord := &extensionsv1alpha1.DNSRecord{}
+			err := vp.Client().Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.ObjectMeta.Name), Namespace: namespace}, dnsRecord)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get dnsRecord %w", err)
+			}
+			apiserverIPs = dnsRecord.Spec.Values
 		}
-		apiserverIPs = dns.Spec.Targets
 	}
 
 	values := map[string]interface{}{
