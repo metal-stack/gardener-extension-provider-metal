@@ -707,15 +707,15 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	apiserverIPs := []string{}
 	if !extensionscontroller.IsHibernated(cluster) {
 		// get apiserver ip adresses from external dns entry
+		// DNSEntry was replaced by DNSRecord and will be dropped in a future gardener release
+		// We can then remove reading the dns entry resources entirely
 		dns := &dnsv1alpha1.DNSEntry{}
 		err = vp.Client().Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
-		if err != nil && !apierrors.IsNotFound(err) {
-			return nil, fmt.Errorf("failed to get dnsEntry %w", err)
-		}
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return nil, fmt.Errorf("failed to get dnsEntry %w", err)
+			}
 
-		if err == nil {
-			apiserverIPs = dns.Spec.Targets
-		} else {
 			// get apiserver ip adresses from external dns record
 			dnsRecord := &extensionsv1alpha1.DNSRecord{}
 			err := vp.Client().Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
@@ -723,6 +723,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 				return nil, fmt.Errorf("failed to get dnsRecord %w", err)
 			}
 			apiserverIPs = dnsRecord.Spec.Values
+		} else {
+			apiserverIPs = dns.Spec.Targets
 		}
 
 		if len(apiserverIPs) == 0 {
