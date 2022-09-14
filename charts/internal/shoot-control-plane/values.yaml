@@ -1,6 +1,7 @@
 ---
 kubernetesVersion: "1.16.0"
 apiserverIPs: []
+nodeCIDR:
 
 images:
     audittailer: image-repository:image-tag
