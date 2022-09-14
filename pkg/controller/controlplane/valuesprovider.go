@@ -285,6 +285,10 @@ type networkMap map[string]*models.V1NetworkResponse
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
 func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
+	cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
+		{Type: &corev1.ConfigMap{}, Name: "shoot-info-node-cidr"},
+	}...)
+
 	if controllerConfig.Auth.Enabled {
 		configChart.Objects = append(configChart.Objects, []*chart.Object{
 			{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
@@ -658,7 +662,16 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		nws[*n.ID] = n
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructureConfig, mclient)
+	// TODO: this is a workaround to speed things for the time being...
+	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
+	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
+	// therefore, we read it directly from the infrastructure status
+	infrastructure := &extensionsv1alpha1.Infrastructure{}
+	if err := vp.Client().Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
+		return nil, err
+	}
+
+	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -680,10 +693,14 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *apismetal.InfrastructureConfig, mclient metalgo.Client) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	fwSpec, err := vp.getFirewallSpec(ctx, metalControlPlane, infrastructure, cluster, nws, mclient)
+	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
+		return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	}
+
+	fwSpec, err := vp.getFirewallSpec(ctx, metalControlPlane, infrastructureConfig, cluster, nws, mclient)
 	if err != nil {
 		return nil, fmt.Errorf("could not assemble firewall values %w", err)
 	}
@@ -707,18 +724,35 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	apiserverIPs := []string{}
 	if !extensionscontroller.IsHibernated(cluster) {
 		// get apiserver ip adresses from external dns entry
+		// DNSEntry was replaced by DNSRecord and will be dropped in a future gardener release
+		// We can then remove reading the dns entry resources entirely
 		dns := &dnsv1alpha1.DNSEntry{}
-
 		err = vp.Client().Get(ctx, types.NamespacedName{Name: "external", Namespace: namespace}, dns)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get dnsEntry %w", err)
+			if !apierrors.IsNotFound(err) {
+				return nil, fmt.Errorf("failed to get dnsEntry %w", err)
+			}
+
+			// get apiserver ip adresses from external dns record
+			dnsRecord := &extensionsv1alpha1.DNSRecord{}
+			err := vp.Client().Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get dnsRecord %w", err)
+			}
+			apiserverIPs = dnsRecord.Spec.Values
+		} else {
+			apiserverIPs = dns.Spec.Targets
 		}
-		apiserverIPs = dns.Spec.Targets
+
+		if len(apiserverIPs) == 0 {
+			return nil, fmt.Errorf("apiserver dns records were not yet reconciled")
+		}
 	}
 
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
+		"nodeCIDR":          *infrastructure.Status.NodesCIDR,
 		"firewallSpec":      fwSpec,
 		"groupRolebindingController": map[string]interface{}{
 			"enabled": vp.controllerConfig.Auth.Enabled,
@@ -731,9 +765,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
-		partitionConfig, ok := vp.controllerConfig.Storage.Duros.PartitionConfig[infrastructure.PartitionID]
+		partitionConfig, ok := vp.controllerConfig.Storage.Duros.PartitionConfig[infrastructureConfig.PartitionID]
 
-		found, err := hasDurosStorageNetwork(infrastructure, nws)
+		found, err := hasDurosStorageNetwork(infrastructureConfig, nws)
 		if err != nil {
 			return nil, fmt.Errorf("unable to determine storage network %w", err)
 		}

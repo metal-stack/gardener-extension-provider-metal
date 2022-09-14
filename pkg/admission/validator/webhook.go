@@ -6,7 +6,6 @@ import (
 	extensionspredicate "github.com/gardener/gardener/extensions/pkg/predicate"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -23,9 +22,9 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		Name:       extensionswebhook.ValidatorName,
 		Path:       extensionswebhook.ValidatorPath,
 		Predicates: []predicate.Predicate{extensionspredicate.GardenCoreProviderType(metal.Type)},
-		Validators: map[extensionswebhook.Validator][]client.Object{
-			NewShootValidator():        {&core.Shoot{}},
-			NewCloudProfileValidator(): {&core.CloudProfile{}},
+		Validators: map[extensionswebhook.Validator][]extensionswebhook.Type{
+			NewShootValidator():        {{Obj: &core.Shoot{}}},
+			NewCloudProfileValidator(): {{Obj: &core.CloudProfile{}}},
 		},
 	})
 }

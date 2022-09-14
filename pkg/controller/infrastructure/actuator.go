@@ -11,7 +11,6 @@ import (
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
-	"github.com/gardener/gardener/pkg/controllerutils"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -21,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/util/retry"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -90,17 +88,16 @@ func decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, dec
 }
 
 func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string) error {
-	return controllerutils.TryUpdateStatus(ctx, retry.DefaultBackoff, c, infrastructure, func() error {
-		infrastructure.Status.ProviderStatus = &runtime.RawExtension{Object: &metalv1alpha1.InfrastructureStatus{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
-				Kind:       "InfrastructureStatus",
-			},
-			Firewall: metalv1alpha1.FirewallStatus{
-				MachineID: providerStatus.Firewall.MachineID,
-			},
-		}}
-		infrastructure.Status.NodesCIDR = nodeCIDR
-		return nil
-	})
+	patch := client.MergeFrom(infrastructure.DeepCopy())
+	infrastructure.Status.ProviderStatus = &runtime.RawExtension{Object: &metalv1alpha1.InfrastructureStatus{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
+			Kind:       "InfrastructureStatus",
+		},
+		Firewall: metalv1alpha1.FirewallStatus{
+			MachineID: providerStatus.Firewall.MachineID,
+		},
+	}}
+	infrastructure.Status.NodesCIDR = nodeCIDR
+	return c.Status().Patch(ctx, infrastructure, patch)
 }
