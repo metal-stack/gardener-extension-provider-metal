@@ -5,14 +5,19 @@ import (
 	"fmt"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type mutator struct {
+	client client.Client
 	logger logr.Logger
 }
 
@@ -21,6 +26,12 @@ func NewMutator() extensionswebhook.Mutator {
 	return &mutator{
 		logger: log.Log.WithName("shoot-mutator"),
 	}
+}
+
+// InjectClient injects the given client into the mutator.
+func (m *mutator) InjectClient(client client.Client) error {
+	m.client = client
+	return nil
 }
 
 func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
@@ -33,21 +44,47 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		return nil
 	}
 
+	gctx := gcontext.NewGardenContext(m.client, new)
+
 	switch x := new.(type) {
 	case *appsv1.Deployment:
 		switch x.Name {
-		case "metrics-server":
+		case "vpn-shoot":
 			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			return m.mutateMetricsServerDeployment(ctx, x)
+			return m.mutateVPNShootDeployment(ctx, gctx, x)
 		}
 	}
 	return nil
 }
 
-// TODO: can be removed in Gardener v1.34: https://github.com/gardener/gardener/pull/4884
-func (m *mutator) mutateMetricsServerDeployment(_ context.Context, deployment *appsv1.Deployment) error {
-	if c := extensionswebhook.ContainerWithName(deployment.Spec.Template.Spec.Containers, "metrics-server"); c != nil {
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--kubelet-preferred-address-types=", "InternalIP,InternalDNS,ExternalDNS,ExternalIP,Hostname")
+func (m *mutator) mutateVPNShootDeployment(ctx context.Context, gctx gcontext.GardenContext, deployment *appsv1.Deployment) error {
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
+	infrastructure := &extensionsv1alpha1.Infrastructure{}
+	if err := m.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
+		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
+		return err
+	}
+
+	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
+		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	}
+
+	nodeCIDR := *infrastructure.Status.NodesCIDR
+
+	if c := extensionswebhook.ContainerWithName(deployment.Spec.Template.Spec.Containers, "vpn-shoot"); c != nil {
+		// fixes a regression from https://github.com/gardener/gardener/pull/4691
+		// raising the timeout to 15 minutes leads to additional 15 minutes of provisioning time because
+		// the nodes cidr will only be set on next shoot reconcile
+		// with the following mutation we can immediately provide the proper nodes cidr and save time
+		logger.Info("ensuring nodes cidr in vpn-shoot deployment", "cidr", nodeCIDR)
+		c.Env = extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
+			Name:  "NODE_NETWORK",
+			Value: nodeCIDR,
+		})
 	}
 
 	return nil
