@@ -17,8 +17,8 @@ import (
 )
 
 type mutator struct {
-	client client.Client
-	logger logr.Logger
+	seedClient client.Client
+	logger     logr.Logger
 }
 
 // NewMutator creates a new Mutator that mutates resources in the shoot cluster.
@@ -28,10 +28,9 @@ func NewMutator() extensionswebhook.Mutator {
 	}
 }
 
-// InjectClient injects the given client into the mutator.
-func (m *mutator) InjectClient(client client.Client) error {
-	m.client = client
-	return nil
+// InjectSeedClient injects the seed client
+func (m *mutator) InjectSeedClient(seedClient client.Client) {
+	m.seedClient = seedClient
 }
 
 func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
@@ -44,7 +43,7 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		return nil
 	}
 
-	gctx := gcontext.NewGardenContext(m.client, new)
+	gctx := gcontext.NewGardenContext(m.seedClient, new)
 
 	switch x := new.(type) {
 	case *appsv1.Deployment:
@@ -64,7 +63,7 @@ func (m *mutator) mutateVPNShootDeployment(ctx context.Context, gctx gcontext.Ga
 	}
 
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := m.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
+	if err := m.seedClient.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
 		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
 		return err
 	}
