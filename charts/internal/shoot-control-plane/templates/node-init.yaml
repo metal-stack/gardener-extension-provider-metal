@@ -92,3 +92,10 @@ spec:
             add:
               - NET_ADMIN
       hostNetwork: true
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists
