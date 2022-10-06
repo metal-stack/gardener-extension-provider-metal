@@ -80,7 +80,7 @@ spec:
       containers:
       # TODO: add to image vector
       - name: node-init
-        image: ghcr.io/metal-stack/node-init:latest
+        image: {{ index .Values.images "node-init" }}
         env:
         - name: KUBE_NODE_NAME
           valueFrom:
