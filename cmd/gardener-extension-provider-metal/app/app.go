@@ -39,7 +39,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 	var (
 		restOpts = &controllercmd.RESTOptions{}
 		mgrOpts  = &controllercmd.ManagerOptions{
-			LeaderElection:             true,
+			LeaderElection:             false,
 			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 			LeaderElectionID:           controllercmd.LeaderElectionNameID(metal.Name),
 			LeaderElectionNamespace:    os.Getenv("LEADER_ELECTION_NAMESPACE"),
