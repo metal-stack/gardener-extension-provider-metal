@@ -36,6 +36,10 @@ const (
 	DurosResourceName = "shoot-default-storage"
 	// FirewallResourceName is the name of the firewall resource deployed to the shoot's namespace.
 	FirewallResourceName = "firewall"
+	// NodeInitImageName is the name of the node-init to deploy to the shoot.
+	NodeInitImageName = "node-init"
+	// KubectlImageName is the name of the kubectl image used for metallb health checking to deploy to the shoot.
+	KubectlImageName = "kubectl"
 
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"
