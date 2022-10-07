@@ -91,6 +91,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app: metallb
+    token-invalidator.resources.gardener.cloud/skip: "true"
   name: controller
   namespace: metallb-system
 ---
@@ -99,6 +100,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app: metallb
+    token-invalidator.resources.gardener.cloud/skip: "true"
   name: speaker
   namespace: metallb-system
 ---
@@ -402,6 +404,7 @@ spec:
       labels:
         app: metallb
         component: controller
+        projected-token-mount.resources.gardener.cloud/skip: "true"
     spec:
       containers:
       - args:
