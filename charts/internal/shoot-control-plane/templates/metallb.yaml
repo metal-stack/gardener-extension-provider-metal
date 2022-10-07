@@ -332,6 +332,7 @@ spec:
       labels:
         app: metallb
         component: speaker
+        projected-token-mount.resources.gardener.cloud/skip: "true"
     spec:
       containers:
       - args:
