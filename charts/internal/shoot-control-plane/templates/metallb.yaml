@@ -432,7 +432,7 @@ spec:
       # helps us to identify stale configs easily:
       # https://github.com/metallb/metallb/issues/462
       - name: health
-        image: "bitnami/kubectl:latest"
+        image: {{ index .Values.images "kubectl" }}
         command:
           - bash
           - -c
