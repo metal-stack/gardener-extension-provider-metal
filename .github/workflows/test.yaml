@@ -1,0 +1,30 @@
+---
+name: Test Action
+on:
+  pull_request:
+    branches:
+      - master
+  release:
+    types:
+      - published
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Test Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Set up Go 1.19
+      uses: actions/setup-go@v2
+      with:
+        go-version: '1.19.x'
+
+    - name: Check (lint) and Test
+      run: |
+        make test-in-docker

@@ -6,11 +6,11 @@ images:
 - name: machine-controller-manager
   sourceRepository: github.com/gardener/machine-controller-manager
   repository: eu.gcr.io/gardener-project/gardener/machine-controller-manager
-  tag: "0.41.0"
+  tag: "0.44.0"
 - name: machine-controller-manager-provider-metal
   sourceRepository: https://github.com/metal-stack/machine-controller-manager-provider-metal
   repository: ghcr.io/metal-stack/machine-controller-manager-provider-metal
-  tag: "v0.1.7"
+  tag: "v0.1.10"
 - name: auditforwarder
   sourceRepository: https://github.com/metal-stack/audit-forwarder
   repository: ghcr.io/metal-stack/audit-forwarder
@@ -43,6 +43,14 @@ images:
   sourceRepository: https://github.com/metal-stack/duros-controller
   repository: ghcr.io/metal-stack/duros-controller
   tag: "v0.3.1"
+- name: node-init
+  sourceRepository: https://github.com/metal-stack/node-init
+  repository: ghcr.io/metal-stack/node-init
+  tag: "v0.1.1"
+- name: kubectl
+  sourceRepository: https://github.com/bitnami/containers
+  repository: bitnami/kubectl
+  tag: "1.25.0"
 
 # can be provided via image override:
 # - name: authn-webhook

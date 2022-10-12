@@ -113,7 +113,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		nodeCIDR = w.cluster.Shoot.Spec.Networking.Nodes
 	}
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(mclient, projectID, *nodeCIDR)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, *nodeCIDR)
 	if err != nil {
 		return err
 	}
@@ -172,6 +172,10 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			"sshkeys":   []string{string(w.worker.Spec.SSHPublicKey)},
 			"secret": map[string]interface{}{
 				"cloudConfig": string(pool.UserData),
+			},
+			"credentialsSecretRef": map[string]interface{}{
+				"name":      w.worker.Spec.SecretRef.Name,
+				"namespace": w.worker.Spec.SecretRef.Namespace,
 			},
 		}
 

@@ -2,4 +2,6 @@
 vendor
 tools/vendor
 VERSION
-bin
+helm
+.vscode
+hack/tools/bin/*
