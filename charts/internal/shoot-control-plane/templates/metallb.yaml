@@ -91,6 +91,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app: metallb
+    token-invalidator.resources.gardener.cloud/skip: "true"
   name: controller
   namespace: metallb-system
 ---
@@ -99,6 +100,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app: metallb
+    token-invalidator.resources.gardener.cloud/skip: "true"
   name: speaker
   namespace: metallb-system
 ---
@@ -332,6 +334,7 @@ spec:
       labels:
         app: metallb
         component: speaker
+        projected-token-mount.resources.gardener.cloud/skip: "true"
     spec:
       containers:
       - args:
@@ -370,7 +373,10 @@ spec:
       terminationGracePeriodSeconds: 2
       tolerations:
       - effect: NoSchedule
-        key: node-role.kubernetes.io/master
+        operator: Exists
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoExecute
         operator: Exists
 {{- if semverCompare ">= 1.17" .Values.kubernetesVersion }}
       priorityClassName: system-node-critical
@@ -398,6 +404,7 @@ spec:
       labels:
         app: metallb
         component: controller
+        projected-token-mount.resources.gardener.cloud/skip: "true"
     spec:
       containers:
       - args:
