@@ -197,6 +197,8 @@ type DurosSeedStorageClass struct {
 	ReplicaCount int
 	// Compression enables compression for this storage class
 	Compression bool
+	// Encryption defines a SC with client side encryption enabled
+	Encryption bool
 }
 
 // ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
