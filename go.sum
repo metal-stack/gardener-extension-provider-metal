@@ -670,8 +670,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/matttproud/golang_protobuf_extensions v1.0.2 h1:hAHbPm5IJGijwng3PWk09JkG9WeqChjprR5s9bBZ+OM=
 github.com/matttproud/golang_protobuf_extensions v1.0.2/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
-github.com/metal-stack/duros-controller v0.5.1-0.20221012114244-36bd646cca30 h1:iCFHTqctmQD2/DbAy3Q3OPUickD22SGytwgii8TDyKM=
-github.com/metal-stack/duros-controller v0.5.1-0.20221012114244-36bd646cca30/go.mod h1:gl/8u9vaY8HeXr20v786dPq+xKyNFXqpbLdLvZWIg2k=
+github.com/metal-stack/duros-controller v0.6.0 h1:dE4hZKP5q3rln0loJfmsIx9ZHKu1xx0meuQB5UOkn0U=
+github.com/metal-stack/duros-controller v0.6.0/go.mod h1:gl/8u9vaY8HeXr20v786dPq+xKyNFXqpbLdLvZWIg2k=
 github.com/metal-stack/firewall-controller v1.1.5 h1:ZULu9mwuHjg73340r3NoxO/KbqKO0EmOMs1hLrFLhM8=
 github.com/metal-stack/firewall-controller v1.1.5/go.mod h1:9YjltTPEXjH1Uo+IKwP6DEEryzxHlIvXOifiiRcTtU0=
 github.com/metal-stack/machine-controller-manager-provider-metal v0.1.11 h1:SG4KhyFMaKNc7aRK1ebnvWzA/a5fex6Ez6rsBiKJLXw=
