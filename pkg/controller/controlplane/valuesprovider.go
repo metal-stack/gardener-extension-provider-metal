@@ -1363,6 +1363,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 			"name":        sc.Name,
 			"replicas":    sc.ReplicaCount,
 			"compression": sc.Compression,
+			"encryption":  sc.Encryption,
 			"default":     isDefaultSC,
 		})
 	}
