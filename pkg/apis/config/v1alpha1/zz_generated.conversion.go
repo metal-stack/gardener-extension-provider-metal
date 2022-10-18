@@ -478,6 +478,7 @@ func autoConvert_v1alpha1_DurosSeedStorageClass_To_config_DurosSeedStorageClass(
 	out.Name = in.Name
 	out.ReplicaCount = in.ReplicaCount
 	out.Compression = in.Compression
+	out.Encryption = in.Encryption
 	return nil
 }
 
@@ -490,6 +491,7 @@ func autoConvert_config_DurosSeedStorageClass_To_v1alpha1_DurosSeedStorageClass(
 	out.Name = in.Name
 	out.ReplicaCount = in.ReplicaCount
 	out.Compression = in.Compression
+	out.Encryption = in.Encryption
 	return nil
 }
 

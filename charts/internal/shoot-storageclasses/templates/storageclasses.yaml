@@ -250,6 +250,13 @@ spec:
           - mountPath: /run/lock/lvm
             name: lvmlock
             mountPropagation: Bidirectional
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists
       volumes:
         - hostPath:
             path: /tmp/csi-lvm
