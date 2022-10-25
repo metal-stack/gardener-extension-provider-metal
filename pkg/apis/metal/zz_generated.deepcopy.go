@@ -160,6 +160,11 @@ func (in *ControlPlaneFeatures) DeepCopyInto(out *ControlPlaneFeatures) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.DurosStorageEncryption != nil {
+		in, out := &in.DurosStorageEncryption, &out.DurosStorageEncryption
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 
