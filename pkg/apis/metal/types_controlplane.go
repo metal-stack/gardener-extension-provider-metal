@@ -50,6 +50,9 @@ type ControlPlaneFeatures struct {
 	// forwarding it into the cluster. Needs the clusterAudit featureGate to be active.
 	// +optional
 	AuditToSplunk *bool
+	// DurosStorageEncryption enables the deployment of configured encrypted storage classes for the duros-controller.
+	// +optional
+	DurosStorageEncryption *bool
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
