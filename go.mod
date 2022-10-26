@@ -9,7 +9,6 @@ require (
 	github.com/coreos/go-systemd/v22 v22.4.0
 	github.com/flatcar/container-linux-config-transpiler v0.9.4
 	github.com/gardener/etcd-druid v0.7.3
-	github.com/gardener/external-dns-management v0.12.5
 	github.com/gardener/gardener v1.39.0
 	github.com/gardener/machine-controller-manager v0.47.0
 	github.com/go-logr/logr v1.2.3
@@ -59,6 +58,7 @@ require (
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/flatcar/ignition v0.36.2 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/gardener/external-dns-management v0.12.5 // indirect
 	github.com/gardener/hvpa-controller v0.3.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
