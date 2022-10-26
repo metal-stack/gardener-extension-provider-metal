@@ -23,7 +23,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-go/api/client/firewall"
-	"github.com/metal-stack/metal-go/api/client/ip"
 	metalip "github.com/metal-stack/metal-go/api/client/ip"
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
@@ -45,7 +44,7 @@ func NewClient(ctx context.Context, k8sClient client.Client, endpoint string, se
 
 // NewClientFromCredentials returns a new metal client with the client constructed from the given credentials.
 func NewClientFromCredentials(endpoint string, credentials *metal.Credentials) (metalgo.Client, error) {
-	client, _, err := metalgo.NewDriver(endpoint, credentials.MetalAPIKey, credentials.MetalAPIHMac)
+	client, err := metalgo.NewDriver(endpoint, credentials.MetalAPIKey, credentials.MetalAPIHMac)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +98,7 @@ func GetPrivateNetworkFromNodeNetwork(ctx context.Context, client metalgo.Client
 
 // GetEphemeralIPsFromCluster return all ephemeral IPs for given project and cluster
 func GetEphemeralIPsFromCluster(ctx context.Context, client metalgo.Client, projectID, clusterID string) ([]*models.V1IPResponse, []*models.V1IPResponse, error) {
-	ipFindResponse, err := client.IP().FindIPs(ip.NewFindIPsParams().WithBody(&models.V1IPFindRequest{
+	ipFindResponse, err := client.IP().FindIPs(metalip.NewFindIPsParams().WithBody(&models.V1IPFindRequest{
 		Projectid: projectID,
 		Type:      models.V1IPBaseTypeEphemeral,
 	}).WithContext(ctx), nil)
