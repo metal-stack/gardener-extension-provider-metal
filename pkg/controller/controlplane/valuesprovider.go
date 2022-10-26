@@ -1351,15 +1351,20 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 		}
 	}
 
-	var scs []map[string]interface{}
+	var scs []map[string]any
 	for _, sc := range partitionConfig.StorageClasses {
+		if cp.FeatureGates.DurosStorageEncryption == nil || !*cp.FeatureGates.DurosStorageEncryption {
+			if sc.Encryption {
+				continue
+			}
+		}
 
 		isDefaultSC := false
 		if cp.CustomDefaultStorageClass != nil && cp.CustomDefaultStorageClass.ClassName == sc.Name {
 			isDefaultSC = true
 		}
 
-		scs = append(scs, map[string]interface{}{
+		scs = append(scs, map[string]any{
 			"name":        sc.Name,
 			"replicas":    sc.ReplicaCount,
 			"compression": sc.Compression,
@@ -1368,7 +1373,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 		})
 	}
 
-	controllerValues := map[string]interface{}{
+	controllerValues := map[string]any{
 		"endpoints":  partitionConfig.Endpoints,
 		"adminKey":   partitionConfig.AdminKey,
 		"adminToken": partitionConfig.AdminToken,
@@ -1381,8 +1386,8 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 		controllerValues["apiCert"] = partitionConfig.APICert
 	}
 
-	values := map[string]interface{}{
-		"duros": map[string]interface{}{
+	values := map[string]any{
+		"duros": map[string]any{
 			"enabled":        storageConfig.Duros.Enabled,
 			"replicas":       extensionscontroller.GetReplicas(cluster, 1),
 			"storageClasses": scs,
