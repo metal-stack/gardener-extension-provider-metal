@@ -303,6 +303,7 @@ func firewallNextAction(ctx context.Context, r *firewallReconciler) (firewallRec
 		err := fmt.Errorf("multiple firewalls exist for this cluster, which is currently unsupported. delete these firewalls and try to keep the one with machine id %q", r.machineIDInStatus)
 		r.logger.Error(
 			err,
+			"multiple firewalls exist for this cluster",
 			"clusterID", r.clusterID,
 			"expectedMachineID", r.machineIDInStatus,
 		)
