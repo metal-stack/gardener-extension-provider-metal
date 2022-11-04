@@ -547,37 +547,6 @@ func ensureNodeNetwork(ctx context.Context, r *firewallReconciler) (string, erro
 }
 
 func createFirewallControllerKubeconfig(ctx context.Context, r *firewallReconciler) (string, error) {
-	apiServerURL := fmt.Sprintf("https://api.%s", *r.cluster.Shoot.Spec.DNS.Domain)
-
-	// infrastructureSecrets := &secrets.Secrets{
-	// 	CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-	// 		v1alpha1constants.SecretNameCACluster: {
-	// 			Name:       v1alpha1constants.SecretNameCACluster,
-	// 			CommonName: "kubernetes",
-	// 			CertType:   secrets.CACert,
-	// 		},
-	// 	},
-	// 	SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
-	// 		return []secrets.ConfigInterface{
-	// 			&secrets.ControlPlaneSecretConfig{
-	// 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-	// 					Name:         firewallControllerName,
-	// 					CommonName:   fmt.Sprintf("system:%s", firewallControllerName),
-	// 					Organization: []string{firewallControllerName},
-	// 					CertType:     secrets.ClientCert,
-	// 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-	// 				},
-	// 				KubeConfigRequests: []secrets.KubeConfigRequest{
-	// 					{
-	// 						ClusterName:   clusterName,
-	// 						APIServerHost: apiServerURL,
-	// 					},
-	// 				},
-	// 			},
-	// 		}
-	// 	},
-	// }
-
 	manager, err := secretsmanager.New(ctx, r.logger.WithName("infrastructure-secrets-manager"), clock.RealClock{}, r.c, r.infrastructure.Namespace, metal.Type+"-provider-shoot-infrastructure", nil)
 	if err != nil {
 		return "", fmt.Errorf("unable to create secrets manager: %w", err)
@@ -623,7 +592,7 @@ func createFirewallControllerKubeconfig(ctx context.Context, r *firewallReconcil
 				Name: r.infrastructure.Name,
 				Cluster: configv1.Cluster{
 					CertificateAuthorityData: ca.Data[secrets.ControlPlaneSecretDataKeyCertificatePEM(ca.Name)],
-					Server:                   apiServerURL,
+					Server:                   fmt.Sprintf("https://api.%s", *r.cluster.Shoot.Spec.DNS.Domain),
 				},
 			},
 		},
