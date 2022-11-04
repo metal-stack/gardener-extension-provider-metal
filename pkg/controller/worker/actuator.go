@@ -54,8 +54,6 @@ func NewActuator(machineImages []config.MachineImage) worker.Actuator {
 		mcmShootChart,
 		imagevector.ImageVector(),
 		extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
-		false,
-		false,
 	)
 }
 

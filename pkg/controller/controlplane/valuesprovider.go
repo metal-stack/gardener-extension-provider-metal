@@ -14,7 +14,6 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 
@@ -22,6 +21,10 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/pkg/utils"
+
+	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
+	secretutils "github.com/gardener/gardener/pkg/utils/secrets"
+	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -39,6 +42,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
@@ -55,122 +59,100 @@ import (
 
 	"github.com/go-logr/logr"
 
+	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var controlPlaneSecrets = &secrets.Secrets{
-	CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-		v1alpha1constants.SecretNameCACluster: {
-			Name:       v1alpha1constants.SecretNameCACluster,
-			CommonName: "kubernetes",
-			CertType:   secrets.CACert,
+const (
+	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
+)
+
+func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
+	return []extensionssecretsmanager.SecretConfigWithOptions{
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:       caNameControlPlane,
+				CommonName: caNameControlPlane,
+				CertType:   secretutils.CACert,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
 		},
-	},
-	SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
-		return []secrets.ConfigInterface{
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         metal.CloudControllerManagerDeploymentName,
-					CommonName:   "system:cloud-controller-manager",
-					Organization: []string{user.SystemPrivilegedGroup},
-					CertType:     secrets.ClientCert,
-					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-				},
-				KubeConfigRequests: []secrets.KubeConfigRequest{
-					{
-						ClusterName:   clusterName,
-						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
-					},
-				},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.CloudControllerManagerServerName,
+				CommonName:                  metal.CloudControllerManagerDeploymentName,
+				DNSNames:                    kutil.DNSNamesForService(metal.CloudControllerManagerDeploymentName, namespace),
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: true,
 			},
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         metal.DurosControllerDeploymentName,
-					CommonName:   "system:duros-controller",
-					DNSNames:     kutil.DNSNamesForService(metal.DurosControllerDeploymentName, clusterName),
-					Organization: []string{user.SystemPrivilegedGroup},
-					CertType:     secrets.ClientCert,
-					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-				},
-				KubeConfigRequests: []secrets.KubeConfigRequest{
-					{
-						ClusterName:   clusterName,
-						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
-					},
-				},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.DurosControllerDeploymentName,
+				CommonName:                  metal.DurosControllerDeploymentName,
+				DNSNames:                    kutil.DNSNamesForService(metal.DurosControllerDeploymentName, namespace),
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: true,
 			},
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         metal.AudittailerClientSecretName,
-					CommonName:   "audittailer",
-					DNSNames:     []string{"audittailer"},
-					Organization: []string{"audittailer-client"},
-					CertType:     secrets.ClientCert,
-					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-				},
-				KubeConfigRequests: []secrets.KubeConfigRequest{
-					{
-						ClusterName:   clusterName,
-						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
-					},
-				},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.AudittailerClientSecretName,
+				CommonName:                  "audittailer",
+				DNSNames:                    kutil.DNSNamesForService("audittailer", namespace),
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: true,
 			},
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         metal.GroupRolebindingControllerName,
-					CommonName:   "system:group-rolebinding-controller",
-					Organization: []string{user.SystemPrivilegedGroup},
-					CertType:     secrets.ClientCert,
-					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-				},
-				KubeConfigRequests: []secrets.KubeConfigRequest{
-					{
-						ClusterName:   clusterName,
-						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
-					},
-				},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.GroupRolebindingControllerName,
+				CommonName:                  "system:group-rolebinding-controller",
+				DNSNames:                    kutil.DNSNamesForService(metal.GroupRolebindingControllerName, namespace),
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: true,
 			},
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       metal.AuthNWebhookServerName,
-					CommonName: metal.AuthNWebhookDeploymentName,
-					DNSNames:   kutil.DNSNamesForService(metal.AuthNWebhookDeploymentName, clusterName),
-					CertType:   secrets.ServerCert,
-					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
-				},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.AuthNWebhookServerName,
+				CommonName:                  metal.AuthNWebhookDeploymentName,
+				DNSNames:                    kutil.DNSNamesForService(metal.AuthNWebhookDeploymentName, namespace),
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: true,
 			},
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       metal.AccountingExporterName,
-					CommonName: "system:accounting-exporter",
-					// Groupname of user
-					Organization: []string{metal.AccountingExporterName},
-					CertType:     secrets.ClientCert,
-					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-				},
-				KubeConfigRequests: []secrets.KubeConfigRequest{
-					{
-						ClusterName:   clusterName,
-						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
-					},
-				},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.AccountingExporterName,
+				CommonName:                  "system:accounting-exporter",
+				DNSNames:                    kutil.DNSNamesForService(metal.AccountingExporterName, namespace),
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: true,
 			},
-			&secrets.ControlPlaneSecretConfig{
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       metal.CloudControllerManagerServerName,
-					CommonName: metal.CloudControllerManagerDeploymentName,
-					DNSNames:   kutil.DNSNamesForService(metal.CloudControllerManagerDeploymentName, clusterName),
-					CertType:   secrets.ServerCert,
-					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
-				},
-			},
-		}
-	},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+	}
+}
+
+func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
+	return []*gutil.ShootAccessSecret{
+		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
+		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
+		gutil.NewShootAccessSecret(metal.AudittailerClientSecretName, namespace),
+		gutil.NewShootAccessSecret(metal.GroupRolebindingControllerName, namespace),
+		gutil.NewShootAccessSecret(metal.AuthNWebhookDeploymentName, namespace),
+		gutil.NewShootAccessSecret(metal.AccountingExporterName, namespace),
+	}
 }
 
 var configChart = &chart.Chart{
@@ -509,6 +491,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
+	secretsReader secretsmanager.Reader,
 	checksums map[string]string,
 	scaledDown bool,
 ) (map[string]interface{}, error) {
@@ -615,16 +598,14 @@ func merge(target map[string]interface{}, sources ...map[string]interface{}) {
 	}
 }
 
-// GetControlPlaneExposureChartValues returns the values for the control plane exposure chart applied by the generic actuator.
-func (vp *valuesProvider) GetControlPlaneExposureChartValues(
+// GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
+func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
-	cluster *extensionscontroller.Cluster, m map[string]string) (map[string]interface{}, error) {
-	return nil, nil
-}
-
-// GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
-func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, checksums map[string]string) (map[string]interface{}, error) {
+	cluster *extensionscontroller.Cluster,
+	secretsReader secretsmanager.Reader,
+	_ map[string]string,
+) (map[string]interface{}, error) {
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
 	if _, _, err := vp.Decoder().Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of infrastructure %w", err)
@@ -677,13 +658,11 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	if !extensionscontroller.IsHibernated(cluster) {
-		if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
-			if err := vp.deployControlPlaneShootAudittailerCerts(ctx, cluster); err != nil {
-				vp.logger.Error(err, "error deploying audittailer certs")
-			}
+		if err := vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, vp.audittailerSecretConfigs); err != nil {
+			vp.logger.Error(err, "error deploying audittailer certs")
 		}
 
-		if err := vp.deployControlPlaneShootDroptailerCerts(ctx, cluster); err != nil {
+		if err := vp.deploySecretsToShoot(ctx, cluster, metal.DroptailerNamespace, vp.droptailerSecretConfigs); err != nil {
 			vp.logger.Error(err, "error deploying droptailer certs")
 		}
 	}
@@ -884,136 +863,117 @@ func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace stri
 	return nil
 }
 
-func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Context, cluster *extensionscontroller.Cluster) error {
-	// TODO: There is actually no nice way to deploy the certs into the shoot when we want to use
-	// the certificate helper functions from Gardener itself...
-	// Maybe we can find a better solution? This is actually only for chart values...
-
-	wanted := &secrets.Secrets{
-		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-			v1alpha1constants.SecretNameCACluster: {
-				Name:       v1alpha1constants.SecretNameCACluster,
-				CommonName: "kubernetes",
-				CertType:   secrets.CACert,
-			},
-		},
-		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
-			return []secrets.ConfigInterface{
-				&secrets.ControlPlaneSecretConfig{
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         metal.AudittailerClientSecretName,
-						CommonName:   "audittailer",
-						DNSNames:     []string{"audittailer"},
-						Organization: []string{"audittailer-client"},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-					},
-				},
-				&secrets.ControlPlaneSecretConfig{
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         metal.AudittailerServerSecretName,
-						CommonName:   "audittailer",
-						DNSNames:     []string{"audittailer"},
-						Organization: []string{"audittailer-server"},
-						CertType:     secrets.ServerCert,
-						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-					},
-				},
-			}
-		},
+func (vp *valuesProvider) audittailerSecretConfigs() []extensionssecretsmanager.SecretConfigWithOptions {
+	if !vp.controllerConfig.ClusterAudit.Enabled {
+		return nil
 	}
 
-	return vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, wanted)
-}
-
-func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Context, cluster *extensionscontroller.Cluster) error {
-	// TODO: There is actually no nice way to deploy the certs into the shoot when we want to use
-	// the certificate helper functions from Gardener itself...
-	// Maybe we can find a better solution? This is actually only for chart values...
-
-	wanted := &secrets.Secrets{
-		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-			v1alpha1constants.SecretNameCACluster: {
-				Name:       v1alpha1constants.SecretNameCACluster,
-				CommonName: "kubernetes",
-				CertType:   secrets.CACert,
+	return []extensionssecretsmanager.SecretConfigWithOptions{
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:       "ca-provider-metal-audittailer",
+				CommonName: "ca-provider-metal-audittailer",
+				CertType:   secretutils.CACert,
 			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
 		},
-		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
-			return []secrets.ConfigInterface{
-				&secrets.ControlPlaneSecretConfig{
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         metal.DroptailerClientSecretName,
-						CommonName:   "droptailer",
-						DNSNames:     []string{"droptailer"},
-						Organization: []string{"droptailer-client"},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-					},
-				},
-				&secrets.ControlPlaneSecretConfig{
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         metal.DroptailerServerSecretName,
-						CommonName:   "droptailer",
-						DNSNames:     []string{"droptailer"},
-						Organization: []string{"droptailer-server"},
-						CertType:     secrets.ServerCert,
-						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-					},
-				},
-			}
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.AudittailerClientSecretName,
+				CommonName:                  "audittailer",
+				DNSNames:                    []string{"audittailer"},
+				Organization:                []string{"audittailer-client"},
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: true,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.AudittailerServerSecretName,
+				CommonName:                  "audittailer",
+				DNSNames:                    []string{"audittailer"},
+				Organization:                []string{"audittailer-server"},
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: true,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
 		},
 	}
-
-	return vp.deploySecretsToShoot(ctx, cluster, metal.DroptailerNamespace, wanted)
 }
 
-func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, wanted *secrets.Secrets) error {
+func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.SecretConfigWithOptions {
+	return []extensionssecretsmanager.SecretConfigWithOptions{
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:       "ca-provider-metal-droptailer",
+				CommonName: "ca-provider-metal-droptailer",
+				CertType:   secretutils.CACert,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.DroptailerClientSecretName,
+				CommonName:                  "droptailer",
+				DNSNames:                    []string{"droptailer"},
+				Organization:                []string{"droptailer-client"},
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: true,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.DroptailerServerSecretName,
+				CommonName:                  "droptailer",
+				DNSNames:                    []string{"droptailer"},
+				Organization:                []string{"droptailer-server"},
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: true,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+	}
+}
+
+func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, secretConfigsFn func() []extensionssecretsmanager.SecretConfigWithOptions) error {
 	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{})
 	if err != nil {
 		return fmt.Errorf("could not create shoot client %w", err)
 	}
 
-	cs, err := kubernetes.NewForConfig(shootConfig)
+	c, err := client.New(shootConfig, client.Options{})
 	if err != nil {
 		return fmt.Errorf("could not create shoot kubernetes client %w", err)
 	}
 
-	gcs, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(shootConfig))
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}
+	_, err = controllerutil.CreateOrUpdate(ctx, c, ns, func() error {
+		return nil
+	})
 	if err != nil {
-		return fmt.Errorf("could not create shoot Gardener client %w", err)
+		return fmt.Errorf("could not ensure namespace: %w", err)
 	}
 
-	_, err = cs.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	manager, err := secretsmanager.New(ctx, vp.logger.WithName("shoot-secrets-manager"), clock.RealClock{}, c, namespace, metal.Type+"-provider-shoot-controlplane", nil)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			ns := &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespace,
-				},
-			}
-			_, err := cs.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
-			if err != nil {
-				return fmt.Errorf("could not create namespace %w", err)
-			}
-		} else {
-			return fmt.Errorf("could not search for existence of namespace %w", err)
-		}
+		return fmt.Errorf("unable to create secrets manager: %w", err)
 	}
 
-	_, err = wanted.Deploy(ctx, cs, gcs, namespace)
-	if err != nil {
-		return fmt.Errorf("could not deploy secrets to shoot cluster %w", err)
-	}
+	_, err = extensionssecretsmanager.GenerateAllSecrets(ctx, manager, secretConfigsFn())
 
-	return nil
+	return err
 }
 
 // getSecret returns the secret with the given namespace/secretName
 func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
-	key := kutil.Key(namespace, secretName)
 	secret := &corev1.Secret{}
-	err := vp.Client().Get(ctx, key, secret)
+	err := vp.Client().Get(ctx, kutil.Key(namespace, secretName), secret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			vp.logger.Error(err, "error getting chart secret - not found")
@@ -1198,11 +1158,13 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 }
 
 func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, p *models.V1ProjectResponse) (map[string]interface{}, error) {
-	annotations := cluster.Shoot.GetAnnotations()
-	partitionID := infrastructure.PartitionID
-	projectID := infrastructure.ProjectID
-	clusterID := cluster.Shoot.ObjectMeta.UID
-	clusterName := annotations[tag.ClusterName]
+	var (
+		annotations = cluster.Shoot.GetAnnotations()
+		partitionID = infrastructure.PartitionID
+		projectID   = infrastructure.ProjectID
+		clusterID   = cluster.Shoot.ObjectMeta.UID
+		clusterName = annotations[tag.ClusterName]
+	)
 
 	if accountingConfig.Enabled {
 		cp := &firewallv1.ClusterwideNetworkPolicy{
@@ -1408,14 +1370,4 @@ func hasDurosStorageNetwork(infrastructure *apismetal.InfrastructureConfig, nws 
 		}
 	}
 	return false, nil
-}
-
-// GetControlPlaneShootCRDsChartValues returns the values for the control plane shoot CRDs chart applied by the generic actuator.
-// Currently the provider extension does not specify a control plane shoot CRDs chart. That's why we simply return empty values.
-func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
-	_ context.Context,
-	_ *extensionsv1alpha1.ControlPlane,
-	_ *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
-	return map[string]interface{}{}, nil
 }

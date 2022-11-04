@@ -37,6 +37,7 @@ spec:
         - --webhook-config-server-port={{ .Values.webhookConfig.serverPort }}
         - --disable-controllers={{ .Values.disableControllers | join "," }}
         - --disable-webhooks={{ .Values.disableWebhooks | join "," }}
+        - --gardener-version={{ .Values.gardener.version }}
         env:
         - name: LEADER_ELECTION_NAMESPACE
           valueFrom:

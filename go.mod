@@ -8,8 +8,8 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.4.0
 	github.com/flatcar/container-linux-config-transpiler v0.9.4
-	github.com/gardener/etcd-druid v0.7.3
-	github.com/gardener/gardener v1.39.0
+	github.com/gardener/etcd-druid v0.8.0
+	github.com/gardener/gardener v1.45.0
 	github.com/gardener/machine-controller-manager v0.47.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
@@ -28,11 +28,10 @@ require (
 	k8s.io/api v0.25.2
 	k8s.io/apiextensions-apiserver v0.25.0
 	k8s.io/apimachinery v0.25.2
-	k8s.io/apiserver v0.23.5
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.23.3
 	k8s.io/component-base v0.25.0
-	k8s.io/kubelet v0.22.2
+	k8s.io/kubelet v0.23.3
 	k8s.io/utils v0.0.0-20221011040102-427025108f67
 	sigs.k8s.io/controller-runtime v0.13.0
 )
@@ -81,6 +80,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
+	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -102,6 +102,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.2 // indirect
 	github.com/metal-stack/security v0.6.5 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
+	github.com/mitchellh/hashstructure/v2 v2.0.2 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
@@ -109,6 +110,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
+	github.com/onsi/ginkgo/v2 v2.3.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.13.0 // indirect
@@ -141,18 +143,19 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	istio.io/api v0.0.0-20211118170605-3f0f902cdfd1 // indirect
-	istio.io/client-go v1.12.0 // indirect
+	istio.io/api v0.0.0-20220304035241-8c47cbbea144 // indirect
+	istio.io/client-go v1.12.5 // indirect
 	istio.io/gogo-genproto v0.0.0-20210113155706-4daf5697332f // indirect
+	k8s.io/apiserver v0.23.5 // indirect
 	k8s.io/autoscaler v0.0.0-20190805135949-100e91ba756e // indirect
 	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
 	k8s.io/helm v2.16.1+incompatible // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
-	k8s.io/kube-aggregator v0.22.2 // indirect
+	k8s.io/kube-aggregator v0.23.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea // indirect
-	k8s.io/metrics v0.22.2 // indirect
-	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211005045149-78ce10e2ebad // indirect
+	k8s.io/metrics v0.23.3 // indirect
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211208212546-f236f0345ad2 // indirect
 	sigs.k8s.io/controller-tools v0.8.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect

@@ -8,14 +8,20 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/google/uuid"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
+
+	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
+	secretutils "github.com/gardener/gardener/pkg/utils/secrets"
+	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
@@ -32,21 +38,23 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
 
-	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
-	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
-
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/secrets"
 
+	configlatest "k8s.io/client-go/tools/clientcmd/api/latest"
+	configv1 "k8s.io/client-go/tools/clientcmd/api/v1"
+
 	"github.com/flatcar/container-linux-config-transpiler/config/types"
+)
+
+const (
+	caNameInfrastructure = "ca-" + metal.Name + "-infrastructure"
 )
 
 type firewallReconciler struct {
 	logger               logr.Logger
 	restConfig           *rest.Config
 	c                    client.Client
-	clientset            kubernetes.Interface
-	gc                   gardenerkubernetes.Interface
 	infrastructure       *extensionsv1alpha1.Infrastructure
 	infrastructureConfig *metalapi.InfrastructureConfig
 	providerStatus       *metalapi.InfrastructureStatus
@@ -109,16 +117,6 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 		return err
 	}
 
-	clientset, err := kubernetes.NewForConfig(a.restConfig)
-	if err != nil {
-		return fmt.Errorf("could not create kubernetes clientset %w", err)
-	}
-
-	gardenerClientset, err := gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(a.restConfig))
-	if err != nil {
-		return fmt.Errorf("could not create gardener clientset %w", err)
-	}
-
 	egressIPReconciler := &egressIPReconciler{
 		logger:               a.logger,
 		infrastructureConfig: internalInfrastructureConfig,
@@ -135,8 +133,6 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 		logger:               a.logger,
 		restConfig:           a.restConfig,
 		c:                    a.client,
-		clientset:            clientset,
-		gc:                   gardenerClientset,
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
 		providerStatus:       internalInfrastructureStatus,
@@ -551,44 +547,109 @@ func ensureNodeNetwork(ctx context.Context, r *firewallReconciler) (string, erro
 }
 
 func createFirewallControllerKubeconfig(ctx context.Context, r *firewallReconciler) (string, error) {
-	apiServerURL := fmt.Sprintf("api.%s", *r.cluster.Shoot.Spec.DNS.Domain)
-	infrastructureSecrets := &secrets.Secrets{
-		CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
-			v1alpha1constants.SecretNameCACluster: {
-				Name:       v1alpha1constants.SecretNameCACluster,
-				CommonName: "kubernetes",
-				CertType:   secrets.CACert,
-			},
-		},
-		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
-			return []secrets.ConfigInterface{
-				&secrets.ControlPlaneSecretConfig{
-					CertificateSecretConfig: &secrets.CertificateSecretConfig{
-						Name:         firewallControllerName,
-						CommonName:   fmt.Sprintf("system:%s", firewallControllerName),
-						Organization: []string{firewallControllerName},
-						CertType:     secrets.ClientCert,
-						SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-					},
-					KubeConfigRequests: []secrets.KubeConfigRequest{
-						{
-							ClusterName:   clusterName,
-							APIServerHost: apiServerURL,
-						},
-					},
-				},
-			}
-		},
+	apiServerURL := fmt.Sprintf("https://api.%s", *r.cluster.Shoot.Spec.DNS.Domain)
+
+	// infrastructureSecrets := &secrets.Secrets{
+	// 	CertificateSecretConfigs: map[string]*secrets.CertificateSecretConfig{
+	// 		v1alpha1constants.SecretNameCACluster: {
+	// 			Name:       v1alpha1constants.SecretNameCACluster,
+	// 			CommonName: "kubernetes",
+	// 			CertType:   secrets.CACert,
+	// 		},
+	// 	},
+	// 	SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
+	// 		return []secrets.ConfigInterface{
+	// 			&secrets.ControlPlaneSecretConfig{
+	// 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+	// 					Name:         firewallControllerName,
+	// 					CommonName:   fmt.Sprintf("system:%s", firewallControllerName),
+	// 					Organization: []string{firewallControllerName},
+	// 					CertType:     secrets.ClientCert,
+	// 					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
+	// 				},
+	// 				KubeConfigRequests: []secrets.KubeConfigRequest{
+	// 					{
+	// 						ClusterName:   clusterName,
+	// 						APIServerHost: apiServerURL,
+	// 					},
+	// 				},
+	// 			},
+	// 		}
+	// 	},
+	// }
+
+	manager, err := secretsmanager.New(ctx, r.logger.WithName("infrastructure-secrets-manager"), clock.RealClock{}, r.c, r.infrastructure.Namespace, metal.Type+"-provider-shoot-infrastructure", nil)
+	if err != nil {
+		return "", fmt.Errorf("unable to create secrets manager: %w", err)
 	}
 
-	secret, err := infrastructureSecrets.Deploy(ctx, r.clientset, r.gc, r.infrastructure.Namespace)
+	secret, err := extensionssecretsmanager.GenerateAllSecrets(ctx, manager, []extensionssecretsmanager.SecretConfigWithOptions{
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:       caNameInfrastructure,
+				CommonName: caNameInfrastructure,
+				CertType:   secretutils.CACert,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
+				Name:                        firewallControllerName,
+				CommonName:                  fmt.Sprintf("system:%s", firewallControllerName),
+				Organization:                []string{firewallControllerName},
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: true,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameInfrastructure), secretsmanager.Persist()},
+		},
+	})
 	if err != nil {
 		return "", err
 	}
 
-	kubeconfig, ok := secret[firewallControllerName].Data[secrets.DataKeyKubeconfig]
+	ca, ok := secret[caNameInfrastructure]
 	if !ok {
-		return "", fmt.Errorf("kubeconfig not part of generated firewall controller secret")
+		return "", fmt.Errorf("infrastructure ca was not generated")
+	}
+	cert, ok := secret[firewallControllerName]
+	if !ok {
+		return "", fmt.Errorf("infrastructure firewall client cert was not generated")
+	}
+
+	config := &configv1.Config{
+		CurrentContext: r.infrastructure.Name,
+		Clusters: []configv1.NamedCluster{
+			{
+				Name: r.infrastructure.Name,
+				Cluster: configv1.Cluster{
+					CertificateAuthorityData: ca.Data[secrets.ControlPlaneSecretDataKeyCertificatePEM(ca.Name)],
+					Server:                   apiServerURL,
+				},
+			},
+		},
+		Contexts: []configv1.NamedContext{
+			{
+				Name: r.infrastructure.Name,
+				Context: configv1.Context{
+					Cluster:  r.infrastructure.Name,
+					AuthInfo: r.infrastructure.Name,
+				},
+			},
+		},
+		AuthInfos: []configv1.NamedAuthInfo{
+			{
+				Name: r.infrastructure.Name,
+				AuthInfo: configv1.AuthInfo{
+					ClientCertificateData: cert.Data[secrets.ControlPlaneSecretDataKeyCertificatePEM(cert.Name)],
+					ClientKeyData:         cert.Data[secrets.ControlPlaneSecretDataKeyPrivateKey(cert.Name)],
+				},
+			},
+		},
+	}
+
+	kubeconfig, err := runtime.Encode(configlatest.Codec, config)
+	if err != nil {
+		return "", fmt.Errorf("unable to encode kubeconfig for firewall: %w", err)
 	}
 
 	return string(kubeconfig), nil
