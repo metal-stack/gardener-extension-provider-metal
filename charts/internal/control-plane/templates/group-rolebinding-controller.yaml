@@ -38,6 +38,7 @@ spec:
       imagePullSecrets:
       - name: group-rolebinding-controller-registry-credentials
 {{- end }}
+      automountServiceAccountToken: false
       containers:
       - name: group-rolebinding-controller
         image: {{ index .Values.images "group-rolebinding-controller" }}
@@ -47,12 +48,26 @@ spec:
         - --excludeNamespaces=kube-system,kube-public,kube-node-lease,default
         - --expectedGroupsList=admin,edit,view
         - --clustername={{ .Values.groupRolebindingController.clusterName }}
-        - --kubeconfig=/var/lib/group-rolebinding-controller/kubeconfig
+        - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
         volumeMounts:
-        - name: group-rolebinding-controller
-          mountPath: /var/lib/group-rolebinding-controller
+        - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
+          name: kubeconfig
+          readOnly: true
       volumes:
-      - name: group-rolebinding-controller
-        secret:
-          secretName: group-rolebinding-controller
+      - name: kubeconfig
+        projected:
+          defaultMode: 420
+          sources:
+          - secret:
+              items:
+                - key: kubeconfig
+                  path: kubeconfig
+              name: generic-token-kubeconfig
+              optional: false
+          - secret:
+              items:
+                - key: token
+                  path: token
+              name: shoot-access-group-rolebinding-controller
+              optional: false
 {{- end }}

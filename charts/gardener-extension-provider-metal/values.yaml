@@ -81,5 +81,6 @@ config:
     encodedDockerConfigJSON:
 
 gardener:
+  version: ""
   seed:
     provider: metal

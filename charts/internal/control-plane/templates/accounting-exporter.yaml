@@ -54,6 +54,7 @@ spec:
       imagePullSecrets:
       - name: accounting-exporter-registry-credentials
 {{- end }}
+      automountServiceAccountToken: false
       containers:
       - image: {{ index .Values.images "accounting-exporter" }}
         imagePullPolicy: Always
@@ -88,7 +89,7 @@ spec:
         - name: KUBE_COUNTER_CLUSTER_NAME
           value: {{ .Values.accountingExporter.enrichments.clusterName }}
         - name: KUBE_COUNTER_KUBECONFIG
-          value: /var/lib/accounting-exporter/kubeconfig
+          value: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
         - name: KUBE_COUNTER_ACCOUNTING_API_HOSTNAME
           value: {{ .Values.accountingExporter.accountingAPI.hostname }}
         - name: KUBE_COUNTER_ACCOUNTING_API_PORT
@@ -96,15 +97,29 @@ spec:
         - name: KUBE_COUNTER_NETWORK_TRAFFIC_ENABLED
           value: "{{ .Values.accountingExporter.networkTraffic.enabled }}"
         volumeMounts:
-        - name: accounting-exporter
-          mountPath: /var/lib/accounting-exporter
+        - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
+          name: kubeconfig
+          readOnly: true
         - mountPath: /certs
           name: certs
       restartPolicy: Always
       volumes:
-      - name: accounting-exporter
-        secret:
-          secretName: accounting-exporter
+      - name: kubeconfig
+        projected:
+          defaultMode: 420
+          sources:
+          - secret:
+              items:
+                - key: kubeconfig
+                  path: kubeconfig
+              name: generic-token-kubeconfig
+              optional: false
+          - secret:
+              items:
+                - key: token
+                  path: token
+              name: shoot-access-accounting-exporter
+              optional: false
       - name: certs
         secret:
           secretName: accounting-exporter-tls

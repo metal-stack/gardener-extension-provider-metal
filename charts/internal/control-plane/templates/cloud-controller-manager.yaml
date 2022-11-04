@@ -48,6 +48,7 @@ spec:
         networking.gardener.cloud/to-shoot-apiserver: allowed
         networking.gardener.cloud/to-public-networks: allowed
     spec:
+      automountServiceAccountToken: false
       tolerations:
       - effect: NoExecute
         operator: Exists
@@ -61,11 +62,11 @@ spec:
         - --cluster-name={{ .Values.cloudControllerManager.clusterName }}
         - --concurrent-service-syncs=10
         {{- include "cloud-controller-manager.featureGates" . | trimSuffix "," | indent 8 }}
-        - --kubeconfig=/var/lib/cloud-controller-manager/kubeconfig
+        - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
+        - --authentication-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
+        - --authorization-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
         - --leader-elect=true
         - --secure-port={{ include "cloud-controller-manager.port" . }}
-        - --authentication-kubeconfig=/var/lib/cloud-controller-manager/kubeconfig
-        - --authorization-kubeconfig=/var/lib/cloud-controller-manager/kubeconfig
         - --tls-cert-file=/var/lib/cloud-controller-manager-server/cloud-controller-manager-server.crt
         - --tls-private-key-file=/var/lib/cloud-controller-manager-server/cloud-controller-manager-server.key
         - --tls-cipher-suites={{ include "kubernetes.tlsCipherSuites" . | replace "\n" "," | trimPrefix "," }}
@@ -111,8 +112,9 @@ spec:
 {{ toYaml .Values.cloudControllerManager.resources | indent 10 }}
         {{- end }}
         volumeMounts:
-        - name: cloud-controller-manager
-          mountPath: /var/lib/cloud-controller-manager
+        - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
+          name: kubeconfig
+          readOnly: true
         - name: cloud-controller-manager-server
           mountPath: /var/lib/cloud-controller-manager-server
         - name: cloudprovider
@@ -122,9 +124,22 @@ spec:
       schedulerName: default-scheduler
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: cloud-controller-manager
-        secret:
-          secretName: cloud-controller-manager
+      - name: kubeconfig
+        projected:
+          defaultMode: 420
+          sources:
+          - secret:
+              items:
+                - key: kubeconfig
+                  path: kubeconfig
+              name: generic-token-kubeconfig
+              optional: false
+          - secret:
+              items:
+                - key: token
+                  path: token
+              name: shoot-access-cloud-controller-manager
+              optional: false
       - name: cloud-controller-manager-server
         secret:
           secretName: cloud-controller-manager-server

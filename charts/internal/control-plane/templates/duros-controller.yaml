@@ -5,6 +5,7 @@ kind: ServiceAccount
 metadata:
   name: duros-controller
   namespace: {{ .Release.Namespace }}
+automountServiceAccountToken: false
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -87,9 +88,12 @@ spec:
       labels:
         app: duros-controller
     spec:
-      serviceAccountName: duros-controller
+      automountServiceAccountToken: false
       containers:
       - name: duros-controller
+        env:
+          - name: KUBECONFIG
+            value: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
         args:
           - -endpoints={{ join "," .Values.duros.controller.endpoints }}
           - -namespace={{ .Release.Namespace }}
@@ -117,6 +121,9 @@ spec:
             mountPath: /duros
           - name: kubeconfig
             mountPath: /duros/client
+          - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
+            name: kubeconfig
+            readOnly: true
       volumes:
         - name: duros-admin
           secret:
@@ -124,6 +131,22 @@ spec:
         - name: kubeconfig
           secret:
             secretName: duros-controller
+        - name: kubeconfig
+          projected:
+            defaultMode: 420
+            sources:
+            - secret:
+                items:
+                  - key: kubeconfig
+                    path: kubeconfig
+                name: generic-token-kubeconfig
+                optional: false
+            - secret:
+                items:
+                  - key: token
+                    path: token
+                name: shoot-access-duros-controller
+                optional: false
 ---
 apiVersion: storage.metal-stack.io/v1
 kind: Duros

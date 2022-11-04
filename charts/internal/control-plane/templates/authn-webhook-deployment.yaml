@@ -44,6 +44,7 @@ spec:
       imagePullSecrets:
       - name: kube-jwt-authn-webhook-registry-credentials
 {{- end }}
+      automountServiceAccountToken: false
       containers:
       - name: kubernetes-authn-webhook
         image: {{ index .Values.images "authn-webhook" }}
@@ -103,7 +104,6 @@ spec:
         secret:
             secretName: kube-jwt-authn-webhook-server
       restartPolicy: Always
-
 ---
 apiVersion: v1
 kind: Secret
