@@ -39,6 +39,9 @@ spec:
         prometheus.io/scrape: 'true'
         prometheus.io/path: /metrics
         prometheus.io/port: '2112'
+{{- if .Values.podAnnotations }}
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
     spec:
 {{- if .Values.imagePullSecret }}
       imagePullSecrets:
@@ -102,7 +105,7 @@ spec:
       volumes:
       - name: webhook-certs
         secret:
-            secretName: kube-jwt-authn-webhook-server
+            secretName: {{ .Values.authnWebhook.secrets.server }}
       restartPolicy: Always
 ---
 apiVersion: v1

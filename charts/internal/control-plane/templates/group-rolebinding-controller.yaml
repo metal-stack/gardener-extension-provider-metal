@@ -18,6 +18,10 @@ kind: Deployment
 metadata:
   labels:
     app: group-rolebinding-controller
+{{- if .Values.podAnnotations }}
+  annotations:
+{{ toYaml .Values.podAnnotations | indent 4 }}
+{{- end }}
   name: group-rolebinding-controller
   namespace: {{ .Release.Namespace }}
 spec:
@@ -62,7 +66,7 @@ spec:
               items:
                 - key: kubeconfig
                   path: kubeconfig
-              name: generic-token-kubeconfig
+              name: {{ .Values.genericTokenKubeconfigSecretName }}
               optional: false
           - secret:
               items:

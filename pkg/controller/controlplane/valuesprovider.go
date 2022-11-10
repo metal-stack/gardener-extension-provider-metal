@@ -51,7 +51,7 @@ import (
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
-	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
@@ -365,7 +365,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	authValues := vp.getAuthNConfigValues(cluster)
 
 	clusterAuditValues, err := vp.getClusterAuditConfigValues(ctx, cp, cluster)
@@ -377,15 +377,15 @@ func (vp *valuesProvider) GetConfigChartValues(
 	return authValues, nil
 }
 
-func (vp *valuesProvider) getAuthNConfigValues(cluster *extensionscontroller.Cluster) map[string]interface{} {
+func (vp *valuesProvider) getAuthNConfigValues(cluster *extensionscontroller.Cluster) map[string]any {
 	namespace := cluster.ObjectMeta.Name
 
 	// this should work as the kube-apiserver is a pod in the same cluster as the kube-jwt-authn-webhook
 	// example https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
 	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/authenticate", metal.AuthNWebhookDeploymentName, namespace)
 
-	values := map[string]interface{}{
-		"authnWebhook": map[string]interface{}{
+	values := map[string]any{
+		"authnWebhook": map[string]any{
 			"url":     url,
 			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
@@ -394,20 +394,20 @@ func (vp *valuesProvider) getAuthNConfigValues(cluster *extensionscontroller.Clu
 	return values
 }
 
-func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]any, error) {
 	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
 	if err != nil {
 		return nil, err
 	}
 
 	var (
-		clusterAuditValues = map[string]interface{}{
+		clusterAuditValues = map[string]any{
 			"enabled": false,
 		}
-		auditToSplunkValues = map[string]interface{}{
+		auditToSplunkValues = map[string]any{
 			"enabled": false,
 		}
-		values = map[string]interface{}{
+		values = map[string]any{
 			"clusterAudit":  clusterAuditValues,
 			"auditToSplunk": auditToSplunkValues,
 		}
@@ -442,7 +442,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 	return values, nil
 }
 
-func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName string, auditToSplunkValues map[string]interface{}) (map[string]interface{}, error) {
+func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName string, auditToSplunkValues map[string]any) (map[string]any, error) {
 	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), clusterName, client.Options{})
 	if err != nil {
 		return auditToSplunkValues, err
@@ -494,7 +494,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	secretsReader secretsmanager.Reader,
 	checksums map[string]string,
 	scaledDown bool,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
 	if _, _, err := vp.Decoder().Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of infrastructure %w", err)
@@ -555,19 +555,26 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not retrieve project from metal-api %w", err)
 	}
 
-	chartValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
+	chartValues := map[string]any{
+		"podAnnotations": map[string]any{
+			"checksum/secret-" + v1beta1constants.SecretNameCloudProvider: checksums[v1beta1constants.SecretNameCloudProvider],
+		},
+	}
+
+	ccmValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, secretsReader, checksums, scaledDown, mclient, metalControlPlane, nws)
 	if err != nil {
 		return nil, err
 	}
 
-	metalEndpoint := metalControlPlane.Endpoint
-	ma := metalAccess{
-		url:          metalEndpoint,
+	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, secretsReader, vp.controllerConfig.Auth, p.Payload, &metalAccess{
+		url:          metalControlPlane.Endpoint,
 		hmac:         metalCredentials.MetalAPIHMac,
 		hmacAuthType: "", // currently default is used
 		apiToken:     metalCredentials.MetalAPIKey,
+	})
+	if err != nil {
+		return nil, err
 	}
-	authValues := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth, p.Payload, ma)
 
 	accValues, err := getAccountingExporterChartValues(ctx, vp.Client(), vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, p.Payload)
 	if err != nil {
@@ -579,7 +586,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, authValues, accValues, storageValues)
+	merge(chartValues, ccmValues, authValues, accValues, storageValues)
 
 	if vp.controllerConfig.ImagePullSecret != nil {
 		chartValues["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
@@ -590,7 +597,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 // merge all source maps in the target map
 // hint: prevent overwriting of values due to duplicate keys by the use of prefixes
-func merge(target map[string]interface{}, sources ...map[string]interface{}) {
+func merge(target map[string]any, sources ...map[string]any) {
 	for sIndex := range sources {
 		for k, v := range sources[sIndex] {
 			target[k] = v
@@ -605,7 +612,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	cluster *extensionscontroller.Cluster,
 	secretsReader secretsmanager.Reader,
 	_ map[string]string,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
 	if _, _, err := vp.Decoder().Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of infrastructure %w", err)
@@ -671,7 +678,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client) (map[string]any, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
@@ -688,11 +695,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		return nil, fmt.Errorf("could not sign firewall values %w", err)
 	}
 
-	durosValues := map[string]interface{}{
+	durosValues := map[string]any{
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
-	clusterAuditValues := map[string]interface{}{
+	clusterAuditValues := map[string]any{
 		"enabled": false,
 	}
 	if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
@@ -717,19 +724,20 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		}
 	}
 
-	values := map[string]interface{}{
+	values := map[string]any{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
 		"nodeCIDR":          *infrastructure.Status.NodesCIDR,
 		"firewallSpec":      fwSpec,
-		"groupRolebindingController": map[string]interface{}{
+		"groupRolebindingController": map[string]any{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
-		"accountingExporter": map[string]interface{}{
+		"accountingExporter": map[string]any{
 			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
 		},
-		"duros":        durosValues,
-		"clusterAudit": clusterAuditValues,
+		"duros":                            durosValues,
+		"clusterAudit":                     clusterAuditValues,
+		"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
@@ -843,7 +851,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 }
 
 func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace string, spec *firewallv1.FirewallSpec) error {
-	secret, err := vp.getSecret(ctx, namespace, v1alpha1constants.SecretNameCACluster)
+	secret, err := vp.getSecret(ctx, namespace, v1beta1constants.SecretNameCACluster)
 	if err != nil {
 		return fmt.Errorf("could not find ca secret for signing firewall values %w", err)
 	}
@@ -986,7 +994,7 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
-func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, _ *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, _ *extensionscontroller.Cluster) (map[string]any, error) {
 	cp, err := helper.ControlPlaneConfigFromControlPlane(controlPlane)
 	if err != nil {
 		return nil, err
@@ -997,7 +1005,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 		isDefaultSC = false
 	}
 
-	values := map[string]interface{}{
+	values := map[string]any{
 		"isDefaultStorageClass": isDefaultSC,
 	}
 
@@ -1011,12 +1019,13 @@ func getCCMChartValues(
 	infrastructureConfig *apismetal.InfrastructureConfig,
 	infrastructure *extensionsv1alpha1.Infrastructure,
 	cluster *extensionscontroller.Cluster,
+	secretsReader secretsmanager.Reader,
 	checksums map[string]string,
 	scaledDown bool,
 	mclient metalgo.Client,
 	mcp *apismetal.MetalControlPlane,
 	nws networkMap,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	projectID := infrastructureConfig.ProjectID
 	nodeCIDR := infrastructure.Status.NodesCIDR
 
@@ -1084,9 +1093,14 @@ func getCCMChartValues(
 		}
 	}
 
-	values := map[string]interface{}{
+	serverSecret, found := secretsReader.Get(metal.CloudControllerManagerServerName)
+	if !found {
+		return nil, fmt.Errorf("secret %q not found", metal.CloudControllerManagerServerName)
+	}
+
+	values := map[string]any{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-		"cloudControllerManager": map[string]interface{}{
+		"cloudControllerManager": map[string]any{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"projectID":              projectID,
 			"clusterID":              cluster.Shoot.ObjectMeta.UID,
@@ -1095,13 +1109,16 @@ func getCCMChartValues(
 			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
 			"defaultExternalNetwork": defaultExternalNetwork,
 			"additionalNetworks":     strings.Join(infrastructureConfig.Firewall.Networks, ","),
-			"metal": map[string]interface{}{
+			"metal": map[string]any{
 				"endpoint": mcp.Endpoint,
 			},
-			"podAnnotations": map[string]interface{}{
+			"secrets": map[string]any{
+				"server": serverSecret.Name,
+			},
+			"podAnnotations": map[string]any{
 				"checksum/secret-cloud-controller-manager":        checksums[metal.CloudControllerManagerDeploymentName],
 				"checksum/secret-cloud-controller-manager-server": checksums[metal.CloudControllerManagerServerName],
-				"checksum/secret-cloudprovider":                   checksums[v1alpha1constants.SecretNameCloudProvider],
+				"checksum/secret-cloudprovider":                   checksums[v1beta1constants.SecretNameCloudProvider],
 				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
 			},
 		},
@@ -1122,24 +1139,32 @@ type metalAccess struct {
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth, p *models.V1ProjectResponse, metalAccess metalAccess) map[string]interface{} {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, secretsReader secretsmanager.Reader, config config.Auth, p *models.V1ProjectResponse, metalAccess *metalAccess) (map[string]any, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
 
 	ti := cpConfig.IAMConfig.IssuerConfig
 
-	values := map[string]interface{}{
-		"authnWebhook": map[string]interface{}{
+	serverSecret, found := secretsReader.Get(metal.AuthNWebhookServerName)
+	if !found {
+		return nil, fmt.Errorf("secret %q not found", metal.AuthNWebhookServerName)
+	}
+
+	values := map[string]any{
+		"authnWebhook": map[string]any{
 			"enabled":        config.Enabled,
 			"replicas":       extensionscontroller.GetReplicas(cluster, 1),
 			"tenant":         p.TenantID,
 			"providerTenant": config.ProviderTenant,
 			"clusterName":    clusterName,
-			"oidc": map[string]interface{}{
+			"oidc": map[string]any{
 				"issuerUrl":      ti.Url,
 				"issuerClientId": ti.ClientId,
 			},
-			"metalapi": map[string]interface{}{
+			"secrets": map[string]any{
+				"server": serverSecret.Name,
+			},
+			"metalapi": map[string]any{
 				"url":            metalAccess.url,
 				"hmac":           metalAccess.hmac,
 				"hmac_auth_type": metalAccess.hmacAuthType,
@@ -1147,17 +1172,17 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 			},
 		},
 
-		"groupRolebindingController": map[string]interface{}{
+		"groupRolebindingController": map[string]any{
 			"enabled":     config.Enabled,
 			"replicas":    extensionscontroller.GetReplicas(cluster, 1),
 			"clusterName": clusterName,
 		},
 	}
 
-	return values
+	return values, nil
 }
 
-func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, p *models.V1ProjectResponse) (map[string]interface{}, error) {
+func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, p *models.V1ProjectResponse) (map[string]any, error) {
 	var (
 		annotations = cluster.Shoot.GetAnnotations()
 		partitionID = infrastructure.PartitionID
@@ -1202,14 +1227,14 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 		}
 	}
 
-	values := map[string]interface{}{
-		"accountingExporter": map[string]interface{}{
+	values := map[string]any{
+		"accountingExporter": map[string]any{
 			"enabled":  accountingConfig.Enabled,
 			"replicas": extensionscontroller.GetReplicas(cluster, 1),
-			"networkTraffic": map[string]interface{}{
+			"networkTraffic": map[string]any{
 				"enabled": accountingConfig.NetworkTraffic.Enabled,
 			},
-			"enrichments": map[string]interface{}{
+			"enrichments": map[string]any{
 				"partitionID": partitionID,
 				"tenant":      p.TenantID,
 				"projectID":   projectID,
@@ -1217,7 +1242,7 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 				"clusterName": clusterName,
 				"clusterID":   clusterID,
 			},
-			"accountingAPI": map[string]interface{}{
+			"accountingAPI": map[string]any{
 				"hostname": accountingConfig.Client.Hostname,
 				"port":     accountingConfig.Client.Port,
 				"ca":       accountingConfig.Client.CA,
@@ -1230,9 +1255,9 @@ func getAccountingExporterChartValues(ctx context.Context, client client.Client,
 	return values, nil
 }
 
-func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, cp *apismetal.ControlPlaneConfig, nws networkMap) (map[string]interface{}, error) {
-	disabledValues := map[string]interface{}{
-		"duros": map[string]interface{}{
+func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, cp *apismetal.ControlPlaneConfig, nws networkMap) (map[string]any, error) {
+	disabledValues := map[string]any{
+		"duros": map[string]any{
 			"enabled": false,
 		},
 	}

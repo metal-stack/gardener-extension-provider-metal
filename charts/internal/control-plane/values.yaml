@@ -1,6 +1,7 @@
 ---
 kubernetesVersion: 1.7.5
 featureGates: {}
+podAnnotations: {}
 
 images:
   metalccm: image-repository:image-tag
@@ -22,6 +23,8 @@ cloudControllerManager:
   additionalNetworks: internet,mpls
   metal:
     endpoint: api-url
+  secrets:
+    server: cloud-controller-manager-server
   resources:
     requests:
       cpu: 100m
@@ -42,7 +45,8 @@ authnWebhook:
     hmac: ABC123
     hmac_auth_type: Metal-View
     apitoken: ey123
-
+  secrets:
+    server: kube-jwt-authn-webhook-server
   enabled: false
   port: 443
   debug: false
@@ -102,3 +106,5 @@ duros:
     apiCert:
 
 imagePullSecret:
+
+genericTokenKubeconfigSecretName: generic-token-kubeconfig

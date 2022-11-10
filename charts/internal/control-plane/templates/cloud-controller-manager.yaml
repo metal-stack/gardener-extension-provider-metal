@@ -47,6 +47,10 @@ spec:
         networking.gardener.cloud/to-dns: allowed
         networking.gardener.cloud/to-shoot-apiserver: allowed
         networking.gardener.cloud/to-public-networks: allowed
+{{- if .Values.podAnnotations }}
+      annotations:
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
     spec:
       automountServiceAccountToken: false
       tolerations:
@@ -67,8 +71,8 @@ spec:
         - --authorization-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
         - --leader-elect=true
         - --secure-port={{ include "cloud-controller-manager.port" . }}
-        - --tls-cert-file=/var/lib/cloud-controller-manager-server/cloud-controller-manager-server.crt
-        - --tls-private-key-file=/var/lib/cloud-controller-manager-server/cloud-controller-manager-server.key
+        - --tls-cert-file=/var/lib/cloud-controller-manager-server/tls.crt
+        - --tls-private-key-file=/var/lib/cloud-controller-manager-server/tls.key
         - --tls-cipher-suites={{ include "kubernetes.tlsCipherSuites" . | replace "\n" "," | trimPrefix "," }}
         - --use-service-account-credentials
         - --v=2
@@ -132,7 +136,7 @@ spec:
               items:
                 - key: kubeconfig
                   path: kubeconfig
-              name: generic-token-kubeconfig
+              name: {{ .Values.genericTokenKubeconfigSecretName }}
               optional: false
           - secret:
               items:
@@ -142,7 +146,7 @@ spec:
               optional: false
       - name: cloud-controller-manager-server
         secret:
-          secretName: cloud-controller-manager-server
+          secretName: {{ .Values.cloudControllerManager.secrets.server }}
       - name: cloudprovider
         secret:
           secretName: cloudprovider

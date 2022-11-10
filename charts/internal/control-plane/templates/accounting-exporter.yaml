@@ -49,6 +49,9 @@ spec:
         networking.gardener.cloud/to-public-networks: allowed
       annotations:
         scheduler.alpha.kubernetes.io/critical-pod: ''
+{{- if .Values.podAnnotations }}
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
     spec:
 {{- if .Values.imagePullSecret }}
       imagePullSecrets:
@@ -112,7 +115,7 @@ spec:
               items:
                 - key: kubeconfig
                   path: kubeconfig
-              name: generic-token-kubeconfig
+              name: {{ .Values.genericTokenKubeconfigSecretName }}
               optional: false
           - secret:
               items:
