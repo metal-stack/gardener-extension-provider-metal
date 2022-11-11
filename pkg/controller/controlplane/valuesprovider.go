@@ -129,7 +129,9 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 				CertType:                    secrets.ServerCert,
 				SkipPublishingCACertificate: true,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+			// use current CA for signing server cert to prevent mismatches when dropping the old CA from the webhook
+			// config in phase Completing
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane, secretsmanager.UseCurrentCA)},
 		},
 		{
 			Config: &secretutils.CertificateSecretConfig{
