@@ -141,7 +141,7 @@ var (
 		Name: metal.AuthNWebHookCertName,
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: "kube-jwt-authn-webhook-server",
+				SecretName: metal.AuthNWebhookServerName,
 			},
 		},
 	}
@@ -454,6 +454,14 @@ func ensureKubeControllerManagerAnnotations(t *corev1.PodTemplateSpec) {
 }
 
 func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev1.PodTemplateSpec, namespace string) error {
+	err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, template, e.client, namespace, metal.AuthNWebHookConfigName)
+	if err != nil {
+		return err
+	}
+	err = controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, metal.AuthNWebhookServerName)
+	if err != nil {
+		return err
+	}
 	return controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, v1alpha1constants.SecretNameCloudProvider)
 }
 

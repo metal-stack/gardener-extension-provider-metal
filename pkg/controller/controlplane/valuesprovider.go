@@ -568,7 +568,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, secretsReader, vp.controllerConfig.Auth, p.Payload, &metalAccess{
+	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth, p.Payload, &metalAccess{
 		url:          metalControlPlane.Endpoint,
 		hmac:         metalCredentials.MetalAPIHMac,
 		hmacAuthType: "", // currently default is used
@@ -1141,16 +1141,11 @@ type metalAccess struct {
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, secretsReader secretsmanager.Reader, config config.Auth, p *models.V1ProjectResponse, metalAccess *metalAccess) (map[string]any, error) {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth, p *models.V1ProjectResponse, metalAccess *metalAccess) (map[string]any, error) {
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
 
 	ti := cpConfig.IAMConfig.IssuerConfig
-
-	serverSecret, found := secretsReader.Get(metal.AuthNWebhookServerName)
-	if !found {
-		return nil, fmt.Errorf("secret %q not found", metal.AuthNWebhookServerName)
-	}
 
 	values := map[string]any{
 		"authnWebhook": map[string]any{
@@ -1164,7 +1159,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 				"issuerClientId": ti.ClientId,
 			},
 			"secrets": map[string]any{
-				"server": serverSecret.Name,
+				"server": metal.AuthNWebhookServerName,
 			},
 			"metalapi": map[string]any{
 				"url":            metalAccess.url,
