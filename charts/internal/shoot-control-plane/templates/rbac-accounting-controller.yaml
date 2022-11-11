@@ -38,7 +38,7 @@ roleRef:
   kind: ClusterRole
   name: system:accounting-exporter
 subjects:
-- kind: User
-  name: system:accounting-exporter
-  apiGroup: ""
+- kind: ServiceAccount
+  name: accounting-exporter
+  namespace: kube-system
 {{- end }}

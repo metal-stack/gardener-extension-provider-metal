@@ -8,5 +8,6 @@ roleRef:
   kind: ClusterRole
   name: extensions.gardener.cloud:{{ .Values.providerName }}:machine-controller-manager
 subjects:
-- kind: User
-  name: system:machine-controller-manager
+- kind: ServiceAccount
+  name: machine-controller-manager
+  namespace: kube-system
