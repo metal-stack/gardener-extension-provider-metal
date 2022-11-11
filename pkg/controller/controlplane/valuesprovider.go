@@ -665,11 +665,11 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	}
 
 	if !extensionscontroller.IsHibernated(cluster) {
-		if err := vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, vp.audittailerSecretConfigs); err != nil {
+		if err := vp.deploySecretsToShoot(ctx, cluster, secretsReader, metal.AudittailerNamespace, vp.audittailerSecretConfigs); err != nil {
 			vp.logger.Error(err, "error deploying audittailer certs")
 		}
 
-		if err := vp.deploySecretsToShoot(ctx, cluster, metal.DroptailerNamespace, vp.droptailerSecretConfigs); err != nil {
+		if err := vp.deploySecretsToShoot(ctx, cluster, secretsReader, metal.DroptailerNamespace, vp.droptailerSecretConfigs); err != nil {
 			vp.logger.Error(err, "error deploying droptailer certs")
 		}
 	}
@@ -894,7 +894,7 @@ func (vp *valuesProvider) audittailerSecretConfigs() []extensionssecretsmanager.
 				CertType:                    secrets.ClientCert,
 				SkipPublishingCACertificate: true,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-audittailer")},
 		},
 		{
 			Config: &secretutils.CertificateSecretConfig{
@@ -905,7 +905,7 @@ func (vp *valuesProvider) audittailerSecretConfigs() []extensionssecretsmanager.
 				CertType:                    secrets.ServerCert,
 				SkipPublishingCACertificate: true,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-audittailer")},
 		},
 	}
 }
@@ -929,7 +929,7 @@ func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.S
 				CertType:                    secrets.ClientCert,
 				SkipPublishingCACertificate: true,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-droptailer")},
 		},
 		{
 			Config: &secretutils.CertificateSecretConfig{
@@ -940,7 +940,7 @@ func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.S
 				CertType:                    secrets.ServerCert,
 				SkipPublishingCACertificate: true,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-droptailer")},
 		},
 	}
 }
