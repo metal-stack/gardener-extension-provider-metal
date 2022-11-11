@@ -91,6 +91,7 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
     spec:
+      serviceAccountName: duros-controller
       containers:
       - name: duros-controller
         args:
