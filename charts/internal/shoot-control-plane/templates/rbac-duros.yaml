@@ -102,6 +102,34 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - events
+  - secrets
+  - serviceaccounts
+  - nodes
+  - persistentvolumes
+  - persistentvolumeclaims
+  - persistentvolumeclaims/status
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+{{- if semverCompare ">= 1.17" .Values.kubernetesVersion }}
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshotclasses
+  verbs:
+  - get
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
