@@ -112,7 +112,7 @@ roleRef:
   kind: ClusterRole
   name: duros-controller
 subjects:
-- kind: User
-  name: system:duros-controller
-  apiGroup: ""
+- kind: ServiceAccount
+  name: duros-controller
+  namespace: kube-system
 {{- end }}
