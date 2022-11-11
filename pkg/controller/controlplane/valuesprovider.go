@@ -665,11 +665,11 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 	}
 
 	if !extensionscontroller.IsHibernated(cluster) {
-		if err := vp.deploySecretsToShoot(ctx, cluster, secretsReader, metal.AudittailerNamespace, vp.audittailerSecretConfigs); err != nil {
+		if err := vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, vp.audittailerSecretConfigs); err != nil {
 			vp.logger.Error(err, "error deploying audittailer certs")
 		}
 
-		if err := vp.deploySecretsToShoot(ctx, cluster, secretsReader, metal.DroptailerNamespace, vp.droptailerSecretConfigs); err != nil {
+		if err := vp.deploySecretsToShoot(ctx, cluster, metal.DroptailerNamespace, vp.droptailerSecretConfigs); err != nil {
 			vp.logger.Error(err, "error deploying droptailer certs")
 		}
 	}

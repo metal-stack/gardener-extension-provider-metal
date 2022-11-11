@@ -5,7 +5,6 @@ kind: ServiceAccount
 metadata:
   name: duros-controller
   namespace: {{ .Release.Namespace }}
-automountServiceAccountToken: false
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -92,39 +91,32 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
     spec:
-      automountServiceAccountToken: false
       containers:
       - name: duros-controller
-        env:
-          - name: KUBECONFIG
-            value: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
         args:
           - -endpoints={{ join "," .Values.duros.controller.endpoints }}
           - -namespace={{ .Release.Namespace }}
           - -enable-leader-election
           - -admin-token=/duros/admin-token
           - -admin-key=/duros/admin-key
-          - -shoot-kubeconfig=/duros/client/kubeconfig
-{{- if .Values.duros.controller.apiEndpoint }}
+          - -shoot-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           - -api-endpoint={{ .Values.duros.controller.apiEndpoint }}
           - -api-ca=/duros/api-ca
           - -api-cert=/duros/api-cert
           - -api-key=/duros/api-key
-{{- end }}
         image: {{ index .Values.images "duros-controller" }}
         imagePullPolicy: Always
         resources:
           limits:
             cpu: 400m
-            memory: 100Mi
+            memory: 400Mi
           requests:
             cpu: 100m
             memory: 20Mi
         volumeMounts:
           - name: duros-admin
             mountPath: /duros
-          - name: kubeconfig
-            mountPath: /duros/client
+            readOnly: true
           - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
             name: kubeconfig
             readOnly: true
