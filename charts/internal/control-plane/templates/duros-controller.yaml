@@ -133,9 +133,6 @@ spec:
           secret:
             secretName: duros-admin
         - name: kubeconfig
-          secret:
-            secretName: duros-controller
-        - name: kubeconfig
           projected:
             defaultMode: 420
             sources:
