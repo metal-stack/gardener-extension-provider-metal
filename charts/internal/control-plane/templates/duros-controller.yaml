@@ -99,7 +99,7 @@ spec:
           - -enable-leader-election
           - -admin-token=/duros/admin-token
           - -admin-key=/duros/admin-key
-          - -shoot-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
+          - -shoot-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
           - -api-endpoint={{ .Values.duros.controller.apiEndpoint }}
           - -api-ca=/duros/api-ca
           - -api-cert=/duros/api-cert
