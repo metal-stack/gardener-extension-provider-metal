@@ -76,13 +76,15 @@ var (
 			},
 		},
 	}
-	audittailerClientSecretVolume = corev1.Volume{
-		Name: metal.AudittailerClientSecretName,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: metal.AudittailerClientSecretName,
+	audittailerClientSecretVolume = func(secretName string) corev1.Volume {
+		return corev1.Volume{
+			Name: metal.AudittailerClientSecretName,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+				},
 			},
-		},
+		}
 	}
 	auditForwarderSplunkConfigVolumeMount = corev1.VolumeMount{
 		Name:      metal.AuditForwarderSplunkConfigName,
@@ -214,7 +216,7 @@ var (
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      audittailerClientSecretVolume.Name,
+				Name:      metal.AudittailerClientSecretName,
 				ReadOnly:  true,
 				MountPath: "/shootconfig",
 			},
@@ -267,7 +269,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
 	}
 
-	authnWebhookSecretName, err := e.getAuthnWebhookSecretName(ctx, cluster)
+	authnWebhookSecretName, err := e.getManagerSecretByName(ctx, cluster, metal.AuthNWebhookServerName)
 	if err != nil {
 		return err
 	}
@@ -277,9 +279,15 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		makeAuditForwarder = true
 	}
 
+	audittailerSecretName := ""
 	auditToSplunk := false
 	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
 		auditToSplunk = true
+
+		audittailerSecretName, err = e.getManagerSecretByName(ctx, cluster, metal.AudittailerClientSecretName)
+		if err != nil {
+			return err
+		}
 	}
 
 	template := &new.Spec.Template
@@ -287,7 +295,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
-		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, authnWebhookSecretName, e.controllerConfig)
+		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, authnWebhookSecretName, audittailerSecretName, e.controllerConfig)
 	}
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
 		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
@@ -326,7 +334,7 @@ func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool, controller
 	}
 }
 
-func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, authnWebhookSecretName string, controllerConfig config.ControllerConfiguration) {
+func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, authnWebhookSecretName, audittailerSecretName string, controllerConfig config.ControllerConfiguration) {
 	if controllerConfig.Auth.Enabled {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume(authnWebhookSecretName))
@@ -334,7 +342,7 @@ func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, a
 	if makeAuditForwarder {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume(audittailerSecretName))
 	}
 	if auditToSplunk {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditForwarderSplunkConfigVolume)
@@ -447,7 +455,7 @@ func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, gct
 		return err
 	}
 
-	authnWebhookSecretName, err := e.getAuthnWebhookSecretName(ctx, cluster)
+	authnWebhookSecretName, err := e.getManagerSecretByName(ctx, cluster, metal.AuthNWebhookServerName)
 	if err != nil {
 		return err
 	}
@@ -541,10 +549,10 @@ func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gconte
 	return nil
 }
 
-func (e *ensurer) getAuthnWebhookSecretName(ctx context.Context, cluster *extensions.Cluster) (string, error) {
+func (e *ensurer) getManagerSecretByName(ctx context.Context, cluster *extensions.Cluster, name string) (string, error) {
 	secrets := &corev1.SecretList{}
-	if err := e.client.List(ctx, secrets, client.InNamespace(cluster.ObjectMeta.Name), client.MatchingLabels{"name": metal.AuthNWebhookServerName}); err != nil {
-		logger.Error(err, "could not list authn webhook secrets for cluster")
+	if err := e.client.List(ctx, secrets, client.InNamespace(cluster.ObjectMeta.Name), client.MatchingLabels{"name": name}); err != nil {
+		logger.Error(err, "could not list manager secrets for cluster", "name", name)
 		return "", err
 	}
 
@@ -557,7 +565,7 @@ func (e *ensurer) getAuthnWebhookSecretName(ctx context.Context, cluster *extens
 	}
 
 	if authnWebhookSecretName == "" {
-		err := fmt.Errorf("could not find authn webhook secret for cluster")
+		err := fmt.Errorf("could not find manager secret for cluster", "name", name)
 		logger.Error(err, "")
 		return "", err
 	}
