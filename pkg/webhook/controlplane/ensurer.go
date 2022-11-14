@@ -498,7 +498,14 @@ func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
-	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
+	var nodeCIDR string
+	if infrastructure != nil && infrastructure.Status.NodesCIDR != nil {
+		nodeCIDR = *infrastructure.Status.NodesCIDR
+	} else if cluster.Shoot.Spec.Networking.Nodes != nil {
+		nodeCIDR = *cluster.Shoot.Spec.Networking.Nodes
+	}
+
+	if nodeCIDR == "" {
 		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
 	}
 
