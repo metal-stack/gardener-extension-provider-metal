@@ -59,103 +59,12 @@ import (
 
 	"github.com/go-logr/logr"
 
-	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-const (
-	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
-)
-
-func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
-	return []extensionssecretsmanager.SecretConfigWithOptions{
-		{
-			Config: &secretutils.CertificateSecretConfig{
-				Name:       caNameControlPlane,
-				CommonName: caNameControlPlane,
-				CertType:   secretutils.CACert,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
-		},
-		{
-			Config: &secretutils.CertificateSecretConfig{
-				Name:                        metal.CloudControllerManagerServerName,
-				CommonName:                  metal.CloudControllerManagerDeploymentName,
-				DNSNames:                    kutil.DNSNamesForService(metal.CloudControllerManagerDeploymentName, namespace),
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: true,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
-		},
-		{
-			Config: &secretutils.CertificateSecretConfig{
-				Name:                        metal.DurosControllerDeploymentName,
-				CommonName:                  metal.DurosControllerDeploymentName,
-				DNSNames:                    kutil.DNSNamesForService(metal.DurosControllerDeploymentName, namespace),
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: true,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
-		},
-		{
-			Config: &secretutils.CertificateSecretConfig{
-				Name:                        metal.AudittailerClientSecretName,
-				CommonName:                  "audittailer",
-				DNSNames:                    kutil.DNSNamesForService("audittailer", namespace),
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: true,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
-		},
-		{
-			Config: &secretutils.CertificateSecretConfig{
-				Name:                        metal.GroupRolebindingControllerName,
-				CommonName:                  "system:group-rolebinding-controller",
-				DNSNames:                    kutil.DNSNamesForService(metal.GroupRolebindingControllerName, namespace),
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: true,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
-		},
-		{
-			Config: &secretutils.CertificateSecretConfig{
-				Name:                        metal.AuthNWebhookServerName,
-				CommonName:                  metal.AuthNWebhookDeploymentName,
-				DNSNames:                    kutil.DNSNamesForService(metal.AuthNWebhookDeploymentName, namespace),
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: true,
-			},
-			// use current CA for signing server cert to prevent mismatches when dropping the old CA from the webhook
-			// config in phase Completing
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane, secretsmanager.UseCurrentCA)},
-		},
-		{
-			Config: &secretutils.CertificateSecretConfig{
-				Name:                        metal.AccountingExporterName,
-				CommonName:                  "system:accounting-exporter",
-				DNSNames:                    kutil.DNSNamesForService(metal.AccountingExporterName, namespace),
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: true,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
-		},
-	}
-}
-
-func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
-	return []*gutil.ShootAccessSecret{
-		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
-		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
-		gutil.NewShootAccessSecret(metal.AudittailerClientSecretName, namespace),
-		gutil.NewShootAccessSecret(metal.GroupRolebindingControllerName, namespace),
-		gutil.NewShootAccessSecret(metal.AuthNWebhookDeploymentName, namespace),
-		gutil.NewShootAccessSecret(metal.AccountingExporterName, namespace),
-	}
-}
 
 var configChart = &chart.Chart{
 	Name:    "config",
@@ -568,15 +477,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth, p.Payload, &metalAccess{
+	authValues := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth, p.Payload, &metalAccess{
 		url:          metalControlPlane.Endpoint,
 		hmac:         metalCredentials.MetalAPIHMac,
 		hmacAuthType: "", // currently default is used
 		apiToken:     metalCredentials.MetalAPIKey,
 	})
-	if err != nil {
-		return nil, err
-	}
 
 	accValues, err := getAccountingExporterChartValues(ctx, vp.Client(), vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, p.Payload)
 	if err != nil {
@@ -1141,7 +1047,7 @@ type metalAccess struct {
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth, p *models.V1ProjectResponse, metalAccess *metalAccess) (map[string]any, error) {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth, p *models.V1ProjectResponse, metalAccess *metalAccess) map[string]any {
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
 
@@ -1176,7 +1082,7 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 		},
 	}
 
-	return values, nil
+	return values
 }
 
 func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, p *models.V1ProjectResponse) (map[string]any, error) {

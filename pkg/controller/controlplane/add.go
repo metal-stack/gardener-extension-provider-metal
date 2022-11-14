@@ -6,6 +6,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -38,7 +39,7 @@ type AddOptions struct {
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	return controlplane.Add(mgr, controlplane.AddArgs{
 		Actuator: genericactuator.NewActuator(metal.Name,
-			secretConfigsFunc, shootAccessSecretsFunc, nil, nil,
+			helper.SecretConfigsFunc, helper.ShootAccessSecretsFunc, nil, nil,
 			configChart, controlPlaneChart, cpShootChart, nil, storageClassChart, nil,
 			NewValuesProvider(logger, opts.ControllerConfig), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 			imagevector.ImageVector(), "", opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger),

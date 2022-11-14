@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -13,6 +14,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/utils"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 
@@ -25,96 +27,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-// NewEnsurer creates a new controlplane ensurer.
-func NewEnsurer(logger logr.Logger, controllerConfig config.ControllerConfiguration) genericmutator.Ensurer {
-	return &ensurer{
-		logger:           logger.WithName("metal-controlplane-ensurer"),
-		controllerConfig: controllerConfig,
-	}
-}
-
-type ensurer struct {
-	genericmutator.NoopEnsurer
-	client           client.Client
-	logger           logr.Logger
-	controllerConfig config.ControllerConfiguration
-}
-
-// InjectClient injects the given client into the ensurer.
-func (e *ensurer) InjectClient(client client.Client) error {
-	e.client = client
-	return nil
-}
-
-// EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
-	cluster, err := gctx.GetCluster(ctx)
-	if err != nil {
-		return err
-	}
-
-	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
-	if err != nil {
-		logger.Error(err, "could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
-		return err
-	}
-
-	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
-		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
-		return err
-	}
-
-	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
-		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
-	}
-
-	makeAuditForwarder := false
-	if validation.ClusterAuditEnabled(&e.controllerConfig, cpConfig) {
-		makeAuditForwarder = true
-	}
-
-	auditToSplunk := false
-	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
-		auditToSplunk = true
-	}
-
-	template := &new.Spec.Template
-	ps := &template.Spec
-	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
-		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
-		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, e.controllerConfig)
-	}
-	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
-		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
-	}
-	if makeAuditForwarder {
-		err := ensureAuditForwarder(ps, auditToSplunk)
-		if err != nil {
-			logger.Error(err, "could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
-			return err
-		}
-		if auditToSplunk {
-			err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkConfigName)
-			if err != nil {
-				logger.Error(err, "could not ensure the splunk config map checksum annotation", "cluster name", cluster.ObjectMeta.Name, "configmap", metal.AuditForwarderSplunkConfigName)
-				return err
-			}
-			err = controlplane.EnsureSecretChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkSecretName)
-			if err != nil {
-				logger.Error(err, "could not ensure the splunk secret checksum annotation", "cluster name", cluster.ObjectMeta.Name, "secret", metal.AuditForwarderSplunkSecretName)
-				return err
-			}
-		}
-	}
-
-	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
-}
 
 var (
 	// config mount for authn-webhook-config that is specified at kube-apiserver commandline
@@ -137,13 +54,15 @@ var (
 		MountPath: "/etc/webhook/certs",
 		ReadOnly:  true,
 	}
-	authnWebhookCertVolume = corev1.Volume{
-		Name: metal.AuthNWebHookCertName,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: metal.AuthNWebhookServerName,
+	authnWebhookCertVolume = func(secretName string) corev1.Volume {
+		return corev1.Volume{
+			Name: metal.AuthNWebHookCertName,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+				},
 			},
-		},
+		}
 	}
 	// config mount for the audit policy; it gets mounted where the kube-apiserver expects its audit policy.
 	auditPolicyVolumeMount = corev1.VolumeMount{
@@ -306,6 +225,116 @@ var (
 	}
 )
 
+// NewEnsurer creates a new controlplane ensurer.
+func NewEnsurer(logger logr.Logger, controllerConfig config.ControllerConfiguration) genericmutator.Ensurer {
+	return &ensurer{
+		logger:           logger.WithName("metal-controlplane-ensurer"),
+		controllerConfig: controllerConfig,
+	}
+}
+
+type ensurer struct {
+	genericmutator.NoopEnsurer
+	client           client.Client
+	logger           logr.Logger
+	controllerConfig config.ControllerConfiguration
+}
+
+// InjectClient injects the given client into the ensurer.
+func (e *ensurer) InjectClient(client client.Client) error {
+	e.client = client
+	return nil
+}
+
+// EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
+func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
+	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+	if err != nil {
+		logger.Error(err, "could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
+		return err
+	}
+
+	infrastructure := &extensionsv1alpha1.Infrastructure{}
+	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
+		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
+		return err
+	}
+
+	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
+		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	}
+
+	secrets := &corev1.SecretList{}
+	if err := e.client.List(ctx, secrets, &client.ListOptions{
+		Namespace: cluster.ObjectMeta.Namespace,
+		LabelSelector: labels.NewSelector().Add(
+			utils.MustNewRequirement("name", selection.Equals, metal.AuthNWebhookServerName),
+		),
+	}); err != nil {
+		logger.Error(err, "could not list authn webhook secrets for cluster")
+		return err
+	}
+
+	authnWebhookSecretName := ""
+	var authnWebhookSecretTimestamp time.Time
+	for _, secret := range secrets.Items {
+		if authnWebhookSecretTimestamp.Before(secret.CreationTimestamp.Time) {
+			authnWebhookSecretName = secret.Name
+		}
+	}
+	if authnWebhookSecretName == "" {
+		logger.Error(err, "could not find authn webhook secret for cluster")
+		return err
+	}
+
+	makeAuditForwarder := false
+	if validation.ClusterAuditEnabled(&e.controllerConfig, cpConfig) {
+		makeAuditForwarder = true
+	}
+
+	auditToSplunk := false
+	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
+		auditToSplunk = true
+	}
+
+	template := &new.Spec.Template
+	ps := &template.Spec
+	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
+		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
+		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
+		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, authnWebhookSecretName, e.controllerConfig)
+	}
+	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
+		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
+	}
+	if makeAuditForwarder {
+		err := ensureAuditForwarder(ps, auditToSplunk)
+		if err != nil {
+			logger.Error(err, "could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
+			return err
+		}
+		if auditToSplunk {
+			err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkConfigName)
+			if err != nil {
+				logger.Error(err, "could not ensure the splunk config map checksum annotation", "cluster name", cluster.ObjectMeta.Name, "configmap", metal.AuditForwarderSplunkConfigName)
+				return err
+			}
+			err = controlplane.EnsureSecretChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkSecretName)
+			if err != nil {
+				logger.Error(err, "could not ensure the splunk secret checksum annotation", "cluster name", cluster.ObjectMeta.Name, "secret", metal.AuditForwarderSplunkSecretName)
+				return err
+			}
+		}
+	}
+
+	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
+}
+
 func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
 	if controllerConfig.Auth.Enabled {
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
@@ -317,10 +346,10 @@ func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool, controller
 	}
 }
 
-func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, controllerConfig config.ControllerConfiguration) {
+func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, authnWebhookSecretName string, controllerConfig config.ControllerConfiguration) {
 	if controllerConfig.Auth.Enabled {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume(authnWebhookSecretName))
 	}
 	if makeAuditForwarder {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
