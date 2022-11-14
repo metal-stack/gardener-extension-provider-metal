@@ -275,19 +275,19 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	}
 
 	makeAuditForwarder := false
+	audittailerSecretName := ""
 	if validation.ClusterAuditEnabled(&e.controllerConfig, cpConfig) {
 		makeAuditForwarder = true
-	}
-
-	audittailerSecretName := ""
-	auditToSplunk := false
-	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
-		auditToSplunk = true
 
 		audittailerSecretName, err = e.getManagerSecretByName(ctx, cluster, metal.AudittailerClientSecretName)
 		if err != nil {
 			return err
 		}
+	}
+
+	auditToSplunk := false
+	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
+		auditToSplunk = true
 	}
 
 	template := &new.Spec.Template
