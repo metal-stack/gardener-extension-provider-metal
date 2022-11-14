@@ -267,7 +267,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	}
 
 	secrets := &corev1.SecretList{}
-	if err := e.client.List(ctx, secrets, client.InNamespace(cluster.ObjectMeta.Namespace), client.MatchingLabels{"name": metal.AuthNWebhookServerName}); err != nil {
+	if err := e.client.List(ctx, secrets, client.InNamespace(cluster.ObjectMeta.Name), client.MatchingLabels{"name": metal.AuthNWebhookServerName}); err != nil {
 		logger.Error(err, "could not list authn webhook secrets for cluster")
 		return err
 	}
