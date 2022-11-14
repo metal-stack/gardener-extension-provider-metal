@@ -14,6 +14,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/extensions"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 
@@ -252,13 +253,13 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 
 	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
 	if err != nil {
-		logger.Error(err, "could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
+		logger.Error(err, "could not read ControlPlaneConfig from cluster shoot spec")
 		return err
 	}
 
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
 	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
-		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
+		logger.Error(err, "could not read Infrastructure for cluster")
 		return err
 	}
 
@@ -266,21 +267,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
 	}
 
-	secrets := &corev1.SecretList{}
-	if err := e.client.List(ctx, secrets, client.InNamespace(cluster.ObjectMeta.Name), client.MatchingLabels{"name": metal.AuthNWebhookServerName}); err != nil {
-		logger.Error(err, "could not list authn webhook secrets for cluster")
-		return err
-	}
-
-	authnWebhookSecretName := ""
-	var authnWebhookSecretTimestamp time.Time
-	for _, secret := range secrets.Items {
-		if authnWebhookSecretTimestamp.Before(secret.CreationTimestamp.Time) {
-			authnWebhookSecretName = secret.Name
-		}
-	}
-	if authnWebhookSecretName == "" {
-		logger.Error(err, "could not find authn webhook secret for cluster")
+	authnWebhookSecretName, err := e.getAuthnWebhookSecretName(ctx, cluster)
+	if err != nil {
 		return err
 	}
 
@@ -324,7 +312,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		}
 	}
 
-	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
+	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace, authnWebhookSecretName)
 }
 
 func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
@@ -454,13 +442,25 @@ func ensureAuditForwarderProxy(auditForwarderSidecar *corev1.Container, proxyHos
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
+	authnWebhookSecretName, err := e.getAuthnWebhookSecretName(ctx, cluster)
+	if err != nil {
+		return err
+	}
+
 	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-controller-manager"); c != nil {
 		ensureKubeControllerManagerCommandLineArgs(c)
 	}
+
 	ensureKubeControllerManagerAnnotations(template)
-	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
+
+	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace, authnWebhookSecretName)
 }
 
 func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
@@ -474,12 +474,12 @@ func ensureKubeControllerManagerAnnotations(t *corev1.PodTemplateSpec) {
 	t.Labels = extensionswebhook.EnsureAnnotationOrLabel(t.Labels, "networking.gardener.cloud/to-blocked-cidrs", "allowed")
 }
 
-func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev1.PodTemplateSpec, namespace string) error {
+func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev1.PodTemplateSpec, namespace, authnWebhookSecretName string) error {
 	err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, template, e.client, namespace, metal.AuthNWebHookConfigName)
 	if err != nil {
 		return err
 	}
-	err = controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, metal.AuthNWebhookServerName)
+	err = controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, authnWebhookSecretName)
 	if err != nil {
 		return err
 	}
@@ -539,4 +539,28 @@ func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gconte
 	}
 
 	return nil
+}
+
+func (e *ensurer) getAuthnWebhookSecretName(ctx context.Context, cluster *extensions.Cluster) (string, error) {
+	secrets := &corev1.SecretList{}
+	if err := e.client.List(ctx, secrets, client.InNamespace(cluster.ObjectMeta.Name), client.MatchingLabels{"name": metal.AuthNWebhookServerName}); err != nil {
+		logger.Error(err, "could not list authn webhook secrets for cluster")
+		return "", err
+	}
+
+	authnWebhookSecretName := ""
+	var authnWebhookSecretTimestamp time.Time
+	for _, secret := range secrets.Items {
+		if authnWebhookSecretTimestamp.Before(secret.CreationTimestamp.Time) {
+			authnWebhookSecretName = secret.Name
+		}
+	}
+
+	if authnWebhookSecretName == "" {
+		err := fmt.Errorf("could not find authn webhook secret for cluster")
+		logger.Error(err, "")
+		return "", err
+	}
+
+	return authnWebhookSecretName, nil
 }
