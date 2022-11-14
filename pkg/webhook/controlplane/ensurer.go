@@ -14,7 +14,6 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/utils"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 
@@ -27,8 +26,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -270,12 +267,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	}
 
 	secrets := &corev1.SecretList{}
-	if err := e.client.List(ctx, secrets, &client.ListOptions{
-		Namespace: cluster.ObjectMeta.Namespace,
-		LabelSelector: labels.NewSelector().Add(
-			utils.MustNewRequirement("name", selection.Equals, metal.AuthNWebhookServerName),
-		),
-	}); err != nil {
+	if err := e.client.List(ctx, secrets, client.InNamespace(cluster.ObjectMeta.Namespace), client.MatchingLabels{"name": metal.AuthNWebhookServerName}); err != nil {
 		logger.Error(err, "could not list authn webhook secrets for cluster")
 		return err
 	}
