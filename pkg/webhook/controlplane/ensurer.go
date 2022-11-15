@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -76,15 +77,43 @@ var (
 			},
 		},
 	}
-	audittailerClientSecretVolume = func(secretName string) corev1.Volume {
-		return corev1.Volume{
-			Name: metal.AudittailerClientSecretName,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: secretName,
+	audittailerKubeconfig = corev1.Volume{
+		Name: "audittailer-kubeconfig",
+		VolumeSource: corev1.VolumeSource{
+			Projected: &corev1.ProjectedVolumeSource{
+				DefaultMode: pointer.Int32(420),
+				Sources: []corev1.VolumeProjection{
+					{
+						Secret: &corev1.SecretProjection{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "generic-token-kubeconfig",
+							},
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "kubeconfig",
+									Path: "kubeconfig",
+								},
+							},
+							Optional: pointer.Bool(false),
+						},
+					},
+					{
+						Secret: &corev1.SecretProjection{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "shoot-access-accounting-exporter",
+							},
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "token",
+									Path: "token",
+								},
+							},
+							Optional: pointer.Bool(false),
+						},
+					},
 				},
 			},
-		}
+		},
 	}
 	auditForwarderSplunkConfigVolumeMount = corev1.VolumeMount{
 		Name:      metal.AuditForwarderSplunkConfigName,
@@ -169,7 +198,7 @@ var (
 		Env: []corev1.EnvVar{
 			{
 				Name:  "AUDIT_KUBECFG",
-				Value: "/shootconfig/kubeconfig",
+				Value: "/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig",
 			},
 			{
 				Name:  "AUDIT_NAMESPACE",
@@ -193,11 +222,11 @@ var (
 			},
 			{
 				Name:  "AUDIT_TLS_CRT_FILE",
-				Value: "audittailer-client.crt",
+				Value: "tls.crt",
 			},
 			{
 				Name:  "AUDIT_TLS_KEY_FILE",
-				Value: "audittailer-client.key",
+				Value: "tls.key",
 			},
 			{
 				Name:  "AUDIT_TLS_VHOST",
@@ -216,9 +245,9 @@ var (
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      metal.AudittailerClientSecretName,
+				Name:      "audittailer-kubeconfig",
 				ReadOnly:  true,
-				MountPath: "/shootconfig",
+				MountPath: "/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig",
 			},
 			auditLogVolumeMount,
 		},
@@ -275,14 +304,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	}
 
 	makeAuditForwarder := false
-	audittailerSecretName := ""
 	if validation.ClusterAuditEnabled(&e.controllerConfig, cpConfig) {
 		makeAuditForwarder = true
-
-		audittailerSecretName, err = e.getManagerSecretByName(ctx, cluster, metal.AudittailerClientSecretName)
-		if err != nil {
-			return err
-		}
 	}
 
 	auditToSplunk := false
@@ -295,7 +318,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
 		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
-		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, authnWebhookSecretName, audittailerSecretName, e.controllerConfig)
+		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, authnWebhookSecretName, e.controllerConfig)
 	}
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
 		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
@@ -334,7 +357,7 @@ func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool, controller
 	}
 }
 
-func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, authnWebhookSecretName, audittailerSecretName string, controllerConfig config.ControllerConfiguration) {
+func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, authnWebhookSecretName string, controllerConfig config.ControllerConfiguration) {
 	if controllerConfig.Auth.Enabled {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume(authnWebhookSecretName))
@@ -342,7 +365,7 @@ func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, a
 	if makeAuditForwarder {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume(audittailerSecretName))
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerKubeconfig)
 	}
 	if auditToSplunk {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditForwarderSplunkConfigVolume)
@@ -565,7 +588,7 @@ func (e *ensurer) getManagerSecretByName(ctx context.Context, cluster *extension
 	}
 
 	if authnWebhookSecretName == "" {
-		err := fmt.Errorf("could not find manager secret for cluster", "name", name)
+		err := fmt.Errorf("could not find manager secret %q for cluster", name)
 		logger.Error(err, "")
 		return "", err
 	}
