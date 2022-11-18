@@ -738,7 +738,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	cwnpsValues := map[string]interface{}{
-		"onlyApiserverHttps": infrastructure.OnlyHTTPSToAPIServer,
+		"onlyApiserverHttps": infrastructureConfig.OnlyHTTPSToAPIServer,
 	}
 
 	values := map[string]interface{}{
