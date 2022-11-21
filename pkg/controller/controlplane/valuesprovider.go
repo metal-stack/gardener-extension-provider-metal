@@ -842,6 +842,10 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 	}
 
 	spec := firewallv1.FirewallSpec{
+		Size:        infrastructureConfig.Firewall.Size,
+		Image:       infrastructureConfig.Firewall.Image,
+		PartitionID: infrastructureConfig.PartitionID,
+		ProjectID:   infrastructureConfig.ProjectID,
 		Data: firewallv1.Data{
 			Interval:         "10s",
 			FirewallNetworks: firewallNetworks,
