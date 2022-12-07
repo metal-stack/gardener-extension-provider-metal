@@ -9,6 +9,15 @@ images:
   group-rolebinding-controller: image-repository:image-tag
   accounting-exporter: image-repository:image-tag
   duros-controller: image-repository:image-tag
+  firewall-controller-manager: image-repository:image-tag
+
+firewallControllerManager:
+  replicas: 1
+  clusterID: cluster-id
+  apiServerURL: address-to-the-shoot-apiserver
+  metalapi:
+    url: https://metal-api
+    hmac: ABC123
 
 cloudControllerManager:
   additionalParameters: []

@@ -46,6 +46,16 @@ func SecretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 		},
 		{
 			Config: &secretutils.CertificateSecretConfig{
+				Name:                        metal.FirewallControllerManagerDeploymentName,
+				CommonName:                  metal.FirewallControllerManagerDeploymentName,
+				DNSNames:                    kutil.DNSNamesForService(metal.FirewallControllerManagerDeploymentName, namespace),
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: true,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane)},
+		},
+		{
+			Config: &secretutils.CertificateSecretConfig{
 				Name:                        metal.AudittailerClientSecretName,
 				CommonName:                  "audittailer",
 				DNSNames:                    kutil.DNSNamesForService("audittailer", namespace),
@@ -97,6 +107,7 @@ func ShootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 		gutil.NewShootAccessSecret(metal.GroupRolebindingControllerName, namespace),
 		gutil.NewShootAccessSecret(metal.AuthNWebhookDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.AccountingExporterName, namespace),
+		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
 	}
 }
 

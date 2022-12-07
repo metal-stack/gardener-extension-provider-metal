@@ -82,6 +82,12 @@ var controlPlaneChart = &chart.Chart{
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
 
+		// firewall controller manager
+		{Type: &corev1.ServiceAccount{}, Name: "firewall-controller-manager"},
+		{Type: &rbacv1.Role{}, Name: "firewall-controller-manager"},
+		{Type: &rbacv1.RoleBinding{}, Name: "firewall-controller-manager"},
+		{Type: &appsv1.Deployment{}, Name: "firewall-controller-manager"},
+
 		// network policies
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
@@ -497,7 +503,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, ccmValues, authValues, accValues, storageValues)
+	firewallValues, err := getFirewallControllerManagerChartValues(cluster, metalControlPlane, metalCredentials)
+	if err != nil {
+		return nil, err
+	}
+
+	merge(chartValues, ccmValues, authValues, accValues, storageValues, firewallValues)
 
 	if vp.controllerConfig.ImagePullSecret != nil {
 		chartValues["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
@@ -1284,6 +1295,23 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	return values, nil
+}
+
+func getFirewallControllerManagerChartValues(cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, creds *metal.Credentials) (map[string]any, error) {
+	if cluster.Shoot.Spec.DNS.Domain == nil {
+		return nil, fmt.Errorf("cluster dns domain is not yet set")
+	}
+
+	return map[string]any{
+		"firewallControllerManager": map[string]any{
+			"clusterID":    string(cluster.Shoot.GetUID()),
+			"apiServerURL": fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
+			"metalapi": map[string]any{
+				"url":  metalControlPlane.Endpoint,
+				"hmac": creds.MetalAPIHMac,
+			},
+		},
+	}, nil
 }
 
 func clusterTag(clusterID string) string {
