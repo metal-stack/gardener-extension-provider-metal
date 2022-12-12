@@ -46,6 +46,7 @@ rules:
   - firewalls
   - firewalls/status
   - clusterwidenetworkpolicies
+  - clusterwidenetworkpolicies/status
   verbs:
   - list
   - get
