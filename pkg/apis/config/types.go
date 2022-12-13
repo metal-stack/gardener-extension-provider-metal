@@ -216,8 +216,10 @@ type ImagePullSecret struct {
 type EgressDest struct {
 	// Description is a description for this egress destination.
 	Description string
-	// MatchPattern is the DNS match pattern for this destination.
+	// MatchPattern is the DNS match pattern for this destination. Use either a pattern or a name.
 	MatchPattern string
+	// MatchName is the DNS match name for this destination. Use either a pattern or a name.
+	MatchName string
 	// Protocol is either TCP or UDP.
 	Protocol string
 	// Port is the port for this destination.

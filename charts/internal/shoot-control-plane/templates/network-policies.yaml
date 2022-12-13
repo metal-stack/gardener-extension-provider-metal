@@ -37,7 +37,7 @@ metadata:
 spec:
   egress:
   - toFQDNs:
-    - matchPattern: {{ quote .Values.restrictEgress.apiServerIngressDomain }}
+    - matchName: {{ quote .Values.restrictEgress.apiServerIngressDomain }}
     ports:
     - protocol: TCP
       port: 443
@@ -59,7 +59,11 @@ spec:
   egress:
 {{- range $i, $dest := .Values.restrictEgress.destinations }}
   - toFQDNs:
-    - matchPattern: {{ quote $dest.pattern }}
+{{- if $dest.pattern }}
+    - matchPattern: {{ quote $dest.matchPattern }}
+{{- else }}
+    - matchName: {{ quote $dest.matchName }}
+{{- end }}
     ports:
     - protocol: {{ $dest.protocol }}
       port: {{ $dest.port }}

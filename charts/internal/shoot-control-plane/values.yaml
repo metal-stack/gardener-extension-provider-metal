@@ -43,6 +43,7 @@ restrictEgress:
   enabled: false
   apiServerIngressDomain: api.kube-apiserver
   destinations:
-    - pattern: '*.a-name.org'
+    - matchName: 'a-name.org'
+      matchPattern: '*.a-name.org'
       protocol: TCP
       port: 443

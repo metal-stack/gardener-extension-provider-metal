@@ -589,6 +589,7 @@ func Convert_config_ETCDStorage_To_v1alpha1_ETCDStorage(in *config.ETCDStorage, 
 func autoConvert_v1alpha1_EgressDest_To_config_EgressDest(in *EgressDest, out *config.EgressDest, s conversion.Scope) error {
 	out.Description = in.Description
 	out.MatchPattern = in.MatchPattern
+	out.MatchName = in.MatchName
 	out.Protocol = in.Protocol
 	out.Port = in.Port
 	return nil
@@ -602,6 +603,7 @@ func Convert_v1alpha1_EgressDest_To_config_EgressDest(in *EgressDest, out *confi
 func autoConvert_config_EgressDest_To_v1alpha1_EgressDest(in *config.EgressDest, out *EgressDest, s conversion.Scope) error {
 	out.Description = in.Description
 	out.MatchPattern = in.MatchPattern
+	out.MatchName = in.MatchName
 	out.Protocol = in.Protocol
 	out.Port = in.Port
 	return nil
