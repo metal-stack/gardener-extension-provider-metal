@@ -38,3 +38,10 @@ duros:
 
 clusterAudit:
   enabled: false
+
+restrictEgress:
+  enabled: false
+  apiServerIngressDomain: api.kube-apiserver
+  destinations:
+    - pattern: '*.a-name.org'
+      port: 443

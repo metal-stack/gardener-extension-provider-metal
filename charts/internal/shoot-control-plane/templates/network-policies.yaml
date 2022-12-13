@@ -32,32 +32,6 @@ spec:
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
 metadata:
-  name: allow-to-https
-  namespace: firewall
-spec:
-  egress:
-  - to:
-    - cidr: 0.0.0.0/0
-    ports:
-    - protocol: TCP
-      port: 443
----
-apiVersion: metal-stack.io/v1
-kind: ClusterwideNetworkPolicy
-metadata:
-  name: allow-to-http
-  namespace: firewall
-spec:
-  egress:
-  - to:
-    - cidr: 0.0.0.0/0
-    ports:
-    - protocol: TCP
-      port: 80
----
-apiVersion: metal-stack.io/v1
-kind: ClusterwideNetworkPolicy
-metadata:
   name: allow-to-ntp
   namespace: firewall
 spec:
@@ -88,6 +62,66 @@ spec:
     - cidr: {{ (split ":" $endpoint)._0 }}/32
 {{- end }}
 {{- end }}
+{{- if .Values.restrictEgress.enabled }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-apiserver
+  namespace: firewall
+spec:
+  egress:
+  - toFQDNs:
+    - matchPattern: {{ quote .Values.restrictEgress.apiServerIngressDomain }}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 8443
+    - protocol: TCP
+      port: 8132
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-external-dependencies
+  namespace: firewall
+spec:
+  egress:
+{{- range $i, $dest := .Values.restrictEgress.destinations }}
+  - toFQDNs:
+    - matchPattern: {{ quote $dest.pattern }}
+{{- end }}
+    ports:
+    - protocol: TCP
+      port: {{ $dest.port }}
+{{- else }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-https
+  namespace: firewall
+spec:
+  egress:
+  - to:
+    - cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-http
+  namespace: firewall
+spec:
+  egress:
+  - to:
+    - cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 80
 {{- if gt (len .Values.apiserverIPs) 0 }}
 ---
 apiVersion: metal-stack.io/v1
@@ -108,4 +142,5 @@ spec:
       port: 8443
     - protocol: TCP
       port: 8132
+{{- end }}
 {{- end }}

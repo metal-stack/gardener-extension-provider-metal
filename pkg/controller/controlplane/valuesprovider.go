@@ -738,19 +738,32 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		}
 	}
 
-	values := map[string]interface{}{
+	var egressDestinations []map[string]any
+	for _, dest := range vp.controllerConfig.EgressDestinations {
+		egressDestinations = append(egressDestinations, map[string]any{
+			"pattern": dest.MatchPattern,
+			"port":    dest.Port,
+		})
+	}
+
+	values := map[string]any{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
 		"nodeCIDR":          *infrastructure.Status.NodesCIDR,
 		"firewallSpec":      fwSpec,
-		"groupRolebindingController": map[string]interface{}{
+		"groupRolebindingController": map[string]any{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
-		"accountingExporter": map[string]interface{}{
+		"accountingExporter": map[string]any{
 			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
 		},
 		"duros":        durosValues,
 		"clusterAudit": clusterAuditValues,
+		"restrictEgress": map[string]any{
+			"enabled":                cpConfig.FeatureGates.RestrictedEgress != nil && *cpConfig.FeatureGates.RestrictedEgress,
+			"apiServerIngressDomain": *cluster.Shoot.Spec.DNS.Domain,
+			"destinations":           egressDestinations,
+		},
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {

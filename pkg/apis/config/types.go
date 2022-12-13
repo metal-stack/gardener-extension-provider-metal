@@ -54,6 +54,12 @@ type ControllerConfiguration struct {
 
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 	ImagePullSecret *ImagePullSecret
+
+	// EgressDestinations is used when the RestrictedEgress control plane feature gate is enabled
+	// and provides additional egress destinations to the kube-apiserver.
+	//
+	// It is intended to be configured at least with container registries for the cluster.
+	EgressDestinations []EgressDest
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
@@ -205,4 +211,13 @@ type DurosSeedStorageClass struct {
 type ImagePullSecret struct {
 	// DockerConfigJSON contains the already base64 encoded JSON content for the image pull secret
 	DockerConfigJSON string
+}
+
+type EgressDest struct {
+	// Description is a description for this egress destination.
+	Description string
+	// MatchPattern is the DNS match pattern for this destination.
+	MatchPattern string
+	// Port is the port for this destination.
+	Port int
 }
