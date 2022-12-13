@@ -20,7 +20,7 @@ data:
 {{- if .Values.config.machineImages }}
     machineImages:
 {{ toYaml .Values.config.machineImages | indent 4 }}
-{{- if .Values.config.machineImages }}
+{{- if .Values.config.egressDestinations }}
     egressDestinations:
 {{ toYaml .Values.config.egressDestinations | indent 4 }}
 {{- end }}
