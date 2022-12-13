@@ -53,11 +53,11 @@ type ControlPlaneFeatures struct {
 	// DurosStorageEncryption enables the deployment of configured encrypted storage classes for the duros-controller.
 	// +optional
 	DurosStorageEncryption *bool
-	// RestrictedEgress limits the cluster egress to the API server and necessary external dependencies (like container registries)
+	// RestrictEgress limits the cluster egress to the API server and necessary external dependencies (like container registries)
 	// by using DNS egress policies.
 	// Requires firewall-controller >= 1.2.0.
 	// +optional
-	RestrictedEgress *bool `json:"restrictedEgress,omitempty"`
+	RestrictEgress *bool `json:"restrictEgress,omitempty"`
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.

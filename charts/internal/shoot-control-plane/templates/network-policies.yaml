@@ -2,21 +2,6 @@
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
 metadata:
-  name: allow-to-vpn
-  namespace: firewall
-spec:
-  egress:
-  - ports:
-    - port: 4314
-      protocol: UDP
-    - port: 4314
-      protocol: TCP
-    to:
-    - cidr: 0.0.0.0/0
----
-apiVersion: metal-stack.io/v1
-kind: ClusterwideNetworkPolicy
-metadata:
   name: allow-to-dns
   namespace: firewall
 spec:
@@ -41,27 +26,7 @@ spec:
     ports:
     - protocol: UDP
       port: 123
-{{- if .Values.duros.enabled }}
----
-apiVersion: metal-stack.io/v1
-kind: ClusterwideNetworkPolicy
-metadata:
-  name: allow-to-storage
-  namespace: firewall
-spec:
-  egress:
-  - ports:
-    - port: 443
-      protocol: TCP
-    - port: 4420
-      protocol: TCP
-    - port: 8009
-      protocol: TCP
-    to:
-{{ range $i, $endpoint := .Values.duros.endpoints }}
-    - cidr: {{ (split ":" $endpoint)._0 }}/32
-{{- end }}
-{{- end }}
+
 {{- if .Values.restrictEgress.enabled }}
 ---
 apiVersion: metal-stack.io/v1
@@ -76,6 +41,10 @@ spec:
     ports:
     - protocol: TCP
       port: 443
+    - protocol: UDP
+      port: 4314
+    - protocol: TCP
+      port: 4314
     - protocol: TCP
       port: 8443
     - protocol: TCP
@@ -95,7 +64,9 @@ spec:
     - protocol: {{ $dest.protocol }}
       port: {{ $dest.port }}
 {{- end }}
+
 {{- else }}
+
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
@@ -142,5 +113,43 @@ spec:
       port: 8443
     - protocol: TCP
       port: 8132
+{{- end }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-vpn
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 4314
+      protocol: UDP
+    - port: 4314
+      protocol: TCP
+    to:
+    - cidr: 0.0.0.0/0
+
+{{- end }}
+
+{{- if .Values.duros.enabled }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-storage
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 4420
+      protocol: TCP
+    - port: 8009
+      protocol: TCP
+    to:
+{{ range $i, $endpoint := .Values.duros.endpoints }}
+    - cidr: {{ (split ":" $endpoint)._0 }}/32
 {{- end }}
 {{- end }}

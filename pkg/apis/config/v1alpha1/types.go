@@ -42,7 +42,7 @@ type ControllerConfiguration struct {
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 	ImagePullSecret *ImagePullSecret `json:"imagePullSecret,omitempty"`
 
-	// EgressDestinations is used when the RestrictedEgress control plane feature gate is enabled
+	// EgressDestinations is used when the RestrictEgress control plane feature gate is enabled
 	// and provides additional egress destinations to the kube-apiserver.
 	//
 	// It is intended to be configured at least with container registries for the cluster.

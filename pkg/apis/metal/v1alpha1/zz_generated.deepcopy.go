@@ -166,8 +166,8 @@ func (in *ControlPlaneFeatures) DeepCopyInto(out *ControlPlaneFeatures) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.RestrictedEgress != nil {
-		in, out := &in.RestrictedEgress, &out.RestrictedEgress
+	if in.RestrictEgress != nil {
+		in, out := &in.RestrictEgress, &out.RestrictEgress
 		*out = new(bool)
 		**out = **in
 	}
