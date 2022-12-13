@@ -740,9 +740,20 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 
 	var egressDestinations []map[string]any
 	for _, dest := range vp.controllerConfig.EgressDestinations {
+		dest := dest
+		if dest.MatchPattern == "" {
+			continue
+		}
+		if dest.Port == 0 {
+			dest.Port = 443
+		}
+		if dest.Protocol == "" {
+			dest.Protocol = "TCP"
+		}
 		egressDestinations = append(egressDestinations, map[string]any{
-			"pattern": dest.MatchPattern,
-			"port":    dest.Port,
+			"pattern":  dest.MatchPattern,
+			"port":     dest.Port,
+			"protocol": dest.Protocol,
 		})
 	}
 

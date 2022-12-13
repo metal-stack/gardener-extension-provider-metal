@@ -218,6 +218,8 @@ type EgressDest struct {
 	Description string
 	// MatchPattern is the DNS match pattern for this destination.
 	MatchPattern string
+	// Protocol is either TCP or UDP.
+	Protocol string
 	// Port is the port for this destination.
 	Port int
 }

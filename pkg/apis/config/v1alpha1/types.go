@@ -209,6 +209,8 @@ type EgressDest struct {
 	Description string `json:"description"`
 	// MatchPattern is the DNS match pattern for this destination.
 	MatchPattern string `json:"matchPattern"`
+	// Protocol is either TCP or UDP.
+	Protocol string `json:"protocol"`
 	// Port is the port for this destination.
 	Port int `json:"port"`
 }

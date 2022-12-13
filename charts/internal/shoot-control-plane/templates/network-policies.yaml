@@ -91,10 +91,10 @@ spec:
 {{- range $i, $dest := .Values.restrictEgress.destinations }}
   - toFQDNs:
     - matchPattern: {{ quote $dest.pattern }}
-{{- end }}
     ports:
-    - protocol: TCP
+    - protocol: {{ $dest.protocol }}
       port: {{ $dest.port }}
+{{- end }}
 {{- else }}
 ---
 apiVersion: metal-stack.io/v1
