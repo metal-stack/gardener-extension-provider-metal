@@ -59,7 +59,7 @@ spec:
   egress:
 {{- range $i, $dest := .Values.restrictEgress.destinations }}
   - toFQDNs:
-{{- if $dest.pattern }}
+{{- if $dest.matchPattern }}
     - matchPattern: {{ quote $dest.matchPattern }}
 {{- else }}
     - matchName: {{ quote $dest.matchName }}
