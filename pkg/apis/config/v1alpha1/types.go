@@ -206,13 +206,13 @@ type ImagePullSecret struct {
 
 type EgressDest struct {
 	// Description is a description for this egress destination.
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 	// MatchPattern is the DNS match pattern for this destination.
-	MatchPattern string `json:"matchPattern"`
+	MatchPattern string `json:"matchPattern,omitempty"`
 	// MatchName is the DNS match name for this destination. Use either a pattern or a name.
-	MatchName string `json:"matchName"`
+	MatchName string `json:"matchName,omitempty"`
 	// Protocol is either TCP or UDP.
-	Protocol string `json:"protocol"`
+	Protocol string `json:"protocol,omitempty"`
 	// Port is the port for this destination.
-	Port int `json:"port"`
+	Port int `json:"port,omitempty"`
 }
