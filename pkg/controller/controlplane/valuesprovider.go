@@ -776,7 +776,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		"clusterAudit": clusterAuditValues,
 		"restrictEgress": map[string]any{
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
-			"apiServerIngressDomain": *cluster.Shoot.Spec.DNS.Domain,
+			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
 			"destinations":           egressDestinations,
 		},
 	}
