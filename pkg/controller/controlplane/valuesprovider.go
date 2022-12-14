@@ -738,19 +738,47 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		}
 	}
 
-	values := map[string]interface{}{
+	var egressDestinations []map[string]any
+	for _, dest := range vp.controllerConfig.EgressDestinations {
+		dest := dest
+		if dest.MatchPattern == "" && dest.MatchName == "" {
+			continue
+		}
+		if dest.MatchPattern != "" && dest.MatchName != "" {
+			dest.MatchName = ""
+		}
+		if dest.Port == 0 {
+			dest.Port = 443
+		}
+		if dest.Protocol == "" {
+			dest.Protocol = "TCP"
+		}
+		egressDestinations = append(egressDestinations, map[string]any{
+			"matchName":    dest.MatchName,
+			"matchPattern": dest.MatchPattern,
+			"port":         dest.Port,
+			"protocol":     dest.Protocol,
+		})
+	}
+
+	values := map[string]any{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
 		"nodeCIDR":          *infrastructure.Status.NodesCIDR,
 		"firewallSpec":      fwSpec,
-		"groupRolebindingController": map[string]interface{}{
+		"groupRolebindingController": map[string]any{
 			"enabled": vp.controllerConfig.Auth.Enabled,
 		},
-		"accountingExporter": map[string]interface{}{
+		"accountingExporter": map[string]any{
 			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
 		},
 		"duros":        durosValues,
 		"clusterAudit": clusterAuditValues,
+		"restrictEgress": map[string]any{
+			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
+			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
+			"destinations":           egressDestinations,
+		},
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
