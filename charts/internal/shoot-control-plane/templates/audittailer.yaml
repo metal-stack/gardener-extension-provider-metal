@@ -26,6 +26,11 @@ spec:
     spec:
       securityContext:
         runAsUser: 65534
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      automountServiceAccountToken: false
       containers:
       - image: {{ index .Values.images "audittailer" }}
         imagePullPolicy: IfNotPresent

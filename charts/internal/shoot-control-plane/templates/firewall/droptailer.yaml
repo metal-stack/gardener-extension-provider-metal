@@ -38,6 +38,10 @@ spec:
           containerPort: 50051
         securityContext:
           runAsUser: 65534
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
         env:
         - name: SERVER_CERTIFICATE
           value: /certificates/tls.crt
