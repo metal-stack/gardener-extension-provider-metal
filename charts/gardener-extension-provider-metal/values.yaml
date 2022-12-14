@@ -42,6 +42,7 @@ config:
     qps: 100
     burst: 130
   machineImages: []
+  egressDestinations: []
   etcd:
     storage:
       className:

@@ -21,6 +21,10 @@ data:
     machineImages:
 {{ toYaml .Values.config.machineImages | indent 4 }}
 {{- end }}
+{{- if .Values.config.egressDestinations }}
+    egressDestinations:
+{{ toYaml .Values.config.egressDestinations | indent 4 }}
+{{- end }}
     etcd:
       storage:
         className: {{ .Values.config.etcd.storage.className }}

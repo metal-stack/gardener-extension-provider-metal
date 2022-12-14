@@ -437,6 +437,16 @@ spec:
       # https://github.com/metallb/metallb/issues/462
       - name: health
         image: {{ index .Values.images "kubectl" }}
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - all
+          readOnlyRootFilesystem: true
         command:
           - bash
           - -c

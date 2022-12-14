@@ -4,7 +4,6 @@ kind: ServiceAccount
 metadata:
   name: firewall-controller-manager
   namespace: {{ .Release.Namespace }}
-automountServiceAccountToken: false
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
@@ -78,18 +77,20 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
     spec:
-      automountServiceAccountToken: false
       serviceAccountName: firewall-controller-manager
       containers:
       - name: firewall-controller-manager
         args:
           - -cert-dir=/certs
+          - -log-level=info
           - -cluster-api-url={{ .Values.firewallControllerManager.apiServerURL }}
           - -cluster-id={{ .Values.firewallControllerManager.clusterID }}
           - -enable-leader-election
           - -metal-api-url={{ .Values.firewallControllerManager.metalapi.url }}
           - -namespace={{ .Release.Namespace }}
-          - -shoot-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
+          - -shoot-kubeconfig-secret-name={{ .Values.genericTokenKubeconfigSecretName }}
+          - -shoot-token-secret-name=shoot-access-firewall-controller-manager
+          - -ssh-key-secret-name={{ .Values.firewallControllerManager.sshKeySecretName }}
         env:
           - name: METAL_AUTH_HMAC
             value:
@@ -102,24 +103,3 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
-        volumeMounts:
-          - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
-            name: kubeconfig
-            readOnly: true
-      volumes:
-        - name: kubeconfig
-          projected:
-            defaultMode: 420
-            sources:
-            - secret:
-                items:
-                  - key: kubeconfig
-                    path: kubeconfig
-                name: {{ .Values.genericTokenKubeconfigSecretName }}
-                optional: false
-            - secret:
-                items:
-                  - key: token
-                    path: token
-                name: shoot-access-firewall-controller-manager
-                optional: false

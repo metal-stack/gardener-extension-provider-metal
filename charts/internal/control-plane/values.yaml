@@ -15,6 +15,7 @@ firewallControllerManager:
   replicas: 1
   clusterID: cluster-id
   apiServerURL: address-to-the-shoot-apiserver
+  sshKeySecretName: ssh-keypair
   metalapi:
     url: https://metal-api
     hmac: ABC123
