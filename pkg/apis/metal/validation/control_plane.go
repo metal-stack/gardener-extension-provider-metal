@@ -22,11 +22,12 @@ func validateIAMConfig(controlPlaneConfig *apismetal.ControlPlaneConfig, fldPath
 	allErrs := field.ErrorList{}
 
 	iam := controlPlaneConfig.IAMConfig
-	iamPath := fldPath.Child("iamconfig")
 	if iam == nil {
-		allErrs = append(allErrs, field.Required(iamPath, "iam config must be specified"))
+		// assume iam is disabled
 		return allErrs
 	}
+
+	iamPath := fldPath.Child("iamconfig")
 
 	issuer := iam.IssuerConfig
 	issuerPath := iamPath.Child("issuerConfig")
