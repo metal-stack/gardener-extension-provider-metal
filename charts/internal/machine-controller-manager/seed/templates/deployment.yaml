@@ -84,7 +84,7 @@ spec:
         - --target-kubeconfig=/var/lib/machine-controller-manager/kubeconfig
         - --namespace={{ .Release.Namespace }}
         - --port={{ .Values.metricsPort }}
-        - --machine-creation-timeout=20m
+        - --machine-creation-timeout=60m
         - --machine-drain-timeout=2h
         - --machine-health-timeout=10080m
         - --machine-safety-apiserver-statuscheck-timeout=30s
