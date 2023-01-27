@@ -483,7 +483,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, secretsReader, vp.controllerConfig.Auth, p.Payload, &metalAccess{
+	authValues, err := getAuthNGroupRoleChartValues(cpConfig, cluster, secretsReader, vp.controllerConfig.Auth, p.Payload, metalAccess{
 		url:          metalControlPlane.Endpoint,
 		hmac:         metalCredentials.MetalAPIHMac,
 		hmacAuthType: "", // currently default is used
@@ -1088,9 +1088,9 @@ type metalAccess struct {
 }
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, secretsReader secretsmanager.Reader, config config.Auth, p *models.V1ProjectResponse, metalAccess metalAccess) map[string]interface{} {
+func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, secretsReader secretsmanager.Reader, config config.Auth, p *models.V1ProjectResponse, metalAccess metalAccess) (map[string]interface{}, error) {
 	if !config.Enabled {
-		return map[string]any{}
+		return map[string]any{}, nil
 	}
 
 	annotations := cluster.Shoot.GetAnnotations()
