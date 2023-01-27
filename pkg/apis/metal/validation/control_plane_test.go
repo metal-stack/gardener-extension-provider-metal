@@ -45,16 +45,10 @@ var _ = Describe("ControlPlaneconfig validation", func() {
 			Expect(ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))).To(BeEmpty())
 		})
 
-		It("should forbid empty iam config", func() {
+		It("should allow empty iam config", func() {
 			controlPlaneConfig.IAMConfig = nil
 
-			errorList := ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))
-
-			Expect(errorList).To(ConsistOf(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Type":   Equal(field.ErrorTypeRequired),
-				"Field":  Equal("spec.iamconfig"),
-				"Detail": Equal("iam config must be specified"),
-			}))))
+			Expect(ValidateControlPlaneConfig(controlPlaneConfig, cloudProfile, field.NewPath("spec"))).To(BeEmpty())
 		})
 
 		It("should forbid empty issuer url", func() {

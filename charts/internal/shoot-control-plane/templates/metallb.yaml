@@ -27,7 +27,6 @@ spec:
   hostNetwork: false
   hostPID: false
   privileged: false
-  readOnlyRootFilesystem: true
   requiredDropCapabilities:
   - ALL
   runAsUser:
