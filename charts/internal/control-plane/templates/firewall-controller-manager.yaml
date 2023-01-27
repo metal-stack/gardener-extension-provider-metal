@@ -1,0 +1,101 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups:
+  - metal-stack.io/v2
+  resources:
+  - firewalls
+  - firewallsets
+  - firewalldeployments
+  - firewalls/status
+  - firewallsets/status
+  - firewalldeployments/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  - coordination.k8s.io
+  resources:
+  - configmaps
+  - leases
+  - events
+  verbs:
+  - get
+  - watch
+  - update
+  - patch
+  - create
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: firewall-controller-manager
+subjects:
+- kind: ServiceAccount
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: firewall-controller-manager
+spec:
+  selector:
+    matchLabels:
+      app: firewall-controller-manager
+  replicas: {{ .Values.firewallControllerManager.replicas }}
+  template:
+    metadata:
+      labels:
+        app: firewall-controller-manager
+    spec:
+      serviceAccountName: firewall-controller-manager
+      containers:
+      - name: firewall-controller-manager
+        args:
+          - -cert-dir=/certs
+          - -log-level=info
+          - -cluster-api-url={{ .Values.firewallControllerManager.apiServerURL }}
+          - -cluster-id={{ .Values.firewallControllerManager.clusterID }}
+          - -enable-leader-election
+          - -metal-api-url={{ .Values.firewallControllerManager.metalapi.url }}
+          - -namespace={{ .Release.Namespace }}
+          - -shoot-kubeconfig-secret-name={{ .Values.genericTokenKubeconfigSecretName }}
+          - -shoot-token-secret-name=shoot-access-firewall-controller-manager
+          - -ssh-key-secret-name={{ .Values.firewallControllerManager.sshKeySecretName }}
+        env:
+          - name: METAL_AUTH_HMAC
+            value:
+        image: {{ index .Values.images "firewall-controller-manager" }}
+        imagePullPolicy: IfNotPresent
+        resources:
+          limits:
+            cpu: 400m
+            memory: 400Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi

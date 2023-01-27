@@ -89,6 +89,8 @@ const (
 	AuthNWebhookServerName = "kube-jwt-authn-webhook-server"
 	// DurosControllerDeploymentName is the name of the deployment for the duros-controller.
 	DurosControllerDeploymentName = "duros-controller"
+	// FirewallControllerManagerDeploymentName is the name of the deployment for the firewall controller manager
+	FirewallControllerManagerDeploymentName = "firewall-controller-manager"
 )
 
 var (

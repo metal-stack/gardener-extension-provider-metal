@@ -51,6 +51,10 @@ images:
   sourceRepository: https://github.com/bitnami/containers
   repository: bitnami/kubectl
   tag: "1.25.0"
+- name: firewall-controller-manager
+  sourceRepository: https://github.com/metal-stack/firewall-controller-manager
+  repository: ghcr.io/metal-stack/firewall-controller-manager
+  tag: "v0.1.0"
 
 # can be provided via image override:
 # - name: authn-webhook

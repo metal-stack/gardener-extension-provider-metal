@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
@@ -45,6 +47,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
@@ -173,6 +176,12 @@ var controlPlaneSecrets = &secrets.Secrets{
 	},
 }
 
+func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
+	return []*gutil.ShootAccessSecret{
+		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
+	}
+}
+
 var configChart = &chart.Chart{
 	Name:    "config",
 	Path:    filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
@@ -236,6 +245,12 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-controller"},
 		{Type: &firewallv1.Firewall{}, Name: "firewall"},
+
+		// firewall controller manager
+		{Type: &corev1.ServiceAccount{}, Name: "firewall-controller-manager"},
+		{Type: &rbacv1.Role{}, Name: "firewall-controller-manager"},
+		{Type: &rbacv1.RoleBinding{}, Name: "firewall-controller-manager"},
+		{Type: &appsv1.Deployment{}, Name: "firewall-controller-manager"},
 
 		// firewall policy controller TODO can be removed in a future version
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
@@ -572,7 +587,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not retrieve project from metal-api %w", err)
 	}
 
-	chartValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
+	ccmValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -596,13 +611,23 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, authValues, accValues, storageValues)
-
-	if vp.controllerConfig.ImagePullSecret != nil {
-		chartValues["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
+	sshSecret, err := getLatestSSHSecret(ctx, vp.Client(), cp.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	return chartValues, nil
+	firewallValues, err := getFirewallControllerManagerChartValues(cluster, metalControlPlane, metalCredentials, sshSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	merge(ccmValues, authValues, accValues, storageValues, firewallValues)
+
+	if vp.controllerConfig.ImagePullSecret != nil {
+		ccmValues["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
+	}
+
+	return ccmValues, nil
 }
 
 // merge all source maps in the target map
@@ -1044,10 +1069,10 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 	err := vp.Client().Get(ctx, key, secret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			vp.logger.Error(err, "error getting chart secret - not found")
+			vp.logger.Error(err, "error getting secret - not found")
 			return nil, err
 		}
-		vp.logger.Error(err, "error getting chart secret")
+		vp.logger.Error(err, "error getting secret")
 		return nil, err
 	}
 	return secret, nil
@@ -1418,6 +1443,70 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	return values, nil
+}
+
+func getFirewallControllerManagerChartValues(cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, creds *metal.Credentials, sshSecret *corev1.Secret) (map[string]any, error) {
+	if cluster.Shoot.Spec.DNS.Domain == nil {
+		return nil, fmt.Errorf("cluster dns domain is not yet set")
+	}
+
+	return map[string]any{
+		"firewallControllerManager": map[string]any{
+			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
+			"clusterID":        string(cluster.Shoot.GetUID()),
+			"apiServerURL":     fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
+			"sshKeySecretName": sshSecret.Name,
+			"metalapi": map[string]any{
+				"url":  metalControlPlane.Endpoint,
+				"hmac": creds.MetalAPIHMac,
+			},
+		},
+	}, nil
+}
+
+func getLatestSSHSecret(ctx context.Context, c client.Client, namespace string) (*corev1.Secret, error) {
+	secretList := &corev1.SecretList{}
+	if err := c.List(ctx, secretList, client.InNamespace(namespace), client.MatchingLabels{
+		// TODO: migrate to secretsmanager constants on g/g v1.45
+		"managed-by":       "secrets-manager",
+		"manager-identity": "gardenlet",
+		"name":             "ssh-keypair",
+	}); err != nil {
+		return nil, err
+	}
+
+	return getLatestIssuedSecret(secretList.Items)
+}
+
+// getLatestIssuedSecret returns the secret with the "issued-at-time" label that represents the latest point in time
+func getLatestIssuedSecret(secrets []corev1.Secret) (*corev1.Secret, error) {
+	if len(secrets) == 0 {
+		return nil, fmt.Errorf("no secret found")
+	}
+
+	var newestSecret *corev1.Secret
+	var currentIssuedAtTime time.Time
+	for i := 0; i < len(secrets); i++ {
+		// if some of the secrets have no "issued-at-time" label
+		// we have a problem since this is the source of truth
+		issuedAt, ok := secrets[i].Labels["issued-at-time"]
+		if !ok {
+			return nil, fmt.Errorf("secret with no issues-at-time label: %s", secrets[i].Name)
+		}
+
+		issuedAtUnix, err := strconv.ParseInt(issuedAt, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		issuedAtTime := time.Unix(issuedAtUnix, 0).UTC()
+		if newestSecret == nil || issuedAtTime.After(currentIssuedAtTime) {
+			newestSecret = &secrets[i]
+			currentIssuedAtTime = issuedAtTime
+		}
+	}
+
+	return newestSecret, nil
 }
 
 func clusterTag(clusterID string) string {
