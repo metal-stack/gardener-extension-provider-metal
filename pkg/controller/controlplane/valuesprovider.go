@@ -1191,6 +1191,10 @@ type metalAccess struct {
 
 // returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
 func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth, p *models.V1ProjectResponse, metalAccess metalAccess) map[string]interface{} {
+	if !config.Enabled {
+		return map[string]any{}
+	}
+
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
 
