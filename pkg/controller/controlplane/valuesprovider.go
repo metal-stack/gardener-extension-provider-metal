@@ -969,6 +969,7 @@ func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Co
 		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
 			return []secrets.ConfigInterface{
 				&secrets.ControlPlaneSecretConfig{
+					Name: metal.AudittailerClientSecretName,
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.AudittailerClientSecretName,
 						CommonName:   "audittailer",
@@ -979,6 +980,7 @@ func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Co
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
+					Name: metal.AudittailerServerSecretName,
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.AudittailerServerSecretName,
 						CommonName:   "audittailer",
@@ -1011,6 +1013,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
 			return []secrets.ConfigInterface{
 				&secrets.ControlPlaneSecretConfig{
+					Name: metal.DroptailerClientSecretName,
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.DroptailerClientSecretName,
 						CommonName:   "droptailer",
@@ -1021,6 +1024,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
+					Name: metal.DroptailerServerSecretName,
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.DroptailerServerSecretName,
 						CommonName:   "droptailer",
