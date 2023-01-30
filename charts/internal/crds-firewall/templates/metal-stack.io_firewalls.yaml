@@ -17,247 +17,6 @@ spec:
     singular: firewall
   scope: Namespaced
   versions:
-  - name: v1
-    schema:
-      openAPIV3Schema:
-        description: ClusterwideNetworkPolicy contains the desired state for a cluster
-          wide network policy to be applied.
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            description: PolicySpec defines the rules to create for ingress and egress
-            properties:
-              description:
-                description: Description is a free form string, it can be used by
-                  the creator of the rule to store human-readable explanation of the
-                  purpose of this rule. Rules cannot be identified by comment.
-                type: string
-              egress:
-                description: List of egress rules to be applied. Outgoing traffic
-                  is allowed if there is a ClusterwideNetworkPolicy that allows it.
-                  Clusters are isolated by default.
-                items:
-                  description: EgressRule describes a particular set of traffic that
-                    is allowed out of the cluster The traffic must match both ports
-                    and to.
-                  properties:
-                    ports:
-                      description: List of destination ports for outgoing traffic.
-                        Each item in this list is combined using a logical OR. If
-                        this field is empty or missing, this rule matches all ports
-                        (traffic not restricted by port). If this field is present
-                        and contains at least one item, then this rule allows traffic
-                        only if the traffic matches at least one port in the list.
-                      items:
-                        description: NetworkPolicyPort describes a port to allow traffic
-                          on
-                        properties:
-                          endPort:
-                            description: If set, indicates that the range of ports
-                              from port to endPort, inclusive, should be allowed by
-                              the policy. This field cannot be defined if the port
-                              field is not defined or if the port field is defined
-                              as a named (string) port. The endPort must be equal
-                              or greater than port.
-                            format: int32
-                            type: integer
-                          port:
-                            anyOf:
-                            - type: integer
-                            - type: string
-                            description: The port on the given protocol. This can
-                              either be a numerical or named port on a pod. If this
-                              field is not provided, this matches all port names and
-                              numbers. If present, only traffic on the specified protocol
-                              AND port will be matched.
-                            x-kubernetes-int-or-string: true
-                          protocol:
-                            default: TCP
-                            description: The protocol (TCP, UDP, or SCTP) which traffic
-                              must match. If not specified, this field defaults to
-                              TCP.
-                            type: string
-                        type: object
-                      type: array
-                    to:
-                      description: List of destinations for outgoing traffic of a
-                        cluster for this rule. Items in this list are combined using
-                        a logical OR operation. If this field is empty or missing,
-                        this rule matches all destinations (traffic not restricted
-                        by destination). If this field is present and contains at
-                        least one item, this rule allows traffic only if the traffic
-                        matches at least one item in the to list. To rules can't contain
-                        ToFQDNs rules.
-                      items:
-                        description: IPBlock describes a particular CIDR (Ex. "192.168.1.1/24","2001:db9::/64")
-                          that is allowed to the pods matched by a NetworkPolicySpec's
-                          podSelector. The except entry describes CIDRs that should
-                          not be included within this rule.
-                        properties:
-                          cidr:
-                            description: CIDR is a string representing the IP Block
-                              Valid examples are "192.168.1.1/24" or "2001:db9::/64"
-                            type: string
-                          except:
-                            description: Except is a slice of CIDRs that should not
-                              be included within an IP Block Valid examples are "192.168.1.1/24"
-                              or "2001:db9::/64" Except values will be rejected if
-                              they are outside the CIDR range
-                            items:
-                              type: string
-                            type: array
-                        required:
-                        - cidr
-                        type: object
-                      type: array
-                    toFQDNs:
-                      description: List of FQDNs (fully qualified domain names) for
-                        outgoing traffic of a cluster for this rule. Items in this
-                        list are combined using a logical OR operation. This field
-                        is used as whitelist for DNS names. If none specified, no
-                        rule will be applied. ToFQDNs rules can't contain To rules.
-                      items:
-                        description: FQDNSelector describes rules for matching DNS
-                          names.
-                        properties:
-                          matchName:
-                            description: MatchName matches FQDN.
-                            pattern: ^([-a-zA-Z0-9_]+[.]?)+$
-                            type: string
-                          matchPattern:
-                            description: MatchPattern allows using "*" to match DNS
-                              names. "*" matches 0 or more valid characters.
-                            pattern: ^([-a-zA-Z0-9_*]+[.]?)+$
-                            type: string
-                        type: object
-                      type: array
-                  type: object
-                type: array
-              ingress:
-                description: List of ingress rules to be applied. Traffic is allowed
-                  to a cluster if there is a ClusterwideNetworkPolicy that allows
-                  it, OR there is a service exposed with type Loadbalancer. Clusters
-                  are isolated by default.
-                items:
-                  description: IngressRule describes a particular set of traffic that
-                    is allowed to the cluster. The traffic must match both ports and
-                    from.
-                  properties:
-                    from:
-                      description: List of sources which should be able to access
-                        the cluster for this rule. Items in this list are combined
-                        using a logical OR operation. If this field is empty or missing,
-                        this rule matches all sources (traffic not restricted by source).
-                        If this field is present and contains at least one item, this
-                        rule allows traffic only if the traffic matches at least one
-                        item in the from list.
-                      items:
-                        description: IPBlock describes a particular CIDR (Ex. "192.168.1.1/24","2001:db9::/64")
-                          that is allowed to the pods matched by a NetworkPolicySpec's
-                          podSelector. The except entry describes CIDRs that should
-                          not be included within this rule.
-                        properties:
-                          cidr:
-                            description: CIDR is a string representing the IP Block
-                              Valid examples are "192.168.1.1/24" or "2001:db9::/64"
-                            type: string
-                          except:
-                            description: Except is a slice of CIDRs that should not
-                              be included within an IP Block Valid examples are "192.168.1.1/24"
-                              or "2001:db9::/64" Except values will be rejected if
-                              they are outside the CIDR range
-                            items:
-                              type: string
-                            type: array
-                        required:
-                        - cidr
-                        type: object
-                      type: array
-                    ports:
-                      description: List of ports which should be made accessible on
-                        the cluster for this rule. Each item in this list is combined
-                        using a logical OR. If this field is empty or missing, this
-                        rule matches all ports (traffic not restricted by port). If
-                        this field is present and contains at least one item, then
-                        this rule allows traffic only if the traffic matches at least
-                        one port in the list.
-                      items:
-                        description: NetworkPolicyPort describes a port to allow traffic
-                          on
-                        properties:
-                          endPort:
-                            description: If set, indicates that the range of ports
-                              from port to endPort, inclusive, should be allowed by
-                              the policy. This field cannot be defined if the port
-                              field is not defined or if the port field is defined
-                              as a named (string) port. The endPort must be equal
-                              or greater than port.
-                            format: int32
-                            type: integer
-                          port:
-                            anyOf:
-                            - type: integer
-                            - type: string
-                            description: The port on the given protocol. This can
-                              either be a numerical or named port on a pod. If this
-                              field is not provided, this matches all port names and
-                              numbers. If present, only traffic on the specified protocol
-                              AND port will be matched.
-                            x-kubernetes-int-or-string: true
-                          protocol:
-                            default: TCP
-                            description: The protocol (TCP, UDP, or SCTP) which traffic
-                              must match. If not specified, this field defaults to
-                              TCP.
-                            type: string
-                        type: object
-                      type: array
-                  type: object
-                type: array
-            type: object
-          status:
-            description: PolicyStatus defines the observed state for CWNP resource
-            properties:
-              fqdn_state:
-                additionalProperties:
-                  items:
-                    description: IPSet stores set name association to IP addresses
-                    properties:
-                      expirationTime:
-                        format: date-time
-                        type: string
-                      fqdn:
-                        type: string
-                      ips:
-                        items:
-                          type: string
-                        type: array
-                      setName:
-                        type: string
-                      version:
-                        type: string
-                    type: object
-                  type: array
-                description: FQDNState stores mapping from FQDN rules to nftables
-                  sets used for a firewall rule. Key is either MatchName or MatchPattern
-                type: object
-            type: object
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
   - additionalPrinterColumns:
     - jsonPath: .spec.interval
       name: Interval
@@ -491,6 +250,364 @@ spec:
             required:
             - stats
             type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.machineStatus.machineID
+      name: Machine ID
+      type: string
+    - jsonPath: .status.machineStatus.lastEvent.event
+      name: Last Event
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v2
+    schema:
+      openAPIV3Schema:
+        description: Firewall represents a metal-stack firewall in a bare-metal kubernetes
+          cluster. It has a 1:1 relationship to a firewall in the metal-stack api.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec contains the firewall specification.
+            properties:
+              controllerURL:
+                description: ControllerURL points to the downloadable binary artifact
+                  of the firewall controller
+                type: string
+              controllerVersion:
+                description: ControllerVersion holds the firewall-controller version
+                  to reconcile.
+                type: string
+              dnsPort:
+                description: DNSPort specifies port to which DNS proxy should be bound
+                type: integer
+              dnsServerAddress:
+                description: DNSServerAddress specifies DNS server address used by
+                  DNS proxy
+                type: string
+              dryRun:
+                description: DryRun if set to true, firewall rules are not applied.
+                  For devel-purposes only.
+                type: boolean
+              egressRules:
+                description: EgressRules contains egress rules configured for this
+                  firewall.
+                items:
+                  description: EgressRuleSNAT holds a Source-NAT rule
+                  properties:
+                    ips:
+                      description: IPs contains the ips used as source addresses for
+                        packets leaving the specified network.
+                      items:
+                        type: string
+                      type: array
+                    networkID:
+                      description: NetworkID is the network for which the egress rule
+                        will be configured.
+                      type: string
+                  required:
+                  - ips
+                  - networkID
+                  type: object
+                type: array
+              image:
+                description: Image is the os image of the firewall. An update on this
+                  field requires the recreation of the physical firewall and can therefore
+                  lead to traffic interruption for the cluster.
+                type: string
+              internalPrefixes:
+                description: InternalPrefixes specify prefixes which are considered
+                  local to the partition or all regions. This is used for the traffic
+                  counters. Traffic to/from these prefixes is counted as internal
+                  traffic.
+                items:
+                  type: string
+                type: array
+              interval:
+                description: Interval on which rule reconciliation by the firewall-controller
+                  should happen.
+                type: string
+              ipv4RuleFile:
+                description: TrafficControl defines where to store the generated ipv4
+                  firewall rules on disk.
+                type: string
+              logAcceptedConnections:
+                description: LogAcceptedConnections if set to true, also log accepted
+                  connections in the droptailer log.
+                type: boolean
+              networks:
+                description: Networks are the networks to which this firewall is connected.
+                  An update on this field requires the recreation of the physical
+                  firewall and can therefore lead to traffic interruption for the
+                  cluster.
+                items:
+                  type: string
+                type: array
+              partition:
+                description: Partition is the partition in which the firewall resides.
+                type: string
+              project:
+                description: Project is the project in which the firewall resides.
+                type: string
+              rateLimits:
+                description: RateLimits allows configuration of rate limit rules for
+                  interfaces.
+                items:
+                  description: RateLimit contains the rate limit rule for a network.
+                  properties:
+                    networkID:
+                      description: NetworkID specifies the network which should be
+                        rate limited.
+                      type: string
+                    rate:
+                      description: Rate is the input rate in MiB/s.
+                      format: int32
+                      type: integer
+                  required:
+                  - networkID
+                  - rate
+                  type: object
+                type: array
+              size:
+                description: Size is the machine size of the firewall. An update on
+                  this field requires the recreation of the physical firewall and
+                  can therefore lead to traffic interruption for the cluster.
+                type: string
+              sshPublicKeys:
+                description: SSHPublicKeys are public keys which are added to the
+                  firewall's authorized keys file on creation. It gets defaulted to
+                  the public key of ssh secret as provided by the controller flags.
+                items:
+                  type: string
+                type: array
+              userdata:
+                description: Userdata contains the userdata used for the creation
+                  of the firewall. It gets defaulted to a userdata matching for the
+                  firewall-controller with connection to Gardener shoot and seed.
+                type: string
+            required:
+            - image
+            - networks
+            - partition
+            - project
+            - size
+            - userdata
+            type: object
+          status:
+            description: Status contains current status information on the firewall.
+            properties:
+              conditions:
+                description: Conditions contain the latest available observations
+                  of a firewall's current state.
+                items:
+                  description: Condition holds the information about the state of
+                    a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    lastUpdateTime:
+                      description: Last time the condition was updated.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of the condition.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - lastUpdateTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              controllerStatus:
+                description: ControllerStatus holds the a brief version of the firewall-controller
+                  reconciling this firewall.
+                properties:
+                  actualVersion:
+                    description: ActualVersion is the actual version running at the
+                      firewall-controller.
+                    type: string
+                  lastRun:
+                    description: Updated is a timestamp when the controller has last
+                      reconciled the firewall resource.
+                    format: date-time
+                    type: string
+                type: object
+              firewallNetworks:
+                description: FirewallNetworks holds refined information about the
+                  networks that this firewall is connected to. The information is
+                  used by the firewall-controller in order to reconcile this firewall.
+                items:
+                  description: FirewallNetwork holds refined information about a network
+                    that the firewall is connected to. The information is used by
+                    the firewall-controller in order to reconcile the firewall.
+                  properties:
+                    asn:
+                      description: Asn is the autonomous system number of this network.
+                      format: int64
+                      type: integer
+                    destinationPrefixes:
+                      description: DestinationPrefixes are the destination prefixes
+                        of this network.
+                      items:
+                        type: string
+                      type: array
+                    ips:
+                      description: IPs are the ip addresses used in this network.
+                      items:
+                        type: string
+                      type: array
+                    nat:
+                      description: Nat specifies whether the outgoing traffic is natted
+                        or not.
+                      type: boolean
+                    networkID:
+                      description: NetworkID is the id of this network.
+                      type: string
+                    networkType:
+                      description: NetworkType is the type of this network.
+                      type: string
+                    prefixes:
+                      description: Prefixes are the network prefixes of this network.
+                      items:
+                        type: string
+                      type: array
+                    vrf:
+                      description: Vrf is vrf id of this network.
+                      format: int64
+                      type: integer
+                  required:
+                  - asn
+                  - destinationPrefixes
+                  - ips
+                  - nat
+                  - networkID
+                  - networkType
+                  - prefixes
+                  - vrf
+                  type: object
+                type: array
+              machineStatus:
+                description: MachineStatus holds the status of the firewall machine
+                  containing information from the metal-stack api.
+                properties:
+                  allocationTimestamp:
+                    description: AllocationTimestamp is the timestamp when the machine
+                      was allocated.
+                    format: date-time
+                    type: string
+                  crashLoop:
+                    description: CrashLoop can occur during provisioning of the firewall
+                      causing the firewall not to get ready.
+                    type: boolean
+                  lastEvent:
+                    description: LastEvent contains the last provisioning event of
+                      the machine.
+                    properties:
+                      event:
+                        description: Event is the provisioning event.
+                        type: string
+                      message:
+                        description: Message contains a message further describing
+                          the event.
+                        type: string
+                      timestamp:
+                        description: Timestamp is the point in time when the provisioning
+                          event was received.
+                        format: date-time
+                        type: string
+                    required:
+                    - event
+                    - message
+                    - timestamp
+                    type: object
+                  liveliness:
+                    description: Liveliness expresses the liveliness of the firewall
+                      and can be used to determine the general health state of the
+                      machine.
+                    type: string
+                  machineID:
+                    description: MachineID is the id of the firewall in the metal-stack
+                      api.
+                    type: string
+                required:
+                - allocationTimestamp
+                - liveliness
+                - machineID
+                type: object
+              phase:
+                description: Phase describes the firewall phase at the current time.
+                type: string
+              shootAccess:
+                description: ShootAccess contains references to construct shoot clients.
+                properties:
+                  apiServerURL:
+                    description: APIServerURL is the URL of the shoot's API server.
+                    type: string
+                  genericKubeconfigSecretName:
+                    description: GenericKubeconfigSecretName is the secret name of
+                      the generic kubeconfig secret deployed by Gardener to be used
+                      as a template for constructing a shoot client.
+                    type: string
+                  namespace:
+                    description: Namespace is the namespace in the seed where the
+                      secrets reside.
+                    type: string
+                  sshKeySecretName:
+                    description: SSHKeySecretName is the secret name containing the
+                      ssh keys for the machine access.
+                    type: string
+                  tokenSecretName:
+                    description: TokenSecretName is the secret name for the access
+                      token for shoot access.
+                    type: string
+                required:
+                - apiServerURL
+                - genericKubeconfigSecretName
+                - namespace
+                - sshKeySecretName
+                - tokenSecretName
+                type: object
+            required:
+            - conditions
+            - phase
+            type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true
