@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
+	"github.com/metal-stack/metal-go/api/client/firewall"
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/client/project"
 	"github.com/metal-stack/metal-go/api/models"
@@ -18,6 +19,7 @@ import (
 
 	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
+	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -621,13 +623,20 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(ccmValues, authValues, accValues, storageValues, firewallValues)
-
-	if vp.controllerConfig.ImagePullSecret != nil {
-		ccmValues["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
+	err = vp.migrateFirewall(ctx, logger, metalControlPlane, infrastructureConfig, cluster, nws, mclient)
+	if err != nil {
+		return nil, err
 	}
 
-	return ccmValues, nil
+	values := map[string]any{}
+
+	merge(values, ccmValues, authValues, accValues, storageValues, firewallValues)
+
+	if vp.controllerConfig.ImagePullSecret != nil {
+		values["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
+	}
+
+	return values, nil
 }
 
 // merge all source maps in the target map
@@ -1462,6 +1471,117 @@ func getFirewallControllerManagerChartValues(cluster *extensionscontroller.Clust
 			},
 		},
 	}, nil
+}
+
+// migrateFirewall can be removed along with the deployment of the old firewall resource after all firewall are running firewall-controller >= v0.2.0
+func (vp *valuesProvider) migrateFirewall(ctx context.Context, log logr.Logger, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient metalgo.Client) error {
+	var (
+		clusterID = string(cluster.Shoot.GetUID())
+		projectID = infrastructureConfig.ProjectID
+		namespace = cluster.ObjectMeta.Namespace
+	)
+
+	resp, err := mclient.Firewall().FindFirewalls(firewall.NewFindFirewallsParams().WithBody(&models.V1FirewallFindRequest{
+		AllocationProject: projectID,
+		Tags:              []string{clusterTag(clusterID)},
+	}).WithContext(ctx), nil)
+	if err != nil {
+		return fmt.Errorf("error finding firewall: %w", err)
+	}
+
+	var toMigrate []*models.V1FirewallResponse
+
+	for _, fw := range resp.Payload {
+		tm := tag.NewTagMap(fw.Tags)
+
+		if _, ok := tm.Value(fcmv2.FirewallControllerSetAnnotation); ok {
+			// firewall is already owned by the firewall-cotroller-manager, does not need migration
+			continue
+		}
+
+		toMigrate = append(toMigrate, fw)
+	}
+
+	if len(toMigrate) == 0 {
+		log.Info("no firewalls to be migrated to firewall-controller-manager")
+		return nil
+	}
+
+	rateLimit := func(limits []apismetal.RateLimit) []fcmv2.RateLimit {
+		var result []fcmv2.RateLimit
+		for _, l := range limits {
+			result = append(result, fcmv2.RateLimit{
+				NetworkID: l.NetworkID,
+				Rate:      l.RateLimit,
+			})
+		}
+		return result
+	}
+
+	egressRules := func(egress []apismetal.EgressRule) []fcmv2.EgressRuleSNAT {
+		var result []fcmv2.EgressRuleSNAT
+		for _, rule := range egress {
+			rule := rule
+			result = append(result, fcmv2.EgressRuleSNAT{
+				NetworkID: rule.NetworkID,
+				IPs:       rule.IPs,
+			})
+		}
+		return result
+	}
+
+	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
+	if err != nil {
+		return err
+	}
+
+	internalPrefixes := []string{}
+	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
+		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
+	}
+
+	for _, fw := range toMigrate {
+		f := &fcmv2.Firewall{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("%s-firewall-migrated-%s", namespace, *fw.ID),
+				Namespace: namespace,
+			},
+		}
+		_, err = controllerutil.CreateOrUpdate(ctx, vp.Client(), f, func() error {
+			f.Labels = map[string]string{
+				tag.ClusterID: clusterID,
+			}
+			f.Spec = fcmv2.FirewallSpec{
+				Size:                   *fw.Size.ID,
+				Image:                  *fw.Allocation.Image.ID,
+				Partition:              *fw.Partition.ID,
+				Project:                *fw.Allocation.Project,
+				Networks:               infrastructureConfig.Firewall.Networks,
+				Userdata:               fw.Allocation.UserData,
+				SSHPublicKeys:          fw.Allocation.SSHPubKeys,
+				RateLimits:             rateLimit(infrastructureConfig.Firewall.RateLimits),
+				InternalPrefixes:       internalPrefixes,
+				EgressRules:            egressRules(infrastructureConfig.Firewall.EgressRules),
+				Interval:               "10s",
+				DryRun:                 false,
+				Ipv4RuleFile:           "",
+				ControllerVersion:      fwcv.Version,
+				ControllerURL:          fwcv.URL,
+				LogAcceptedConnections: infrastructureConfig.Firewall.LogAcceptedConnections,
+				DNSServerAddress:       "",
+				DNSPort:                nil,
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("error creating firewall resource for firewall migration: %w", err)
+		}
+
+		logger.Info("created firewall migration", "id", fw.ID, "cluster-id", clusterID)
+
+	}
+
+	return nil
 }
 
 func getLatestSSHSecret(ctx context.Context, c client.Client, namespace string) (*corev1.Secret, error) {
