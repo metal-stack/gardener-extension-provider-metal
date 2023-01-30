@@ -137,8 +137,7 @@ spec:
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  creationTimestamp: null
-  name: mutating-webhook-configuration
+  name: firewall-controller-manager-{{ .Release.Namespace }}
 webhooks:
 - admissionReviewVersions:
   - v1
@@ -146,7 +145,7 @@ webhooks:
     caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
-      namespace: garden
+      namespace: {{ .Release.Namespace }}
       port: 9443
       path: /mutate-metal-stack-io-v2-firewall
   failurePolicy: Fail
@@ -167,7 +166,7 @@ webhooks:
     caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
-      namespace: garden
+      namespace: {{ .Release.Namespace }}
       port: 9443
       path: /mutate-metal-stack-io-v2-firewallset
   failurePolicy: Fail
@@ -188,7 +187,7 @@ webhooks:
     caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
-      namespace: garden
+      namespace: {{ .Release.Namespace }}
       port: 9443
       path: /mutate-metal-stack-io-v2-firewalldeployment
   failurePolicy: Fail
@@ -208,7 +207,7 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   creationTimestamp: null
-  name: validating-webhook-configuration
+  name: firewall-controller-manager-{{ .Release.Namespace }}
 webhooks:
 - admissionReviewVersions:
   - v1
@@ -216,7 +215,7 @@ webhooks:
     caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
-      namespace: garden
+      namespace: {{ .Release.Namespace }}
       port: 9443
       path: /validate-metal-stack-io-v2-firewall
   failurePolicy: Fail
@@ -238,7 +237,7 @@ webhooks:
     caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
-      namespace: garden
+      namespace: {{ .Release.Namespace }}
       port: 9443
       path: /validate-metal-stack-io-v2-firewallset
   failurePolicy: Fail
@@ -260,7 +259,7 @@ webhooks:
     caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
-      namespace: garden
+      namespace: {{ .Release.Namespace }}
       port: 9443
       path: /validate-metal-stack-io-v2-firewalldeployment
   failurePolicy: Fail
