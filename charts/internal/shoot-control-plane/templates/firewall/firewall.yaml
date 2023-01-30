@@ -12,4 +12,7 @@ metadata:
 spec:
 {{ toYaml .Values.firewallSpec | indent 2 }}
 status:
-  stats: {}
+  stats:
+    rules: {}
+    devices: {}
+    idsstats: {}

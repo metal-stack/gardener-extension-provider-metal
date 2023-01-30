@@ -1581,6 +1581,10 @@ func (vp *valuesProvider) migrateFirewall(ctx context.Context, log logr.Logger, 
 			f.Labels = map[string]string{
 				tag.ClusterID: clusterID,
 			}
+			// only if version < 2.0
+			f.Annotations = map[string]string{
+				"firewall.metal-stack.io/no-controller-connection": "true",
+			}
 			f.Spec = fcmv2.FirewallSpec{
 				Size:                   *fw.Size.ID,
 				Image:                  *fw.Allocation.Image.ID,
