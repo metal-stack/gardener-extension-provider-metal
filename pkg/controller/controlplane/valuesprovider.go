@@ -1495,7 +1495,7 @@ func getFirewallControllerManagerChartValues(cluster *extensionscontroller.Clust
 				"url":  metalControlPlane.Endpoint,
 				"hmac": creds.MetalAPIHMac,
 			},
-			"caBundle": caBundle.Data["bundle.crt"],
+			"caBundle": strings.TrimSpace(string(caBundle.Data["bundle.crt"])),
 		},
 	}, nil
 }
