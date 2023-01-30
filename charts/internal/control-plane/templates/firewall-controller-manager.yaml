@@ -17,11 +17,9 @@ rules:
   - firewalls
   - firewallsets
   - firewalldeployments
-  - firewallmonitors
   - firewalls/status
   - firewallsets/status
   - firewalldeployments/status
-  - firewallmonitors/status
   verbs:
   - create
   - delete
@@ -145,7 +143,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
       namespace: garden
@@ -166,7 +164,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
       namespace: garden
@@ -187,7 +185,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
       namespace: garden
@@ -215,7 +213,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
       namespace: garden
@@ -237,7 +235,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
       namespace: garden
@@ -259,7 +257,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle }}
     service:
       name: firewall-controller-manager
       namespace: garden

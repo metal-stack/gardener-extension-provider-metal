@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:firewall-controller-manager
+rules:
+- apiGroups:
+  - metal-stack.io
+  resources:
+  - firewallmonitors
+  - firewallmonitors/status
+  verbs:
+  - list
+  - get
+  - update
+  - patch
+  - create
+  - delete
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:firewall-controller-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:firewall-controller-manager
+subjects:
+- kind: User
+  name: system:firewall-controller-manager
+  apiGroup: ""
