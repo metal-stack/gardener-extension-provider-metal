@@ -201,7 +201,7 @@ var configChart = &chart.Chart{
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName},
+	Images: []string{metal.CCMImageName, metal.FirewallControllerManagerDeploymentName},
 	Objects: []*chart.Object{
 		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
