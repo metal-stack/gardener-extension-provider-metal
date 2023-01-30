@@ -27,6 +27,6 @@ roleRef:
   kind: ClusterRole
   name: system:firewall-controller-manager
 subjects:
-- kind: User
-  name: system:firewall-controller-manager
-  apiGroup: ""
+- kind: ServiceAccount
+  name: firewall-controller-manager
+  namespace: kube-system
