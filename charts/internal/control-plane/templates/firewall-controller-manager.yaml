@@ -89,7 +89,7 @@ spec:
           - -ssh-key-secret-name={{ .Values.firewallControllerManager.sshKeySecretName }}
         env:
           - name: METAL_AUTH_HMAC
-            value:
+            value: {{ .Values.firewallControllerManager.metalapi.hmac }}
         image: {{ index .Values.images "firewall-controller-manager" }}
         imagePullPolicy: IfNotPresent
         resources:
