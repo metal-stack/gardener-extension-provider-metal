@@ -32,6 +32,7 @@ rules:
   - ""
   - coordination.k8s.io
   resources:
+  - secrets
   - configmaps
   - leases
   - events
