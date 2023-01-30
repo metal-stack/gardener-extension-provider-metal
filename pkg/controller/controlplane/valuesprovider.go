@@ -625,7 +625,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	firewallValues, err := getFirewallControllerManagerChartValues(cluster, metalControlPlane, metalCredentials, sshSecret)
+	caBundle, err := getLatestCABundle(ctx, vp.Client(), cp.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
+	}
+
+	firewallValues, err := getFirewallControllerManagerChartValues(cluster, metalControlPlane, metalCredentials, sshSecret, caBundle)
 	if err != nil {
 		return nil, err
 	}
@@ -1465,7 +1470,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	return values, nil
 }
 
-func getFirewallControllerManagerChartValues(cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, creds *metal.Credentials, sshSecret *corev1.Secret) (map[string]any, error) {
+func getFirewallControllerManagerChartValues(cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, creds *metal.Credentials, sshSecret, caBundle *corev1.Secret) (map[string]any, error) {
 	if cluster.Shoot.Spec.DNS.Domain == nil {
 		return nil, fmt.Errorf("cluster dns domain is not yet set")
 	}
@@ -1480,6 +1485,7 @@ func getFirewallControllerManagerChartValues(cluster *extensionscontroller.Clust
 				"url":  metalControlPlane.Endpoint,
 				"hmac": creds.MetalAPIHMac,
 			},
+			"caBundle": caBundle.Data["bundle.crt"],
 		},
 	}, nil
 }
@@ -1605,6 +1611,20 @@ func getLatestSSHSecret(ctx context.Context, c client.Client, namespace string) 
 		"managed-by":       "secrets-manager",
 		"manager-identity": "gardenlet",
 		"name":             "ssh-keypair",
+	}); err != nil {
+		return nil, err
+	}
+
+	return getLatestIssuedSecret(secretList.Items)
+}
+
+func getLatestCABundle(ctx context.Context, c client.Client, namespace string) (*corev1.Secret, error) {
+	secretList := &corev1.SecretList{}
+	if err := c.List(ctx, secretList, client.InNamespace(namespace), client.MatchingLabels{
+		// TODO: migrate to secretsmanager constants on g/g v1.45
+		"managed-by":       "secrets-manager",
+		"manager-identity": "gardenlet",
+		"name":             "ca-bundle",
 	}); err != nil {
 		return nil, err
 	}

@@ -78,7 +78,6 @@ spec:
       containers:
       - name: firewall-controller-manager
         args:
-          - -cert-dir=/certs
           - -log-level=info
           - -cluster-api-url={{ .Values.firewallControllerManager.apiServerURL }}
           - -cluster-id={{ .Values.firewallControllerManager.clusterID }}
@@ -100,3 +99,166 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: firewall-controller-manager
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: webhooks
+    port: 9443
+    protocol: TCP
+  - name: metrics
+    port: 2112
+    protocol: TCP
+  selector:
+    app: firewall-controller-manager
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: garden
+      port: 9443
+      path: /mutate-metal-stack-io-v2-firewall
+  failurePolicy: Fail
+  name: firewall.metal-stack.io
+  rules:
+  - apiGroups:
+    - metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    resources:
+    - firewalls
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: garden
+      port: 9443
+      path: /mutate-metal-stack-io-v2-firewallset
+  failurePolicy: Fail
+  name: firewallset.metal-stack.io
+  rules:
+  - apiGroups:
+    - metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    resources:
+    - firewallsets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: garden
+      port: 9443
+      path: /mutate-metal-stack-io-v2-firewalldeployment
+  failurePolicy: Fail
+  name: firewalldeployment.metal-stack.io
+  rules:
+  - apiGroups:
+    - metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    resources:
+    - firewalldeployments
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: garden
+      port: 9443
+      path: /validate-metal-stack-io-v2-firewall
+  failurePolicy: Fail
+  name: firewall.metal-stack.io
+  rules:
+  - apiGroups:
+    - metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - firewalls
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: garden
+      port: 9443
+      path: /validate-metal-stack-io-v2-firewallset
+  failurePolicy: Fail
+  name: firewallset.metal-stack.io
+  rules:
+  - apiGroups:
+    - metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - firewallsets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: garden
+      port: 9443
+      path: /validate-metal-stack-io-v2-firewalldeployment
+  failurePolicy: Fail
+  name: firewalldeployment.metal-stack.io
+  rules:
+  - apiGroups:
+    - metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - firewalldeployments
+  sideEffects: None
