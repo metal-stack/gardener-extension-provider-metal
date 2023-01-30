@@ -1485,7 +1485,7 @@ func (vp *valuesProvider) migrateFirewall(ctx context.Context, log logr.Logger, 
 	var (
 		clusterID = string(cluster.Shoot.GetUID())
 		projectID = infrastructureConfig.ProjectID
-		namespace = cluster.ObjectMeta.Namespace
+		namespace = cluster.ObjectMeta.Name
 	)
 
 	resp, err := mclient.Firewall().FindFirewalls(firewall.NewFindFirewallsParams().WithBody(&models.V1FirewallFindRequest{
@@ -1548,12 +1548,15 @@ func (vp *valuesProvider) migrateFirewall(ctx context.Context, log logr.Logger, 
 	}
 
 	for _, fw := range toMigrate {
+		fw := fw
+
 		f := &fcmv2.Firewall{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("%s-firewall-migrated-%s", namespace, *fw.ID),
 				Namespace: namespace,
 			},
 		}
+
 		_, err = controllerutil.CreateOrUpdate(ctx, vp.Client(), f, func() error {
 			f.Labels = map[string]string{
 				tag.ClusterID: clusterID,
