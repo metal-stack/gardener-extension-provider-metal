@@ -77,7 +77,10 @@ spec:
       serviceAccountName: firewall-controller-manager
       containers:
       - name: firewall-controller-manager
+        image: {{ index .Values.images "firewall-controller-manager" }}
+        imagePullPolicy: IfNotPresent
         args:
+          - -cert-dir=/certs
           - -log-level=info
           - -cluster-api-url={{ .Values.firewallControllerManager.apiServerURL }}
           - -cluster-id={{ .Values.firewallControllerManager.clusterID }}
@@ -90,8 +93,10 @@ spec:
         env:
           - name: METAL_AUTH_HMAC
             value: {{ .Values.firewallControllerManager.metalapi.hmac }}
-        image: {{ index .Values.images "firewall-controller-manager" }}
-        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: "/certs"
+          readOnly: true
         resources:
           limits:
             cpu: 400m
@@ -99,6 +104,10 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: firewall-controller-manager
 ---
 apiVersion: v1
 kind: Service

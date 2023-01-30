@@ -181,6 +181,16 @@ var controlPlaneSecrets = &secrets.Secrets{
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
+			&secrets.ControlPlaneSecretConfig{
+				Name: metal.FirewallControllerManagerDeploymentName,
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:       metal.FirewallControllerManagerDeploymentName,
+					CommonName: metal.FirewallControllerManagerDeploymentName,
+					DNSNames:   kutil.DNSNamesForService(metal.FirewallControllerManagerDeploymentName, clusterName),
+					CertType:   secrets.ServerCert,
+					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
+				},
+			},
 		}
 	},
 }
