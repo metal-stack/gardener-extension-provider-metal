@@ -7,8 +7,8 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.4.0
-	github.com/gardener/etcd-druid v0.7.3
-	github.com/gardener/gardener v1.39.5
+	github.com/gardener/etcd-druid v0.8.0
+	github.com/gardener/gardener v1.44.6
 	github.com/gardener/machine-controller-manager v0.47.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
@@ -31,7 +31,7 @@ require (
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.23.3
 	k8s.io/component-base v0.25.4
-	k8s.io/kubelet v0.22.2
+	k8s.io/kubelet v0.23.3
 	sigs.k8s.io/controller-runtime v0.13.1
 )
 
@@ -75,6 +75,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
+	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
@@ -104,12 +105,14 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
+	github.com/onsi/ginkgo/v2 v2.5.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
@@ -144,11 +147,11 @@ require (
 	k8s.io/helm v2.16.1+incompatible // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
-	k8s.io/kube-aggregator v0.22.2 // indirect
+	k8s.io/kube-aggregator v0.23.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20221123214604-86e75ddd809a // indirect
-	k8s.io/metrics v0.22.2 // indirect
+	k8s.io/metrics v0.23.3 // indirect
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448 // indirect
-	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211005045149-78ce10e2ebad // indirect
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211208212546-f236f0345ad2 // indirect
 	sigs.k8s.io/controller-tools v0.8.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
@@ -167,8 +170,7 @@ replace (
 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.22.2
 	k8s.io/code-generator => k8s.io/code-generator v0.22.2
 	k8s.io/component-base => k8s.io/component-base v0.22.2
-	k8s.io/klog/v2 => k8s.io/klog/v2 v2.10.0
 	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.22.2
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.10.2
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.11.0
 )

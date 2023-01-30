@@ -95,25 +95,25 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: fmt.Sprintf("%s-controller-manager", metal.Name),
 
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := aggOption.Complete(); err != nil {
-				controllercmd.LogErrAndExit(err, "Error completing options")
+				return fmt.Errorf("error completing options: %w", err)
 			}
 
 			if workerReconcileOpts.Completed().DeployCRDs {
 				ca, err := kubernetes.NewChartApplierForConfig(restOpts.Completed().Config)
 				if err != nil {
-					controllercmd.LogErrAndExit(err, "Error creating chart renderer")
+					return fmt.Errorf("error creating chart renderer: %w", err)
 				}
 
 				err = ca.Apply(ctx, filepath.Join(metal.InternalChartsPath, "metal-crds"), "", "metal-crds")
 				if err != nil {
-					controllercmd.LogErrAndExit(err, "Error applying metal-crds chart")
+					return fmt.Errorf("error applying metal-crds chart: %w", err)
 				}
 
 				c, err := client.New(restOpts.Completed().Config, client.Options{})
 				if err != nil {
-					controllercmd.LogErrAndExit(err, "Error creating k8s client for firewall namespace deployment")
+					return fmt.Errorf("error creating k8s client for firewall namespace deployment: %w", err)
 				}
 
 				// the firewall namespace needs to exist in order to be able to deploy the control plane chart properly
@@ -126,25 +126,25 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				if _, err := controllerutil.CreateOrUpdate(ctx, c, &namespace, func() error {
 					return nil
 				}); err != nil {
-					controllercmd.LogErrAndExit(err, "Error ensuring the firewall namespace")
+					return fmt.Errorf("error ensuring the firewall namespace: %w", err)
 				}
 			}
 
 			mgr, err := manager.New(restOpts.Completed().Config, mgrOpts.Completed().Options())
 			if err != nil {
-				controllercmd.LogErrAndExit(err, "Could not instantiate manager")
+				return fmt.Errorf("could not instantiate manager: %w", err)
 			}
 
 			if err := controller.AddToScheme(mgr.GetScheme()); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
+				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
 
 			if err := metalinstall.AddToScheme(mgr.GetScheme()); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
+				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
 
 			if err := druidv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
+				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
 
 			configFileOpts.Completed().ApplyETCD(&metalcontrolplaneexposure.DefaultAddOptions.ETCD)
@@ -163,17 +163,19 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 			_, shootWebhooks, err := webhookOptions.Completed().AddToManager(ctx, mgr)
 			if err != nil {
-				controllercmd.LogErrAndExit(err, "Could not add webhooks to manager")
+				return fmt.Errorf("could not add webhooks to manager: %w", err)
 			}
 			metalcontrolplane.DefaultAddOptions.ShootWebhooks = shootWebhooks
 
 			if err := controllerSwitches.Completed().AddToManager(mgr); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not add controllers to manager")
+				return fmt.Errorf("could not add controllers to manager: %w", err)
 			}
 
 			if err := mgr.Start(ctx); err != nil {
-				controllercmd.LogErrAndExit(err, "Error running manager")
+				return fmt.Errorf("error running manager: %w", err)
 			}
+
+			return nil
 		},
 	}
 
