@@ -79,6 +79,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 	SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
 		return []secrets.ConfigInterface{
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.CloudControllerManagerDeploymentName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.CloudControllerManagerDeploymentName,
 					CommonName:   "system:cloud-controller-manager",
@@ -94,6 +95,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.DurosControllerDeploymentName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.DurosControllerDeploymentName,
 					CommonName:   "system:duros-controller",
@@ -110,6 +112,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.AudittailerClientSecretName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.AudittailerClientSecretName,
 					CommonName:   "audittailer",
@@ -126,6 +129,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.GroupRolebindingControllerName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.GroupRolebindingControllerName,
 					CommonName:   "system:group-rolebinding-controller",
@@ -141,6 +145,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.AuthNWebhookServerName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.AuthNWebhookServerName,
 					CommonName: metal.AuthNWebhookDeploymentName,
@@ -150,6 +155,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.AccountingExporterName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.AccountingExporterName,
 					CommonName: "system:accounting-exporter",
@@ -166,6 +172,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.CloudControllerManagerServerName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.CloudControllerManagerServerName,
 					CommonName: metal.CloudControllerManagerDeploymentName,
