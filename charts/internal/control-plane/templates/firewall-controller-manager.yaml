@@ -39,6 +39,7 @@ rules:
   - events
   verbs:
   - get
+  - list
   - watch
   - update
   - patch
