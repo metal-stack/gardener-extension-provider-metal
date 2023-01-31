@@ -11,7 +11,6 @@ import (
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
-	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -115,11 +114,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
-	sshSecret, err := helper.GetLatestSSHSecret(ctx, w.client, w.cluster.ObjectMeta.Name)
-	if err != nil {
-		return fmt.Errorf("could not find current ssh secret: %w", err)
-	}
-
 	projectID := infrastructureConfig.ProjectID
 	nodeCIDR := infrastructure.Status.NodesCIDR
 
@@ -140,7 +134,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
-	err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, sshSecret, *privateNetwork.ID)
+	err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, *privateNetwork.ID)
 	if err != nil {
 		return err
 	}
@@ -364,7 +358,7 @@ func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane 
 	return nil
 }
 
-func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, sshSecret *corev1.Secret, privateNetworkID string) error {
+func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, privateNetworkID string) error {
 	// why is this code here and not in the controlplane controller?
 	// the controlplane controller deploys the firewall-controller-manager including validating and mutating webhooks
 	// this has to be running before we can create a firewall deployment because the mutating webhook is creating the userdata
@@ -433,7 +427,6 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 					Partition:              infrastructureConfig.PartitionID,
 					Project:                infrastructureConfig.ProjectID,
 					Networks:               append(infrastructureConfig.Firewall.Networks, privateNetworkID),
-					SSHPublicKeys:          []string{string(sshSecret.Data["id_rsa.pub"])},
 					RateLimits:             rateLimit(infrastructureConfig.Firewall.RateLimits),
 					InternalPrefixes:       internalPrefixes,
 					EgressRules:            egressRules(infrastructureConfig.Firewall.EgressRules),
