@@ -16,7 +16,7 @@ require (
 	github.com/imdario/mergo v0.3.13
 	github.com/metal-stack/duros-controller v0.6.0
 	github.com/metal-stack/firewall-controller v1.1.5
-	github.com/metal-stack/firewall-controller-manager v0.0.0-20221216131342-70f54d96ae55
+	github.com/metal-stack/firewall-controller-manager v0.0.0-20230131114600-fb7c4b0cae4c
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.13
 	github.com/metal-stack/metal-go v0.21.4
 	github.com/metal-stack/metal-lib v0.11.4-0.20230130091057-0a96696e4f59
