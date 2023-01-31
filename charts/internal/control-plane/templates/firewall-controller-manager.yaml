@@ -142,7 +142,8 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: |
+      {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
@@ -163,7 +164,8 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: |
+      {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
@@ -184,7 +186,8 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: |
+      {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
@@ -206,13 +209,13 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  creationTimestamp: null
   name: firewall-controller-manager-{{ .Release.Namespace }}
 webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: |
+      {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
@@ -234,7 +237,8 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: |
+      {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
@@ -256,7 +260,8 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    caBundle: |
+      {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
