@@ -641,17 +641,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	firewallValues, err := getFirewallControllerManagerChartValues(cluster, metalControlPlane, metalCredentials, sshSecret, caBundle)
+	firewallValues, err := vp.getFirewallControllerManagerChartValues(cluster, metalControlPlane, infrastructureConfig, metalCredentials, sshSecret, caBundle)
 	if err != nil {
 		return nil, err
 	}
 
-	err = vp.migrateFirewall(ctx, logger, metalControlPlane, infrastructureConfig, cluster, nws, mclient)
-	if err != nil {
-		return nil, err
-	}
-
-	err = vp.ensureFirewallDeployment(ctx, logger, metalControlPlane, infrastructureConfig, cluster, sshSecret)
+	err = vp.migrateFirewall(ctx, logger, metalControlPlane, infrastructureConfig, cluster, mclient)
 	if err != nil {
 		return nil, err
 	}
@@ -1490,49 +1485,30 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	return values, nil
 }
 
-func getFirewallControllerManagerChartValues(cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, creds *metal.Credentials, sshSecret, caBundle *corev1.Secret) (map[string]any, error) {
+func (vp *valuesProvider) getFirewallControllerManagerChartValues(cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, creds *metal.Credentials, sshSecret, caBundle *corev1.Secret) (map[string]any, error) {
 	if cluster.Shoot.Spec.DNS.Domain == nil {
 		return nil, fmt.Errorf("cluster dns domain is not yet set")
 	}
 
-	return map[string]any{
-		"firewallControllerManager": map[string]any{
-			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
-			"clusterID":        string(cluster.Shoot.GetUID()),
-			"apiServerURL":     fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
-			"sshKeySecretName": sshSecret.Name,
-			"metalapi": map[string]any{
-				"url":  metalControlPlane.Endpoint,
-				"hmac": creds.MetalAPIHMac,
-			},
-			"caBundle": strings.TrimSpace(string(caBundle.Data["bundle.crt"])),
-		},
-	}, nil
-}
-
-func (vp *valuesProvider) ensureFirewallDeployment(ctx context.Context, log logr.Logger, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, sshSecret *corev1.Secret) error {
 	var (
-		clusterID = string(cluster.Shoot.GetUID())
-		namespace = cluster.ObjectMeta.Name
-
-		rateLimit = func(limits []apismetal.RateLimit) []fcmv2.RateLimit {
-			var result []fcmv2.RateLimit
+		rateLimit = func(limits []apismetal.RateLimit) []map[string]any {
+			var result []map[string]any
 			for _, l := range limits {
-				result = append(result, fcmv2.RateLimit{
-					NetworkID: l.NetworkID,
-					Rate:      l.RateLimit,
+				result = append(result, map[string]any{
+					"networkID": l.NetworkID,
+					"rate":      l.RateLimit,
 				})
 			}
 			return result
 		}
 
-		egressRules = func(egress []apismetal.EgressRule) []fcmv2.EgressRuleSNAT {
-			var result []fcmv2.EgressRuleSNAT
+		egressRules = func(egress []apismetal.EgressRule) []map[string]any {
+			var result []map[string]any
 			for _, rule := range egress {
 				rule := rule
-				result = append(result, fcmv2.EgressRuleSNAT{
-					NetworkID: rule.NetworkID,
-					IPs:       rule.IPs,
+				result = append(result, map[string]any{
+					"networkID": rule.NetworkID,
+					"ips":       rule.IPs,
 				})
 			}
 			return result
@@ -1546,64 +1522,38 @@ func (vp *valuesProvider) ensureFirewallDeployment(ctx context.Context, log logr
 
 	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	deploy := &fcmv2.FirewallDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "shoot-firewall",
-			Namespace: namespace,
+	return map[string]any{
+		"firewallControllerManager": map[string]any{
+			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
+			"clusterID":        string(cluster.Shoot.GetUID()),
+			"apiServerURL":     fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
+			"sshKeySecretName": sshSecret.Name,
+			"metalapi": map[string]any{
+				"url":  metalControlPlane.Endpoint,
+				"hmac": creds.MetalAPIHMac,
+			},
+			"caBundle":               strings.TrimSpace(string(caBundle.Data["bundle.crt"])),
+			"projectID":              infrastructureConfig.ProjectID,
+			"sizeID":                 infrastructureConfig.Firewall.Size,
+			"imageID":                infrastructureConfig.Firewall.Image,
+			"partitionID":            infrastructureConfig.PartitionID,
+			"networks":               infrastructureConfig.Firewall.Networks,
+			"sshPublicKeys":          []string{string(sshSecret.Data["id_rsa.pub"])},
+			"controllerURL":          fwcv.URL,
+			"controllerVersion":      fwcv.Version,
+			"logAcceptedConnections": infrastructureConfig.Firewall.LogAcceptedConnections,
+			"rateLimits":             rateLimit(infrastructureConfig.Firewall.RateLimits),
+			"egressRules":            egressRules(infrastructureConfig.Firewall.EgressRules),
+			"internalPrefixes":       internalPrefixes,
 		},
-	}
-
-	_, err = controllerutil.CreateOrUpdate(ctx, vp.Client(), deploy, func() error {
-		deploy.Spec = fcmv2.FirewallDeploymentSpec{
-			Strategy: fcmv2.StrategyRollingUpdate,
-			Replicas: 1,
-			Selector: map[string]string{
-				tag.ClusterID: clusterID,
-			},
-			Template: fcmv2.FirewallTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						tag.ClusterID: clusterID,
-					},
-				},
-				Spec: fcmv2.FirewallSpec{
-					Size:                   infrastructureConfig.Firewall.Size,
-					Image:                  infrastructureConfig.Firewall.Image,
-					Partition:              infrastructureConfig.PartitionID,
-					Project:                infrastructureConfig.ProjectID,
-					Networks:               infrastructureConfig.Firewall.Networks,
-					SSHPublicKeys:          []string{string(sshSecret.Data["id_rsa.pub"])},
-					RateLimits:             rateLimit(infrastructureConfig.Firewall.RateLimits),
-					InternalPrefixes:       internalPrefixes,
-					EgressRules:            egressRules(infrastructureConfig.Firewall.EgressRules),
-					Interval:               "10s",
-					DryRun:                 false,
-					Ipv4RuleFile:           "",
-					ControllerVersion:      fwcv.Version,
-					ControllerURL:          fwcv.URL,
-					LogAcceptedConnections: infrastructureConfig.Firewall.LogAcceptedConnections,
-					DNSServerAddress:       "",
-					DNSPort:                nil,
-				},
-			},
-		}
-
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("error creating firewall deployment: %w", err)
-	}
-
-	logger.Info("created firewall deployment", "name", deploy.Name, "cluster-id", clusterID)
-
-	return nil
+	}, nil
 }
 
 // migrateFirewall can be removed along with the deployment of the old firewall resource after all firewall are running firewall-controller >= v0.2.0
-func (vp *valuesProvider) migrateFirewall(ctx context.Context, log logr.Logger, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient metalgo.Client) error {
+func (vp *valuesProvider) migrateFirewall(ctx context.Context, log logr.Logger, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient metalgo.Client) error {
 	var (
 		clusterID = string(cluster.Shoot.GetUID())
 		projectID = infrastructureConfig.ProjectID
@@ -1714,7 +1664,7 @@ func (vp *valuesProvider) migrateFirewall(ctx context.Context, log logr.Logger, 
 			return fmt.Errorf("error creating firewall resource for firewall migration: %w", err)
 		}
 
-		logger.Info("created firewall migration", "id", fw.ID, "cluster-id", clusterID)
+		log.Info("created firewall migration", "id", fw.ID, "cluster-id", clusterID)
 
 	}
 

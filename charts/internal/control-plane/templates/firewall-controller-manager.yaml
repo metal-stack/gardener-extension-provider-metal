@@ -34,6 +34,7 @@ rules:
   resources:
   - secrets
   - configmaps
+  - serviceaccounts
   - leases
   - events
   verbs:
@@ -133,6 +134,35 @@ spec:
     protocol: TCP
   selector:
     app: firewall-controller-manager
+---
+apiVersion: firewall.metal-stack.io/v2
+kind: FirewallDeployment
+metadata:
+  name: shoot-firewall
+  namespace: {{ .Release.Namespace }}
+spec:
+  strategy: RollingUpdate
+  replicas: 1
+  selector:
+    cluster.metal-stack.io/id: {{ .Values.firewallControllerManager.clusterID }}
+  template:
+    metadata:
+      labels:
+        cluster.metal-stack.io/id: {{ .Values.firewallControllerManager.clusterID }}
+    spec:
+      size: {{ .Values.firewallControllerManager.sizeID }}
+      image: {{ .Values.firewallControllerManager.imageID }}
+      partition: {{ .Values.firewallControllerManager.partitionID }}
+      project: {{ .Values.firewallControllerManager.projectID }}
+      networks: {{ .Values.firewallControllerManager.networks | toYaml | nindent 8 }}
+      sshPublicKeys: {{ .Values.firewallControllerManager.sshPublicKeys | toYaml | nindent 8 }}
+      rateLimits: {{ .Values.firewallControllerManager.rateLimits | toYaml | nindent 8 }}
+      internalPrefixes: {{ .Values.firewallControllerManager.internalPrefixes | toYaml | nindent 8 }}
+      egressRules: {{ .Values.firewallControllerManager.egressRules | toYaml | nindent 8 }}
+      interval: 10s
+      controllerVersion: {{ .Values.firewallControllerManager.controllerVersion }}
+      controllerURL: {{ .Values.firewallControllerManager.controllerURL }}
+      logAcceptedConnections: {{ .Values.firewallControllerManager.logAcceptedConnections }}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration

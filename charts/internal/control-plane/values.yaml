@@ -13,6 +13,27 @@ images:
 firewallControllerManager:
   replicas: 1
   clusterID: cluster-id
+  projectID: project-id
+  sizeID: size-id
+  imageID: image-id
+  partitionID: partition-id
+  networks:
+    - a
+    - b
+  sshPublicKeys:
+    - key
+  controllerURL: controller-url
+  controllerVersion: controller-version
+  logAcceptedConnections: true
+  rateLimits:
+    networkID: id
+    rate: rate
+  egressRules:
+    networkID: id
+    ips:
+      - 1.2.3.4
+  internalPrefixes:
+    - 10.0.0.0/32
   apiServerURL: address-to-the-shoot-apiserver
   sshKeySecretName: ssh-keypair
   metalapi:
