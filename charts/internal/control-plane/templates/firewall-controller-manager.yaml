@@ -150,6 +150,9 @@ webhooks:
       path: /mutate-metal-stack-io-v2-firewall
   failurePolicy: Fail
   name: firewall.metal-stack.io
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
     - metal-stack.io
@@ -171,6 +174,9 @@ webhooks:
       path: /mutate-metal-stack-io-v2-firewallset
   failurePolicy: Fail
   name: firewallset.metal-stack.io
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
     - metal-stack.io
@@ -192,6 +198,9 @@ webhooks:
       path: /mutate-metal-stack-io-v2-firewalldeployment
   failurePolicy: Fail
   name: firewalldeployment.metal-stack.io
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
     - metal-stack.io
@@ -219,6 +228,9 @@ webhooks:
       path: /validate-metal-stack-io-v2-firewall
   failurePolicy: Fail
   name: firewall.metal-stack.io
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
     - metal-stack.io
@@ -241,6 +253,9 @@ webhooks:
       path: /validate-metal-stack-io-v2-firewallset
   failurePolicy: Fail
   name: firewallset.metal-stack.io
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
     - metal-stack.io
@@ -263,6 +278,9 @@ webhooks:
       path: /validate-metal-stack-io-v2-firewalldeployment
   failurePolicy: Fail
   name: firewalldeployment.metal-stack.io
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
     - metal-stack.io
@@ -274,3 +292,20 @@ webhooks:
     resources:
     - firewalldeployments
   sideEffects: None
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+  name: allow-to-firewall-controller-manager-webhook
+  namespace: {{ .Release.Namespace }}
+spec:
+  ingress:
+  - ports:
+    - port: 9443
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: firewall-controller-manager
+  policyTypes:
+  - Ingress
