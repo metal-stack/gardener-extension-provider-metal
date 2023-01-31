@@ -142,8 +142,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: |
-{{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
@@ -164,8 +163,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: |
-{{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
@@ -186,8 +184,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: |
-{{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
@@ -214,8 +211,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: |
-{{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
@@ -237,8 +233,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: |
-{{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
@@ -260,8 +255,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    caBundle: |
-{{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | indent 6 }}
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
     service:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
