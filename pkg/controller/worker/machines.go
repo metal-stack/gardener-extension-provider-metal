@@ -5,16 +5,24 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/metal-stack/metal-lib/pkg/tag"
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
+
+	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -100,6 +108,16 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
 	if err := w.client.Get(ctx, kutil.Key(w.worker.Namespace, w.cluster.Shoot.Name), infrastructure); err != nil {
+		return err
+	}
+
+	sshSecret, err := helper.GetLatestSSHSecret(ctx, w.client, w.cluster.ObjectMeta.Name)
+	if err != nil {
+		return fmt.Errorf("could not find current ssh secret: %w", err)
+	}
+
+	err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, sshSecret)
+	if err != nil {
 		return err
 	}
 
@@ -214,6 +232,98 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 	w.machineDeployments = machineDeployments
 	w.machineClasses = machineClasses
+
+	return nil
+}
+
+func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, sshSecret *corev1.Secret) error {
+	var (
+		clusterID = string(cluster.Shoot.GetUID())
+		namespace = cluster.ObjectMeta.Name
+
+		rateLimit = func(limits []apismetal.RateLimit) []fcmv2.RateLimit {
+			var result []fcmv2.RateLimit
+			for _, l := range limits {
+				result = append(result, fcmv2.RateLimit{
+					NetworkID: l.NetworkID,
+					Rate:      l.RateLimit,
+				})
+			}
+			return result
+		}
+
+		egressRules = func(egress []apismetal.EgressRule) []fcmv2.EgressRuleSNAT {
+			var result []fcmv2.EgressRuleSNAT
+			for _, rule := range egress {
+				rule := rule
+				result = append(result, fcmv2.EgressRuleSNAT{
+					NetworkID: rule.NetworkID,
+					IPs:       rule.IPs,
+				})
+			}
+			return result
+		}
+	)
+
+	internalPrefixes := []string{}
+	if w.controllerConfig.AccountingExporter.Enabled && w.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
+		internalPrefixes = w.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
+	}
+
+	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
+	if err != nil {
+		return err
+	}
+
+	deploy := &fcmv2.FirewallDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shoot-firewall",
+			Namespace: namespace,
+		},
+	}
+
+	_, err = controllerutil.CreateOrUpdate(ctx, w.client, deploy, func() error {
+		deploy.Spec = fcmv2.FirewallDeploymentSpec{
+			Strategy: fcmv2.StrategyRollingUpdate,
+			Replicas: 1,
+			Selector: map[string]string{
+				tag.ClusterID: clusterID,
+			},
+			Template: fcmv2.FirewallTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						tag.ClusterID: clusterID,
+					},
+				},
+				Spec: fcmv2.FirewallSpec{
+					Size:                   infrastructureConfig.Firewall.Size,
+					Image:                  infrastructureConfig.Firewall.Image,
+					Partition:              infrastructureConfig.PartitionID,
+					Project:                infrastructureConfig.ProjectID,
+					Networks:               infrastructureConfig.Firewall.Networks,
+					SSHPublicKeys:          []string{string(sshSecret.Data["id_rsa.pub"])},
+					RateLimits:             rateLimit(infrastructureConfig.Firewall.RateLimits),
+					InternalPrefixes:       internalPrefixes,
+					EgressRules:            egressRules(infrastructureConfig.Firewall.EgressRules),
+					Interval:               "10s",
+					DryRun:                 false,
+					Ipv4RuleFile:           "",
+					ControllerVersion:      fwcv.Version,
+					ControllerURL:          fwcv.URL,
+					LogAcceptedConnections: infrastructureConfig.Firewall.LogAcceptedConnections,
+					DNSServerAddress:       "",
+					DNSPort:                nil,
+				},
+			},
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error creating firewall deployment: %w", err)
+	}
+
+	w.logger.Info("created firewall deployment", "name", deploy.Name, "cluster-id", clusterID)
 
 	return nil
 }

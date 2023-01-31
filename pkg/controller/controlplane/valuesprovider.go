@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/Masterminds/semver"
 	"github.com/gardener/gardener/extensions/pkg/util"
@@ -631,17 +629,17 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	sshSecret, err := getLatestSSHSecret(ctx, vp.Client(), cp.Namespace)
+	sshSecret, err := helper.GetLatestSSHSecret(ctx, vp.Client(), cp.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	caBundle, err := getLatestCABundle(ctx, vp.Client(), cp.Namespace)
+	caBundle, err := helper.GetLatestCABundle(ctx, vp.Client(), cp.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	firewallValues, err := vp.getFirewallControllerManagerChartValues(cluster, metalControlPlane, infrastructureConfig, metalCredentials, sshSecret, caBundle)
+	firewallValues, err := vp.getFirewallControllerManagerChartValues(cluster, metalControlPlane, metalCredentials, sshSecret, caBundle)
 	if err != nil {
 		return nil, err
 	}
@@ -1485,44 +1483,9 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallControllerManagerChartValues(cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, creds *metal.Credentials, sshSecret, caBundle *corev1.Secret) (map[string]any, error) {
+func (vp *valuesProvider) getFirewallControllerManagerChartValues(cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, creds *metal.Credentials, sshSecret, caBundle *corev1.Secret) (map[string]any, error) {
 	if cluster.Shoot.Spec.DNS.Domain == nil {
 		return nil, fmt.Errorf("cluster dns domain is not yet set")
-	}
-
-	var (
-		rateLimit = func(limits []apismetal.RateLimit) []map[string]any {
-			var result []map[string]any
-			for _, l := range limits {
-				result = append(result, map[string]any{
-					"networkID": l.NetworkID,
-					"rate":      l.RateLimit,
-				})
-			}
-			return result
-		}
-
-		egressRules = func(egress []apismetal.EgressRule) []map[string]any {
-			var result []map[string]any
-			for _, rule := range egress {
-				rule := rule
-				result = append(result, map[string]any{
-					"networkID": rule.NetworkID,
-					"ips":       rule.IPs,
-				})
-			}
-			return result
-		}
-	)
-
-	internalPrefixes := []string{}
-	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
-		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
-	}
-
-	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
-	if err != nil {
-		return nil, err
 	}
 
 	return map[string]any{
@@ -1535,19 +1498,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(cluster *exten
 				"url":  metalControlPlane.Endpoint,
 				"hmac": creds.MetalAPIHMac,
 			},
-			"caBundle":               strings.TrimSpace(string(caBundle.Data["bundle.crt"])),
-			"projectID":              infrastructureConfig.ProjectID,
-			"sizeID":                 infrastructureConfig.Firewall.Size,
-			"imageID":                infrastructureConfig.Firewall.Image,
-			"partitionID":            infrastructureConfig.PartitionID,
-			"networks":               infrastructureConfig.Firewall.Networks,
-			"sshPublicKeys":          []string{string(sshSecret.Data["id_rsa.pub"])},
-			"controllerURL":          fwcv.URL,
-			"controllerVersion":      fwcv.Version,
-			"logAcceptedConnections": infrastructureConfig.Firewall.LogAcceptedConnections,
-			"rateLimits":             rateLimit(infrastructureConfig.Firewall.RateLimits),
-			"egressRules":            egressRules(infrastructureConfig.Firewall.EgressRules),
-			"internalPrefixes":       internalPrefixes,
+			"caBundle": strings.TrimSpace(string(caBundle.Data["bundle.crt"])),
 		},
 	}, nil
 }
@@ -1669,65 +1620,6 @@ func (vp *valuesProvider) migrateFirewall(ctx context.Context, log logr.Logger, 
 	}
 
 	return nil
-}
-
-func getLatestSSHSecret(ctx context.Context, c client.Client, namespace string) (*corev1.Secret, error) {
-	secretList := &corev1.SecretList{}
-	if err := c.List(ctx, secretList, client.InNamespace(namespace), client.MatchingLabels{
-		// TODO: migrate to secretsmanager constants on g/g v1.45
-		"managed-by":       "secrets-manager",
-		"manager-identity": "gardenlet",
-		"name":             "ssh-keypair",
-	}); err != nil {
-		return nil, err
-	}
-
-	return getLatestIssuedSecret(secretList.Items)
-}
-
-func getLatestCABundle(ctx context.Context, c client.Client, namespace string) (*corev1.Secret, error) {
-	secretList := &corev1.SecretList{}
-	if err := c.List(ctx, secretList, client.InNamespace(namespace), client.MatchingLabels{
-		// TODO: migrate to secretsmanager constants on g/g v1.45
-		"managed-by":       "secrets-manager",
-		"manager-identity": "gardenlet",
-		"name":             "ca-bundle",
-	}); err != nil {
-		return nil, err
-	}
-
-	return getLatestIssuedSecret(secretList.Items)
-}
-
-// getLatestIssuedSecret returns the secret with the "issued-at-time" label that represents the latest point in time
-func getLatestIssuedSecret(secrets []corev1.Secret) (*corev1.Secret, error) {
-	if len(secrets) == 0 {
-		return nil, fmt.Errorf("no secret found")
-	}
-
-	var newestSecret *corev1.Secret
-	var currentIssuedAtTime time.Time
-	for i := 0; i < len(secrets); i++ {
-		// if some of the secrets have no "issued-at-time" label
-		// we have a problem since this is the source of truth
-		issuedAt, ok := secrets[i].Labels["issued-at-time"]
-		if !ok {
-			return nil, fmt.Errorf("secret with no issues-at-time label: %s", secrets[i].Name)
-		}
-
-		issuedAtUnix, err := strconv.ParseInt(issuedAt, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-
-		issuedAtTime := time.Unix(issuedAtUnix, 0).UTC()
-		if newestSecret == nil || issuedAtTime.After(currentIssuedAtTime) {
-			newestSecret = &secrets[i]
-			currentIssuedAtTime = issuedAtTime
-		}
-	}
-
-	return newestSecret, nil
 }
 
 func clusterTag(clusterID string) string {
