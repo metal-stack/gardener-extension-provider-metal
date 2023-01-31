@@ -31,8 +31,8 @@ rules:
 - apiGroups:
   - firewall.metal-stack.io/v2
   resources:
-  - firewalls
-  - firewalls/status
+  - firewall
+  - firewall/status
   verbs:
   - create
   - delete
@@ -61,6 +61,7 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - roles
+  - rolebindings
   verbs:
   - get
   - list

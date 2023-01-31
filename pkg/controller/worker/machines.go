@@ -120,16 +120,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	err = w.migrateFirewall(ctx, metalControlPlane, infrastructureConfig, w.cluster, mclient)
-	if err != nil {
-		return err
-	}
-
-	err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, sshSecret)
-	if err != nil {
-		return err
-	}
-
 	projectID := infrastructureConfig.ProjectID
 	nodeCIDR := infrastructure.Status.NodesCIDR
 
@@ -141,6 +131,16 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, *nodeCIDR)
+	if err != nil {
+		return err
+	}
+
+	err = w.migrateFirewall(ctx, metalControlPlane, infrastructureConfig, w.cluster, mclient, *privateNetwork.ID)
+	if err != nil {
+		return err
+	}
+
+	err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, sshSecret, *privateNetwork.ID)
 	if err != nil {
 		return err
 	}
@@ -246,7 +246,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 }
 
 // migrateFirewall can be removed along with the deployment of the old firewall resource after all firewall are running firewall-controller >= v0.2.0
-func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient metalgo.Client) error {
+func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient metalgo.Client, privateNetworkID string) error {
 	var (
 		clusterID = string(cluster.Shoot.GetUID())
 		projectID = infrastructureConfig.ProjectID
@@ -336,7 +336,7 @@ func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane 
 				Image:                  *fw.Allocation.Image.ID,
 				Partition:              *fw.Partition.ID,
 				Project:                *fw.Allocation.Project,
-				Networks:               infrastructureConfig.Firewall.Networks,
+				Networks:               append(infrastructureConfig.Firewall.Networks, privateNetworkID),
 				Userdata:               fw.Allocation.UserData,
 				SSHPublicKeys:          fw.Allocation.SSHPubKeys,
 				RateLimits:             rateLimit(infrastructureConfig.Firewall.RateLimits),
@@ -364,7 +364,7 @@ func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane 
 	return nil
 }
 
-func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, sshSecret *corev1.Secret) error {
+func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, sshSecret *corev1.Secret, privateNetworkID string) error {
 	// why is this code here and not in the controlplane controller?
 	// the controlplane controller deploys the firewall-controller-manager including validating and mutating webhooks
 	// this has to be running before we can create a firewall deployment because the mutating webhook is creating the userdata
@@ -432,7 +432,7 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 					Image:                  infrastructureConfig.Firewall.Image,
 					Partition:              infrastructureConfig.PartitionID,
 					Project:                infrastructureConfig.ProjectID,
-					Networks:               infrastructureConfig.Firewall.Networks,
+					Networks:               append(infrastructureConfig.Firewall.Networks, privateNetworkID),
 					SSHPublicKeys:          []string{string(sshSecret.Data["id_rsa.pub"])},
 					RateLimits:             rateLimit(infrastructureConfig.Firewall.RateLimits),
 					InternalPrefixes:       internalPrefixes,
