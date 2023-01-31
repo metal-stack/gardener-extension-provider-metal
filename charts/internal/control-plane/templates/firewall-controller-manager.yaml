@@ -29,6 +29,19 @@ rules:
   - update
   - watch
 - apiGroups:
+  - firewall.metal-stack.io/v2
+  resources:
+  - firewalls
+  - firewalls/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - ""
   - coordination.k8s.io
   resources:
