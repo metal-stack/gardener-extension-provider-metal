@@ -172,7 +172,7 @@ webhooks:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
       port: 9443
-      path: /mutate-metal-stack-io-v2-firewall
+      path: /mutate-firewall-metal-stack-io-v2-firewall
   failurePolicy: Fail
   name: firewall.metal-stack.io
   namespaceSelector:
@@ -196,7 +196,7 @@ webhooks:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
       port: 9443
-      path: /mutate-metal-stack-io-v2-firewallset
+      path: /mutate-firewall-metal-stack-io-v2-firewallset
   failurePolicy: Fail
   name: firewallset.metal-stack.io
   namespaceSelector:
@@ -220,7 +220,7 @@ webhooks:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
       port: 9443
-      path: /mutate-metal-stack-io-v2-firewalldeployment
+      path: /mutate-firewall-metal-stack-io-v2-firewalldeployment
   failurePolicy: Fail
   name: firewalldeployment.metal-stack.io
   namespaceSelector:
@@ -250,7 +250,7 @@ webhooks:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
       port: 9443
-      path: /validate-metal-stack-io-v2-firewall
+      path: /validate-firewall-metal-stack-io-v2-firewall
   failurePolicy: Fail
   name: firewall.metal-stack.io
   namespaceSelector:
@@ -275,7 +275,7 @@ webhooks:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
       port: 9443
-      path: /validate-metal-stack-io-v2-firewallset
+      path: /validate-firewall-metal-stack-io-v2-firewallset
   failurePolicy: Fail
   name: firewallset.metal-stack.io
   namespaceSelector:
@@ -300,7 +300,7 @@ webhooks:
       name: firewall-controller-manager
       namespace: {{ .Release.Namespace }}
       port: 9443
-      path: /validate-metal-stack-io-v2-firewalldeployment
+      path: /validate-firewall-metal-stack-io-v2-firewalldeployment
   failurePolicy: Fail
   name: firewalldeployment.metal-stack.io
   namespaceSelector:
