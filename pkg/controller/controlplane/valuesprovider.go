@@ -651,6 +651,11 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
+	err = vp.ensureFirewallDeployment(ctx, logger, metalControlPlane, infrastructureConfig, cluster, sshSecret)
+	if err != nil {
+		return nil, err
+	}
+
 	values := map[string]any{}
 
 	merge(values, ccmValues, authValues, accValues, storageValues, firewallValues)
@@ -1503,6 +1508,98 @@ func getFirewallControllerManagerChartValues(cluster *extensionscontroller.Clust
 			"caBundle": strings.TrimSpace(string(caBundle.Data["bundle.crt"])),
 		},
 	}, nil
+}
+
+func (vp *valuesProvider) ensureFirewallDeployment(ctx context.Context, log logr.Logger, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, sshSecret *corev1.Secret) error {
+	var (
+		clusterID = string(cluster.Shoot.GetUID())
+		namespace = cluster.ObjectMeta.Name
+
+		rateLimit = func(limits []apismetal.RateLimit) []fcmv2.RateLimit {
+			var result []fcmv2.RateLimit
+			for _, l := range limits {
+				result = append(result, fcmv2.RateLimit{
+					NetworkID: l.NetworkID,
+					Rate:      l.RateLimit,
+				})
+			}
+			return result
+		}
+
+		egressRules = func(egress []apismetal.EgressRule) []fcmv2.EgressRuleSNAT {
+			var result []fcmv2.EgressRuleSNAT
+			for _, rule := range egress {
+				rule := rule
+				result = append(result, fcmv2.EgressRuleSNAT{
+					NetworkID: rule.NetworkID,
+					IPs:       rule.IPs,
+				})
+			}
+			return result
+		}
+	)
+
+	internalPrefixes := []string{}
+	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
+		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
+	}
+
+	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
+	if err != nil {
+		return err
+	}
+
+	deploy := &fcmv2.FirewallDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shoot-firewall",
+			Namespace: namespace,
+		},
+	}
+
+	_, err = controllerutil.CreateOrUpdate(ctx, vp.Client(), deploy, func() error {
+		deploy.Spec = fcmv2.FirewallDeploymentSpec{
+			Strategy: fcmv2.StrategyRollingUpdate,
+			Replicas: 1,
+			Selector: map[string]string{
+				tag.ClusterID: clusterID,
+			},
+			Template: fcmv2.FirewallTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						tag.ClusterID: clusterID,
+					},
+				},
+				Spec: fcmv2.FirewallSpec{
+					Size:                   infrastructureConfig.Firewall.Size,
+					Image:                  infrastructureConfig.Firewall.Image,
+					Partition:              infrastructureConfig.PartitionID,
+					Project:                infrastructureConfig.ProjectID,
+					Networks:               infrastructureConfig.Firewall.Networks,
+					SSHPublicKeys:          []string{string(sshSecret.Data["id_rsa.pub"])},
+					RateLimits:             rateLimit(infrastructureConfig.Firewall.RateLimits),
+					InternalPrefixes:       internalPrefixes,
+					EgressRules:            egressRules(infrastructureConfig.Firewall.EgressRules),
+					Interval:               "10s",
+					DryRun:                 false,
+					Ipv4RuleFile:           "",
+					ControllerVersion:      fwcv.Version,
+					ControllerURL:          fwcv.URL,
+					LogAcceptedConnections: infrastructureConfig.Firewall.LogAcceptedConnections,
+					DNSServerAddress:       "",
+					DNSPort:                nil,
+				},
+			},
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("error creating firewall deployment: %w", err)
+	}
+
+	logger.Info("created firewall deployment", "name", deploy.Name, "cluster-id", clusterID)
+
+	return nil
 }
 
 // migrateFirewall can be removed along with the deployment of the old firewall resource after all firewall are running firewall-controller >= v0.2.0
