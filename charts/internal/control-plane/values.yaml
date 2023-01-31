@@ -18,7 +18,10 @@ firewallControllerManager:
   metalapi:
     url: https://metal-api
     hmac: ABC123
-  caBundle: ""
+  caBundle: |
+    -----BEGIN CERTIFICATE-----
+    ...
+    -----END CERTIFICATE-----
 
 cloudControllerManager:
   additionalParameters: []
