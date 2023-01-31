@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/firewall"
 	"github.com/metal-stack/metal-go/api/client/network"
@@ -1572,7 +1573,7 @@ func (vp *valuesProvider) migrateFirewall(ctx context.Context, log logr.Logger, 
 
 		f := &fcmv2.Firewall{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-firewall-migrated-%s", namespace, *fw.ID),
+				Name:      *fw.Allocation.Name,
 				Namespace: namespace,
 			},
 		}
@@ -1581,9 +1582,10 @@ func (vp *valuesProvider) migrateFirewall(ctx context.Context, log logr.Logger, 
 			f.Labels = map[string]string{
 				tag.ClusterID: clusterID,
 			}
-			// only if version < 2.0
-			f.Annotations = map[string]string{
-				"firewall.metal-stack.io/no-controller-connection": "true",
+			if v, err := semver.NewVersion(fwcv.Version); err == nil && v.LessThan(semver.MustParse("v2.0.0")) {
+				f.Annotations = map[string]string{
+					fcmv2.FirewallNoControllerConnectionAnnotation: "true",
+				}
 			}
 			f.Spec = fcmv2.FirewallSpec{
 				Size:                   *fw.Size.ID,
