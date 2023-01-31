@@ -5,16 +5,16 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: firewalldeployments.metal-stack.io
+  name: firewallsets.firewall.metal-stack.io
 spec:
-  group: metal-stack.io
+  group: firewall.metal-stack.io
   names:
-    kind: FirewallDeployment
-    listKind: FirewallDeploymentList
-    plural: firewalldeployments
+    kind: FirewallSet
+    listKind: FirewallSetList
+    plural: firewallsets
     shortNames:
-    - fwdeploy
-    singular: firewalldeployment
+    - fwset
+    singular: firewallset
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -33,9 +33,9 @@ spec:
     name: v2
     schema:
       openAPIV3Schema:
-        description: FirewallDeployment contains the spec template of a firewall resource
-          similar to a Kubernetes Deployment and implements update strategies like
-          rolling update for the managed firewalls.
+        description: FirewallSet contains the spec template of a firewall resource
+          similar to a Kubernetes ReplicaSet and takes care that the desired amount
+          of firewall replicas is running.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -50,7 +50,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec contains the firewall deployment specification.
+            description: Spec contains the firewall set specification.
             properties:
               replicas:
                 description: Replicas is the amount of firewall replicas targeted
@@ -65,10 +65,6 @@ spec:
                   that must match in order to be controlled by this replication controller,
                   if empty defaulted to labels on firewall template.
                 type: object
-              strategy:
-                description: Strategy describes the strategy how firewalls are updated
-                  in case the update requires a physical recreation of the firewalls.
-                type: string
               template:
                 description: Template is the firewall spec used for creating the firewalls.
                 properties:
@@ -228,51 +224,12 @@ spec:
                 type: object
             required:
             - replicas
-            - strategy
             - template
             type: object
           status:
             description: Status contains current status information on the firewall
-              deployment.
+              set.
             properties:
-              conditions:
-                description: Conditions contain the latest available observations
-                  of a firewall deployment's current state.
-                items:
-                  description: Condition holds the information about the state of
-                    a resource.
-                  properties:
-                    lastTransitionTime:
-                      description: Last time the condition transitioned from one status
-                        to another.
-                      format: date-time
-                      type: string
-                    lastUpdateTime:
-                      description: Last time the condition was updated.
-                      format: date-time
-                      type: string
-                    message:
-                      description: A human readable message indicating details about
-                        the transition.
-                      type: string
-                    reason:
-                      description: The reason for the condition's last transition.
-                      type: string
-                    status:
-                      description: Status of the condition, one of True, False, Unknown.
-                      type: string
-                    type:
-                      description: Type of the condition.
-                      type: string
-                  required:
-                  - lastTransitionTime
-                  - lastUpdateTime
-                  - message
-                  - reason
-                  - status
-                  - type
-                  type: object
-                type: array
               observedRevision:
                 description: ObservedRevision is a counter that increases with each
                   firewall set roll that was made.
@@ -294,7 +251,6 @@ spec:
                   that are currently unhealthy in the latest managed firewall set.
                 type: integer
             required:
-            - conditions
             - observedRevision
             - progressingReplicas
             - readyReplicas
