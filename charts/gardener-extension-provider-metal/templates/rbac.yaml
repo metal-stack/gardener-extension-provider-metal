@@ -96,6 +96,14 @@ rules:
   verbs:
   - "*"
 - apiGroups:
+  - firewall.metal-stack.io
+  resources:
+  - firewalls
+  - firewallsets
+  - firewalldeployments
+  verbs:
+  - "*"
+- apiGroups:
   - storage.metal-stack.io
   resources:
   - duros
