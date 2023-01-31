@@ -878,16 +878,37 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		})
 	}
 
-	logAcceptedConnections := false
-	if infrastructureConfig.Firewall.LogAcceptedConnections {
-		logAcceptedConnections = true
+	spec := firewallv1.FirewallSpec{
+		Data: firewallv1.Data{
+			Interval:         "10s",
+			InternalPrefixes: internalPrefixes,
+			RateLimits:       rateLimits,
+			EgressRules:      egressRules,
+		},
+		LogAcceptedConnections: infrastructureConfig.Firewall.LogAcceptedConnections,
 	}
 
-	clusterID := string(cluster.Shoot.GetUID())
-	projectID := infrastructureConfig.ProjectID
+	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	spec.ControllerVersion = fwcv.Version
+	spec.ControllerURL = fwcv.URL
+
+	var (
+		clusterID = string(cluster.Shoot.GetUID())
+		projectID = infrastructureConfig.ProjectID
+	)
+
 	firewalls, err := metalclient.FindClusterFirewalls(ctx, mclient, clusterTag(clusterID), projectID)
 	if err != nil {
 		return nil, fmt.Errorf("could not find firewall for cluster %w", err)
+	}
+
+	if len(firewalls) == 0 {
+		// cluster has no firewall yet, firewall-controller-manager will create a new one
+		return &spec, nil
 	}
 	if len(firewalls) != 1 {
 		return nil, fmt.Errorf("cluster %s has %d firewalls", clusterID, len(firewalls))
@@ -926,24 +947,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		})
 	}
 
-	spec := firewallv1.FirewallSpec{
-		Data: firewallv1.Data{
-			Interval:         "10s",
-			FirewallNetworks: firewallNetworks,
-			InternalPrefixes: internalPrefixes,
-			RateLimits:       rateLimits,
-			EgressRules:      egressRules,
-		},
-		LogAcceptedConnections: logAcceptedConnections,
-	}
-
-	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	spec.ControllerVersion = fwcv.Version
-	spec.ControllerURL = fwcv.URL
+	spec.FirewallNetworks = firewallNetworks
 
 	return &spec, nil
 }
