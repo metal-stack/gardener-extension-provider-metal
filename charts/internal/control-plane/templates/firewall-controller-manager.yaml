@@ -12,7 +12,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 rules:
 - apiGroups:
-  - metal-stack.io
+  - firewall.metal-stack.io
   resources:
   - firewalls
   - firewallsets
@@ -155,7 +155,7 @@ webhooks:
       kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
-    - metal-stack.io
+    - firewall.metal-stack.io
     apiVersions:
     - v2
     operations:
@@ -179,7 +179,7 @@ webhooks:
       kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
-    - metal-stack.io
+    - firewall.metal-stack.io
     apiVersions:
     - v2
     operations:
@@ -203,7 +203,7 @@ webhooks:
       kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
-    - metal-stack.io
+    - firewall.metal-stack.io
     apiVersions:
     - v2
     operations:
@@ -233,7 +233,7 @@ webhooks:
       kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
-    - metal-stack.io
+    - firewall.metal-stack.io
     apiVersions:
     - v2
     operations:
@@ -258,7 +258,7 @@ webhooks:
       kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
-    - metal-stack.io
+    - firewall.metal-stack.io
     apiVersions:
     - v2
     operations:
@@ -283,7 +283,7 @@ webhooks:
       kubernetes.io/metadata.name: {{ .Release.Namespace }}
   rules:
   - apiGroups:
-    - metal-stack.io
+    - firewall.metal-stack.io
     apiVersions:
     - v2
     operations:

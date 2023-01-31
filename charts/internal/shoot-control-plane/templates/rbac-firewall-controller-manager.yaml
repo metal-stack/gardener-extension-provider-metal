@@ -5,7 +5,7 @@ metadata:
   name: system:firewall-controller-manager
 rules:
 - apiGroups:
-  - metal-stack.io
+  - firewall.metal-stack.io
   resources:
   - firewallmonitors
   - firewallmonitors/status
