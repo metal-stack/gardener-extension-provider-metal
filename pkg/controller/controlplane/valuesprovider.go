@@ -33,11 +33,13 @@ import (
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -266,6 +268,10 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.Role{}, Name: "firewall-controller-manager"},
 		{Type: &rbacv1.RoleBinding{}, Name: "firewall-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "firewall-controller-manager"},
+		{Type: &corev1.Service{}, Name: "firewall-controller-manager"},
+		{Type: &admissionregistrationv1.MutatingWebhookConfiguration{}, Name: "firewall-controller-manager-namespace"},
+		{Type: &admissionregistrationv1.ValidatingWebhookConfiguration{}, Name: "firewall-controller-manager-namespace"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-firewall-controller-manager-webhook"},
 
 		// firewall policy controller TODO can be removed in a future version
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
@@ -846,6 +852,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	return values, nil
 }
 
+// getFirewallSpec returns the firewall v1 specification to be deployed to the shoot cluster.
+// this is kept for backwards-compatibility to support firewall-controller v1.x, can be removed as soon as all firewall-controllers are migrated to v2.x
 func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient metalgo.Client) (*firewallv1.FirewallSpec, error) {
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
