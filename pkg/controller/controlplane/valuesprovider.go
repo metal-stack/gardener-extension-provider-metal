@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -1497,7 +1498,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(cluster *exten
 		"firewallControllerManager": map[string]any{
 			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
 			"clusterID":        string(cluster.Shoot.GetUID()),
-			"apiServerURL":     fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
+			"apiServerURL":     fmt.Sprintf("https://%s", os.Getenv("KUBERNETES_SERVICE_HOST")),
 			"sshKeySecretName": sshSecret.Name,
 			"metalapi": map[string]any{
 				"url": metalControlPlane.Endpoint,
