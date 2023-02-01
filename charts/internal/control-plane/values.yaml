@@ -18,7 +18,6 @@ firewallControllerManager:
   sshKeySecretName: ssh-keypair
   metalapi:
     url: https://metal-api
-    hmac: ABC123
   caBundle: |
     -----BEGIN CERTIFICATE-----
     ...
