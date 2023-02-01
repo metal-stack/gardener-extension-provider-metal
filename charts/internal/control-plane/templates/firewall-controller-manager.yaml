@@ -21,33 +21,10 @@ rules:
   - firewalldeployments
   - firewalldeployments/status
   verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
+  - '*'
 - apiGroups:
-  - firewall.metal-stack.io/v2
-  resources:
-  - firewall
-  - firewall/status
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
   - coordination.k8s.io
   resources:
-  - secrets
-  - configmaps
-  - serviceaccounts
   - leases
   - events
   verbs:
@@ -57,6 +34,23 @@ rules:
   - update
   - patch
   - create
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - create
+  resourceNames:
+  - firewall-controller-seed-access
+  - shoot-access-firewall-controller-manager
+  - {{ .Values.genericTokenKubeconfigSecretName }}
+  - {{ .Values.firewallControllerManager.sshKeySecretName }}
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -69,18 +63,8 @@ rules:
   - update
   - patch
   - create
-- apiGroups:
-  - core/v1
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
   resourceNames:
-  - generic-token-kubeconfig
-  - shoot-access-firewall-controller-manager
-  - {{ .Values.firewallControllerManager.sshKeySecretName }}
+  - firewall-controller-seed-access
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
