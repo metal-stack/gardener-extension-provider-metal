@@ -26,7 +26,6 @@ rules:
   - coordination.k8s.io
   resources:
   - leases
-  - events
   verbs:
   - get
   - list
@@ -43,14 +42,31 @@ rules:
   - get
   - list
   - watch
-  - update
-  - patch
-  - create
+- apiGroups:
+  - ""
   resourceNames:
   - firewall-controller-seed-access
   - shoot-access-firewall-controller-manager
   - {{ .Values.genericTokenKubeconfigSecretName }}
   - {{ .Values.firewallControllerManager.sshKeySecretName }}
+  resources:
+  - secrets
+  - serviceaccounts
+  verbs:
+  - update
+  - patch
+  - create
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - firewall-controller-seed-access
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - update
+  - patch
+  - create
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -60,11 +76,18 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
   - update
   - patch
   - create
-  resourceNames:
-  - firewall-controller-seed-access
+
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
