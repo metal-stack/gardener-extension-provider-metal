@@ -647,7 +647,11 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	values := map[string]any{}
+	values := map[string]any{
+		"podAnnotations": map[string]interface{}{
+			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
+		},
+	}
 
 	merge(values, ccmValues, authValues, accValues, storageValues, firewallValues)
 

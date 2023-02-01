@@ -87,7 +87,6 @@ rules:
   - update
   - patch
   - create
-
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -119,6 +118,10 @@ spec:
     metadata:
       labels:
         app: firewall-controller-manager
+{{- if .Values.podAnnotations }}
+      annotations:
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
     spec:
       serviceAccountName: firewall-controller-manager
       containers:

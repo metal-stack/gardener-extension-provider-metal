@@ -1,6 +1,7 @@
 ---
 kubernetesVersion: 1.7.5
 featureGates: {}
+podAnnotations: {}
 
 images:
   metalccm: image-repository:image-tag
