@@ -131,7 +131,8 @@ spec:
         args:
           - -cert-dir=/certs
           - -log-level=info
-          - -cluster-api-url={{ .Values.firewallControllerManager.apiServerURL }}
+          - -seed-api-url={{ .Values.firewallControllerManager.seedApiURL }}
+          - -shoot-api-url={{ .Values.firewallControllerManager.shootApiURL }}
           - -cluster-id={{ .Values.firewallControllerManager.clusterID }}
           - -enable-leader-election
           - -metal-api-url={{ .Values.firewallControllerManager.metalapi.url }}
