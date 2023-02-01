@@ -13,7 +13,7 @@ spec:
     listKind: FirewallList
     plural: firewalls
     shortNames:
-    - fw
+    - fw2
     singular: firewall
   scope: Namespaced
   versions:
