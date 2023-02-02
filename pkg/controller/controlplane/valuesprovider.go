@@ -650,7 +650,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	}
 
 	raw, _ := json.Marshal(checksums)
-	fmt.Println(raw)
+	fmt.Println(string(raw))
 
 	values := map[string]any{
 		"podAnnotations": map[string]interface{}{
