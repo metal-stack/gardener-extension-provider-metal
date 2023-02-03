@@ -2,7 +2,6 @@ package controlplane
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -648,9 +647,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	if err != nil {
 		return nil, err
 	}
-
-	raw, _ := json.Marshal(checksums)
-	fmt.Println(string(raw))
 
 	values := map[string]any{
 		"podAnnotations": map[string]interface{}{

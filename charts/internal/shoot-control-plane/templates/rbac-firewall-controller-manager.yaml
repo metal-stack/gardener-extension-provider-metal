@@ -40,6 +40,42 @@ rules:
   - patch
   - create
   - delete
+# the following permissions are used by the firewall-controller, it uses the same client / service account
+# for shoot-access as the firewall-controller-manager.
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs: ["*"]
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - metal-stack.io
+  resources:
+  - clusterwidenetworkpolicies
+  - clusterwidenetworkpolicies/status
+  verbs:
+  - list
+  - get
+  - update
+  - patch
+  - create
+  - delete
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
