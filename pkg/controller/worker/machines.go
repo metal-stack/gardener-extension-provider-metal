@@ -403,7 +403,7 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 
 	deploy := &fcmv2.FirewallDeployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "shoot-firewall",
+			Name:      firewallDeploymentName,
 			Namespace: namespace,
 		},
 	}
