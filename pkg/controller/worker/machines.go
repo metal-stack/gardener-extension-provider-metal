@@ -26,6 +26,7 @@ import (
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
+	v2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -260,7 +261,7 @@ func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane 
 	for _, fw := range resp.Payload {
 		tm := tag.NewTagMap(fw.Tags)
 
-		if _, ok := tm.Value(fcmv2.FirewallControllerSetAnnotation); ok {
+		if value, _ := tm.Value(fcmv2.FirewallControllerManagedByAnnotation); value == v2.FirewallControllerManager {
 			// firewall is already owned by the firewall-cotroller-manager, does not need migration
 			continue
 		}
