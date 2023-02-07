@@ -378,10 +378,10 @@ func (w *workerDelegate) toggleAnnotationAfterUpgrade(ctx context.Context, clust
 		namespace = cluster.ObjectMeta.Name
 	)
 
-	var firewalls *v2.FirewallList
+	firewalls := &v2.FirewallList{}
 	err := w.client.List(ctx, firewalls, &client.ListOptions{Namespace: namespace})
 	if err != nil {
-		return err
+		return fmt.Errorf("error listing firewall resources: %w", err)
 	}
 
 	for _, fw := range firewalls.Items {
