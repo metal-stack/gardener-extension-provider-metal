@@ -11,6 +11,7 @@ rules:
   - secrets
   - services
   verbs:
+  - get
   - list
   - watch
 - apiGroups:
