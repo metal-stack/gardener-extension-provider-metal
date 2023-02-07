@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	"github.com/Masterminds/semver"
 	metalgo "github.com/metal-stack/metal-go"
@@ -16,6 +17,7 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
@@ -242,6 +244,15 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 // migrateFirewall can be removed along with the deployment of the old firewall resource after all firewall are running firewall-controller >= v0.2.0
 func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient metalgo.Client, privateNetworkID string) error {
+	err := w.ensureMigrationFirewall(ctx, metalControlPlane, infrastructureConfig, cluster, mclient, privateNetworkID)
+	if err != nil {
+		return err
+	}
+
+	return w.toggleAnnotationAfterUpgrade(ctx, cluster)
+}
+
+func (w *workerDelegate) ensureMigrationFirewall(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient metalgo.Client, privateNetworkID string) error {
 	var (
 		clusterID = string(cluster.Shoot.GetUID())
 		projectID = infrastructureConfig.ProjectID
@@ -354,6 +365,78 @@ func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane 
 
 		w.logger.Info("created firewall migration", "id", fw.ID, "cluster-id", clusterID)
 
+	}
+
+	return nil
+}
+
+// toggleAnnotationAfterUpgrade removes the no-controller-connection annotation on the firewall
+// when the firewall-controller has connected to the firewall. this will happen as soon as
+// the firewall-controller was updated to version >= 2.x.
+func (w *workerDelegate) toggleAnnotationAfterUpgrade(ctx context.Context, cluster *extensionscontroller.Cluster) error {
+	var (
+		namespace = cluster.ObjectMeta.Name
+	)
+
+	var firewalls *v2.FirewallList
+	err := w.client.List(ctx, firewalls, &client.ListOptions{Namespace: namespace})
+	if err != nil {
+		return err
+	}
+
+	for _, fw := range firewalls.Items {
+		fw := fw
+
+		value, ok := fw.Annotations[v2.FirewallNoControllerConnectionAnnotation]
+		if !ok {
+			continue
+		}
+
+		active, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("unable to parse no-controller-connection annotation on firewall %q: %w", fw.Name, err)
+		}
+
+		if !active {
+			continue
+		}
+
+		shootConfig, _, err := util.NewClientForShoot(ctx, w.client, cluster.ObjectMeta.Name, client.Options{
+			Scheme: w.scheme,
+		})
+		if err != nil {
+			return fmt.Errorf("could not create shoot client config: %w", err)
+		}
+
+		shootClient, err := client.New(shootConfig, client.Options{Scheme: w.scheme})
+		if err != nil {
+			return fmt.Errorf("could not create shoot client: %w", err)
+		}
+
+		mon := &v2.FirewallMonitor{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fw.Name,
+				Namespace: v2.FirewallShootNamespace,
+			},
+		}
+
+		err = shootClient.Get(ctx, client.ObjectKeyFromObject(mon), mon)
+		if err != nil {
+			return fmt.Errorf("could not get firewall monitor for firewall %q: %w", fw.Name, err)
+		}
+
+		if mon.ControllerStatus == nil {
+			continue
+		}
+
+		delete(fw.Annotations, v2.FirewallNoControllerConnectionAnnotation)
+
+		err = w.client.Update(ctx, &fw)
+		if err != nil {
+			return fmt.Errorf("unable to toggle no-controller-connection annotation on firewall %q: %w", fw.Name, err)
+		}
+
+		w.logger.Info("toggled no-controller-connection annotation on firewall because controller has connected", "firewall-name", fw.Name)
 	}
 
 	return nil
