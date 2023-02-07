@@ -20,7 +20,20 @@ func (w *workerDelegate) DeployMachineDependencies(_ context.Context) error {
 
 // CleanupMachineDependencies implements genericactuator.WorkerDelegate.
 func (w *workerDelegate) CleanupMachineDependencies(ctx context.Context) error {
-	err := w.deleteFirewallDeployment(ctx)
+	worker := w.worker.DeepCopy()
+	err := w.client.Get(ctx, client.ObjectKeyFromObject(w.worker), worker)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	if worker.DeletionTimestamp == nil {
+		return nil
+	}
+
+	err = w.deleteFirewallDeployment(ctx)
 	if err != nil {
 		return err
 	}
