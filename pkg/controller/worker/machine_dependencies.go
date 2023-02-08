@@ -93,7 +93,7 @@ func (w *workerDelegate) waitForFirewallDeploymentDeletion(ctx context.Context) 
 		}
 
 		if deploy.DeletionTimestamp == nil {
-			return retryutils.SevereError(fmt.Errorf("deletion timestamp not set on firewall deployment: %w", err))
+			return retryutils.SevereError(fmt.Errorf("deletion timestamp not set on firewall deployment"))
 		}
 
 		return retryutils.MinorError(errors.New("machine class credentials secret has not yet been acquired or released"))
