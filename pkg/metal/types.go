@@ -34,8 +34,6 @@ const (
 	DurosControllerImageName = "duros-controller"
 	// DurosResourceName is the name of the duros resource to deploy to the seed's shoot namespace.
 	DurosResourceName = "shoot-default-storage"
-	// FirewallResourceName is the name of the firewall resource deployed to the shoot's namespace.
-	FirewallResourceName = "firewall"
 	// NodeInitImageName is the name of the node-init to deploy to the shoot.
 	NodeInitImageName = "node-init"
 	// KubectlImageName is the name of the kubectl image used for metallb health checking to deploy to the shoot.
@@ -91,6 +89,8 @@ const (
 	DurosControllerDeploymentName = "duros-controller"
 	// FirewallControllerManagerDeploymentName is the name of the deployment for the firewall controller manager
 	FirewallControllerManagerDeploymentName = "firewall-controller-manager"
+	// FirewallDeploymentName is the name of the firewall deployment deployed to the seed cluster to get managed by the FCM.
+	FirewallDeploymentName = "shoot-firewall"
 )
 
 var (

@@ -97,7 +97,7 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 			},
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
-				HealthCheck:   CheckFirewall(metal.FirewallResourceName),
+				HealthCheck:   CheckFirewall(),
 			},
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
