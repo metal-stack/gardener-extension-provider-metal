@@ -28,10 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	firewallDeploymentName = "shoot-firewall"
-)
-
 type delegateFactory struct {
 	logger logr.Logger
 
