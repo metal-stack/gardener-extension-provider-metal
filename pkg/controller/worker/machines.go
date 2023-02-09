@@ -490,10 +490,7 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 			Name:      metal.FirewallDeploymentName,
 			Namespace: namespace,
 		},
-	}
-
-	_, err = controllerutil.CreateOrUpdate(ctx, w.client, deploy, func() error {
-		deploy.Spec = fcmv2.FirewallDeploymentSpec{
+		Spec: fcmv2.FirewallDeploymentSpec{
 			Selector: map[string]string{
 				tag.ClusterID: clusterID,
 			},
@@ -512,16 +509,24 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 					RateLimits:             rateLimit(infrastructureConfig.Firewall.RateLimits),
 					InternalPrefixes:       internalPrefixes,
 					EgressRules:            egressRules(infrastructureConfig.Firewall.EgressRules),
-					DryRun:                 false,
-					Ipv4RuleFile:           "",
 					ControllerVersion:      fwcv.Version,
 					ControllerURL:          fwcv.URL,
 					LogAcceptedConnections: infrastructureConfig.Firewall.LogAcceptedConnections,
-					DNSServerAddress:       "",
-					DNSPort:                nil,
 				},
 			},
-		}
+		},
+	}
+
+	_, err = controllerutil.CreateOrUpdate(ctx, w.client, deploy, func() error {
+		deploy.Spec.Template.Spec.Size = infrastructureConfig.Firewall.Size
+		deploy.Spec.Template.Spec.Image = infrastructureConfig.Firewall.Image
+		deploy.Spec.Template.Spec.Networks = append(infrastructureConfig.Firewall.Networks, privateNetworkID)
+		deploy.Spec.Template.Spec.RateLimits = rateLimit(infrastructureConfig.Firewall.RateLimits)
+		deploy.Spec.Template.Spec.InternalPrefixes = internalPrefixes
+		deploy.Spec.Template.Spec.EgressRules = egressRules(infrastructureConfig.Firewall.EgressRules)
+		deploy.Spec.Template.Spec.ControllerVersion = fwcv.Version
+		deploy.Spec.Template.Spec.ControllerURL = fwcv.URL
+		deploy.Spec.Template.Spec.LogAcceptedConnections = infrastructureConfig.Firewall.LogAcceptedConnections
 
 		return nil
 	})
