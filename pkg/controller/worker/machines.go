@@ -494,8 +494,6 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 
 	_, err = controllerutil.CreateOrUpdate(ctx, w.client, deploy, func() error {
 		deploy.Spec = fcmv2.FirewallDeploymentSpec{
-			Strategy: fcmv2.StrategyRollingUpdate,
-			Replicas: 1,
 			Selector: map[string]string{
 				tag.ClusterID: clusterID,
 			},
