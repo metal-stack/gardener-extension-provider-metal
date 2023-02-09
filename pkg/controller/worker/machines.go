@@ -514,7 +514,6 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 					RateLimits:             rateLimit(infrastructureConfig.Firewall.RateLimits),
 					InternalPrefixes:       internalPrefixes,
 					EgressRules:            egressRules(infrastructureConfig.Firewall.EgressRules),
-					Interval:               "10s",
 					DryRun:                 false,
 					Ipv4RuleFile:           "",
 					ControllerVersion:      fwcv.Version,
