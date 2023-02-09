@@ -78,7 +78,6 @@ spec:
       serviceAccount: node-init
       serviceAccountName: node-init
       containers:
-      # TODO: add to image vector
       - name: node-init
         image: {{ index .Values.images "node-init" }}
         env:

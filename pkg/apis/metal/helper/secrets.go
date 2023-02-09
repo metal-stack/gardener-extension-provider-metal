@@ -9,16 +9,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 )
 
 func GetLatestSSHSecret(ctx context.Context, c client.Client, namespace string) (*corev1.Secret, error) {
 	secretList := &corev1.SecretList{}
 	if err := c.List(ctx, secretList, client.InNamespace(namespace), client.MatchingLabels{
-		// TODO: migrate to secretsmanager constants on g/g v1.45
 		secretsmanager.LabelKeyManagedBy:       secretsmanager.LabelValueSecretsManager,
-		secretsmanager.LabelKeyManagerIdentity: "gardenlet",
-		secretsmanager.LabelKeyName:            "ssh-keypair",
+		secretsmanager.LabelKeyManagerIdentity: constants.SecretManagerIdentityGardenlet,
+		secretsmanager.LabelKeyName:            constants.SecretNameSSHKeyPair,
 	}); err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func GetLatestCABundle(ctx context.Context, c client.Client, namespace string) (
 	secretList := &corev1.SecretList{}
 	if err := c.List(ctx, secretList, client.InNamespace(namespace), client.MatchingLabels{
 		secretsmanager.LabelKeyManagedBy:       secretsmanager.LabelValueSecretsManager,
-		secretsmanager.LabelKeyManagerIdentity: "gardenlet",
+		secretsmanager.LabelKeyManagerIdentity: constants.SecretManagerIdentityGardenlet,
 		secretsmanager.LabelKeyName:            "ca-bundle",
 	}); err != nil {
 		return nil, err
