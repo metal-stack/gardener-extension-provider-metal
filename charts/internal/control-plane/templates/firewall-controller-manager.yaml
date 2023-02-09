@@ -47,17 +47,6 @@ rules:
   - create
 - apiGroups:
   - rbac.authorization.k8s.io
-  resourceNames:
-  - firewall-controller-seed-access
-  resources:
-  - roles
-  - rolebindings
-  verbs:
-  - update
-  - patch
-  - create
-- apiGroups:
-  - rbac.authorization.k8s.io
   resources:
   - roles
   - rolebindings
@@ -65,6 +54,9 @@ rules:
   - get
   - list
   - watch
+  - update
+  - patch
+  - create
 - apiGroups:
   - ""
   resources:
