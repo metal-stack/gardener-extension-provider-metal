@@ -172,7 +172,6 @@ spec:
             - partition
             - project
             - size
-            - userdata
             type: object
           status:
             description: Status contains current status information on the firewall.

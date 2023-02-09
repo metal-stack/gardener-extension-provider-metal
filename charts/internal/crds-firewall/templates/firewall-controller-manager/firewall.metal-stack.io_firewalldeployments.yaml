@@ -224,7 +224,6 @@ spec:
                     - partition
                     - project
                     - size
-                    - userdata
                     type: object
                 type: object
             required:
