@@ -54,7 +54,7 @@ spec:
             properties:
               replicas:
                 description: Replicas is the amount of firewall replicas targeted
-                  to be running.
+                  to be running. Defaults to 1.
                 type: integer
               selector:
                 additionalProperties:
@@ -68,6 +68,7 @@ spec:
               strategy:
                 description: Strategy describes the strategy how firewalls are updated
                   in case the update requires a physical recreation of the firewalls.
+                  Defaults to RollingUpdate strategy.
                 type: string
               template:
                 description: Template is the firewall spec used for creating the firewalls.
@@ -227,8 +228,6 @@ spec:
                     type: object
                 type: object
             required:
-            - replicas
-            - strategy
             - template
             type: object
           status:
