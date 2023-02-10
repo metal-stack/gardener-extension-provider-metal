@@ -132,14 +132,16 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		return err
 	}
 
-	err = w.migrateFirewall(ctx, metalControlPlane, infrastructureConfig, w.cluster, mclient, *privateNetwork.ID)
-	if err != nil {
-		return err
-	}
+	if w.worker.DeletionTimestamp == nil {
+		err = w.migrateFirewall(ctx, metalControlPlane, infrastructureConfig, w.cluster, mclient, *privateNetwork.ID)
+		if err != nil {
+			return err
+		}
 
-	err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, *privateNetwork.ID)
-	if err != nil {
-		return err
+		err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, *privateNetwork.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, pool := range w.worker.Spec.Pools {
