@@ -119,7 +119,7 @@ test:
 
 .PHONY: test-in-docker
 test-in-docker: revendor
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.19 \
+	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.19.4 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 				&& make install check test"
 
