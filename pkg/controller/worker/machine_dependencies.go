@@ -34,47 +34,11 @@ func (w *workerDelegate) CleanupMachineDependencies(ctx context.Context) error {
 		return nil
 	}
 
-	err = w.deleteFirewallDeployment(ctx)
-	if err != nil {
-		return err
-	}
-
-	return w.waitForFirewallDeploymentDeletion(ctx)
+	return w.ensureFirewallDeploymentDeleted(ctx)
 }
 
-func (w *workerDelegate) deleteFirewallDeployment(ctx context.Context) error {
-	deploy := &fcmv2.FirewallDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      metal.FirewallDeploymentName,
-			Namespace: w.cluster.ObjectMeta.Name,
-		},
-	}
-
-	err := w.client.Get(ctx, client.ObjectKeyFromObject(deploy), deploy)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("unable to find firewall deployment: %w", err)
-	}
-
-	if deploy.DeletionTimestamp != nil {
-		w.logger.Info("deletion timestamp on firewall deployment already set")
-		return nil
-	}
-
-	err = w.client.Delete(ctx, deploy)
-	if err != nil {
-		return fmt.Errorf("error deleting firewall deployment: %w", err)
-	}
-
-	w.logger.Info("firewall deployment deletion started")
-
-	return nil
-}
-
-func (w *workerDelegate) waitForFirewallDeploymentDeletion(ctx context.Context) error {
-	w.logger.Info("waiting until firewall deployment was deleted")
+func (w *workerDelegate) ensureFirewallDeploymentDeleted(ctx context.Context) error {
+	w.logger.Info("ensuring firewall deployment gets deleted")
 
 	return retryutils.UntilTimeout(ctx, 5*time.Second, 2*time.Minute, func(ctx context.Context) (bool, error) {
 		deploy := &fcmv2.FirewallDeployment{
@@ -94,9 +58,15 @@ func (w *workerDelegate) waitForFirewallDeploymentDeletion(ctx context.Context) 
 		}
 
 		if deploy.DeletionTimestamp == nil {
-			return retryutils.SevereError(fmt.Errorf("deletion timestamp not set on firewall deployment"))
+			w.logger.Info("deleting firewall deployment")
+			err = w.client.Delete(ctx, deploy)
+			if err != nil {
+				return retryutils.SevereError(fmt.Errorf("error deleting firewall deployment: %w", err))
+			}
+
+			return retryutils.MinorError(errors.New("firewall deployment is still ongoing"))
 		}
 
-		return retryutils.MinorError(errors.New("machine class credentials secret has not yet been acquired or released"))
+		return retryutils.MinorError(errors.New("firewall deployment is still ongoing"))
 	})
 }
