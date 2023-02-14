@@ -43,7 +43,6 @@ rules:
 - apiGroups:
   - metal-stack.io
   resources:
-  - networkids
   - firewalls
   - firewalls/status
   - clusterwidenetworkpolicies
