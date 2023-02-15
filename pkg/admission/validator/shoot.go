@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalvalidation "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -180,6 +181,16 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 		return err
 	}
 
+	if err := s.validateAgainstCloudProfile(ctx, shoot, infraConfig, fldPath.Child("infrastructureConfig")); err != nil {
+		return err
+	}
+
+	return s.validateShoot(ctx, shoot)
+}
+
+// func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.InfrastructureConfig, shoot *core.Shoot, cloudProfile *gardencorev1beta1.CloudProfile, cloudProfileConfig *apismetal.CloudProfileConfig, fldPath *field.Path) field.ErrorList {
+
+func (s *shoot) validateAgainstCloudProfile(ctx context.Context, shoot *core.Shoot, infraConfig *apismetal.InfrastructureConfig, fldPath *field.Path) error {
 	cloudProfile := &gardencorev1beta1.CloudProfile{}
 	if err := s.client.Get(ctx, kutil.Key(shoot.Spec.CloudProfileName), cloudProfile); err != nil {
 		return err
@@ -190,9 +201,9 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 		return err
 	}
 
-	if errList := metalvalidation.ValidateInfrastructureConfigAgainstCloudProfileCreate(infraConfig, shoot, cloudProfile, cloudProfileConfig, fldPath); len(errList) != 0 {
+	if errList := metalvalidation.ValidateInfrastructureConfigAgainstCloudProfile(infraConfig, shoot, cloudProfile, cloudProfileConfig, fldPath); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
 
-	return s.validateShoot(ctx, shoot)
+	return nil
 }

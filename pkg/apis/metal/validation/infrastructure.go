@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -15,36 +14,8 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 )
 
-// ValidateInfrastructureConfigAgainstCloudProfileCreate validates the given `InfrastructureConfig` against the given `CloudProfile` on creation.
-func ValidateInfrastructureConfigAgainstCloudProfileCreate(infra *apismetal.InfrastructureConfig, shoot *core.Shoot, cloudProfile *gardencorev1beta1.CloudProfile, cloudProfileConfig *apismetal.CloudProfileConfig, fldPath *field.Path) field.ErrorList {
-	allErrs, availableFirewallControllerVersions := validateInfrastructureConfigAgainstCloudProfileCommon(infra, shoot, cloudProfile, cloudProfileConfig, fldPath)
-
-	v, err := ValidateFirewallControllerVersion(availableFirewallControllerVersions, infra.Firewall.ControllerVersion)
-	if err == nil {
-		if semv, err := semver.NewVersion(v.Version); err == nil {
-			if semv.LessThan(semver.MustParse("v2.0.0")) {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("firewall").Child("controllerVersion"), infra.Firewall.ControllerVersion, "can only create new clusters with firewall-controller >= v2.0.0"))
-			}
-		}
-	} else {
-		allErrs = append(allErrs, field.Required(fldPath.Child("firewall").Child("controllerVersion"), err.Error()))
-	}
-
-	return allErrs
-}
-
 // ValidateInfrastructureConfigAgainstCloudProfile validates the given `InfrastructureConfig` against the given `CloudProfile`.
 func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.InfrastructureConfig, shoot *core.Shoot, cloudProfile *gardencorev1beta1.CloudProfile, cloudProfileConfig *apismetal.CloudProfileConfig, fldPath *field.Path) field.ErrorList {
-	allErrs, availableFirewallControllerVersions := validateInfrastructureConfigAgainstCloudProfileCommon(infra, shoot, cloudProfile, cloudProfileConfig, fldPath)
-
-	if _, err := ValidateFirewallControllerVersion(availableFirewallControllerVersions, infra.Firewall.ControllerVersion); err != nil {
-		allErrs = append(allErrs, field.Required(fldPath.Child("firewall").Child("controllerVersion"), err.Error()))
-	}
-
-	return allErrs
-}
-
-func validateInfrastructureConfigAgainstCloudProfileCommon(infra *apismetal.InfrastructureConfig, shoot *core.Shoot, cloudProfile *gardencorev1beta1.CloudProfile, cloudProfileConfig *apismetal.CloudProfileConfig, fldPath *field.Path) (field.ErrorList, []apismetal.FirewallControllerVersion) {
 	allErrs := field.ErrorList{}
 
 	shootRegion := shoot.Spec.Region
@@ -62,13 +33,13 @@ func validateInfrastructureConfigAgainstCloudProfileCommon(infra *apismetal.Infr
 	}
 
 	if cloudProfileConfig == nil {
-		return allErrs, nil
+		return allErrs
 	}
 
 	mcp, p, err := helper.FindMetalControlPlane(cloudProfileConfig, infra.PartitionID)
 	if err != nil {
-		allErrs = append(allErrs, field.Invalid(firewallPath.Child("partitionID"), infra.PartitionID, "cloud profile does not define the given shoot partition"))
-		return allErrs, nil
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("partitionID"), infra.PartitionID, "cloud profile does not define the given shoot partition"))
+		return allErrs
 	}
 
 	availableFirewallImages := sets.NewString(mcp.FirewallImages...)
@@ -87,7 +58,15 @@ func validateInfrastructureConfigAgainstCloudProfileCommon(infra *apismetal.Infr
 		mcp.FirewallControllerVersions...,
 	)
 
-	return allErrs, availableFirewallControllerVersions
+	// Check if firewall-controller version is allowed
+	if _, err := ValidateFirewallControllerVersion(
+		availableFirewallControllerVersions,
+		infra.Firewall.ControllerVersion,
+	); err != nil {
+		allErrs = append(allErrs, field.Required(field.NewPath("controllerVersion"), err.Error()))
+	}
+
+	return allErrs
 }
 
 // validateInfrastructureConfigZones validates the given `InfrastructureConfig` against the given `Zones`.

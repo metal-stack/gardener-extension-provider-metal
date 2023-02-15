@@ -105,17 +105,6 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					"Detail": Equal("supported values: [n1-medium-x86]"),
 				}))))
 			})
-
-			It("should forbid firewall controller version < v2.0.0", func() {
-				infrastructureConfig.Firewall.ControllerVersion = "v1.0.1"
-				errorList := ValidateInfrastructureConfigAgainstCloudProfileCreate(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))
-
-				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-					"Type":   Equal(field.ErrorTypeInvalid),
-					"Field":  Equal("spec.firewall.controllerVersion"),
-					"Detail": Equal("can only create new clusters with firewall-controller >= v2.0.0"),
-				}))))
-			})
 		})
 	})
 
