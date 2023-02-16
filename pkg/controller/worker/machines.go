@@ -251,7 +251,7 @@ func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane 
 		return err
 	}
 
-	return w.toggleAnnotationAfterUpgrade(ctx, cluster)
+	return w.toggleAnnotation(ctx, cluster)
 }
 
 func (w *workerDelegate) ensureMigrationFirewall(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient metalgo.Client, privateNetworkID string) error {
@@ -372,10 +372,13 @@ func (w *workerDelegate) ensureMigrationFirewall(ctx context.Context, metalContr
 	return nil
 }
 
-// toggleAnnotationAfterUpgrade removes the no-controller-connection annotation on the firewall
-// when the firewall-controller has connected to the firewall. this will happen as soon as
+// toggleAnnotation removes the no-controller-connection annotation on the firewall
+// when the firewall-controller has connected to the firewall which will happen as soon as
 // the firewall-controller was updated to version >= 2.x.
-func (w *workerDelegate) toggleAnnotationAfterUpgrade(ctx context.Context, cluster *extensionscontroller.Cluster) error {
+//
+// It adds the annotation when it's missing on a firewall-controller specified for a
+// version < 2.x.
+func (w *workerDelegate) toggleAnnotation(ctx context.Context, cluster *extensionscontroller.Cluster) error {
 	var (
 		namespace = cluster.ObjectMeta.Name
 	)
@@ -391,6 +394,19 @@ func (w *workerDelegate) toggleAnnotationAfterUpgrade(ctx context.Context, clust
 
 		value, ok := fw.Annotations[v2.FirewallNoControllerConnectionAnnotation]
 		if !ok {
+			if v, err := semver.NewVersion(fw.Spec.ControllerVersion); err == nil && v.LessThan(semver.MustParse("v2.0.0")) {
+				_, err = controllerutil.CreateOrUpdate(ctx, w.client, &fw, func() error {
+					fw.Annotations = map[string]string{
+						fcmv2.FirewallNoControllerConnectionAnnotation: "true",
+					}
+					return nil
+				})
+
+				if err != nil {
+					return fmt.Errorf("unable to add no-controller-connection annotation on firewall %q: %w", fw.Name, err)
+				}
+			}
+
 			continue
 		}
 
