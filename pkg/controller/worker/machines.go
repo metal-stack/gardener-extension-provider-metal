@@ -391,22 +391,28 @@ func (w *workerDelegate) toggleAnnotation(ctx context.Context, cluster *extensio
 
 	for _, fw := range firewalls.Items {
 		fw := fw
-
 		value, ok := fw.Annotations[v2.FirewallNoControllerConnectionAnnotation]
-		if !ok {
-			if v, err := semver.NewVersion(fw.Spec.ControllerVersion); err == nil && v.LessThan(semver.MustParse("v2.0.0")) {
-				_, err = controllerutil.CreateOrUpdate(ctx, w.client, &fw, func() error {
-					fw.Annotations = map[string]string{
-						fcmv2.FirewallNoControllerConnectionAnnotation: "true",
-					}
-					return nil
-				})
 
-				if err != nil {
-					return fmt.Errorf("unable to add no-controller-connection annotation on firewall %q: %w", fw.Name, err)
-				}
+		if v, err := semver.NewVersion(fw.Spec.ControllerVersion); err == nil && v.LessThan(semver.MustParse("v2.0.0")) {
+			if ok {
+				continue
 			}
 
+			_, err = controllerutil.CreateOrUpdate(ctx, w.client, &fw, func() error {
+				fw.Annotations = map[string]string{
+					fcmv2.FirewallNoControllerConnectionAnnotation: "true",
+				}
+				return nil
+			})
+
+			if err != nil {
+				return fmt.Errorf("unable to add no-controller-connection annotation on firewall %q: %w", fw.Name, err)
+			}
+
+			continue
+		}
+
+		if !ok {
 			continue
 		}
 
