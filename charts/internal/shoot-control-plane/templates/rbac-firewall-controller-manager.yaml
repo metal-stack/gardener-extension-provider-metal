@@ -32,14 +32,26 @@ rules:
   - ""
   resources:
   - secrets
+  - serviceaccounts
   verbs:
-  - list
   - get
+  - list
   - watch
   - update
   - patch
   - create
-  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - create
 # the following permissions are used by the firewall-controller, it uses the same client / service account
 # for shoot-access as the firewall-controller-manager.
 - apiGroups:
