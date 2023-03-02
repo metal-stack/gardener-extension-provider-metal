@@ -447,7 +447,6 @@ spec:
           capabilities:
             drop:
             - all
-          readOnlyRootFilesystem: true
         command:
           - bash
           - -c
