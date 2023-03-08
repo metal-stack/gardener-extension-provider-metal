@@ -98,7 +98,7 @@ spec:
                     properties:
                       controllerURL:
                         description: ControllerURL points to the downloadable binary
-                          artifact of the firewall controller
+                          artifact of the firewall controller.
                         type: string
                       controllerVersion:
                         description: ControllerVersion holds the firewall-controller
@@ -155,7 +155,7 @@ spec:
                           firewall-controller should happen.
                         type: string
                       ipv4RuleFile:
-                        description: TrafficControl defines where to store the generated
+                        description: Ipv4RuleFile defines where to store the generated
                           ipv4 firewall rules on disk.
                         type: string
                       logAcceptedConnections:
@@ -166,10 +166,20 @@ spec:
                         description: Networks are the networks to which this firewall
                           is connected. An update on this field requires the recreation
                           of the physical firewall and can therefore lead to traffic
-                          interruption for the cluster.
+                          interruption for the cluster. Detailed information about
+                          the networks are fetched continuously during runtime and
+                          stored in the status.firewallNetworks.
                         items:
                           type: string
                         type: array
+                      nftablesExporterURL:
+                        description: NftablesExporterURL points to the downloadable
+                          binary artifact of the nftables exporter.
+                        type: string
+                      nftablesExporterVersion:
+                        description: NftablesExporterVersion holds the nftables exporter
+                          version to reconcile.
+                        type: string
                       partition:
                         description: Partition is the partition in which the firewall
                           resides.

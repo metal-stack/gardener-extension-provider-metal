@@ -36,6 +36,9 @@ spec:
     name: v2
     schema:
       openAPIV3Schema:
+        description: FirewallMonitor is typically deployed into the shoot cluster
+          in comparison to the other resources of this controller which are deployed
+          into the seed cluster's shoot namespace.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -90,6 +93,8 @@ spec:
                 type: string
               message:
                 type: string
+              nftablesExporterVersion:
+                type: string
               stats:
                 description: FirewallStats contains firewall statistics
                 properties:
@@ -103,15 +108,9 @@ spec:
                         out:
                           format: int64
                           type: integer
-                        total:
-                          description: 'Deprecated: TotalBytes is kept for backwards
-                            compatibility'
-                          format: int64
-                          type: integer
                       required:
                       - in
                       - out
-                      - total
                       type: object
                     description: DeviceStatsByDevice contains DeviceStatistics grouped
                       by device name

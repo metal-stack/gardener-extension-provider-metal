@@ -53,7 +53,7 @@ spec:
             properties:
               controllerURL:
                 description: ControllerURL points to the downloadable binary artifact
-                  of the firewall controller
+                  of the firewall controller.
                 type: string
               controllerVersion:
                 description: ControllerVersion holds the firewall-controller version
@@ -109,7 +109,7 @@ spec:
                   should happen.
                 type: string
               ipv4RuleFile:
-                description: TrafficControl defines where to store the generated ipv4
+                description: Ipv4RuleFile defines where to store the generated ipv4
                   firewall rules on disk.
                 type: string
               logAcceptedConnections:
@@ -120,10 +120,19 @@ spec:
                 description: Networks are the networks to which this firewall is connected.
                   An update on this field requires the recreation of the physical
                   firewall and can therefore lead to traffic interruption for the
-                  cluster.
+                  cluster. Detailed information about the networks are fetched continuously
+                  during runtime and stored in the status.firewallNetworks.
                 items:
                   type: string
                 type: array
+              nftablesExporterURL:
+                description: NftablesExporterURL points to the downloadable binary
+                  artifact of the nftables exporter.
+                type: string
+              nftablesExporterVersion:
+                description: NftablesExporterVersion holds the nftables exporter version
+                  to reconcile.
+                type: string
               partition:
                 description: Partition is the partition in which the firewall resides.
                 type: string
@@ -216,7 +225,10 @@ spec:
                 type: array
               controllerStatus:
                 description: ControllerStatus holds the a brief version of the firewall-controller
-                  reconciling this firewall.
+                  reconciling this firewall. The firewall-controller itself has only
+                  read-access to resources in the seed, including the firewall status
+                  inside the firewall resource. This will be updated by the firewall
+                  monitor controller.
                 properties:
                   actualVersion:
                     description: ActualVersion is the actual version running at the
@@ -232,6 +244,7 @@ spec:
                 description: FirewallNetworks holds refined information about the
                   networks that this firewall is connected to. The information is
                   used by the firewall-controller in order to reconcile this firewall.
+                  See .spec.networks.
                 items:
                   description: FirewallNetwork holds refined information about a network
                     that the firewall is connected to. The information is used by
