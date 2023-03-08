@@ -316,6 +316,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
+    node.gardener.cloud/critical-component: "true"
     app: metallb
     component: speaker
   name: speaker
@@ -334,6 +335,7 @@ spec:
         app: metallb
         component: speaker
         projected-token-mount.resources.gardener.cloud/skip: "true"
+        node.gardener.cloud/critical-component: "true"
     spec:
       containers:
       - args:
@@ -445,7 +447,6 @@ spec:
           capabilities:
             drop:
             - all
-          readOnlyRootFilesystem: true
         command:
           - bash
           - -c
