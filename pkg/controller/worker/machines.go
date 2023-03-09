@@ -554,6 +554,8 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 		deploy.Spec.Template.Spec.EgressRules = egressRules(infrastructureConfig.Firewall.EgressRules)
 		deploy.Spec.Template.Spec.ControllerVersion = fwcv.Version
 		deploy.Spec.Template.Spec.ControllerURL = fwcv.URL
+		deploy.Spec.Template.Spec.NftablesExporterVersion = metalControlPlane.NftablesExporter.Version
+		deploy.Spec.Template.Spec.NftablesExporterURL = metalControlPlane.NftablesExporter.URL
 		deploy.Spec.Template.Spec.LogAcceptedConnections = infrastructureConfig.Firewall.LogAcceptedConnections
 
 		return nil
