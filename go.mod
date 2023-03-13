@@ -10,6 +10,7 @@ require (
 	github.com/flatcar/container-linux-config-transpiler v0.9.4
 	github.com/gardener/etcd-druid v0.7.3
 	github.com/gardener/gardener v1.39.5
+	github.com/gardener/gardener-extension-networking-calico v1.9.1
 	github.com/gardener/machine-controller-manager v0.47.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
