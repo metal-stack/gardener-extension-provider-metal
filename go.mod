@@ -11,6 +11,7 @@ require (
 	github.com/gardener/etcd-druid v0.7.3
 	github.com/gardener/gardener v1.39.5
 	github.com/gardener/gardener-extension-networking-calico v1.9.1
+	github.com/gardener/gardener-extension-networking-cilium v1.7.1
 	github.com/gardener/machine-controller-manager v0.47.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
@@ -161,6 +162,7 @@ require (
 
 replace (
 	github.com/ajeddeloh/yaml => github.com/ajeddeloh/yaml v0.0.0-20170912190910-6b94386aeefd // indirect
+	// github.com/gardener/gardener-extension-networking-cilium => github.com/metal-stack/gardener-extension-networking-cilium v1.14.1-0.20220907120410-f3085c79ca8f
 	github.com/gardener/gardener-resource-manager/api => github.com/gardener/gardener-resource-manager/api v0.25.0
 	github.com/go-logr/logr => github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr => github.com/go-logr/zapr v0.4.0
