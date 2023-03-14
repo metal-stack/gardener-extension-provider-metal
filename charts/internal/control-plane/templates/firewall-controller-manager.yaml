@@ -121,7 +121,6 @@ spec:
           - -shoot-kubeconfig-secret-name={{ .Values.genericTokenKubeconfigSecretName }}
           - -shoot-token-secret-name=shoot-access-firewall-controller-manager
           - -ssh-key-secret-name={{ .Values.firewallControllerManager.sshKeySecretName }}
-          - -ssh-key-secret-name={{ .Values.firewallControllerManager.sshKeySecretName }}
           - -shoot-token-path=/token
         env:
           - name: METAL_AUTH_HMAC
