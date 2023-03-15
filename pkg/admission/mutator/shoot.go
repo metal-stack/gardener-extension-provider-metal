@@ -12,6 +12,7 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 
 	"github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico"
+	c "github.com/gardener/gardener-extension-networking-calico/pkg/calico"
 	"github.com/gardener/gardener-extension-networking-cilium/pkg/apis/cilium"
 	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
@@ -22,6 +23,27 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	defaultCloudProfileName    = "metal"
+	defaultNetworkType         = c.ReleaseName
+	defaultSecretBindingName   = "seed-provider-secret"
+	defaultCalicoTyphaEnabled  = false
+	defaultCiliumHubbleEnabled = false
+)
+
+var (
+	defaultCalicoBackend               = calico.None
+	defaultMaxPods                     = int32(250)
+	defaultNodeCIDRMaskSize            = int32(23)
+	defaultAllowedPrivilegedContainers = true
+	defaultCalicoKubeProxyEnabled      = true
+	defaultCiliumKubeProxyEnabled      = false
+	defaultCiliumPSPEnabled            = true
+	defaultCiliumTunnel                = cilium.Disabled
+	defaultPodsCIDR                    = "10.240.0.0/13"
+	defaultServicesCIDR                = "10.248.0.0/18"
 )
 
 // NewShootMutator returns a new instance of a shoot mutator.
@@ -40,6 +62,12 @@ func (s *shoot) InjectScheme(scheme *runtime.Scheme) error {
 	return nil
 }
 
+// InjectClient injects the given client into the mutator.
+func (s *shoot) InjectClient(client client.Client) error {
+	s.client = client
+	return nil
+}
+
 // Mutate mutates the given shoot object.
 func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 	shoot, ok := new.(*gardenv1beta1.Shoot)
@@ -48,34 +76,31 @@ func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 	}
 
 	if shoot.Spec.CloudProfileName == "" {
-		shoot.Spec.CloudProfileName = "metal"
+		shoot.Spec.CloudProfileName = defaultCloudProfileName
 	}
 
 	if shoot.Spec.SecretBindingName == "" {
-		shoot.Spec.SecretBindingName = "seed-provider-secret"
+		shoot.Spec.SecretBindingName = defaultSecretBindingName
 	}
 
-	t := true
 	if shoot.Spec.Kubernetes.AllowPrivilegedContainers == nil {
-		shoot.Spec.Kubernetes.AllowPrivilegedContainers = &t
+		shoot.Spec.Kubernetes.AllowPrivilegedContainers = &defaultAllowedPrivilegedContainers
 	}
 
-	nodeCIDRMaskSize := int32(23)
 	if shoot.Spec.Kubernetes.KubeControllerManager == nil {
-		shoot.Spec.Kubernetes.KubeControllerManager = &gardenv1beta1.KubeControllerManagerConfig{
-			NodeCIDRMaskSize: &nodeCIDRMaskSize,
-		}
-	} else if shoot.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize == nil {
-		shoot.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize = &nodeCIDRMaskSize
+		shoot.Spec.Kubernetes.KubeControllerManager = &gardenv1beta1.KubeControllerManagerConfig{}
 	}
 
-	maxPods := int32(250)
+	if shoot.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize == nil {
+		shoot.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize = &defaultNodeCIDRMaskSize
+	}
+
 	if shoot.Spec.Kubernetes.Kubelet == nil {
-		shoot.Spec.Kubernetes.Kubelet = &gardenv1beta1.KubeletConfig{
-			MaxPods: &maxPods,
-		}
-	} else if shoot.Spec.Kubernetes.Kubelet.MaxPods == nil {
-		shoot.Spec.Kubernetes.Kubelet.MaxPods = &maxPods
+		shoot.Spec.Kubernetes.Kubelet = &gardenv1beta1.KubeletConfig{}
+	}
+
+	if shoot.Spec.Kubernetes.Kubelet.MaxPods == nil {
+		shoot.Spec.Kubernetes.Kubelet.MaxPods = &defaultMaxPods
 	}
 
 	infrastructureConfig, err := s.decodeInfrastructureConfig(shoot.Spec.Provider.InfrastructureConfig)
@@ -88,44 +113,41 @@ func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 		return err
 	}
 
-	shoot.Spec.Provider.InfrastructureConfig = &runtime.RawExtension{
-		Object: infrastructureConfig,
+	encodedInfrastructureConfig, err := encodeRawExtension(infrastructureConfig)
+	if err != nil {
+		return err
 	}
+	shoot.Spec.Provider.InfrastructureConfig = encodedInfrastructureConfig
 
 	if shoot.Spec.Networking.Type == "" {
 		shoot.Spec.Networking.Type = "calico"
 	}
 
-	if shoot.Spec.Networking.Type == "calico" {
-		shoot.Spec.Kubernetes.KubeProxy = &gardenv1beta1.KubeProxyConfig{
-			Enabled: &t,
+	if shoot.Spec.Kubernetes.KubeProxy == nil {
+		shoot.Spec.Kubernetes.KubeProxy = &gardenv1beta1.KubeProxyConfig{}
+	}
+
+	switch shoot.Spec.Networking.Type {
+	case "calico":
+		updatedConfig, err := s.getCalicoConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
+		if err != nil {
+			return err
 		}
-	}
-
-	if shoot.Spec.Networking.Type == "cilium" {
-		f := false
-		shoot.Spec.Kubernetes.KubeProxy = &gardenv1beta1.KubeProxyConfig{
-			Enabled: &f,
+		shoot.Spec.Networking.ProviderConfig = updatedConfig
+	case "cilium":
+		updatedConfig, err := s.getCiliumConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
+		if err != nil {
+			return err
 		}
-	}
-
-	networkingConfig, err := getNetworkingConfig(shoot.Spec.Networking.Type)
-	if err != nil {
-		return err
-	}
-
-	shoot.Spec.Networking = gardenv1beta1.Networking{
-		ProviderConfig: networkingConfig,
+		shoot.Spec.Networking.ProviderConfig = updatedConfig
 	}
 
 	if shoot.Spec.Networking.Pods == nil {
-		pods := "10.240.0.0/13"
-		shoot.Spec.Networking.Pods = &pods
+		shoot.Spec.Networking.Pods = &defaultPodsCIDR
 	}
 
 	if shoot.Spec.Networking.Services == nil {
-		services := "10.248.0.0/18"
-		shoot.Spec.Networking.Services = &services
+		shoot.Spec.Networking.Services = &defaultServicesCIDR
 	}
 
 	return nil
@@ -157,7 +179,37 @@ func (s *shoot) decodeProviderConfig(providerConfig *runtime.RawExtension) (*met
 	return cp, nil
 }
 
-func encodeProviderConfig(from any) (*runtime.RawExtension, error) {
+func (s *shoot) decodeCalicoNetworkConfig(providerConfig *runtime.RawExtension) (*calico.NetworkConfig, error) {
+	nc := &calico.NetworkConfig{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: calico.SchemeGroupVersion.String(),
+			Kind:       "NetworkConfig",
+		},
+	}
+	if providerConfig != nil && providerConfig.Raw != nil {
+		if _, _, err := s.decoder.Decode(providerConfig.Raw, nil, nc); err != nil {
+			return nil, err
+		}
+	}
+	return nc, nil
+}
+
+func (s *shoot) decodeCiliumNetworkConfig(providerConfig *runtime.RawExtension) (*cilium.NetworkConfig, error) {
+	nc := &cilium.NetworkConfig{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: cilium.SchemeGroupVersion.String(),
+			Kind:       "NetworkConfig",
+		},
+	}
+	if providerConfig != nil && providerConfig.Raw != nil {
+		if _, _, err := s.decoder.Decode(providerConfig.Raw, nil, nc); err != nil {
+			return nil, err
+		}
+	}
+	return nc, nil
+}
+
+func encodeRawExtension(from any) (*runtime.RawExtension, error) {
 	encoded, err := json.Marshal(from)
 	if err != nil {
 		return nil, err
@@ -168,54 +220,54 @@ func encodeProviderConfig(from any) (*runtime.RawExtension, error) {
 	}, nil
 }
 
-func getNetworkingConfig(t string) (*runtime.RawExtension, error) {
-	var networkingConfig *runtime.RawExtension
-	var err error
-
-	if t == "calico" {
-		backend := calico.None
-		networkingConfig, err = encodeProviderConfig(calico.NetworkConfig{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: calico.SchemeGroupVersion.String(),
-				Kind:       "NetworkConfig",
-			},
-			Backend: &backend,
-			Typha: &calico.Typha{
-				Enabled: false,
-			},
-		})
-
-		if err != nil {
-			return nil, err
-		}
-
-		return networkingConfig, nil
+func (s *shoot) getCalicoConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, providerConfig *runtime.RawExtension) (*runtime.RawExtension, error) {
+	if kubeProxy.Enabled == nil {
+		kubeProxy.Enabled = &defaultCalicoKubeProxyEnabled
 	}
 
-	if t == "cilium" {
-		t := true
-		d := cilium.Disabled
-		config := cilium.NetworkConfig{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: cilium.SchemeGroupVersion.String(),
-				Kind:       "NetworkConfig",
-			},
-			Hubble: &cilium.Hubble{
-				Enabled: true,
-			},
-			PSPEnabled: &t,
-			TunnelMode: &d,
-		}
-
-		networkingConfig, err = encodeProviderConfig(config)
-		if err != nil {
-			return nil, err
-		}
-
-		return networkingConfig, nil
+	networkConfig, err := s.decodeCalicoNetworkConfig(providerConfig)
+	if err != nil {
+		return nil, err
 	}
 
-	return networkingConfig, nil
+	if networkConfig.Backend == nil {
+		networkConfig.Backend = &defaultCalicoBackend
+	}
+
+	if networkConfig.Typha == nil {
+		networkConfig.Typha = &calico.Typha{
+			Enabled: defaultCalicoTyphaEnabled,
+		}
+	}
+
+	return encodeRawExtension(networkConfig)
+}
+
+func (s *shoot) getCiliumConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, providerConfig *runtime.RawExtension) (*runtime.RawExtension, error) {
+	if kubeProxy.Enabled == nil {
+		kubeProxy.Enabled = &defaultCiliumKubeProxyEnabled
+	}
+
+	networkConfig, err := s.decodeCiliumNetworkConfig(providerConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	if networkConfig.Hubble == nil {
+		networkConfig.Hubble = &cilium.Hubble{
+			Enabled: defaultCiliumHubbleEnabled,
+		}
+	}
+
+	if networkConfig.PSPEnabled == nil {
+		networkConfig.PSPEnabled = &defaultCiliumPSPEnabled
+	}
+
+	if networkConfig.TunnelMode == nil {
+		networkConfig.TunnelMode = &defaultCiliumTunnel
+	}
+
+	return encodeRawExtension(networkConfig)
 }
 
 func (s *shoot) getFirewall(ctx context.Context, profileName string, partition string) (metalv1alpha1.Firewall, error) {
@@ -231,20 +283,27 @@ func (s *shoot) getFirewall(ctx context.Context, profileName string, partition s
 		return f, err
 	}
 
-	controlPlane, _, err := helper.FindMetalControlPlane(cloudConfig, partition)
+	controlPlane, p, err := helper.FindMetalControlPlane(cloudConfig, partition)
 	if err != nil {
 		return f, err
 	}
 
 	latestImage := getLatestImage(controlPlane.FirewallImages)
-
 	f.Image = latestImage
-	f.Size = controlPlane.Partitions[partition].FirewallTypes[0]
+
+	if len(p.FirewallTypes) < 1 {
+		return f, nil
+	}
+	f.Size = p.FirewallTypes[0]
 
 	return f, nil
 }
 
 func getLatestImage(images []string) string {
+	if len(images) < 1 {
+		return ""
+	}
+
 	sort.SliceStable(images, func(i, j int) bool {
 		osI, vI, err := getOsAndSemverFromImage(images[i])
 		if err != nil {
