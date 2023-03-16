@@ -2,7 +2,6 @@ package mutator
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -19,7 +18,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -103,7 +101,8 @@ func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 		shoot.Spec.Kubernetes.Kubelet.MaxPods = &defaultMaxPods
 	}
 
-	infrastructureConfig, err := s.decodeInfrastructureConfig(shoot.Spec.Provider.InfrastructureConfig)
+	var infrastructureConfig *metalv1alpha1.InfrastructureConfig
+	err := helper.DecodeRawExtension[*metalv1alpha1.InfrastructureConfig](shoot.Spec.Provider.InfrastructureConfig, infrastructureConfig, s.decoder)
 	if err != nil {
 		return err
 	}
@@ -113,7 +112,7 @@ func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 		return err
 	}
 
-	encodedInfrastructureConfig, err := encodeRawExtension(infrastructureConfig)
+	encodedInfrastructureConfig, err := helper.EncodeRawExtension(infrastructureConfig)
 	if err != nil {
 		return err
 	}
@@ -153,79 +152,13 @@ func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 	return nil
 }
 
-func (s *shoot) decodeInfrastructureConfig(config *runtime.RawExtension) (*metalv1alpha1.InfrastructureConfig, error) {
-	infrastructureConfig := &metalv1alpha1.InfrastructureConfig{}
-	if config != nil && config.Raw != nil {
-		if _, _, err := s.decoder.Decode(config.Raw, nil, infrastructureConfig); err != nil {
-			return nil, err
-		}
-	}
-
-	return infrastructureConfig, nil
-}
-
-func (s *shoot) decodeProviderConfig(providerConfig *runtime.RawExtension) (*metal.CloudProfileConfig, error) {
-	cp := &metal.CloudProfileConfig{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
-			Kind:       "ControlPlaneConfig",
-		},
-	}
-	if providerConfig != nil && providerConfig.Raw != nil {
-		if _, _, err := s.decoder.Decode(providerConfig.Raw, nil, cp); err != nil {
-			return nil, err
-		}
-	}
-	return cp, nil
-}
-
-func (s *shoot) decodeCalicoNetworkConfig(providerConfig *runtime.RawExtension) (*calico.NetworkConfig, error) {
-	nc := &calico.NetworkConfig{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: calico.SchemeGroupVersion.String(),
-			Kind:       "NetworkConfig",
-		},
-	}
-	if providerConfig != nil && providerConfig.Raw != nil {
-		if _, _, err := s.decoder.Decode(providerConfig.Raw, nil, nc); err != nil {
-			return nil, err
-		}
-	}
-	return nc, nil
-}
-
-func (s *shoot) decodeCiliumNetworkConfig(providerConfig *runtime.RawExtension) (*cilium.NetworkConfig, error) {
-	nc := &cilium.NetworkConfig{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: cilium.SchemeGroupVersion.String(),
-			Kind:       "NetworkConfig",
-		},
-	}
-	if providerConfig != nil && providerConfig.Raw != nil {
-		if _, _, err := s.decoder.Decode(providerConfig.Raw, nil, nc); err != nil {
-			return nil, err
-		}
-	}
-	return nc, nil
-}
-
-func encodeRawExtension(from any) (*runtime.RawExtension, error) {
-	encoded, err := json.Marshal(from)
-	if err != nil {
-		return nil, err
-	}
-
-	return &runtime.RawExtension{
-		Raw: encoded,
-	}, nil
-}
-
 func (s *shoot) getCalicoConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, providerConfig *runtime.RawExtension) (*runtime.RawExtension, error) {
 	if kubeProxy.Enabled == nil {
 		kubeProxy.Enabled = &defaultCalicoKubeProxyEnabled
 	}
 
-	networkConfig, err := s.decodeCalicoNetworkConfig(providerConfig)
+	var networkConfig *calico.NetworkConfig
+	err := helper.DecodeRawExtension[*calico.NetworkConfig](providerConfig, networkConfig, s.decoder)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +173,7 @@ func (s *shoot) getCalicoConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, provid
 		}
 	}
 
-	return encodeRawExtension(networkConfig)
+	return helper.EncodeRawExtension(networkConfig)
 }
 
 func (s *shoot) getCiliumConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, providerConfig *runtime.RawExtension) (*runtime.RawExtension, error) {
@@ -248,7 +181,8 @@ func (s *shoot) getCiliumConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, provid
 		kubeProxy.Enabled = &defaultCiliumKubeProxyEnabled
 	}
 
-	networkConfig, err := s.decodeCiliumNetworkConfig(providerConfig)
+	var networkConfig *cilium.NetworkConfig
+	err := helper.DecodeRawExtension[*cilium.NetworkConfig](providerConfig, networkConfig, s.decoder)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +201,7 @@ func (s *shoot) getCiliumConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, provid
 		networkConfig.TunnelMode = &defaultCiliumTunnel
 	}
 
-	return encodeRawExtension(networkConfig)
+	return helper.EncodeRawExtension(networkConfig)
 }
 
 func (s *shoot) getFirewall(ctx context.Context, profileName string, partition string) (metalv1alpha1.Firewall, error) {
@@ -278,7 +212,8 @@ func (s *shoot) getFirewall(ctx context.Context, profileName string, partition s
 		return f, err
 	}
 
-	cloudConfig, err := s.decodeProviderConfig(profile.Spec.ProviderConfig)
+	var cloudConfig *metal.CloudProfileConfig
+	err := helper.DecodeRawExtension[*metal.CloudProfileConfig](profile.Spec.ProviderConfig, cloudConfig, s.decoder)
 	if err != nil {
 		return f, err
 	}

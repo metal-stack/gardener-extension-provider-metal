@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/controller"
@@ -91,4 +92,26 @@ func CloudProfileConfigFromCluster(cluster *controller.Cluster) (*api.CloudProfi
 		}
 	}
 	return cloudProfileConfig, nil
+}
+
+// DecodeRawExtension decodes a raw extension into an object
+func DecodeRawExtension[T runtime.Object](extension *runtime.RawExtension, object runtime.Object, decoder runtime.Decoder) error {
+	if extension != nil && extension.Raw != nil {
+		if _, _, err := decoder.Decode(extension.Raw, nil, object); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// EncodeRawExtension encodes an object into a raw extension
+func EncodeRawExtension(from runtime.Object) (*runtime.RawExtension, error) {
+	encoded, err := json.Marshal(from)
+	if err != nil {
+		return nil, err
+	}
+
+	return &runtime.RawExtension{
+		Raw: encoded,
+	}, nil
 }
