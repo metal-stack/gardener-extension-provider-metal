@@ -46,33 +46,42 @@ var (
 
 // NewShootMutator returns a new instance of a shoot mutator.
 func NewShootMutator() extensionswebhook.Mutator {
-	return &shoot{}
+	return &mutator{}
 }
 
-type shoot struct {
+type mutator struct {
 	client  client.Client
 	decoder runtime.Decoder
 }
 
 // InjectScheme injects the given scheme into the validator.
-func (s *shoot) InjectScheme(scheme *runtime.Scheme) error {
-	s.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
+func (m *mutator) InjectScheme(scheme *runtime.Scheme) error {
+	m.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
 	return nil
 }
 
 // InjectClient injects the given client into the mutator.
-func (s *shoot) InjectClient(client client.Client) error {
+func (s *mutator) InjectClient(client client.Client) error {
 	s.client = client
 	return nil
 }
 
 // Mutate mutates the given shoot object.
-func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
+func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	shoot, ok := new.(*gardenv1beta1.Shoot)
 	if !ok {
 		return fmt.Errorf("wrong object type %T", new)
 	}
 
+	profile := &gardenv1beta1.CloudProfile{}
+	if err := m.client.Get(ctx, kutil.Key(shoot.Spec.CloudProfileName), profile); err != nil {
+		return err
+	}
+
+	return m.mutate(ctx, shoot, *profile)
+}
+
+func (m *mutator) mutate(ctx context.Context, shoot *gardenv1beta1.Shoot, profile gardenv1beta1.CloudProfile) error {
 	if shoot.Spec.CloudProfileName == "" {
 		shoot.Spec.CloudProfileName = defaultCloudProfileName
 	}
@@ -101,13 +110,24 @@ func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 		shoot.Spec.Kubernetes.Kubelet.MaxPods = &defaultMaxPods
 	}
 
-	var infrastructureConfig *metalv1alpha1.InfrastructureConfig
-	err := helper.DecodeRawExtension[*metalv1alpha1.InfrastructureConfig](shoot.Spec.Provider.InfrastructureConfig, infrastructureConfig, s.decoder)
+	infrastructureConfig := &metalv1alpha1.InfrastructureConfig{}
+	err := helper.DecodeRawExtension[*metalv1alpha1.InfrastructureConfig](shoot.Spec.Provider.InfrastructureConfig, infrastructureConfig, m.decoder)
 	if err != nil {
 		return err
 	}
 
-	infrastructureConfig.Firewall, err = s.getFirewall(ctx, shoot.Spec.CloudProfileName, infrastructureConfig.PartitionID)
+	cloudConfig := &metal.CloudProfileConfig{}
+	err = helper.DecodeRawExtension[*metal.CloudProfileConfig](profile.Spec.ProviderConfig, cloudConfig, m.decoder)
+	if err != nil {
+		return err
+	}
+
+	controlPlane, p, err := helper.FindMetalControlPlane(cloudConfig, infrastructureConfig.PartitionID)
+	if err != nil {
+		return err
+	}
+
+	err = m.getFirewall(controlPlane, p, &infrastructureConfig.Firewall)
 	if err != nil {
 		return err
 	}
@@ -128,13 +148,13 @@ func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 
 	switch shoot.Spec.Networking.Type {
 	case "calico":
-		updatedConfig, err := s.getCalicoConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
+		updatedConfig, err := m.getCalicoConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
 		if err != nil {
 			return err
 		}
 		shoot.Spec.Networking.ProviderConfig = updatedConfig
 	case "cilium":
-		updatedConfig, err := s.getCiliumConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
+		updatedConfig, err := m.getCiliumConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
 		if err != nil {
 			return err
 		}
@@ -152,13 +172,13 @@ func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 	return nil
 }
 
-func (s *shoot) getCalicoConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, providerConfig *runtime.RawExtension) (*runtime.RawExtension, error) {
+func (m *mutator) getCalicoConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, providerConfig *runtime.RawExtension) (*runtime.RawExtension, error) {
 	if kubeProxy.Enabled == nil {
 		kubeProxy.Enabled = &defaultCalicoKubeProxyEnabled
 	}
 
-	var networkConfig *calico.NetworkConfig
-	err := helper.DecodeRawExtension[*calico.NetworkConfig](providerConfig, networkConfig, s.decoder)
+	networkConfig := &calico.NetworkConfig{}
+	err := helper.DecodeRawExtension[*calico.NetworkConfig](providerConfig, networkConfig, m.decoder)
 	if err != nil {
 		return nil, err
 	}
@@ -176,13 +196,13 @@ func (s *shoot) getCalicoConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, provid
 	return helper.EncodeRawExtension(networkConfig)
 }
 
-func (s *shoot) getCiliumConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, providerConfig *runtime.RawExtension) (*runtime.RawExtension, error) {
+func (m *mutator) getCiliumConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, providerConfig *runtime.RawExtension) (*runtime.RawExtension, error) {
 	if kubeProxy.Enabled == nil {
 		kubeProxy.Enabled = &defaultCiliumKubeProxyEnabled
 	}
 
-	var networkConfig *cilium.NetworkConfig
-	err := helper.DecodeRawExtension[*cilium.NetworkConfig](providerConfig, networkConfig, s.decoder)
+	networkConfig := &cilium.NetworkConfig{}
+	err := helper.DecodeRawExtension[*cilium.NetworkConfig](providerConfig, networkConfig, m.decoder)
 	if err != nil {
 		return nil, err
 	}
@@ -204,34 +224,16 @@ func (s *shoot) getCiliumConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, provid
 	return helper.EncodeRawExtension(networkConfig)
 }
 
-func (s *shoot) getFirewall(ctx context.Context, profileName string, partition string) (metalv1alpha1.Firewall, error) {
-	f := metalv1alpha1.Firewall{}
-
-	profile := &gardenv1beta1.CloudProfile{}
-	if err := s.client.Get(ctx, kutil.Key(profileName), profile); err != nil {
-		return f, err
+func (m *mutator) getFirewall(controlPlane *metal.MetalControlPlane, partition *metal.Partition, firewall *metalv1alpha1.Firewall) error {
+	if firewall.Image == "" {
+		firewall.Image = getLatestImage(controlPlane.FirewallImages)
 	}
 
-	var cloudConfig *metal.CloudProfileConfig
-	err := helper.DecodeRawExtension[*metal.CloudProfileConfig](profile.Spec.ProviderConfig, cloudConfig, s.decoder)
-	if err != nil {
-		return f, err
+	if firewall.Size == "" && len(partition.FirewallTypes) > 0 {
+		firewall.Size = partition.FirewallTypes[0]
 	}
 
-	controlPlane, p, err := helper.FindMetalControlPlane(cloudConfig, partition)
-	if err != nil {
-		return f, err
-	}
-
-	latestImage := getLatestImage(controlPlane.FirewallImages)
-	f.Image = latestImage
-
-	if len(p.FirewallTypes) < 1 {
-		return f, nil
-	}
-	f.Size = p.FirewallTypes[0]
-
-	return f, nil
+	return nil
 }
 
 func getLatestImage(images []string) string {
