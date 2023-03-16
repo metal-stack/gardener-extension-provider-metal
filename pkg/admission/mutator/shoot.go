@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	defaultCloudProfileName    = "metal"
 	defaultNetworkType         = "calico"
 	defaultSecretBindingName   = "seed-provider-secret" // nolint:gosec
 	defaultCalicoTyphaEnabled  = false
@@ -75,10 +74,6 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 		return fmt.Errorf("wrong object type %T", new)
 	}
 
-	if shoot.Spec.CloudProfileName == "" {
-		shoot.Spec.CloudProfileName = defaultCloudProfileName
-	}
-
 	profile := &gardenv1beta1.CloudProfile{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: shoot.Spec.CloudProfileName,
@@ -92,10 +87,6 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 }
 
 func (m *mutator) mutate(shoot *gardenv1beta1.Shoot, profile gardenv1beta1.CloudProfile) error {
-	if shoot.Spec.SecretBindingName == "" {
-		shoot.Spec.SecretBindingName = defaultSecretBindingName
-	}
-
 	if shoot.Spec.Kubernetes.AllowPrivilegedContainers == nil {
 		shoot.Spec.Kubernetes.AllowPrivilegedContainers = &defaultAllowedPrivilegedContainers
 	}

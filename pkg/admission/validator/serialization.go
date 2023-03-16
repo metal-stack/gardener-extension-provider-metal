@@ -24,11 +24,3 @@ func decodeInfrastructureConfig(decoder runtime.Decoder, infra *runtime.RawExten
 
 	return infraConfig, nil
 }
-
-func decodeCloudProfileConfig(decoder runtime.Decoder, config *runtime.RawExtension) (*metal.CloudProfileConfig, error) {
-	cloudProfileConfig := &metal.CloudProfileConfig{}
-	if err := util.Decode(decoder, config.Raw, cloudProfileConfig); err != nil {
-		return nil, err
-	}
-	return cloudProfileConfig, nil
-}
