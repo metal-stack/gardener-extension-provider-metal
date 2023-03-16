@@ -101,7 +101,7 @@ func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 		shoot.Spec.Kubernetes.Kubelet.MaxPods = &defaultMaxPods
 	}
 
-	var infrastructureConfig *metalv1alpha1.InfrastructureConfig
+	infrastructureConfig := &metalv1alpha1.InfrastructureConfig{}
 	err := helper.DecodeRawExtension[*metalv1alpha1.InfrastructureConfig](shoot.Spec.Provider.InfrastructureConfig, infrastructureConfig, s.decoder)
 	if err != nil {
 		return err
@@ -157,7 +157,7 @@ func (s *shoot) getCalicoConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, provid
 		kubeProxy.Enabled = &defaultCalicoKubeProxyEnabled
 	}
 
-	var networkConfig *calico.NetworkConfig
+	networkConfig := &calico.NetworkConfig{}
 	err := helper.DecodeRawExtension[*calico.NetworkConfig](providerConfig, networkConfig, s.decoder)
 	if err != nil {
 		return nil, err
@@ -181,7 +181,7 @@ func (s *shoot) getCiliumConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, provid
 		kubeProxy.Enabled = &defaultCiliumKubeProxyEnabled
 	}
 
-	var networkConfig *cilium.NetworkConfig
+	networkConfig := &cilium.NetworkConfig{}
 	err := helper.DecodeRawExtension[*cilium.NetworkConfig](providerConfig, networkConfig, s.decoder)
 	if err != nil {
 		return nil, err
@@ -212,7 +212,7 @@ func (s *shoot) getFirewall(ctx context.Context, profileName string, partition s
 		return f, err
 	}
 
-	var cloudConfig *metal.CloudProfileConfig
+	cloudConfig := &metal.CloudProfileConfig{}
 	err := helper.DecodeRawExtension[*metal.CloudProfileConfig](profile.Spec.ProviderConfig, cloudConfig, s.decoder)
 	if err != nil {
 		return f, err

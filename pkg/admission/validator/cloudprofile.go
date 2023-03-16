@@ -41,7 +41,8 @@ func (cp *cloudProfile) Validate(_ context.Context, new, _ client.Object) error 
 	if cloudProfile.Spec.ProviderConfig == nil {
 		return field.Required(providerConfigPath, "providerConfig must be set for metal cloud profiles")
 	}
-	var cpConfig *metal.CloudProfileConfig
+
+	cpConfig := &metal.CloudProfileConfig{}
 	err := helper.DecodeRawExtension[*metal.CloudProfileConfig](cloudProfile.Spec.ProviderConfig, cpConfig, cp.decoder)
 	if err != nil {
 		return err
