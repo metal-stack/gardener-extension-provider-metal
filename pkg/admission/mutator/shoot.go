@@ -10,9 +10,9 @@ import (
 	"github.com/Masterminds/semver"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 
-	"github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico"
-	c "github.com/gardener/gardener-extension-networking-calico/pkg/calico"
-	"github.com/gardener/gardener-extension-networking-cilium/pkg/apis/cilium"
+	calicoextensionv1alpha1 "github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico/v1alpha1"
+	ciliumextensionv1alpha1 "github.com/gardener/gardener-extension-networking-cilium/pkg/apis/cilium/v1alpha1"
+
 	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -25,21 +25,22 @@ import (
 
 const (
 	defaultCloudProfileName    = "metal"
-	defaultNetworkType         = c.ReleaseName
-	defaultSecretBindingName   = "seed-provider-secret"
+	defaultNetworkType         = "calico"
+	defaultSecretBindingName   = "seed-provider-secret" // nolint:gosec
 	defaultCalicoTyphaEnabled  = false
 	defaultCiliumHubbleEnabled = false
 )
 
 var (
-	defaultCalicoBackend               = calico.None
+	defaultCalicoBackend               = calicoextensionv1alpha1.None
+	defaultCalicoPoolMode              = calicoextensionv1alpha1.Never
 	defaultMaxPods                     = int32(250)
 	defaultNodeCIDRMaskSize            = int32(23)
 	defaultAllowedPrivilegedContainers = true
 	defaultCalicoKubeProxyEnabled      = true
 	defaultCiliumKubeProxyEnabled      = false
 	defaultCiliumPSPEnabled            = true
-	defaultCiliumTunnel                = cilium.Disabled
+	defaultCiliumTunnel                = ciliumextensionv1alpha1.Disabled
 	defaultPodsCIDR                    = "10.240.0.0/13"
 	defaultServicesCIDR                = "10.248.0.0/18"
 )
@@ -177,8 +178,8 @@ func (m *mutator) getCalicoConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, prov
 		kubeProxy.Enabled = &defaultCalicoKubeProxyEnabled
 	}
 
-	networkConfig := &calico.NetworkConfig{}
-	err := helper.DecodeRawExtension[*calico.NetworkConfig](providerConfig, networkConfig, m.decoder)
+	networkConfig := &calicoextensionv1alpha1.NetworkConfig{}
+	err := helper.DecodeRawExtension[*calicoextensionv1alpha1.NetworkConfig](providerConfig, networkConfig, m.decoder)
 	if err != nil {
 		return nil, err
 	}
@@ -187,8 +188,16 @@ func (m *mutator) getCalicoConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, prov
 		networkConfig.Backend = &defaultCalicoBackend
 	}
 
+	if networkConfig.IPv4 == nil {
+		networkConfig.IPv4 = &calicoextensionv1alpha1.IPv4{}
+	}
+
+	if networkConfig.IPv4.Mode == nil {
+		networkConfig.IPv4.Mode = &defaultCalicoPoolMode
+	}
+
 	if networkConfig.Typha == nil {
-		networkConfig.Typha = &calico.Typha{
+		networkConfig.Typha = &calicoextensionv1alpha1.Typha{
 			Enabled: defaultCalicoTyphaEnabled,
 		}
 	}
@@ -201,14 +210,14 @@ func (m *mutator) getCiliumConfig(kubeProxy *gardenv1beta1.KubeProxyConfig, prov
 		kubeProxy.Enabled = &defaultCiliumKubeProxyEnabled
 	}
 
-	networkConfig := &cilium.NetworkConfig{}
-	err := helper.DecodeRawExtension[*cilium.NetworkConfig](providerConfig, networkConfig, m.decoder)
+	networkConfig := &ciliumextensionv1alpha1.NetworkConfig{}
+	err := helper.DecodeRawExtension[*ciliumextensionv1alpha1.NetworkConfig](providerConfig, networkConfig, m.decoder)
 	if err != nil {
 		return nil, err
 	}
 
 	if networkConfig.Hubble == nil {
-		networkConfig.Hubble = &cilium.Hubble{
+		networkConfig.Hubble = &ciliumextensionv1alpha1.Hubble{
 			Enabled: defaultCiliumHubbleEnabled,
 		}
 	}
