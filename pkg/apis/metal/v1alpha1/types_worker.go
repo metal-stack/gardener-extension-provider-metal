@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,5 +15,15 @@ type WorkerStatus struct {
 	// a version that is still in use gets removed from this componentconfig it cannot reconcile anymore existing `Worker`
 	// resources that are still using this version. Hence, it stores the used versions in the provider status to ensure
 	// reconciliation is possible.
-	MachineImages []config.MachineImage `json:"machineImages,omitempty"`
+	MachineImages []MachineImage `json:"machineImages,omitempty"`
+}
+
+// MachineImage is a mapping from logical names and versions to specific identifiers.
+type MachineImage struct {
+	// Name is the logical name of the machine image.
+	Name string `json:"name"`
+	// Version is the logical version of the machine image.
+	Version string `json:"version"`
+	// Image is the path to the image.
+	Image string `json:"image"`
 }
