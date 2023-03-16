@@ -26,7 +26,6 @@ import (
 
 const (
 	defaultNetworkType         = "calico"
-	defaultSecretBindingName   = "seed-provider-secret" // nolint:gosec
 	defaultCalicoTyphaEnabled  = false
 	defaultCiliumHubbleEnabled = false
 )
