@@ -18,6 +18,7 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -74,19 +75,23 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 		return fmt.Errorf("wrong object type %T", new)
 	}
 
-	profile := &gardenv1beta1.CloudProfile{}
-	if err := m.client.Get(ctx, kutil.Key(shoot.Spec.CloudProfileName), profile); err != nil {
-		return err
-	}
-
-	return m.mutate(ctx, shoot, *profile)
-}
-
-func (m *mutator) mutate(ctx context.Context, shoot *gardenv1beta1.Shoot, profile gardenv1beta1.CloudProfile) error {
 	if shoot.Spec.CloudProfileName == "" {
 		shoot.Spec.CloudProfileName = defaultCloudProfileName
 	}
 
+	profile := &gardenv1beta1.CloudProfile{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: shoot.Spec.CloudProfileName,
+		},
+	}
+	if err := m.client.Get(ctx, kutil.Key(shoot.Spec.CloudProfileName), profile); err != nil {
+		return err
+	}
+
+	return m.mutate(shoot, *profile)
+}
+
+func (m *mutator) mutate(shoot *gardenv1beta1.Shoot, profile gardenv1beta1.CloudProfile) error {
 	if shoot.Spec.SecretBindingName == "" {
 		shoot.Spec.SecretBindingName = defaultSecretBindingName
 	}
