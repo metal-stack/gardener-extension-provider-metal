@@ -120,7 +120,7 @@ func (s *shoot) Mutate(ctx context.Context, new, old client.Object) error {
 	shoot.Spec.Provider.InfrastructureConfig = encodedInfrastructureConfig
 
 	if shoot.Spec.Networking.Type == "" {
-		shoot.Spec.Networking.Type = "calico"
+		shoot.Spec.Networking.Type = defaultNetworkType
 	}
 
 	if shoot.Spec.Kubernetes.KubeProxy == nil {
