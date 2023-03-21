@@ -142,19 +142,21 @@ func (m *mutator) mutate(shoot *gardenv1beta1.Shoot, profile gardenv1beta1.Cloud
 		shoot.Spec.Kubernetes.KubeProxy = &gardenv1beta1.KubeProxyConfig{}
 	}
 
-	switch shoot.Spec.Networking.Type {
-	case "calico":
-		updatedConfig, err := m.getCalicoConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
-		if err != nil {
-			return err
+	if shoot.Spec.Networking.ProviderConfig == nil {
+		switch shoot.Spec.Networking.Type {
+		case "calico":
+			updatedConfig, err := m.getCalicoConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
+			if err != nil {
+				return err
+			}
+			shoot.Spec.Networking.ProviderConfig = updatedConfig
+		case "cilium":
+			updatedConfig, err := m.getCiliumConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
+			if err != nil {
+				return err
+			}
+			shoot.Spec.Networking.ProviderConfig = updatedConfig
 		}
-		shoot.Spec.Networking.ProviderConfig = updatedConfig
-	case "cilium":
-		updatedConfig, err := m.getCiliumConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
-		if err != nil {
-			return err
-		}
-		shoot.Spec.Networking.ProviderConfig = updatedConfig
 	}
 
 	if shoot.Spec.Networking.Pods == nil {
