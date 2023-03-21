@@ -142,7 +142,7 @@ func (m *mutator) mutate(shoot *gardenv1beta1.Shoot, profile gardenv1beta1.Cloud
 		shoot.Spec.Kubernetes.KubeProxy = &gardenv1beta1.KubeProxyConfig{}
 	}
 
-	if shoot.Spec.Networking.ProviderConfig == nil {
+	if shoot.Spec.Networking.ProviderConfig == nil || shoot.Spec.Networking.ProviderConfig.Raw == nil || len(shoot.Spec.Networking.ProviderConfig.Raw) == 0 {
 		switch shoot.Spec.Networking.Type {
 		case "calico":
 			updatedConfig, err := m.getCalicoConfig(shoot.Spec.Kubernetes.KubeProxy, shoot.Spec.Networking.ProviderConfig)
