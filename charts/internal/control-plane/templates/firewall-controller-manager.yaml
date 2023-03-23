@@ -189,9 +189,9 @@ webhooks:
       path: /mutate-firewall-metal-stack-io-v2-firewall
   failurePolicy: Fail
   name: firewall.metal-stack.io
-  namespaceSelector:
+  objectSelector:
     matchLabels:
-      kubernetes.io/metadata.name: {{ .Release.Namespace }}
+      gardener-shoot-namespace: {{ .Release.Namespace }}
   rules:
   - apiGroups:
     - firewall.metal-stack.io
@@ -213,9 +213,9 @@ webhooks:
       path: /mutate-firewall-metal-stack-io-v2-firewallset
   failurePolicy: Fail
   name: firewallset.metal-stack.io
-  namespaceSelector:
+  objectSelector:
     matchLabels:
-      kubernetes.io/metadata.name: {{ .Release.Namespace }}
+      gardener-shoot-namespace: {{ .Release.Namespace }}
   rules:
   - apiGroups:
     - firewall.metal-stack.io
@@ -237,9 +237,9 @@ webhooks:
       path: /mutate-firewall-metal-stack-io-v2-firewalldeployment
   failurePolicy: Fail
   name: firewalldeployment.metal-stack.io
-  namespaceSelector:
+  objectSelector:
     matchLabels:
-      kubernetes.io/metadata.name: {{ .Release.Namespace }}
+      gardener-shoot-namespace: {{ .Release.Namespace }}
   rules:
   - apiGroups:
     - firewall.metal-stack.io

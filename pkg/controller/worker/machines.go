@@ -40,6 +40,10 @@ import (
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 )
 
+const (
+	MutatingWebhookObjectSelectorLabel = "gardener-shoot-namespace"
+)
+
 // MachineClassKind yields the name of the machine class.
 func (w *workerDelegate) MachineClassKind() string {
 	return "MachineClass"
@@ -532,6 +536,10 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      metal.FirewallDeploymentName,
 			Namespace: namespace,
+			Labels: map[string]string{
+				// this is the selector for the mutating webhook, without it the mutation will not happen
+				MutatingWebhookObjectSelectorLabel: cluster.ObjectMeta.Name,
+			},
 		},
 		Spec: fcmv2.FirewallDeploymentSpec{
 			Replicas: 1,
@@ -565,6 +573,7 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 
 	_, err = controllerutil.CreateOrUpdate(ctx, w.client, deploy, func() error {
 		deploy.Spec.Replicas = 1
+		deploy.Labels[MutatingWebhookObjectSelectorLabel] = cluster.ObjectMeta.Name
 
 		deploy.Spec.Template.Spec.Size = infrastructureConfig.Firewall.Size
 		deploy.Spec.Template.Spec.Image = infrastructureConfig.Firewall.Image
