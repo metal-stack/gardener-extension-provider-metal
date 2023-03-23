@@ -135,15 +135,16 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	if w.worker.DeletionTimestamp == nil {
+		name := "firewall-controller-manager-" + w.cluster.ObjectMeta.Name
 		mwc := &admissionregistrationv1.MutatingWebhookConfiguration{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "firewall-controller-manager-" + w.cluster.ObjectMeta.Namespace,
+				Name: name,
 			},
 		}
 		err := w.client.Get(ctx, client.ObjectKeyFromObject(mwc), mwc)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				return fmt.Errorf("mutating webhook configuration of firewall-controller-manager is not yet present, requeuing...")
+				return fmt.Errorf("mutating webhook configuration %q of firewall-controller-manager is not yet present, requeuing...", name)
 			}
 
 			return err
