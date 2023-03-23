@@ -564,6 +564,8 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 	}
 
 	_, err = controllerutil.CreateOrUpdate(ctx, w.client, deploy, func() error {
+		deploy.Spec.Replicas = 1
+
 		deploy.Spec.Template.Spec.Size = infrastructureConfig.Firewall.Size
 		deploy.Spec.Template.Spec.Image = infrastructureConfig.Firewall.Image
 		deploy.Spec.Template.Spec.Networks = append(infrastructureConfig.Firewall.Networks, privateNetworkID)
