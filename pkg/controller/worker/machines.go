@@ -12,6 +12,7 @@ import (
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -22,6 +23,7 @@ import (
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
@@ -133,6 +135,20 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	if w.worker.DeletionTimestamp == nil {
+		mwc := &admissionregistrationv1.MutatingWebhookConfiguration{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "firewall-controller-manager-" + w.cluster.ObjectMeta.Namespace,
+			},
+		}
+		err := w.client.Get(ctx, client.ObjectKeyFromObject(mwc), mwc)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return fmt.Errorf("mutating webhook configuration of firewall-controller-manager is not yet present, requeuing...")
+			}
+
+			return err
+		}
+
 		err = w.migrateFirewall(ctx, metalControlPlane, infrastructureConfig, w.cluster, mclient, *privateNetwork.ID)
 		if err != nil {
 			return err
@@ -517,6 +533,7 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 			Namespace: namespace,
 		},
 		Spec: fcmv2.FirewallDeploymentSpec{
+			Replicas: 1,
 			Selector: map[string]string{
 				tag.ClusterID: clusterID,
 			},
