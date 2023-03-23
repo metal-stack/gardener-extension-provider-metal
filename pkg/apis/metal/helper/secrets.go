@@ -52,7 +52,8 @@ func getLatestIssuedSecret(secrets []corev1.Secret) (*corev1.Secret, error) {
 		// we have a problem since this is the source of truth
 		issuedAt, ok := secrets[i].Labels[secretsmanager.LabelKeyIssuedAtTime]
 		if !ok {
-			return nil, fmt.Errorf("secret with no issues-at-time label: %s", secrets[i].Name)
+			// there are some old secrets from ancient gardener versions which have to be skipped... (e.g. ssh-keypair.old)
+			continue
 		}
 
 		issuedAtUnix, err := strconv.ParseInt(issuedAt, 10, 64)
@@ -65,6 +66,10 @@ func getLatestIssuedSecret(secrets []corev1.Secret) (*corev1.Secret, error) {
 			newestSecret = &secrets[i]
 			currentIssuedAtTime = issuedAtTime
 		}
+	}
+
+	if newestSecret == nil {
+		return nil, fmt.Errorf("no secret found")
 	}
 
 	return newestSecret, nil
