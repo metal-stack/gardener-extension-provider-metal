@@ -1267,7 +1267,13 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 	annotations := cluster.Shoot.GetAnnotations()
 	clusterName := annotations[tag.ClusterName]
 
-	ti := cpConfig.IAMConfig.IssuerConfig
+	issuerUrl := ""
+	issuerClientID := ""
+
+	if cpConfig.IAMConfig != nil && cpConfig.IAMConfig.IssuerConfig != nil {
+		issuerUrl = cpConfig.IAMConfig.IssuerConfig.Url
+		issuerClientID = cpConfig.IAMConfig.IssuerConfig.ClientId
+	}
 
 	values := map[string]interface{}{
 		"authnWebhook": map[string]interface{}{
@@ -1277,8 +1283,8 @@ func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluste
 			"providerTenant": config.ProviderTenant,
 			"clusterName":    clusterName,
 			"oidc": map[string]interface{}{
-				"issuerUrl":      ti.Url,
-				"issuerClientId": ti.ClientId,
+				"issuerUrl":      issuerUrl,
+				"issuerClientId": issuerClientID,
 			},
 			"metalapi": map[string]interface{}{
 				"url":            metalAccess.url,
