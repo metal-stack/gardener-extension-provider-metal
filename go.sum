@@ -180,8 +180,8 @@ github.com/gardener/etcd-druid v0.8.0 h1:mfQ89ywtbeGiH5ePmo+MrXNm7ADBuZGA1civ9Pq
 github.com/gardener/etcd-druid v0.8.0/go.mod h1:EJF6z4Ghv2FGUe1UzZWOEF1MxCA186fxvjBO44oSJX4=
 github.com/gardener/external-dns-management v0.12.5 h1:OvnupQuTZDzFSSuEKFKXx51NSEuI3gWOcZJBtCbqzSU=
 github.com/gardener/external-dns-management v0.12.5/go.mod h1:lFDmJJYumx9wOP8sP0nkucOzQ9v/cVgLJcLX90H/K50=
-github.com/gardener/gardener v1.45.0 h1:7KGKm5q7mrmqnsY3w5Jsw3zCbt1CPFMXrQkfgkT+d2g=
-github.com/gardener/gardener v1.45.0/go.mod h1:BsQ9s0Ms5rU1IAS1doVceBGj4kNBhSMQKaDB4a2ba4k=
+github.com/gardener/gardener v1.45.1 h1:uUhtNqO5QcHnLklgkS6mvrOeNX7kA2hK4WqYvNWs7f0=
+github.com/gardener/gardener v1.45.1/go.mod h1:BsQ9s0Ms5rU1IAS1doVceBGj4kNBhSMQKaDB4a2ba4k=
 github.com/gardener/hvpa-controller/api v0.4.0 h1:IwNHmqEjleDLmvSDzIcSrIcqrNI8R06PuWIzX40Yw/4=
 github.com/gardener/hvpa-controller/api v0.4.0/go.mod h1:QQl3ELkCaki+8RhXl0FZMfvnm0WCGwGJlGmrxJj6lvM=
 github.com/gardener/machine-controller-manager v0.47.0 h1:TnDvdNxYgC7FXQAHv4AXGcHEe8x1m1NFrtGWWc8uj0U=
