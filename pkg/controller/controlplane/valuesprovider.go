@@ -914,8 +914,10 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		// cluster has no firewall yet, firewall-controller-manager will create a new one
 		return &spec, nil
 	}
-	if len(firewalls) != 1 {
-		return nil, fmt.Errorf("cluster %s has %d firewalls", clusterID, len(firewalls))
+	if len(firewalls) > 1 {
+		// firewall-controller-manager supports rolling updates such that there can be more than 1 firewall
+		// for a short amount of time...
+		vp.logger.Info("firewall currently has more than one firewall, rolling update in progress?", "amount", len(firewalls))
 	}
 
 	firewall := *firewalls[0]
