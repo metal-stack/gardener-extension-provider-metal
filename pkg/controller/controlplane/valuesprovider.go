@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
@@ -928,21 +927,9 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		vp.logger.Info("firewall currently has more than one firewall, rolling update in progress?", "amount", len(firewalls))
 	}
 
-	latestFirewall := firewalls[0]
-	for _, fw := range firewalls {
-		if latestFirewall.Allocation.Created == nil || fw.Allocation.Created == nil {
-			continue
-		}
-
-		latestTime := time.Time(*latestFirewall.Allocation.Created)
-		fwTime := time.Time(*fw.Allocation.Created)
-		if latestTime.Before(fwTime) {
-			latestFirewall = fw
-		}
-	}
-
+	firewall := firewalls[0]
 	firewallNetworks := []firewallv1.FirewallNetwork{}
-	for _, n := range latestFirewall.Allocation.Networks {
+	for _, n := range firewall.Allocation.Networks {
 		if n.Networkid == nil {
 			continue
 		}
@@ -971,6 +958,32 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 			Prefixes:            prefixes,
 			Vrf:                 n.Vrf,
 		})
+	}
+
+	for _, nw := range firewallNetworks {
+		if *nw.Networktype != "external" {
+			continue
+		}
+
+		ipMap := map[string]bool{}
+
+		for _, fw := range firewalls {
+			for _, fwn := range fw.Allocation.Networks {
+				if *nw.Networkid != *fwn.Networkid {
+					continue
+				}
+
+				for _, ip := range fwn.Ips {
+					ipMap[ip] = true
+				}
+			}
+		}
+
+		var ips []string
+		for ip := range ipMap {
+			ips = append(ips, ip)
+		}
+		nw.Ips = ips
 	}
 
 	spec.FirewallNetworks = firewallNetworks
