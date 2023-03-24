@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
@@ -916,13 +917,32 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 	}
 	if len(firewalls) > 1 {
 		// firewall-controller-manager supports rolling updates such that there can be more than 1 firewall
-		// for a short amount of time...
+		// during the update process.
+		//
+		// we have to use the networks of the latest firewall to write the firewall v1 spec as otherwise
+		// the firewall-controller that reads the firewall v1 spec will remove it's ip addresses from the
+		// network interfaces.
+		//
+		// older firewalls that still run firewall-controller 1.x will break. therefore, before doing a rolling upgrade
+		// we should update the firewall-controller to > 2.x.
 		vp.logger.Info("firewall currently has more than one firewall, rolling update in progress?", "amount", len(firewalls))
 	}
 
-	firewall := *firewalls[0]
+	latestFirewall := firewalls[0]
+	for _, fw := range firewalls {
+		if latestFirewall.Allocation.Created == nil || fw.Allocation.Created == nil {
+			continue
+		}
+
+		latestTime := time.Time(*latestFirewall.Allocation.Created)
+		fwTime := time.Time(*fw.Allocation.Created)
+		if latestTime.Before(fwTime) {
+			latestFirewall = fw
+		}
+	}
+
 	firewallNetworks := []firewallv1.FirewallNetwork{}
-	for _, n := range firewall.Allocation.Networks {
+	for _, n := range latestFirewall.Allocation.Networks {
 		if n.Networkid == nil {
 			continue
 		}
