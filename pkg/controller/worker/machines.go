@@ -352,9 +352,11 @@ func (w *workerDelegate) ensureMigrationFirewall(ctx context.Context, metalContr
 		}
 
 		_, err = controllerutil.CreateOrUpdate(ctx, w.client, f, func() error {
-			f.Labels = map[string]string{
-				tag.ClusterID: clusterID,
+			if f.Labels == nil {
+				f.Labels = map[string]string{}
 			}
+			f.Labels[tag.ClusterID] = clusterID
+
 			if v, err := semver.NewVersion(fwcv.Version); err == nil && v.LessThan(semver.MustParse("v2.0.0")) {
 				f.Annotations = map[string]string{
 					fcmv2.FirewallNoControllerConnectionAnnotation: "true",
@@ -422,9 +424,11 @@ func (w *workerDelegate) toggleAnnotation(ctx context.Context, cluster *extensio
 			}
 
 			_, err = controllerutil.CreateOrUpdate(ctx, w.client, &fw, func() error {
-				fw.Annotations = map[string]string{
-					fcmv2.FirewallNoControllerConnectionAnnotation: "true",
+				if fw.Annotations == nil {
+					fw.Annotations = map[string]string{}
 				}
+				fw.Annotations[fcmv2.FirewallNoControllerConnectionAnnotation] = "true"
+
 				return nil
 			})
 
@@ -536,44 +540,35 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      metal.FirewallDeploymentName,
 			Namespace: namespace,
-			Labels: map[string]string{
-				// this is the selector for the mutating webhook, without it the mutation will not happen
-				MutatingWebhookObjectSelectorLabel: cluster.ObjectMeta.Name,
-			},
 		},
 		Spec: fcmv2.FirewallDeploymentSpec{
-			Replicas: 1,
-			Selector: map[string]string{
-				tag.ClusterID: clusterID,
-			},
 			Template: fcmv2.FirewallTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						tag.ClusterID: clusterID,
-					},
-				},
 				Spec: fcmv2.FirewallSpec{
-					Size:                    infrastructureConfig.Firewall.Size,
-					Image:                   infrastructureConfig.Firewall.Image,
-					Partition:               infrastructureConfig.PartitionID,
-					Project:                 infrastructureConfig.ProjectID,
-					Networks:                append(infrastructureConfig.Firewall.Networks, privateNetworkID),
-					RateLimits:              rateLimit(infrastructureConfig.Firewall.RateLimits),
-					InternalPrefixes:        internalPrefixes,
-					EgressRules:             egressRules(infrastructureConfig.Firewall.EgressRules),
-					ControllerVersion:       fwcv.Version,
-					ControllerURL:           fwcv.URL,
-					NftablesExporterVersion: metalControlPlane.NftablesExporter.Version,
-					NftablesExporterURL:     metalControlPlane.NftablesExporter.URL,
-					LogAcceptedConnections:  infrastructureConfig.Firewall.LogAcceptedConnections,
+					Partition: infrastructureConfig.PartitionID,
+					Project:   infrastructureConfig.ProjectID,
 				},
 			},
 		},
 	}
 
 	_, err = controllerutil.CreateOrUpdate(ctx, w.client, deploy, func() error {
-		deploy.Spec.Replicas = 1
+		if deploy.Labels == nil {
+			deploy.Labels = map[string]string{}
+		}
+		// this is the selector for the mutating webhook, without it the mutation will not happen
 		deploy.Labels[MutatingWebhookObjectSelectorLabel] = cluster.ObjectMeta.Name
+
+		deploy.Spec.Replicas = 1
+
+		// we explicitly set the selector as otherwise firewall migration does not match, which should be prevented
+		deploy.Spec.Selector = map[string]string{
+			tag.ClusterID: clusterID,
+		}
+
+		if deploy.Spec.Template.Labels == nil {
+			deploy.Spec.Template.Labels = map[string]string{}
+		}
+		deploy.Spec.Template.Labels[tag.ClusterID] = clusterID
 
 		deploy.Spec.Template.Spec.Size = infrastructureConfig.Firewall.Size
 		deploy.Spec.Template.Spec.Image = infrastructureConfig.Firewall.Image
