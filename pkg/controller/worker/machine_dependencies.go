@@ -21,16 +21,7 @@ func (w *workerDelegate) DeployMachineDependencies(_ context.Context) error {
 
 // CleanupMachineDependencies implements genericactuator.WorkerDelegate.
 func (w *workerDelegate) CleanupMachineDependencies(ctx context.Context) error {
-	worker := w.worker.DeepCopy()
-	err := w.client.Get(ctx, client.ObjectKeyFromObject(w.worker), worker)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return err
-	}
-
-	if worker.DeletionTimestamp == nil {
+	if w.worker.DeletionTimestamp == nil {
 		return nil
 	}
 
