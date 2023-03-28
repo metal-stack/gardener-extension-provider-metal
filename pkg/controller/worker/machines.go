@@ -265,7 +265,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	return nil
 }
 
-// migrateFirewall can be removed along with the deployment of the old firewall resource after all firewall are running firewall-controller >= v0.2.0
+// migrateFirewall can be removed along with the deployment of the old firewall resource after all firewalls are running firewall-controller >= v0.2.0
 func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient metalgo.Client, privateNetworkID string) error {
 	err := w.ensureMigrationFirewall(ctx, metalControlPlane, infrastructureConfig, cluster, mclient, privateNetworkID)
 	if err != nil {
