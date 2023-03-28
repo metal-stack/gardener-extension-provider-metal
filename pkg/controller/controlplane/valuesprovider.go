@@ -55,7 +55,6 @@ import (
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
-	"github.com/gardener/gardener/pkg/utils/secrets"
 
 	"github.com/go-logr/logr"
 
@@ -580,12 +579,6 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 		return nil, err
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient)
-	if err != nil {
-		vp.logger.Error(err, "Error getting shoot control plane chart values")
-		return nil, err
-	}
-
 	if !extensionscontroller.IsHibernated(cluster) {
 		if err := vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, vp.audittailerSecretConfigs); err != nil {
 			vp.logger.Error(err, "error deploying audittailer certs")
@@ -596,11 +589,17 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(
 		}
 	}
 
+	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient, secretsReader)
+	if err != nil {
+		vp.logger.Error(err, "Error getting shoot control plane chart values")
+		return nil, err
+	}
+
 	return values, nil
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client) (map[string]any, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client, secretsReader secretsmanager.Reader) (map[string]any, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
@@ -669,6 +668,15 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		})
 	}
 
+	droptailerServerSecret, found := secretsReader.Get(metal.DroptailerServerSecretName)
+	if !found {
+		return nil, fmt.Errorf("secret %q not found", metal.DroptailerServerSecretName)
+	}
+	audittailerServerSecret, found := secretsReader.Get(metal.AudittailerServerSecretName)
+	if !found {
+		return nil, fmt.Errorf("secret %q not found", metal.AudittailerServerSecretName)
+	}
+
 	values := map[string]any{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
@@ -687,8 +695,13 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
 			"destinations":           egressDestinations,
 		},
+		"droptailer": map[string]any{
+			"secretName": droptailerServerSecret.Name,
+		},
+		"audittailer": map[string]any{
+			"secretName": audittailerServerSecret.Name,
+		},
 	}
-
 	if vp.controllerConfig.Storage.Duros.Enabled {
 		partitionConfig, ok := vp.controllerConfig.Storage.Duros.PartitionConfig[infrastructureConfig.PartitionID]
 
@@ -805,7 +818,7 @@ func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace stri
 		return fmt.Errorf("could not find ca secret for signing firewall values %w", err)
 	}
 
-	privateKey, err := utils.DecodePrivateKey(secret.Data[secrets.DataKeyPrivateKeyCA])
+	privateKey, err := utils.DecodePrivateKey(secret.Data[secretutils.DataKeyPrivateKeyCA])
 	if err != nil {
 		return fmt.Errorf("could not decode private key from ca secret for signing firewall values %w", err)
 	}
@@ -840,8 +853,8 @@ func (vp *valuesProvider) audittailerSecretConfigs() []extensionssecretsmanager.
 				CommonName:                  "audittailer",
 				DNSNames:                    []string{"audittailer"},
 				Organization:                []string{"audittailer-client"},
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: true,
+				CertType:                    secretutils.ClientCert,
+				SkipPublishingCACertificate: false,
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-audittailer")},
 		},
@@ -851,8 +864,8 @@ func (vp *valuesProvider) audittailerSecretConfigs() []extensionssecretsmanager.
 				CommonName:                  "audittailer",
 				DNSNames:                    []string{"audittailer"},
 				Organization:                []string{"audittailer-server"},
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: true,
+				CertType:                    secretutils.ServerCert,
+				SkipPublishingCACertificate: false,
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-audittailer")},
 		},
@@ -875,8 +888,8 @@ func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.S
 				CommonName:                  "droptailer",
 				DNSNames:                    []string{"droptailer"},
 				Organization:                []string{"droptailer-client"},
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: true,
+				CertType:                    secretutils.ClientCert,
+				SkipPublishingCACertificate: false,
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-droptailer")},
 		},
@@ -886,8 +899,8 @@ func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.S
 				CommonName:                  "droptailer",
 				DNSNames:                    []string{"droptailer"},
 				Organization:                []string{"droptailer-server"},
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: true,
+				CertType:                    secretutils.ServerCert,
+				SkipPublishingCACertificate: false,
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-droptailer")},
 		},
