@@ -159,6 +159,13 @@ func (in *ControllerConfiguration) DeepCopyInto(out *ControllerConfiguration) {
 		*out = make([]EgressDest, len(*in))
 		copy(*out, *in)
 	}
+	if in.SeedApiServers != nil {
+		in, out := &in.SeedApiServers, &out.SeedApiServers
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 

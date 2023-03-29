@@ -1522,11 +1522,16 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(cluster *exten
 		return nil, fmt.Errorf("cluster dns domain is not yet set")
 	}
 
+	seedAPIURL := fmt.Sprintf("https://%s", os.Getenv("KUBERNETES_SERVICE_HOST"))
+	if url, ok := vp.controllerConfig.SeedApiServers[cluster.Shoot.Name]; ok {
+		seedAPIURL = url
+	}
+
 	return map[string]any{
 		"firewallControllerManager": map[string]any{
 			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
 			"clusterID":        string(cluster.Shoot.GetUID()),
-			"seedApiURL":       fmt.Sprintf("https://%s", os.Getenv("KUBERNETES_SERVICE_HOST")),
+			"seedApiURL":       seedAPIURL,
 			"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
 			"sshKeySecretName": sshSecret.Name,
 			"metalapi": map[string]any{

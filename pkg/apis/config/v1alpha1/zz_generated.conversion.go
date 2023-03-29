@@ -391,6 +391,7 @@ func autoConvert_v1alpha1_ControllerConfiguration_To_config_ControllerConfigurat
 	}
 	out.ImagePullSecret = (*config.ImagePullSecret)(unsafe.Pointer(in.ImagePullSecret))
 	out.EgressDestinations = *(*[]config.EgressDest)(unsafe.Pointer(&in.EgressDestinations))
+	out.SeedApiServers = *(*map[string]string)(unsafe.Pointer(&in.SeedApiServers))
 	return nil
 }
 
@@ -422,6 +423,7 @@ func autoConvert_config_ControllerConfiguration_To_v1alpha1_ControllerConfigurat
 	}
 	out.ImagePullSecret = (*ImagePullSecret)(unsafe.Pointer(in.ImagePullSecret))
 	out.EgressDestinations = *(*[]EgressDest)(unsafe.Pointer(&in.EgressDestinations))
+	out.SeedApiServers = *(*map[string]string)(unsafe.Pointer(&in.SeedApiServers))
 	return nil
 }
 

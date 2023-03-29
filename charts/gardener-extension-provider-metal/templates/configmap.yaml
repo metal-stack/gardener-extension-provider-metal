@@ -32,6 +32,10 @@ data:
       backup:
         schedule: {{ .Values.config.etcd.backup.schedule }}
         deltaSnapshotPeriod: {{ .Values.config.etcd.backup.deltaSnapshotPeriod }}
+{{- if .Values.config.seedApiServers }}
+    seedApiServers:
+{{ toYaml .Values.config.seedApiServers | indent 6 }}
+{{- end }}
     clusterAudit:
       enabled: {{ .Values.config.clusterAudit.enabled }}
     auditToSplunk:
