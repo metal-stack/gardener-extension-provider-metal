@@ -50,7 +50,6 @@ config:
     backup:
       schedule:
       deltaSnapshotPeriod:
-  seedApiServers:
   accountingExporter:
     enabled: false
     networkTraffic:

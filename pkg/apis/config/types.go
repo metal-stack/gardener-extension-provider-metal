@@ -60,10 +60,6 @@ type ControllerConfiguration struct {
 	//
 	// It is intended to be configured at least with container registries for the cluster.
 	EgressDestinations []EgressDest
-
-	// SeedApiServers is a map that contains the seed's API server endpoints by shoot name.
-	// This is an override in case the KUBERNETES_SERVICE_HOST points to an internal ip address only.
-	SeedApiServers map[string]string
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.

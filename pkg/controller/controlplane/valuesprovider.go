@@ -644,7 +644,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	firewallValues, err := vp.getFirewallControllerManagerChartValues(cluster, metalControlPlane, sshSecret, caBundle)
+	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, metalControlPlane, sshSecret, caBundle)
 	if err != nil {
 		return nil, err
 	}
@@ -1517,21 +1517,45 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallControllerManagerChartValues(cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, sshSecret, caBundle *corev1.Secret) (map[string]any, error) {
+func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Context, cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, sshSecret, caBundle *corev1.Secret) (map[string]any, error) {
 	if cluster.Shoot.Spec.DNS.Domain == nil {
 		return nil, fmt.Errorf("cluster dns domain is not yet set")
 	}
 
-	seedAPIURL := fmt.Sprintf("https://%s", os.Getenv("KUBERNETES_SERVICE_HOST"))
-	if url, ok := vp.controllerConfig.SeedApiServers[cluster.Shoot.Name]; ok {
-		seedAPIURL = url
+	seedApiURL := fmt.Sprintf("https://%s", os.Getenv("KUBERNETES_SERVICE_HOST"))
+
+	// for gardener-managed clusters the KUBERNETES_SERVICE_HOST env variable
+	// points to the kube-apiserver hosted in the seed's shoot namespace, which
+	// is publically reachable and works just fine.
+	//
+	// for non-gardener-managed clusters (e.g. shoots running in GKE), the
+	// KUBERNETES_SERVICE_HOST environment variable may point to an internal
+	// cluster ip, which is not reachable from the internet. the firewall-controller
+	// has to reach the kube-apiserver though. in these cases, a config map
+	// can be provided in this seed's garden namespace to provide the external
+	// ip address of the kube-apiserver.
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "seed-api-server",
+			Namespace: "garden",
+		},
+	}
+	err := vp.Client().Get(ctx, client.ObjectKeyFromObject(cm), cm)
+	if err == nil {
+		url, ok := cm.Data["url"]
+		if ok {
+			seedApiURL = url
+		}
+	}
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, err
 	}
 
 	return map[string]any{
 		"firewallControllerManager": map[string]any{
 			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
 			"clusterID":        string(cluster.Shoot.GetUID()),
-			"seedApiURL":       seedAPIURL,
+			"seedApiURL":       seedApiURL,
 			"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
 			"sshKeySecretName": sshSecret.Name,
 			"metalapi": map[string]any{
