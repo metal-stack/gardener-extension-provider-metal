@@ -489,9 +489,11 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 	auditToSplunkValues["clusterName"] = cluster.ObjectMeta.Name
 
 	if !extensionscontroller.IsHibernated(cluster) {
-		values["auditToSplunk"], err = vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
+		customValues, err := vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
 		if err != nil {
 			vp.logger.Error(err, "could not read custom splunk values")
+		} else {
+			values["auditToSplunk"] = customValues
 		}
 	}
 
