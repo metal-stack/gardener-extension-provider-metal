@@ -1553,7 +1553,9 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 
 	return map[string]any{
 		"firewallControllerManager": map[string]any{
-			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
+			"replicas": 1,
+			// the controller has to run even during hibernation to be able to further maintain the firewall, which we explicitly want to keep on hibernation
+			// "replicas":         extensionscontroller.GetReplicas(cluster, 1),
 			"clusterID":        string(cluster.Shoot.GetUID()),
 			"seedApiURL":       seedApiURL,
 			"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
