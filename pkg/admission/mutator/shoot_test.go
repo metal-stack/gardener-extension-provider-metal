@@ -77,121 +77,12 @@ func Test_mutator_mutate(t *testing.T) {
 			},
 		},
 		{
-			name: "empty spec with cilium",
-			spec: spec{
-				networkingType: "cilium",
-			},
-			wantErr: false,
-			want: want{
-				spec: spec{
-					kubernetes: gardenv1beta1.Kubernetes{
-						AllowPrivilegedContainers: &defaultAllowedPrivilegedContainers,
-						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: &defaultNodeCIDRMaskSize,
-						},
-						Kubelet: &gardenv1beta1.KubeletConfig{
-							MaxPods: &defaultMaxPods,
-						},
-						KubeProxy: &gardenv1beta1.KubeProxyConfig{
-							Enabled: &defaultCiliumKubeProxyEnabled,
-						},
-					},
-					networkingType:     "cilium",
-					networkingPods:     defaultPodsCIDR,
-					networkingServices: defaultServicesCIDR,
-					infrastructureConfig: metalv1alpha1.InfrastructureConfig{
-						Firewall: metalv1alpha1.Firewall{
-							Image: "firewall-2.0.20210207",
-							Size:  "n1-medium-x86",
-						},
-					},
-				},
-				ciliumConfig: &ciliumextensionv1alpha1.NetworkConfig{
-					Hubble: &ciliumextensionv1alpha1.Hubble{
-						Enabled: defaultCiliumHubbleEnabled,
-					},
-					PSPEnabled: &defaultCiliumPSPEnabled,
-					TunnelMode: &defaultCiliumTunnel,
-				},
-			},
-		},
-		{
-			name: "calico; no defaults needed",
+			name: "complete spec",
 			spec: spec{
 				kubernetes: gardenv1beta1.Kubernetes{
 					AllowPrivilegedContainers: pointer.Bool(false),
 					KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-						NodeCIDRMaskSize: pointer.Int32(22),
-					},
-					Kubelet: &gardenv1beta1.KubeletConfig{
-						MaxPods: pointer.Int32(200),
-					},
-					KubeProxy: &gardenv1beta1.KubeProxyConfig{
-						Enabled: pointer.Bool(false),
-					},
-				},
-				networkingType:     defaultNetworkType,
-				networkingPods:     "10.240.1.0/13",
-				networkingServices: "10.248.1.0/18",
-				infrastructureConfig: metalv1alpha1.InfrastructureConfig{
-					Firewall: metalv1alpha1.Firewall{
-						Image: "firewall-ubuntu-2.0.20201214",
-						Size:  "n1-medium-x86",
-					},
-				},
-			},
-			calicoConfig: &calicoextensionv1alpha1.NetworkConfig{
-				Backend: &defaultCalicoBackend,
-				IPv4: &calicoextensionv1alpha1.IPv4{
-					Mode: &defaultCalicoPoolMode,
-				},
-				Typha: &calicoextensionv1alpha1.Typha{
-					Enabled: *pointer.Bool(true),
-				},
-			},
-			wantErr: false,
-			want: want{
-				spec: spec{
-					kubernetes: gardenv1beta1.Kubernetes{
-						AllowPrivilegedContainers: pointer.Bool(false),
-						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: pointer.Int32(22),
-						},
-						Kubelet: &gardenv1beta1.KubeletConfig{
-							MaxPods: pointer.Int32(200),
-						},
-						KubeProxy: &gardenv1beta1.KubeProxyConfig{
-							Enabled: pointer.Bool(false),
-						},
-					},
-					networkingType:     defaultNetworkType,
-					networkingPods:     "10.240.1.0/13",
-					networkingServices: "10.248.1.0/18",
-					infrastructureConfig: metalv1alpha1.InfrastructureConfig{
-						Firewall: metalv1alpha1.Firewall{
-							Image: "firewall-ubuntu-2.0.20201214",
-							Size:  "n1-medium-x86",
-						},
-					},
-				},
-				calicoConfig: &calicoextensionv1alpha1.NetworkConfig{
-					Backend: &defaultCalicoBackend,
-					IPv4: &calicoextensionv1alpha1.IPv4{
-						Mode: &defaultCalicoPoolMode,
-					},
-					Typha: &calicoextensionv1alpha1.Typha{
-						Enabled: *pointer.Bool(true),
-					},
-				},
-			},
-		},
-		{
-			name: "cilium; no defaults needed",
-			spec: spec{
-				kubernetes: gardenv1beta1.Kubernetes{
-					AllowPrivilegedContainers: pointer.Bool(false),
-					KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-						NodeCIDRMaskSize: pointer.Int32(22),
+						NodeCIDRMaskSize: pointer.Int32(24),
 					},
 					Kubelet: &gardenv1beta1.KubeletConfig{
 						MaxPods: pointer.Int32(200),
@@ -201,11 +92,11 @@ func Test_mutator_mutate(t *testing.T) {
 					},
 				},
 				networkingType:     "cilium",
-				networkingPods:     "10.240.1.0/13",
-				networkingServices: "10.248.1.0/18",
+				networkingPods:     "10.240.0.0/14",
+				networkingServices: "10.248.0.0/19",
 				infrastructureConfig: metalv1alpha1.InfrastructureConfig{
 					Firewall: metalv1alpha1.Firewall{
-						Image: "firewall-ubuntu-2.0.20201214",
+						Image: "firewall-ubuntu-2.0.19700101",
 						Size:  "n1-medium-x86",
 					},
 				},
@@ -223,7 +114,7 @@ func Test_mutator_mutate(t *testing.T) {
 					kubernetes: gardenv1beta1.Kubernetes{
 						AllowPrivilegedContainers: pointer.Bool(false),
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: pointer.Int32(22),
+							NodeCIDRMaskSize: pointer.Int32(24),
 						},
 						Kubelet: &gardenv1beta1.KubeletConfig{
 							MaxPods: pointer.Int32(200),
@@ -233,11 +124,11 @@ func Test_mutator_mutate(t *testing.T) {
 						},
 					},
 					networkingType:     "cilium",
-					networkingPods:     "10.240.1.0/13",
-					networkingServices: "10.248.1.0/18",
+					networkingPods:     "10.240.0.0/14",
+					networkingServices: "10.248.0.0/19",
 					infrastructureConfig: metalv1alpha1.InfrastructureConfig{
 						Firewall: metalv1alpha1.Firewall{
-							Image: "firewall-ubuntu-2.0.20201214",
+							Image: "firewall-ubuntu-2.0.19700101",
 							Size:  "n1-medium-x86",
 						},
 					},
@@ -248,6 +139,113 @@ func Test_mutator_mutate(t *testing.T) {
 					},
 					PSPEnabled: pointer.Bool(false),
 					TunnelMode: &defaultCiliumTunnel,
+				},
+			},
+		},
+		{
+			name: "missing fields in provider config remain empty",
+			spec: spec{
+				kubernetes: gardenv1beta1.Kubernetes{
+					AllowPrivilegedContainers: pointer.Bool(false),
+					KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
+						NodeCIDRMaskSize: pointer.Int32(24),
+					},
+					Kubelet: &gardenv1beta1.KubeletConfig{
+						MaxPods: pointer.Int32(200),
+					},
+				},
+				networkingType:     "calico",
+				networkingPods:     "10.240.0.0/14",
+				networkingServices: "10.248.0.0/19",
+				infrastructureConfig: metalv1alpha1.InfrastructureConfig{
+					Firewall: metalv1alpha1.Firewall{
+						Image: "firewall-ubuntu-2.0.19700101",
+						Size:  "n1-medium-x86",
+					},
+				},
+			},
+			calicoConfig: &calicoextensionv1alpha1.NetworkConfig{},
+			wantErr:      false,
+			want: want{
+				spec: spec{
+					kubernetes: gardenv1beta1.Kubernetes{
+						AllowPrivilegedContainers: pointer.Bool(false),
+						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
+							NodeCIDRMaskSize: pointer.Int32(24),
+						},
+						Kubelet: &gardenv1beta1.KubeletConfig{
+							MaxPods: pointer.Int32(200),
+						},
+						KubeProxy: &gardenv1beta1.KubeProxyConfig{},
+					},
+					networkingType:     "calico",
+					networkingPods:     "10.240.0.0/14",
+					networkingServices: "10.248.0.0/19",
+					infrastructureConfig: metalv1alpha1.InfrastructureConfig{
+						Firewall: metalv1alpha1.Firewall{
+							Image: "firewall-ubuntu-2.0.19700101",
+							Size:  "n1-medium-x86",
+						},
+					},
+				},
+				calicoConfig: &calicoextensionv1alpha1.NetworkConfig{},
+			},
+		},
+		{
+			name: "empty provider config will be defaulted",
+			spec: spec{
+				kubernetes: gardenv1beta1.Kubernetes{
+					AllowPrivilegedContainers: pointer.Bool(false),
+					KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
+						NodeCIDRMaskSize: pointer.Int32(24),
+					},
+					Kubelet: &gardenv1beta1.KubeletConfig{
+						MaxPods: pointer.Int32(200),
+					},
+				},
+				networkingType:     "calico",
+				networkingPods:     "10.240.0.0/14",
+				networkingServices: "10.248.0.0/19",
+				infrastructureConfig: metalv1alpha1.InfrastructureConfig{
+					Firewall: metalv1alpha1.Firewall{
+						Image: "firewall-ubuntu-2.0.19700101",
+						Size:  "n1-medium-x86",
+					},
+				},
+			},
+			wantErr: false,
+			want: want{
+				spec: spec{
+					kubernetes: gardenv1beta1.Kubernetes{
+						AllowPrivilegedContainers: pointer.Bool(false),
+						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
+							NodeCIDRMaskSize: pointer.Int32(24),
+						},
+						Kubelet: &gardenv1beta1.KubeletConfig{
+							MaxPods: pointer.Int32(200),
+						},
+						KubeProxy: &gardenv1beta1.KubeProxyConfig{
+							Enabled: &defaultCalicoKubeProxyEnabled,
+						},
+					},
+					networkingType:     "calico",
+					networkingPods:     "10.240.0.0/14",
+					networkingServices: "10.248.0.0/19",
+					infrastructureConfig: metalv1alpha1.InfrastructureConfig{
+						Firewall: metalv1alpha1.Firewall{
+							Image: "firewall-ubuntu-2.0.19700101",
+							Size:  "n1-medium-x86",
+						},
+					},
+				},
+				calicoConfig: &calicoextensionv1alpha1.NetworkConfig{
+					Backend: &defaultCalicoBackend,
+					IPv4: &calicoextensionv1alpha1.IPv4{
+						Mode: &defaultCalicoPoolMode,
+					},
+					Typha: &calicoextensionv1alpha1.Typha{
+						Enabled: defaultCalicoTyphaEnabled,
+					},
 				},
 			},
 		},
