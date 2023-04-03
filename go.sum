@@ -513,8 +513,8 @@ github.com/metal-stack/duros-controller v0.6.0 h1:dE4hZKP5q3rln0loJfmsIx9ZHKu1xx
 github.com/metal-stack/duros-controller v0.6.0/go.mod h1:gl/8u9vaY8HeXr20v786dPq+xKyNFXqpbLdLvZWIg2k=
 github.com/metal-stack/firewall-controller v1.1.5 h1:ZULu9mwuHjg73340r3NoxO/KbqKO0EmOMs1hLrFLhM8=
 github.com/metal-stack/firewall-controller v1.1.5/go.mod h1:9YjltTPEXjH1Uo+IKwP6DEEryzxHlIvXOifiiRcTtU0=
-github.com/metal-stack/firewall-controller-manager v0.1.3 h1:VccXGmC8LCHb1KIdub1uamLp5Bh6IeYY8b7E07cJDjQ=
-github.com/metal-stack/firewall-controller-manager v0.1.3/go.mod h1:c9nqld8Fx2SZGQuEWO/7xVjLcfQVT7XfRjT86V8Mj+o=
+github.com/metal-stack/firewall-controller-manager v0.1.5 h1:KPSWdyZVO4dRS3fu62Tnc1+WTgh02UjRjbZ8LOhPwWA=
+github.com/metal-stack/firewall-controller-manager v0.1.5/go.mod h1:c9nqld8Fx2SZGQuEWO/7xVjLcfQVT7XfRjT86V8Mj+o=
 github.com/metal-stack/machine-controller-manager-provider-metal v0.1.13 h1:qfSvrkudwydRouGF+R1FO4cVCEwsCUBjLH9JVDkg1BY=
 github.com/metal-stack/machine-controller-manager-provider-metal v0.1.13/go.mod h1:0AoHiLFZDTbmVYpAQrdfB1D1/Z/yijF0IuhiGMXfrMg=
 github.com/metal-stack/metal-go v0.22.3 h1:bCkMG4EHvqBFr0u1CeZfMzzK4UnbT55B7DE1ICUHGNU=
