@@ -1,6 +1,6 @@
 module github.com/metal-stack/gardener-extension-provider-metal
 
-go 1.20
+go 1.19
 
 require (
 	github.com/Masterminds/semver v1.5.0
