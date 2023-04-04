@@ -1548,9 +1548,11 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 
 	return map[string]any{
 		"firewallControllerManager": map[string]any{
-			"replicas": 1,
-			// the controller has to run even during hibernation to be able to further maintain the firewall, which we explicitly want to keep on hibernation
-			// "replicas":         extensionscontroller.GetReplicas(cluster, 1),
+			// We want to throw the firewall away once the cluster is hibernated.
+			// when woken up, a new firewall is created with new token, ssh key etc.
+			// This will break the firewall-only case actually only used in our test env.
+			// TODO: deletion of the firewall is not yet implemented.
+			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
 			"clusterID":        string(cluster.Shoot.GetUID()),
 			"seedApiURL":       seedApiURL,
 			"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
