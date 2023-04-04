@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/client/project"
@@ -930,18 +932,9 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		vp.logger.Info("firewall currently has more than one firewall, rolling update in progress?", "amount", len(firewalls))
 	}
 
-	latestFirewall := firewalls[0]
-	for _, fw := range firewalls {
-		if latestFirewall.Allocation.Created == nil || fw.Allocation.Created == nil {
-			continue
-		}
+	slices.SortFunc(firewalls, firewallLessFunc)
 
-		latestTime := time.Time(*latestFirewall.Allocation.Created)
-		fwTime := time.Time(*fw.Allocation.Created)
-		if latestTime.Before(fwTime) {
-			latestFirewall = fw
-		}
-	}
+	latestFirewall := firewalls[0]
 
 	firewallNetworks := []firewallv1.FirewallNetwork{}
 	for _, n := range latestFirewall.Allocation.Networks {
@@ -1600,4 +1593,18 @@ func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
 	_ *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 	return map[string]interface{}{}, nil
+}
+
+func firewallLessFunc(a, b *models.V1FirewallResponse) bool {
+	if b.Allocation == nil || b.Allocation.Created == nil {
+		return true
+	}
+	if a.Allocation == nil || a.Allocation.Created == nil {
+		return false
+	}
+
+	atime := time.Time(*a.Allocation.Created)
+	btime := time.Time(*b.Allocation.Created)
+
+	return atime.Before(btime)
 }
