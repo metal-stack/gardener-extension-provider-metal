@@ -1,0 +1,350 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups:
+  - firewall.metal-stack.io
+  resources:
+  - firewalls
+  - firewalls/status
+  - firewallsets
+  - firewallsets/status
+  - firewalldeployments
+  - firewalldeployments/status
+  verbs:
+  - '*'
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - create
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - create
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: firewall-controller-manager
+subjects:
+- kind: ServiceAccount
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: firewall-controller-manager
+spec:
+  selector:
+    matchLabels:
+      app: firewall-controller-manager
+  replicas: {{ .Values.firewallControllerManager.replicas }}
+  template:
+    metadata:
+      labels:
+        app: firewall-controller-manager
+{{- if .Values.podAnnotations }}
+      annotations:
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
+    spec:
+      serviceAccountName: firewall-controller-manager
+      containers:
+      - name: firewall-controller-manager
+        image: {{ index .Values.images "firewall-controller-manager" }}
+        imagePullPolicy: IfNotPresent
+        args:
+          - -cert-dir=/certs
+          - -log-level=info
+          - -seed-api-url={{ .Values.firewallControllerManager.seedApiURL }}
+          - -shoot-api-url={{ .Values.firewallControllerManager.shootApiURL }}
+          - -cluster-id={{ .Values.firewallControllerManager.clusterID }}
+          - -enable-leader-election
+          - -metal-api-url={{ .Values.firewallControllerManager.metalapi.url }}
+          - -namespace={{ .Release.Namespace }}
+          - -shoot-kubeconfig-secret-name={{ .Values.genericTokenKubeconfigSecretName }}
+          - -shoot-token-secret-name=shoot-access-firewall-controller-manager
+          - -ssh-key-secret-name={{ .Values.firewallControllerManager.sshKeySecretName }}
+          - -shoot-token-path=/token
+        env:
+          - name: METAL_AUTH_HMAC
+            valueFrom:
+              secretKeyRef:
+                name: cloudprovider
+                key: metalAPIHMac
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: "/certs"
+          readOnly: true
+        - name: token-dir
+          mountPath: "/token"
+        resources:
+          limits:
+            cpu: 400m
+            memory: 400Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: firewall-controller-manager
+          items:
+          - key: firewall-controller-manager.crt
+            path: tls.crt
+          - key: firewall-controller-manager.key
+            path: tls.key
+      - name: token-dir
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: firewall-controller-manager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: firewall-controller-manager
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: webhooks
+    port: 9443
+    protocol: TCP
+  - name: metrics
+    port: 2112
+    protocol: TCP
+  selector:
+    app: firewall-controller-manager
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: firewall-controller-manager-{{ .Release.Namespace }}
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: {{ .Release.Namespace }}
+      port: 9443
+      path: /mutate-firewall-metal-stack-io-v2-firewall
+  failurePolicy: Fail
+  name: firewall.metal-stack.io
+  objectSelector:
+    matchLabels:
+      gardener-shoot-namespace: {{ .Release.Namespace }}
+  rules:
+  - apiGroups:
+    - firewall.metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    resources:
+    - firewalls
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: {{ .Release.Namespace }}
+      port: 9443
+      path: /mutate-firewall-metal-stack-io-v2-firewallset
+  failurePolicy: Fail
+  name: firewallset.metal-stack.io
+  objectSelector:
+    matchLabels:
+      gardener-shoot-namespace: {{ .Release.Namespace }}
+  rules:
+  - apiGroups:
+    - firewall.metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    resources:
+    - firewallsets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: {{ .Release.Namespace }}
+      port: 9443
+      path: /mutate-firewall-metal-stack-io-v2-firewalldeployment
+  failurePolicy: Fail
+  name: firewalldeployment.metal-stack.io
+  objectSelector:
+    matchLabels:
+      gardener-shoot-namespace: {{ .Release.Namespace }}
+  rules:
+  - apiGroups:
+    - firewall.metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    resources:
+    - firewalldeployments
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: firewall-controller-manager-{{ .Release.Namespace }}
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: {{ .Release.Namespace }}
+      port: 9443
+      path: /validate-firewall-metal-stack-io-v2-firewall
+  failurePolicy: Fail
+  name: firewall.metal-stack.io
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: {{ .Release.Namespace }}
+  rules:
+  - apiGroups:
+    - firewall.metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - firewalls
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: {{ .Release.Namespace }}
+      port: 9443
+      path: /validate-firewall-metal-stack-io-v2-firewallset
+  failurePolicy: Fail
+  name: firewallset.metal-stack.io
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: {{ .Release.Namespace }}
+  rules:
+  - apiGroups:
+    - firewall.metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - firewallsets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    caBundle: {{ required ".Values.firewallControllerManager.caBundle is required" .Values.firewallControllerManager.caBundle | b64enc }}
+    service:
+      name: firewall-controller-manager
+      namespace: {{ .Release.Namespace }}
+      port: 9443
+      path: /validate-firewall-metal-stack-io-v2-firewalldeployment
+  failurePolicy: Fail
+  name: firewalldeployment.metal-stack.io
+  namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: {{ .Release.Namespace }}
+  rules:
+  - apiGroups:
+    - firewall.metal-stack.io
+    apiVersions:
+    - v2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - firewalldeployments
+  sideEffects: None
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+  name: allow-to-firewall-controller-manager-webhook
+  namespace: {{ .Release.Namespace }}
+spec:
+  ingress:
+  - ports:
+    - port: 9443
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: firewall-controller-manager
+  policyTypes:
+  - Ingress

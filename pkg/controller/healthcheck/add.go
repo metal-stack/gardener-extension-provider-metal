@@ -1,6 +1,7 @@
 package healthcheck
 
 import (
+	"context"
 	"time"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
@@ -43,13 +44,13 @@ type AddOptions struct {
 
 // RegisterHealthChecks registers health checks for each extension resource
 func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
-	accountingPreCheck := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
+	accountingPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.AccountingExporter.Enabled
 	}
-	authPreCheck := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
+	authPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.Auth.Enabled
 	}
-	durosPreCheck := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
+	durosPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.Storage.Duros.Enabled
 	}
 
@@ -96,7 +97,7 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 			},
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
-				HealthCheck:   CheckFirewall(metal.FirewallResourceName),
+				HealthCheck:   CheckFirewall(),
 			},
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),

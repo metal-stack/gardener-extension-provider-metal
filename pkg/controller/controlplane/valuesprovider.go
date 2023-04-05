@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"golang.org/x/exp/slices"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
@@ -33,11 +37,13 @@ import (
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -45,6 +51,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
@@ -74,6 +81,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 	SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
 		return []secrets.ConfigInterface{
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.CloudControllerManagerDeploymentName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.CloudControllerManagerDeploymentName,
 					CommonName:   "system:cloud-controller-manager",
@@ -89,6 +97,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.DurosControllerDeploymentName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.DurosControllerDeploymentName,
 					CommonName:   "system:duros-controller",
@@ -105,6 +114,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.AudittailerClientSecretName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.AudittailerClientSecretName,
 					CommonName:   "audittailer",
@@ -121,6 +131,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.GroupRolebindingControllerName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.GroupRolebindingControllerName,
 					CommonName:   "system:group-rolebinding-controller",
@@ -136,6 +147,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.AuthNWebhookServerName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.AuthNWebhookServerName,
 					CommonName: metal.AuthNWebhookDeploymentName,
@@ -145,6 +157,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.AccountingExporterName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.AccountingExporterName,
 					CommonName: "system:accounting-exporter",
@@ -161,6 +174,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
+				Name: metal.CloudControllerManagerServerName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.CloudControllerManagerServerName,
 					CommonName: metal.CloudControllerManagerDeploymentName,
@@ -169,8 +183,24 @@ var controlPlaneSecrets = &secrets.Secrets{
 					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
 				},
 			},
+			&secrets.ControlPlaneSecretConfig{
+				Name: metal.FirewallControllerManagerDeploymentName,
+				CertificateSecretConfig: &secrets.CertificateSecretConfig{
+					Name:       metal.FirewallControllerManagerDeploymentName,
+					CommonName: metal.FirewallControllerManagerDeploymentName,
+					DNSNames:   kutil.DNSNamesForService(metal.FirewallControllerManagerDeploymentName, clusterName),
+					CertType:   secrets.ServerCert,
+					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
+				},
+			},
 		}
 	},
+}
+
+func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
+	return []*gutil.ShootAccessSecret{
+		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
+	}
 }
 
 var configChart = &chart.Chart{
@@ -183,7 +213,7 @@ var configChart = &chart.Chart{
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName},
+	Images: []string{metal.CCMImageName, metal.FirewallControllerManagerDeploymentName},
 	Objects: []*chart.Object{
 		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
@@ -236,6 +266,16 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-controller"},
 		{Type: &firewallv1.Firewall{}, Name: "firewall"},
+
+		// firewall controller manager
+		{Type: &corev1.ServiceAccount{}, Name: "firewall-controller-manager"},
+		{Type: &rbacv1.Role{}, Name: "firewall-controller-manager"},
+		{Type: &rbacv1.RoleBinding{}, Name: "firewall-controller-manager"},
+		{Type: &appsv1.Deployment{}, Name: "firewall-controller-manager"},
+		{Type: &corev1.Service{}, Name: "firewall-controller-manager"},
+		{Type: &admissionregistrationv1.MutatingWebhookConfiguration{}, Name: "firewall-controller-manager-namespace"},
+		{Type: &admissionregistrationv1.ValidatingWebhookConfiguration{}, Name: "firewall-controller-manager-namespace"},
+		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-firewall-controller-manager-webhook"},
 
 		// firewall policy controller TODO can be removed in a future version
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
@@ -451,9 +491,11 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 	auditToSplunkValues["clusterName"] = cluster.ObjectMeta.Name
 
 	if !extensionscontroller.IsHibernated(cluster) {
-		values["auditToSplunk"], err = vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
+		customValues, err := vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
 		if err != nil {
 			vp.logger.Error(err, "could not read custom splunk values")
+		} else {
+			values["auditToSplunk"] = customValues
 		}
 	}
 
@@ -572,7 +614,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not retrieve project from metal-api %w", err)
 	}
 
-	chartValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
+	ccmValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -596,13 +638,35 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	merge(chartValues, authValues, accValues, storageValues)
-
-	if vp.controllerConfig.ImagePullSecret != nil {
-		chartValues["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
+	sshSecret, err := helper.GetLatestSSHSecret(ctx, vp.Client(), cp.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	return chartValues, nil
+	caBundle, err := helper.GetLatestCABundle(ctx, vp.Client(), cp.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
+	}
+
+	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, metalControlPlane, sshSecret, caBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	values := map[string]any{
+		"podAnnotations": map[string]interface{}{
+			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
+			"checksum/secret-cloudprovider":                                    checksums[v1alpha1constants.SecretNameCloudProvider],
+		},
+	}
+
+	merge(values, ccmValues, authValues, accValues, storageValues, firewallValues)
+
+	if vp.controllerConfig.ImagePullSecret != nil {
+		values["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
+	}
+
+	return values, nil
 }
 
 // merge all source maps in the target map
@@ -799,6 +863,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	return values, nil
 }
 
+// getFirewallSpec returns the firewall v1 specification to be deployed to the shoot cluster.
+// this is kept for backwards-compatibility to support firewall-controller v1.x, can be removed as soon as all firewall-controllers are migrated to v2.x
 func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient metalgo.Client) (*firewallv1.FirewallSpec, error) {
 	internalPrefixes := []string{}
 	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
@@ -821,24 +887,57 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		})
 	}
 
-	logAcceptedConnections := false
-	if infrastructureConfig.Firewall.LogAcceptedConnections {
-		logAcceptedConnections = true
+	spec := firewallv1.FirewallSpec{
+		Data: firewallv1.Data{
+			Interval:         "10s",
+			InternalPrefixes: internalPrefixes,
+			RateLimits:       rateLimits,
+			EgressRules:      egressRules,
+		},
+		LogAcceptedConnections: infrastructureConfig.Firewall.LogAcceptedConnections,
 	}
 
-	clusterID := string(cluster.Shoot.GetUID())
-	projectID := infrastructureConfig.ProjectID
+	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	spec.ControllerVersion = fwcv.Version
+	spec.ControllerURL = fwcv.URL
+
+	var (
+		clusterID = string(cluster.Shoot.GetUID())
+		projectID = infrastructureConfig.ProjectID
+	)
+
 	firewalls, err := metalclient.FindClusterFirewalls(ctx, mclient, clusterTag(clusterID), projectID)
 	if err != nil {
 		return nil, fmt.Errorf("could not find firewall for cluster %w", err)
 	}
-	if len(firewalls) != 1 {
-		return nil, fmt.Errorf("cluster %s has %d firewalls", clusterID, len(firewalls))
+
+	if len(firewalls) == 0 {
+		// cluster has no firewall yet, firewall-controller-manager will create a new one
+		return &spec, nil
+	}
+	if len(firewalls) > 1 {
+		// firewall-controller-manager supports rolling updates such that there can be more than 1 firewall
+		// during the update process.
+		//
+		// we have to use the networks of the latest firewall to write the firewall v1 spec as otherwise
+		// the firewall-controller that reads the firewall v1 spec will remove it's ip addresses from the
+		// network interfaces.
+		//
+		// older firewalls that still run firewall-controller 1.x will break. therefore, before doing a rolling upgrade
+		// we should update the firewall-controller to > 2.x.
+		vp.logger.Info("firewall currently has more than one firewall, rolling update in progress?", "amount", len(firewalls))
 	}
 
-	firewall := *firewalls[0]
+	slices.SortFunc(firewalls, firewallLessFunc)
+
+	latestFirewall := firewalls[0]
+
 	firewallNetworks := []firewallv1.FirewallNetwork{}
-	for _, n := range firewall.Allocation.Networks {
+	for _, n := range latestFirewall.Allocation.Networks {
 		if n.Networkid == nil {
 			continue
 		}
@@ -869,24 +968,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		})
 	}
 
-	spec := firewallv1.FirewallSpec{
-		Data: firewallv1.Data{
-			Interval:         "10s",
-			FirewallNetworks: firewallNetworks,
-			InternalPrefixes: internalPrefixes,
-			RateLimits:       rateLimits,
-			EgressRules:      egressRules,
-		},
-		LogAcceptedConnections: logAcceptedConnections,
-	}
-
-	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	spec.ControllerVersion = fwcv.Version
-	spec.ControllerURL = fwcv.URL
+	spec.FirewallNetworks = firewallNetworks
 
 	return &spec, nil
 }
@@ -928,6 +1010,7 @@ func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Co
 		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
 			return []secrets.ConfigInterface{
 				&secrets.ControlPlaneSecretConfig{
+					Name: metal.AudittailerClientSecretName,
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.AudittailerClientSecretName,
 						CommonName:   "audittailer",
@@ -938,6 +1021,7 @@ func (vp *valuesProvider) deployControlPlaneShootAudittailerCerts(ctx context.Co
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
+					Name: metal.AudittailerServerSecretName,
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.AudittailerServerSecretName,
 						CommonName:   "audittailer",
@@ -970,6 +1054,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 		SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
 			return []secrets.ConfigInterface{
 				&secrets.ControlPlaneSecretConfig{
+					Name: metal.DroptailerClientSecretName,
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.DroptailerClientSecretName,
 						CommonName:   "droptailer",
@@ -980,6 +1065,7 @@ func (vp *valuesProvider) deployControlPlaneShootDroptailerCerts(ctx context.Con
 					},
 				},
 				&secrets.ControlPlaneSecretConfig{
+					Name: metal.DroptailerServerSecretName,
 					CertificateSecretConfig: &secrets.CertificateSecretConfig{
 						Name:         metal.DroptailerServerSecretName,
 						CommonName:   "droptailer",
@@ -1044,10 +1130,10 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 	err := vp.Client().Get(ctx, key, secret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			vp.logger.Error(err, "error getting chart secret - not found")
+			vp.logger.Error(err, "error getting secret - not found")
 			return nil, err
 		}
-		vp.logger.Error(err, "error getting chart secret")
+		vp.logger.Error(err, "error getting secret")
 		return nil, err
 	}
 	return secret, nil
@@ -1426,6 +1512,59 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	return values, nil
 }
 
+func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Context, cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, sshSecret, caBundle *corev1.Secret) (map[string]any, error) {
+	if cluster.Shoot.Spec.DNS.Domain == nil {
+		return nil, fmt.Errorf("cluster dns domain is not yet set")
+	}
+
+	seedApiURL := fmt.Sprintf("https://%s", os.Getenv("KUBERNETES_SERVICE_HOST"))
+
+	// for gardener-managed clusters the KUBERNETES_SERVICE_HOST env variable
+	// points to the kube-apiserver hosted in the seed's shoot namespace, which
+	// is publically reachable and works just fine.
+	//
+	// for non-gardener-managed clusters (e.g. shoots running in GKE), the
+	// KUBERNETES_SERVICE_HOST environment variable may point to an internal
+	// cluster ip, which is not reachable from the internet. the firewall-controller
+	// has to reach the kube-apiserver though. in these cases, a config map
+	// can be provided in this seed's garden namespace to provide the external
+	// ip address of the kube-apiserver.
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "seed-api-server",
+			Namespace: "garden",
+		},
+	}
+	err := vp.Client().Get(ctx, client.ObjectKeyFromObject(cm), cm)
+	if err == nil {
+		url, ok := cm.Data["url"]
+		if ok {
+			seedApiURL = url
+		}
+	}
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	return map[string]any{
+		"firewallControllerManager": map[string]any{
+			// We want to throw the firewall away once the cluster is hibernated.
+			// when woken up, a new firewall is created with new token, ssh key etc.
+			// This will break the firewall-only case actually only used in our test env.
+			// TODO: deletion of the firewall is not yet implemented.
+			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
+			"clusterID":        string(cluster.Shoot.GetUID()),
+			"seedApiURL":       seedApiURL,
+			"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
+			"sshKeySecretName": sshSecret.Name,
+			"metalapi": map[string]any{
+				"url": metalControlPlane.Endpoint,
+			},
+			"caBundle": strings.TrimSpace(string(caBundle.Data["bundle.crt"])),
+		},
+	}, nil
+}
+
 func clusterTag(clusterID string) string {
 	return fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
 }
@@ -1456,4 +1595,18 @@ func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
 	_ *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
 	return map[string]interface{}{}, nil
+}
+
+func firewallLessFunc(a, b *models.V1FirewallResponse) bool {
+	if b.Allocation == nil || b.Allocation.Created == nil {
+		return true
+	}
+	if a.Allocation == nil || a.Allocation.Created == nil {
+		return false
+	}
+
+	atime := time.Time(*a.Allocation.Created)
+	btime := time.Time(*b.Allocation.Created)
+
+	return atime.Before(btime)
 }

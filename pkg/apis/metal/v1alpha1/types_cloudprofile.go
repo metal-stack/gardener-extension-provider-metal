@@ -28,6 +28,8 @@ type MetalControlPlane struct {
 	FirewallImages []string `json:"firewallImages,omitempty"`
 	// FirewallControllerVersions is a list of available firewall controller binary versions
 	FirewallControllerVersions []FirewallControllerVersion `json:"firewallControllerVersions,omitempty"`
+	// NftablesExporter is the nftables exporter which will be reconciled by the firewall controller
+	NftablesExporter NftablesExporter `json:"nftablesExporter,omitempty"`
 }
 
 // FirewallControllerVersion describes the version of the firewall controller binary
@@ -44,6 +46,14 @@ type FirewallControllerVersion struct {
 	URL string `json:"url"`
 	// Classification defines the state of a version (preview, supported, deprecated)
 	Classification *VersionClassification `json:"classification,omitempty"`
+}
+
+// NftablesExporter describes the version of the nftables exporter binary
+type NftablesExporter struct {
+	// Version is the version name of the nftables exporter
+	Version string `json:"version"`
+	// URL points to the downloadable binary artifact of the nftables exporter
+	URL string `json:"url"`
 }
 
 // VersionClassification is the logical state of a version according to https://github.com/gardener/gardener/blob/master/docs/operations/versioning.md

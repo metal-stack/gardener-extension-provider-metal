@@ -1,0 +1,276 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.3
+  creationTimestamp: null
+  name: firewallsets.firewall.metal-stack.io
+spec:
+  group: firewall.metal-stack.io
+  names:
+    kind: FirewallSet
+    listKind: FirewallSetList
+    plural: firewallsets
+    shortNames:
+    - fwset
+    singular: firewallset
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .status.readyReplicas
+      name: Ready
+      type: integer
+    - jsonPath: .status.progressingReplicas
+      name: Progressing
+      type: integer
+    - jsonPath: .status.unhealthyReplicas
+      name: Unhealthy
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v2
+    schema:
+      openAPIV3Schema:
+        description: FirewallSet contains the spec template of a firewall resource
+          similar to a Kubernetes ReplicaSet and takes care that the desired amount
+          of firewall replicas is running.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec contains the firewall set specification.
+            properties:
+              replicas:
+                description: Replicas is the amount of firewall replicas targeted
+                  to be running.
+                type: integer
+              selector:
+                additionalProperties:
+                  type: string
+                description: Selector is a label query over firewalls that should
+                  match the replicas count. If selector is empty, it is defaulted
+                  to the labels present on the firewall template. Label keys and values
+                  that must match in order to be controlled by this replication controller,
+                  if empty defaulted to labels on firewall template.
+                type: object
+              template:
+                description: Template is the firewall spec used for creating the firewalls.
+                properties:
+                  metadata:
+                    description: Metadata of the firewalls created from this template.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      finalizers:
+                        items:
+                          type: string
+                        type: array
+                      labels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                  spec:
+                    description: Spec contains the firewall specification.
+                    properties:
+                      controllerURL:
+                        description: ControllerURL points to the downloadable binary
+                          artifact of the firewall controller.
+                        type: string
+                      controllerVersion:
+                        description: ControllerVersion holds the firewall-controller
+                          version to reconcile.
+                        type: string
+                      dnsPort:
+                        description: DNSPort specifies port to which DNS proxy should
+                          be bound
+                        type: integer
+                      dnsServerAddress:
+                        description: DNSServerAddress specifies DNS server address
+                          used by DNS proxy
+                        type: string
+                      dryRun:
+                        description: DryRun if set to true, firewall rules are not
+                          applied. For devel-purposes only.
+                        type: boolean
+                      egressRules:
+                        description: EgressRules contains egress rules configured
+                          for this firewall.
+                        items:
+                          description: EgressRuleSNAT holds a Source-NAT rule
+                          properties:
+                            ips:
+                              description: IPs contains the ips used as source addresses
+                                for packets leaving the specified network.
+                              items:
+                                type: string
+                              type: array
+                            networkID:
+                              description: NetworkID is the network for which the
+                                egress rule will be configured.
+                              type: string
+                          required:
+                          - ips
+                          - networkID
+                          type: object
+                        type: array
+                      image:
+                        description: Image is the os image of the firewall. An update
+                          on this field requires the recreation of the physical firewall
+                          and can therefore lead to traffic interruption for the cluster.
+                        type: string
+                      internalPrefixes:
+                        description: InternalPrefixes specify prefixes which are considered
+                          local to the partition or all regions. This is used for
+                          the traffic counters. Traffic to/from these prefixes is
+                          counted as internal traffic.
+                        items:
+                          type: string
+                        type: array
+                      interval:
+                        description: Interval on which rule reconciliation by the
+                          firewall-controller should happen.
+                        type: string
+                      ipv4RuleFile:
+                        description: Ipv4RuleFile defines where to store the generated
+                          ipv4 firewall rules on disk.
+                        type: string
+                      logAcceptedConnections:
+                        description: LogAcceptedConnections if set to true, also log
+                          accepted connections in the droptailer log.
+                        type: boolean
+                      networks:
+                        description: Networks are the networks to which this firewall
+                          is connected. An update on this field requires the recreation
+                          of the physical firewall and can therefore lead to traffic
+                          interruption for the cluster. Detailed information about
+                          the networks are fetched continuously during runtime and
+                          stored in the status.firewallNetworks.
+                        items:
+                          type: string
+                        type: array
+                      nftablesExporterURL:
+                        description: NftablesExporterURL points to the downloadable
+                          binary artifact of the nftables exporter.
+                        type: string
+                      nftablesExporterVersion:
+                        description: NftablesExporterVersion holds the nftables exporter
+                          version to reconcile.
+                        type: string
+                      partition:
+                        description: Partition is the partition in which the firewall
+                          resides.
+                        type: string
+                      project:
+                        description: Project is the project in which the firewall
+                          resides.
+                        type: string
+                      rateLimits:
+                        description: RateLimits allows configuration of rate limit
+                          rules for interfaces.
+                        items:
+                          description: RateLimit contains the rate limit rule for
+                            a network.
+                          properties:
+                            networkID:
+                              description: NetworkID specifies the network which should
+                                be rate limited.
+                              type: string
+                            rate:
+                              description: Rate is the input rate in MiB/s.
+                              format: int32
+                              type: integer
+                          required:
+                          - networkID
+                          - rate
+                          type: object
+                        type: array
+                      size:
+                        description: Size is the machine size of the firewall. An
+                          update on this field requires the recreation of the physical
+                          firewall and can therefore lead to traffic interruption
+                          for the cluster.
+                        type: string
+                      sshPublicKeys:
+                        description: SSHPublicKeys are public keys which are added
+                          to the firewall's authorized keys file on creation. It gets
+                          defaulted to the public key of ssh secret as provided by
+                          the controller flags.
+                        items:
+                          type: string
+                        type: array
+                      userdata:
+                        description: Userdata contains the userdata used for the creation
+                          of the firewall. It gets defaulted to a userdata matching
+                          for the firewall-controller with connection to Gardener
+                          shoot and seed.
+                        type: string
+                    required:
+                    - image
+                    - networks
+                    - partition
+                    - project
+                    - size
+                    type: object
+                type: object
+            required:
+            - replicas
+            - template
+            type: object
+          status:
+            description: Status contains current status information on the firewall
+              set.
+            properties:
+              observedRevision:
+                description: ObservedRevision is a counter that increases with each
+                  firewall set roll that was made.
+                type: integer
+              progressingReplicas:
+                description: ProgressingReplicas is the amount of firewall replicas
+                  that are currently progressing in the latest managed firewall set.
+                type: integer
+              readyReplicas:
+                description: ProgressingReplicas is the amount of firewall replicas
+                  that are currently ready in the latest managed firewall set.
+                type: integer
+              targetReplicas:
+                description: TargetReplicas is the amount of firewall replicas targeted
+                  to be running.
+                type: integer
+              unhealthyReplicas:
+                description: ProgressingReplicas is the amount of firewall replicas
+                  that are currently unhealthy in the latest managed firewall set.
+                type: integer
+            required:
+            - observedRevision
+            - progressingReplicas
+            - readyReplicas
+            - targetReplicas
+            - unhealthyReplicas
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
