@@ -27,6 +27,7 @@ require (
 	github.com/onsi/gomega v1.22.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
+	github.com/stretchr/testify v1.8.0
 	k8s.io/api v0.25.2
 	k8s.io/apiextensions-apiserver v0.25.0
 	k8s.io/apimachinery v0.25.2
@@ -113,6 +114,7 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.13.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
