@@ -113,15 +113,15 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			want: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
-						AllowPrivilegedContainers: pointer.Pointer(defaultAllowedPrivilegedContainers),
+						AllowPrivilegedContainers: pointer.Pointer(true),
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: pointer.Pointer(defaultNodeCIDRMaskSize),
+							NodeCIDRMaskSize: pointer.Pointer(int32(23)),
 						},
 						Kubelet: &gardenv1beta1.KubeletConfig{
-							MaxPods: pointer.Pointer(defaultMaxPods),
+							MaxPods: pointer.Pointer(int32(250)),
 						},
 						KubeProxy: &gardenv1beta1.KubeProxyConfig{
-							Enabled: pointer.Pointer(defaultCalicoKubeProxyEnabled),
+							Enabled: pointer.Pointer(true),
 						},
 					},
 					Provider: gardenv1beta1.Provider{
@@ -135,17 +135,17 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						},
 					},
 					Networking: gardenv1beta1.Networking{
-						Type:     defaultNetworkType,
-						Pods:     pointer.Pointer(defaultPodsCIDR),
-						Services: pointer.Pointer(defaultServicesCIDR),
+						Type:     "calico",
+						Pods:     pointer.Pointer("10.240.0.0/13"),
+						Services: pointer.Pointer("10.248.0.0/18"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &calicoextensionv1alpha1.NetworkConfig{
-								Backend: pointer.Pointer(defaultCalicoBackend),
+								Backend: pointer.Pointer(calicoextensionv1alpha1.None),
 								IPv4: &calicoextensionv1alpha1.IPv4{
-									Mode: pointer.Pointer(defaultCalicoPoolMode),
+									Mode: pointer.Pointer(calicoextensionv1alpha1.Never),
 								},
 								Typha: &calicoextensionv1alpha1.Typha{
-									Enabled: defaultCalicoTyphaEnabled,
+									Enabled: false,
 								},
 							},
 						},
@@ -258,16 +258,16 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 					},
 					Networking: gardenv1beta1.Networking{
 						Type:     "calico",
-						Pods:     pointer.Pointer(defaultPodsCIDR),
-						Services: pointer.Pointer(defaultServicesCIDR),
+						Pods:     pointer.Pointer("10.240.0.0/13"),
+						Services: pointer.Pointer("10.248.0.0/18"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &calicoextensionv1alpha1.NetworkConfig{
-								Backend: pointer.Pointer(defaultCalicoBackend),
+								Backend: pointer.Pointer(calicoextensionv1alpha1.None),
 								IPv4: &calicoextensionv1alpha1.IPv4{
-									Mode: pointer.Pointer(defaultCalicoPoolMode),
+									Mode: pointer.Pointer(calicoextensionv1alpha1.Never),
 								},
 								Typha: &calicoextensionv1alpha1.Typha{
-									Enabled: defaultCalicoTyphaEnabled,
+									Enabled: false,
 								},
 							},
 						},

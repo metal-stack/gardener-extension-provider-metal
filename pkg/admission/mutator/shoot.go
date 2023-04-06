@@ -75,6 +75,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	}
 
 	d := defaulter{
+		c:            &config{},
 		decoder:      m.decoder,
 		controlPlane: controlPlane,
 		partition:    partition,

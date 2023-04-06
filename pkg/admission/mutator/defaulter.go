@@ -16,29 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const (
-	defaultAllowedPrivilegedContainers = true
-	defaultMaxPods                     = int32(250)
-	defaultNodeCIDRMaskSize            = int32(23)
-	defaultPodsCIDR                    = "10.240.0.0/13"
-	defaultServicesCIDR                = "10.248.0.0/18"
-
-	defaultNetworkType = "calico"
-
-	// calico defaults
-	defaultCalicoBackend          = calicoextensionv1alpha1.None
-	defaultCalicoKubeProxyEnabled = true
-	defaultCalicoPoolMode         = calicoextensionv1alpha1.Never
-	defaultCalicoTyphaEnabled     = false
-
-	// cilium defaults
-	defaultCiliumHubbleEnabled    = false
-	defaultCiliumKubeProxyEnabled = false
-	defaultCiliumPSPEnabled       = true
-	defaultCiliumTunnel           = ciliumextensionv1alpha1.Disabled
-)
-
 type defaulter struct {
+	c       *config
 	decoder runtime.Decoder
 
 	controlPlane *metal.MetalControlPlane
@@ -47,7 +26,7 @@ type defaulter struct {
 
 func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
 	if shoot.Spec.Kubernetes.AllowPrivilegedContainers == nil {
-		shoot.Spec.Kubernetes.AllowPrivilegedContainers = pointer.Pointer(defaultAllowedPrivilegedContainers)
+		shoot.Spec.Kubernetes.AllowPrivilegedContainers = pointer.Pointer(d.c.allowedPrivilegedContainers())
 	}
 
 	if shoot.Spec.Kubernetes.KubeControllerManager == nil {
@@ -55,7 +34,7 @@ func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if shoot.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize == nil {
-		shoot.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize = pointer.Pointer(defaultNodeCIDRMaskSize)
+		shoot.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize = pointer.Pointer(d.c.nodeCIDRMaskSize())
 	}
 
 	if shoot.Spec.Kubernetes.Kubelet == nil {
@@ -63,7 +42,7 @@ func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if shoot.Spec.Kubernetes.Kubelet.MaxPods == nil {
-		shoot.Spec.Kubernetes.Kubelet.MaxPods = pointer.Pointer(defaultMaxPods)
+		shoot.Spec.Kubernetes.Kubelet.MaxPods = pointer.Pointer(d.c.maxPods())
 	}
 
 	err := d.defaultInfrastructureConfig(shoot)
@@ -103,15 +82,15 @@ func (d *defaulter) defaultInfrastructureConfig(shoot *gardenv1beta1.Shoot) erro
 
 func (d *defaulter) defaultNetworking(shoot *gardenv1beta1.Shoot) error {
 	if shoot.Spec.Networking.Type == "" {
-		shoot.Spec.Networking.Type = defaultNetworkType
+		shoot.Spec.Networking.Type = d.c.networkType()
 	}
 
 	if shoot.Spec.Networking.Pods == nil {
-		shoot.Spec.Networking.Pods = pointer.Pointer(defaultPodsCIDR)
+		shoot.Spec.Networking.Pods = pointer.Pointer(d.c.podsCIDR())
 	}
 
 	if shoot.Spec.Networking.Services == nil {
-		shoot.Spec.Networking.Services = pointer.Pointer(defaultServicesCIDR)
+		shoot.Spec.Networking.Services = pointer.Pointer(d.c.servicesCIDR())
 	}
 
 	// we only default networking config if there is no provider config given
@@ -147,11 +126,11 @@ func (d *defaulter) defaultCalicoConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if shoot.Spec.Kubernetes.KubeProxy.Enabled == nil {
-		shoot.Spec.Kubernetes.KubeProxy.Enabled = pointer.Pointer(defaultCalicoKubeProxyEnabled)
+		shoot.Spec.Kubernetes.KubeProxy.Enabled = pointer.Pointer(d.c.calicoKubeProxyEnabled())
 	}
 
 	if networkConfig.Backend == nil {
-		networkConfig.Backend = pointer.Pointer(defaultCalicoBackend)
+		networkConfig.Backend = pointer.Pointer(d.c.calicoBackend())
 	}
 
 	if networkConfig.IPv4 == nil {
@@ -159,12 +138,12 @@ func (d *defaulter) defaultCalicoConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if networkConfig.IPv4.Mode == nil {
-		networkConfig.IPv4.Mode = pointer.Pointer(defaultCalicoPoolMode)
+		networkConfig.IPv4.Mode = pointer.Pointer(d.c.calicoPoolMode())
 	}
 
 	if networkConfig.Typha == nil {
 		networkConfig.Typha = &calicoextensionv1alpha1.Typha{
-			Enabled: defaultCalicoTyphaEnabled,
+			Enabled: d.c.calicoTyphaEnabled(),
 		}
 	}
 
@@ -187,21 +166,21 @@ func (d *defaulter) defaultCiliumConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if shoot.Spec.Kubernetes.KubeProxy.Enabled == nil {
-		shoot.Spec.Kubernetes.KubeProxy.Enabled = pointer.Pointer(defaultCiliumKubeProxyEnabled)
+		shoot.Spec.Kubernetes.KubeProxy.Enabled = pointer.Pointer(d.c.ciliumKubeProxyEnabled())
 	}
 
 	if networkConfig.Hubble == nil {
 		networkConfig.Hubble = &ciliumextensionv1alpha1.Hubble{
-			Enabled: defaultCiliumHubbleEnabled,
+			Enabled: d.c.ciliumHubbleEnabled(),
 		}
 	}
 
 	if networkConfig.PSPEnabled == nil {
-		networkConfig.PSPEnabled = pointer.Pointer(defaultCiliumPSPEnabled)
+		networkConfig.PSPEnabled = pointer.Pointer(d.c.ciliumPSPEnabled())
 	}
 
 	if networkConfig.TunnelMode == nil {
-		networkConfig.TunnelMode = pointer.Pointer(defaultCiliumTunnel)
+		networkConfig.TunnelMode = pointer.Pointer(d.c.ciliumTunnel())
 	}
 
 	shoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{
