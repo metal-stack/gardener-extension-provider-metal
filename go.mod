@@ -168,11 +168,7 @@ require (
 
 replace (
 	github.com/gardener/gardener => github.com/gardener/gardener v1.44.6
-	// workaround for https://github.com/gardener/hvpa-controller/issues/92, remove once it's fixed
-	github.com/gardener/hvpa-controller => github.com/gardener/hvpa-controller v0.4.0
-	github.com/gardener/hvpa-controller/api => github.com/gardener/hvpa-controller/api v0.4.0
 
-	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.11.1 // keep this value in sync with sigs.k8s.io/controller-runtime
 	k8s.io/api => k8s.io/api v0.23.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.2
 	k8s.io/apimachinery => k8s.io/apimachinery v0.23.2
