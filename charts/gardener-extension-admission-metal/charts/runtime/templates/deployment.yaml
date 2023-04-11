@@ -49,6 +49,14 @@ spec:
         #     scheme: HTTPS
         #   initialDelaySeconds: 5
         #   periodSeconds: 10
+        env:
+{{- range $key, $value := .Values.defaulter }}
+{{- if $value }}
+          - name: DEFAULTER_{{ upper $key }}
+            value: {{ $value | quote }}
+{{- end }}
+{{- end }}
+
 {{- if .Values.global.resources }}
         resources:
 {{ toYaml .Values.global.resources | nindent 10 }}

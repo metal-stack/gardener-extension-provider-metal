@@ -95,7 +95,7 @@ func CloudProfileConfigFromCluster(cluster *controller.Cluster) (*api.CloudProfi
 }
 
 // DecodeRawExtension decodes a raw extension into an object
-func DecodeRawExtension[T runtime.Object](extension *runtime.RawExtension, object runtime.Object, decoder runtime.Decoder) error {
+func DecodeRawExtension[T runtime.Object](extension *runtime.RawExtension, object T, decoder runtime.Decoder) error {
 	if extension != nil && extension.Raw != nil {
 		if _, _, err := decoder.Decode(extension.Raw, nil, object); err != nil {
 			return err
