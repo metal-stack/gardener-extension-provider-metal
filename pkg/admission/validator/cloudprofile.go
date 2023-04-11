@@ -43,7 +43,7 @@ func (cp *cloudProfile) Validate(_ context.Context, new, _ client.Object) error 
 	}
 
 	cpConfig := &metal.CloudProfileConfig{}
-	err := helper.DecodeRawExtension[*metal.CloudProfileConfig](cloudProfile.Spec.ProviderConfig, cpConfig, cp.decoder)
+	err := helper.DecodeRawExtension(cloudProfile.Spec.ProviderConfig, cpConfig, cp.decoder)
 	if err != nil {
 		return err
 	}
