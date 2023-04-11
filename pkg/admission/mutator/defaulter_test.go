@@ -158,55 +158,75 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			shoot: completeShootSpec.DeepCopy(),
 			want:  completeShootSpec.DeepCopy(),
 		},
-		// {
-		// 	name: "missing fields in provider config remain empty",
-		// 	spec: spec{
-		// 		kubernetes: gardenv1beta1.Kubernetes{
-		// 			AllowPrivilegedContainers: pointer.Pointer(false),
-		// 			KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-		// 				NodeCIDRMaskSize: pointer.Pointer(int32(24)),
-		// 			},
-		// 			Kubelet: &gardenv1beta1.KubeletConfig{
-		// 				MaxPods: pointer.Pointer(int32(200)),
-		// 			},
-		// 		},
-		// 		networkingType:     "calico",
-		// 		networkingPods:     "10.240.0.0/14",
-		// 		networkingServices: "10.248.0.0/19",
-		// 		infrastructureConfig: metalv1alpha1.InfrastructureConfig{
-		// 			Firewall: metalv1alpha1.Firewall{
-		// 				Image: "firewall-ubuntu-2.0.19700101",
-		// 				Size:  "n1-medium-x86",
-		// 			},
-		// 		},
-		// 	},
-		// 	calicoConfig: &calicoextensionv1alpha1.NetworkConfig{},
-		// 	wantErr:      false,
-		// 	want: want{
-		// 		spec: spec{
-		// 			kubernetes: gardenv1beta1.Kubernetes{
-		// 				AllowPrivilegedContainers: pointer.Pointer(false),
-		// 				KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-		// 					NodeCIDRMaskSize: pointer.Pointer(int32(24)),
-		// 				},
-		// 				Kubelet: &gardenv1beta1.KubeletConfig{
-		// 					MaxPods: pointer.Pointer(int32(200)),
-		// 				},
-		// 				KubeProxy: &gardenv1beta1.KubeProxyConfig{},
-		// 			},
-		// 			networkingType:     "calico",
-		// 			networkingPods:     "10.240.0.0/14",
-		// 			networkingServices: "10.248.0.0/19",
-		// 			infrastructureConfig: metalv1alpha1.InfrastructureConfig{
-		// 				Firewall: metalv1alpha1.Firewall{
-		// 					Image: "firewall-ubuntu-2.0.19700101",
-		// 					Size:  "n1-medium-x86",
-		// 				},
-		// 			},
-		// 		},
-		// 		calicoConfig: &calicoextensionv1alpha1.NetworkConfig{},
-		// 	},
-		// },
+		{
+			name: "if networking config is present, provider config stays untouched",
+			shoot: &gardenv1beta1.Shoot{
+				Spec: gardenv1beta1.ShootSpec{
+					Kubernetes: gardenv1beta1.Kubernetes{
+						AllowPrivilegedContainers: pointer.Pointer(false),
+						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
+							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+						},
+						Kubelet: &gardenv1beta1.KubeletConfig{
+							MaxPods: pointer.Pointer(int32(200)),
+						},
+					},
+					Provider: gardenv1beta1.Provider{
+						InfrastructureConfig: &runtime.RawExtension{
+							Object: &metalv1alpha1.InfrastructureConfig{
+								Firewall: metalv1alpha1.Firewall{
+									Image: "firewall-2.0.20210207",
+									Size:  "n1-medium-x86",
+								},
+							},
+						},
+					},
+					Networking: gardenv1beta1.Networking{
+						Type: "calico",
+						ProviderConfig: &runtime.RawExtension{
+							Object: &calicoextensionv1alpha1.NetworkConfig{
+								Backend: pointer.Pointer(calicoextensionv1alpha1.Bird),
+							},
+						},
+						Pods:     pointer.Pointer("10.240.0.0/14"),
+						Services: pointer.Pointer("10.248.0.0/19"),
+					},
+				},
+			},
+			want: &gardenv1beta1.Shoot{
+				Spec: gardenv1beta1.ShootSpec{
+					Kubernetes: gardenv1beta1.Kubernetes{
+						AllowPrivilegedContainers: pointer.Pointer(false),
+						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
+							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+						},
+						Kubelet: &gardenv1beta1.KubeletConfig{
+							MaxPods: pointer.Pointer(int32(200)),
+						},
+					},
+					Provider: gardenv1beta1.Provider{
+						InfrastructureConfig: &runtime.RawExtension{
+							Object: &metalv1alpha1.InfrastructureConfig{
+								Firewall: metalv1alpha1.Firewall{
+									Image: "firewall-2.0.20210207",
+									Size:  "n1-medium-x86",
+								},
+							},
+						},
+					},
+					Networking: gardenv1beta1.Networking{
+						Type:     "calico",
+						Pods:     pointer.Pointer("10.240.0.0/14"),
+						Services: pointer.Pointer("10.248.0.0/19"),
+						ProviderConfig: &runtime.RawExtension{
+							Object: &calicoextensionv1alpha1.NetworkConfig{
+								Backend: pointer.Pointer(calicoextensionv1alpha1.Bird),
+							},
+						},
+					},
+				},
+			},
+		},
 		{
 			name: "empty provider config will be defaulted",
 			shoot: &gardenv1beta1.Shoot{

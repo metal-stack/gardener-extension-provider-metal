@@ -94,7 +94,7 @@ func (d *defaulter) defaultNetworking(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	// we only default networking config if there is no provider config given
-	if shoot.Spec.Networking.ProviderConfig != nil && shoot.Spec.Networking.ProviderConfig.Raw != nil {
+	if shoot.Spec.Networking.ProviderConfig != nil || pointer.SafeDeref(shoot.Spec.Networking.ProviderConfig).Raw != nil {
 		return nil
 	}
 
