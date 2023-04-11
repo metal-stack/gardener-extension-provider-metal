@@ -18,6 +18,7 @@ var (
 
 // AddOptions are options to apply when adding the metal worker controller to the manager.
 type AddOptions struct {
+	ControllerConfig config.ControllerConfiguration
 	// Controller are the controller.Options.
 	Controller controller.Options
 	// MachineImages is the default mapping from machine images to AMIs.
@@ -38,7 +39,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 	}
 
 	return worker.Add(mgr, worker.AddArgs{
-		Actuator:          NewActuator(opts.MachineImages),
+		Actuator:          NewActuator(opts.MachineImages, opts.ControllerConfig),
 		ControllerOptions: opts.Controller,
 		Predicates:        worker.DefaultPredicates(opts.IgnoreOperationAnnotation),
 		Type:              metal.Type,

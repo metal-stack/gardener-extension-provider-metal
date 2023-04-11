@@ -38,13 +38,15 @@ type delegateFactory struct {
 	decoder runtime.Decoder
 
 	machineImageMapping []config.MachineImage
+	controllerConfig    config.ControllerConfiguration
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled WorkerPoolConfigs.
-func NewActuator(machineImages []config.MachineImage) worker.Actuator {
+func NewActuator(machineImages []config.MachineImage, controllerConfig config.ControllerConfiguration) worker.Actuator {
 	delegateFactory := &delegateFactory{
 		logger:              log.Log.WithName("worker-actuator"),
 		machineImageMapping: machineImages,
+		controllerConfig:    controllerConfig,
 	}
 	return genericactuator.NewActuator(
 		log.Log.WithName("metal-worker-actuator"),
@@ -107,6 +109,7 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 
 		worker,
 		cluster,
+		d.controllerConfig,
 	), nil
 }
 
@@ -127,6 +130,8 @@ type workerDelegate struct {
 	machineClasses     []map[string]interface{}
 	machineDeployments worker.MachineDeployments
 	machineImages      []apismetal.MachineImage
+
+	controllerConfig config.ControllerConfiguration
 }
 
 // NewWorkerDelegate creates a new context for a worker reconciliation.
@@ -142,6 +147,8 @@ func NewWorkerDelegate(
 
 	worker *extensionsv1alpha1.Worker,
 	cluster *extensionscontroller.Cluster,
+	controllerConfig config.ControllerConfiguration,
+
 ) genericactuator.WorkerDelegate {
 	return &workerDelegate{
 		logger:  logger,

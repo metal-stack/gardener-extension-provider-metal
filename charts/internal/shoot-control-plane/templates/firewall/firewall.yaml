@@ -11,3 +11,5 @@ metadata:
   name: firewall
 spec:
 {{ toYaml .Values.firewallSpec | indent 2 }}
+status:
+  stats: {}
