@@ -12,12 +12,8 @@ const (
 	MCMProviderMetalImageName = "machine-controller-manager-provider-metal"
 	// CCMImageName is the name of the cloud controller manager image.
 	CCMImageName = "metalccm"
-	// GroupRolebindingControllerImageName is the name of the GroupRolebindingController image
-	GroupRolebindingControllerImageName = "group-rolebinding-controller"
 	// AccountingExporterImageName is the name of the accounting exporter image
 	AccountingExporterImageName = "accounting-exporter"
-	// AuthNWebhookImageName is the name of the AuthN Webhook configured with the shoot kube-apiserver
-	AuthNWebhookImageName = "authn-webhook"
 	// AudittailerImageName is the name of the Audittailer to deploy to the shoot.
 	AudittailerImageName = "audittailer"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
@@ -49,10 +45,6 @@ const (
 	// MachineControllerManagerName is a constant for the name of the machine-controller-manager.
 	MachineControllerManagerName = "machine-controller-manager"
 
-	// AuthNWebHookConfigName is the name of the configmap containing the authn webhook config.
-	AuthNWebHookConfigName = "authn-webhook-config"
-	// AuthNWebHookCertName is the name of the secret containing the authn webhook certificates.
-	AuthNWebHookCertName = "authn-webhook-cert"
 	// ShootExtensionTypeTokenIssuer appears unused? CHECKME
 	ShootExtensionTypeTokenIssuer = "tokenissuer"
 	// AuditPolicyName is the name of the configmap containing the audit policy.
@@ -77,14 +69,8 @@ const (
 	CloudControllerManagerDeploymentName = "cloud-controller-manager"
 	// CloudControllerManagerServerName is the name of the secret containing the certificates for the cloud controller manager server.
 	CloudControllerManagerServerName = "cloud-controller-manager-server"
-	// GroupRolebindingControllerName is the name of the deployment for the group rolebinding controller.
-	GroupRolebindingControllerName = "group-rolebinding-controller"
 	// AccountingExporterName is the name of the deployment for the accounting exporter.
 	AccountingExporterName = "accounting-exporter"
-	// AuthNWebhookDeploymentName is the name of the deployment for the authn webhook.
-	AuthNWebhookDeploymentName = "kube-jwt-authn-webhook"
-	// AuthNWebhookServerName is the name of the secret containing the certificates for the authn webhook.
-	AuthNWebhookServerName = "kube-jwt-authn-webhook-server"
 	// DurosControllerDeploymentName is the name of the deployment for the duros-controller.
 	DurosControllerDeploymentName = "duros-controller"
 	// FirewallControllerManagerDeploymentName is the name of the deployment for the firewall controller manager

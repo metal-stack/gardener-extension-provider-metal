@@ -45,11 +45,6 @@ data:
       hecCAFile: |
 {{ .Values.config.auditToSplunk.hecCAFile | indent 8}}
 {{- end }}
-    auth:
-      enabled: {{ .Values.config.auth.enabled }}
-{{- if .Values.config.auth.enabled }}
-      providerTenant: {{ .Values.config.auth.providerTenant }}
-{{- end }}
     accountingExporter:
       enabled: {{ .Values.config.accountingExporter.enabled }}
 {{- if .Values.config.accountingExporter.enabled }}

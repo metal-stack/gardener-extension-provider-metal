@@ -15,21 +15,21 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 var (
-	// Scheme is a scheme with the types relevant for metal actuators.
-	Scheme *runtime.Scheme
+	// scheme is a scheme with the types relevant for metal actuators.
+	scheme *runtime.Scheme
 
 	decoder runtime.Decoder
 )
 
 func init() {
-	Scheme = runtime.NewScheme()
-	utilruntime.Must(install.AddToScheme(Scheme))
+	scheme = runtime.NewScheme()
 
-	decoder = serializer.NewCodecFactory(Scheme).UniversalDecoder()
+	install.Install(scheme)
+
+	decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
 }
 
 // DecodeCloudProfileConfig decodes the cloud profile config

@@ -47,9 +47,6 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 	accountingPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.AccountingExporter.Enabled
 	}
-	authPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
-		return opts.ControllerConfig.Auth.Enabled
-	}
 	durosPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.Storage.Duros.Enabled
 	}
@@ -71,16 +68,6 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
 				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.AccountingExporterName),
 				PreCheckFunc:  accountingPreCheck,
-			},
-			{
-				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
-				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.GroupRolebindingControllerName),
-				PreCheckFunc:  authPreCheck,
-			},
-			{
-				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
-				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.AuthNWebhookDeploymentName),
-				PreCheckFunc:  authPreCheck,
 			},
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),

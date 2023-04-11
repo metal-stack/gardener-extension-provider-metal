@@ -15,14 +15,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 func Test_defaulter_defaultShoot(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(install.AddToScheme(scheme))
+	install.Install(scheme)
 
 	var (
 		decoder          = serializer.NewCodecFactory(scheme).UniversalDecoder()

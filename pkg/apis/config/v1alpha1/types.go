@@ -26,9 +26,6 @@ type ControllerConfiguration struct {
 	// AuditToSplunk is the configuration for forwarding audit (and firewall) logs to Splunk.
 	AuditToSplunk AuditToSplunk `json:"auditToSplunk"`
 
-	// Auth is the configuration for metal stack specific user authentication in the cluster.
-	Auth Auth `json:"auth"`
-
 	// AccountingExporter is the configuration for the accounting exporter.
 	AccountingExporter AccountingExporterConfiguration `json:"accountingExporter,omitempty"`
 
@@ -103,14 +100,6 @@ type AuditToSplunk struct {
 	HECPort    int    `json:"hecPort"`
 	TLSEnabled bool   `json:"tlsEnabled"`
 	HECCAFile  string `json:"hecCAFile"`
-}
-
-// Auth contains the configuration for metal stack specific user authentication in the cluster.
-type Auth struct {
-	// Enabled enables the deployment of metal stack specific cluster authentication when set to true.
-	Enabled bool `json:"enabled"`
-	// ProviderTenant is the name of the provider tenant who has special privileges.
-	ProviderTenant string `json:"providerTenant"`
 }
 
 // AccountingExporterConfiguration contains the configuration for the accounting exporter.
