@@ -30,5 +30,26 @@ global:
         -----BEGIN RSA PRIVATE KEY-----
         ...
         -----END RSA PRIVATE KEY-----
+    useObjectSelector: false
   # Kubeconfig to the target cluster. In-cluster configuration will be used if not specified.
   kubeconfig:
+
+defaulter:
+  allowedPrivilegedContainers:
+  maxPods:
+  nodeCIDRMaskSize:
+  podsCIDR:
+  servicesCIDR:
+  networkType:
+  calicoBackend:
+  calicoKubeProxyEnabled:
+  calicoPoolMode:
+  calicoTyphaEnabled:
+  ciliumDevices:
+  ciliumHubbleEnabled:
+  ciliumKubeProxyEnabled:
+  ciliumPSPEnabled:
+  ciliumTunnel:
+  ciliumIPv4NativeRoutingCIDREnabled:
+  ciliumLoadBalancingMode:
+  ciliumMTU:

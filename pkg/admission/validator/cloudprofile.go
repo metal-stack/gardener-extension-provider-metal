@@ -6,6 +6,8 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalvalidation "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -40,7 +42,8 @@ func (cp *cloudProfile) Validate(_ context.Context, new, _ client.Object) error 
 		return field.Required(providerConfigPath, "providerConfig must be set for metal cloud profiles")
 	}
 
-	cpConfig, err := decodeCloudProfileConfig(cp.decoder, cloudProfile.Spec.ProviderConfig)
+	cpConfig := &metal.CloudProfileConfig{}
+	err := helper.DecodeRawExtension(cloudProfile.Spec.ProviderConfig, cpConfig, cp.decoder)
 	if err != nil {
 		return err
 	}

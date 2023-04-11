@@ -4,6 +4,7 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/admission/mutator"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/admission/validator"
 )
 
@@ -11,5 +12,6 @@ import (
 func GardenWebhookSwitchOptions() *webhookcmd.SwitchOptions {
 	return webhookcmd.NewSwitchOptions(
 		webhookcmd.Switch(extensionswebhook.ValidatorName, validator.New),
+		webhookcmd.Switch(mutator.Name, mutator.New),
 	)
 }
