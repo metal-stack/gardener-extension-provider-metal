@@ -8,7 +8,10 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 
 	"github.com/go-logr/logr"
-	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
+	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -16,21 +19,18 @@ import (
 
 // FirewallHealthChecker contains all the information for the Firewall HealthCheck
 type FirewallHealthChecker struct {
-	logger               logr.Logger
-	shootClient          client.Client
-	firewallResourceName string
+	logger     logr.Logger
+	seedClient client.Client
 }
 
 // CheckFirewall is a healthCheck function to check Firewalls
-func CheckFirewall(firewallResourceName string) healthcheck.HealthCheck {
-	return &FirewallHealthChecker{
-		firewallResourceName: firewallResourceName,
-	}
+func CheckFirewall() healthcheck.HealthCheck {
+	return &FirewallHealthChecker{}
 }
 
-// InjectShootClient injects the shoot client
-func (healthChecker *FirewallHealthChecker) InjectShootClient(shootClient client.Client) {
-	healthChecker.shootClient = shootClient
+// InjectSeedClient injects the seed client
+func (healthChecker *FirewallHealthChecker) InjectSeedClient(seedClient client.Client) {
+	healthChecker.seedClient = seedClient
 }
 
 // SetLoggerSuffix injects the logger
@@ -46,16 +46,20 @@ func (healthChecker *FirewallHealthChecker) DeepCopy() healthcheck.HealthCheck {
 
 // Check executes the health check
 func (healthChecker *FirewallHealthChecker) Check(ctx context.Context, request types.NamespacedName) (*healthcheck.SingleCheckResult, error) {
-	firewall := &firewallv1.Firewall{}
+	fwdeploy := &fcmv2.FirewallDeployment{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      metal.FirewallDeploymentName,
+			Namespace: request.Namespace,
+		},
+	}
 
-	// TODO make namespace a const
-	namespace := "firewall"
-	if err := healthChecker.shootClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: healthChecker.firewallResourceName}, firewall); err != nil {
-		err := fmt.Errorf("check firewall resource failed. Unable to retrieve firewall resource '%s' in namespace '%s': %w", healthChecker.firewallResourceName, namespace, err)
+	if err := healthChecker.seedClient.Get(ctx, client.ObjectKeyFromObject(fwdeploy), fwdeploy); err != nil {
+		err := fmt.Errorf("check firewall deployment resource failed. Unable to retrieve firewall deployment resource '%s' in namespace '%s': %w", fwdeploy.Name, request.Namespace, err)
 		healthChecker.logger.Error(err, "Health check failed")
 		return nil, err
 	}
-	if isHealthy, err := firewallIsHealthy(firewall); !isHealthy {
+
+	if isHealthy, err := firewallIsHealthy(fwdeploy); !isHealthy {
 		healthChecker.logger.Error(err, "Health check failed")
 		return &healthcheck.SingleCheckResult{
 			Status: gardencorev1beta1.ConditionFalse,
@@ -68,19 +72,22 @@ func (healthChecker *FirewallHealthChecker) Check(ctx context.Context, request t
 	}, nil
 }
 
-func firewallIsHealthy(firewall *firewallv1.Firewall) (bool, error) {
-	if firewall == nil {
-		return false, fmt.Errorf("firewall resource not deployed")
+func firewallIsHealthy(fwdeploy *fcmv2.FirewallDeployment) (bool, error) {
+	if fwdeploy == nil {
+		return false, fmt.Errorf("firewall deployment resource not deployed")
 	}
 
-	// FIXME remove this once firewall-controller >= v1.1.3 is deployed to all clusters
-	if firewall.Status.ControllerVersion == "" {
-		return true, nil
+	if fwdeploy.Status.UnhealthyReplicas > 0 {
+		return false, fmt.Errorf("firewall deployment has %d unhealthy replicas", fwdeploy.Status.UnhealthyReplicas)
 	}
 
-	if firewall.Spec.ControllerVersion != firewall.Status.ControllerVersion {
-		return false, fmt.Errorf("firewall version specified at version:%s but still on:%s", firewall.Spec.ControllerVersion, firewall.Status.ControllerVersion)
+	if fwdeploy.Status.ReadyReplicas != fwdeploy.Status.TargetReplicas {
+		return false, fmt.Errorf("firewall deployment only has %d/%d ready replicas", fwdeploy.Status.ReadyReplicas, fwdeploy.Status.TargetReplicas)
 	}
+
+	// TODO: Decide if we need more specific information to make problems easier to identify when looking at the shoot state
+	// e.g. gather problematic conditions from the managed firewall resources
+
 	return true, nil
 
 }
