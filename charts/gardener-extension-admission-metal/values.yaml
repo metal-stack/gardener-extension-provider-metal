@@ -45,7 +45,11 @@ defaulter:
   calicoKubeProxyEnabled:
   calicoPoolMode:
   calicoTyphaEnabled:
+  ciliumDevices:
   ciliumHubbleEnabled:
   ciliumKubeProxyEnabled:
   ciliumPSPEnabled:
   ciliumTunnel:
+  ciliumIPv4NativeRoutingCIDREnabled:
+  ciliumLoadBalancingMode:
+  ciliumMTU:

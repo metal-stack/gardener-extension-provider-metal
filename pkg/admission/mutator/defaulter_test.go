@@ -295,6 +295,79 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "cilium networking provider config will be defaulted",
+			shoot: &gardenv1beta1.Shoot{
+				Spec: gardenv1beta1.ShootSpec{
+					Kubernetes: gardenv1beta1.Kubernetes{
+						AllowPrivilegedContainers: pointer.Pointer(false),
+						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
+							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+						},
+						Kubelet: &gardenv1beta1.KubeletConfig{
+							MaxPods: pointer.Pointer(int32(200)),
+						},
+					},
+					Provider: gardenv1beta1.Provider{
+						InfrastructureConfig: &runtime.RawExtension{
+							Object: &metalv1alpha1.InfrastructureConfig{
+								Firewall: metalv1alpha1.Firewall{
+									Image: "firewall-2.0.20210207",
+									Size:  "n1-medium-x86",
+								},
+							},
+						},
+					},
+					Networking: gardenv1beta1.Networking{
+						Type: "cilium",
+					},
+				},
+			},
+			want: &gardenv1beta1.Shoot{
+				Spec: gardenv1beta1.ShootSpec{
+					Kubernetes: gardenv1beta1.Kubernetes{
+						AllowPrivilegedContainers: pointer.Pointer(false),
+						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
+							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+						},
+						Kubelet: &gardenv1beta1.KubeletConfig{
+							MaxPods: pointer.Pointer(int32(200)),
+						},
+						KubeProxy: &gardenv1beta1.KubeProxyConfig{
+							Enabled: pointer.Pointer(false),
+						},
+					},
+					Provider: gardenv1beta1.Provider{
+						InfrastructureConfig: &runtime.RawExtension{
+							Object: &metalv1alpha1.InfrastructureConfig{
+								Firewall: metalv1alpha1.Firewall{
+									Image: "firewall-2.0.20210207",
+									Size:  "n1-medium-x86",
+								},
+							},
+						},
+					},
+					Networking: gardenv1beta1.Networking{
+						Type:     "cilium",
+						Pods:     pointer.Pointer("10.240.0.0/13"),
+						Services: pointer.Pointer("10.248.0.0/18"),
+						ProviderConfig: &runtime.RawExtension{
+							Object: &ciliumextensionv1alpha1.NetworkConfig{
+								PSPEnabled: pointer.Pointer(true),
+								Hubble: &ciliumextensionv1alpha1.Hubble{
+									Enabled: true,
+								},
+								TunnelMode:                   pointer.Pointer(ciliumextensionv1alpha1.Disabled),
+								MTU:                          pointer.Pointer(1440),
+								Devices:                      []string{"lan+"},
+								LoadBalancingMode:            pointer.Pointer(ciliumextensionv1alpha1.DSR),
+								IPv4NativeRoutingCIDREnabled: pointer.Pointer(true),
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

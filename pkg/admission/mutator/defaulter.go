@@ -183,10 +183,25 @@ func (d *defaulter) defaultCiliumConfig(shoot *gardenv1beta1.Shoot) error {
 		networkConfig.TunnelMode = pointer.Pointer(d.c.ciliumTunnel())
 	}
 
+	if networkConfig.Devices == nil {
+		networkConfig.Devices = d.c.ciliumDevices()
+	}
+
+	if networkConfig.IPv4NativeRoutingCIDREnabled == nil {
+		networkConfig.IPv4NativeRoutingCIDREnabled = pointer.Pointer(d.c.ciliumIPv4NativeRoutingCIDREnabled())
+	}
+
+	if networkConfig.LoadBalancingMode == nil {
+		networkConfig.LoadBalancingMode = pointer.Pointer(d.c.ciliumLoadBalancingMode())
+	}
+
+	if networkConfig.MTU == nil {
+		networkConfig.MTU = pointer.Pointer(d.c.ciliumMTU())
+	}
+
 	shoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{
 		Object: networkConfig,
 	}
-
 	return nil
 }
 

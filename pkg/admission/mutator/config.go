@@ -3,6 +3,7 @@ package mutator
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	calicoextensionv1alpha1 "github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico/v1alpha1"
 	ciliumextensionv1alpha1 "github.com/gardener/gardener-extension-networking-cilium/pkg/apis/cilium/v1alpha1"
@@ -66,6 +67,22 @@ func (c *config) ciliumTunnel() ciliumextensionv1alpha1.TunnelMode {
 	return ciliumextensionv1alpha1.TunnelMode(c.string("DEFAULTER_CILIUMTUNNEL", string(ciliumextensionv1alpha1.Disabled)))
 }
 
+func (c *config) ciliumDevices() []string {
+	return c.slice("DEFAULTER_CILIUMDEVICES", []string{"lan+"})
+}
+
+func (c *config) ciliumIPv4NativeRoutingCIDREnabled() bool {
+	return c.bool("DEFAULTER_CILIUMIPV4NATIVEROUTINGCIDRENABLED", true)
+}
+
+func (c *config) ciliumLoadBalancingMode() ciliumextensionv1alpha1.LoadBalancingMode {
+	return ciliumextensionv1alpha1.LoadBalancingMode(c.string("DEFAULTER_CILIUMLOADBALANCINGMODE", string(ciliumextensionv1alpha1.DSR)))
+}
+
+func (c *config) ciliumMTU() int {
+	return int(c.int32("DEFAULTER_CILIUMMTU", 1440))
+}
+
 func (c *config) bool(key string, fallback bool) bool {
 	value, ok := os.LookupEnv(key)
 	if !ok {
@@ -87,6 +104,15 @@ func (c *config) string(key string, fallback string) string {
 	}
 
 	return value
+}
+
+func (c *config) slice(key string, fallback []string) []string {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+
+	return strings.Split(value, ",")
 }
 
 func (c *config) int32(key string, fallback int32) int32 {
