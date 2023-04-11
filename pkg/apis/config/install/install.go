@@ -1,6 +1,7 @@
 package install
 
 import (
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -9,8 +10,8 @@ import (
 
 var (
 	schemeBuilder = runtime.NewSchemeBuilder(
-		// v1alpha1.AddToScheme,
-		// config.AddToScheme,
+		v1alpha1.AddToScheme,
+		config.AddToScheme,
 		setVersionPriority,
 	)
 
