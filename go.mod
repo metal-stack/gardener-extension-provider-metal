@@ -9,6 +9,8 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/gardener/etcd-druid v0.8.0
 	github.com/gardener/gardener v1.44.6
+	github.com/gardener/gardener-extension-networking-calico v1.9.1
+	github.com/gardener/gardener-extension-networking-cilium v1.7.1
 	github.com/gardener/machine-controller-manager v0.47.0
 	github.com/go-logr/logr v1.2.4
 	github.com/go-openapi/strfmt v0.21.7
@@ -34,6 +36,7 @@ require (
 	k8s.io/code-generator v0.25.2
 	k8s.io/component-base v0.26.3
 	k8s.io/kubelet v0.23.3
+	k8s.io/utils v0.0.0-20230313181309-38a27ef9d749
 	sigs.k8s.io/controller-runtime v0.14.6
 )
 
@@ -156,7 +159,6 @@ require (
 	k8s.io/kube-aggregator v0.23.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20230327201221-f5883ff37f0c // indirect
 	k8s.io/metrics v0.23.3 // indirect
-	k8s.io/utils v0.0.0-20230313181309-38a27ef9d749 // indirect
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211208212546-f236f0345ad2 // indirect
 	sigs.k8s.io/controller-tools v0.8.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
