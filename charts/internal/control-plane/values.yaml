@@ -5,8 +5,6 @@ podAnnotations: {}
 
 images:
   metalccm: image-repository:image-tag
-  authn-webhook: image-repository:image-tag
-  group-rolebinding-controller: image-repository:image-tag
   accounting-exporter: image-repository:image-tag
   duros-controller: image-repository:image-tag
   firewall-controller-manager: image-repository:image-tag
@@ -44,32 +42,6 @@ cloudControllerManager:
     limits:
       cpu: 250m
       memory: 300Mi
-
-groupRolebindingController:
-  enabled: false
-  replicas: 1
-  clusterName: cluster-name
-
-authnWebhook:
-  replicas: 1
-  metalapi:
-    url: https://metal-api
-    hmac: ABC123
-    hmac_auth_type: Metal-View
-    apitoken: ey123
-
-  enabled: false
-  port: 443
-  debug: false
-  tenant: some-tenant
-  providerTenant: provider-tenant
-  clusterName: cluster-name
-  oidc:
-    issuerUrl: https://tokenissuer/dex
-    issuerClientId: myClientId
-
-limitValidatingWebhook:
-  enabled: false
 
 accountingExporter:
   enabled: false

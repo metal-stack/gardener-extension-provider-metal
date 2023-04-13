@@ -57,14 +57,6 @@ images:
   tag: "v0.1.5"
 
 # can be provided via image override:
-# - name: authn-webhook
-#   sourceRepository:
-#   repository:
-#   tag:
-# - name: group-rolebinding-controller
-#   sourceRepository:
-#   repository:
-#   tag:
 # - name: accounting-exporter
 #   sourceRepository:
 #   repository:

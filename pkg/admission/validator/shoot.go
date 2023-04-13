@@ -100,19 +100,9 @@ func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 		return errList.ToAggregate()
 	}
 
-	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infraConfig.PartitionID)
-	if err != nil {
-		return err
-	}
-
 	controlPlaneConfigFldPath := fldPath.Child("controlPlaneConfig")
 
 	controlPlaneConfig, err := decodeControlPlaneConfig(s.decoder, shoot.Spec.Provider.ControlPlaneConfig, fldPath.Child("controlPlaneConfig"))
-	if err != nil {
-		return err
-	}
-
-	controlPlaneConfig.IAMConfig, err = helper.MergeIAMConfig(metalControlPlane.IAMConfig, controlPlaneConfig.IAMConfig)
 	if err != nil {
 		return err
 	}

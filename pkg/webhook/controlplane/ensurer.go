@@ -86,9 +86,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder, e.controllerConfig)
-		ensureVolumeMounts(c, makeAuditForwarder, e.controllerConfig)
-		ensureVolumes(ps, makeAuditForwarder, auditToSplunk, e.controllerConfig)
+		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder)
+		ensureVolumeMounts(c, makeAuditForwarder)
+		ensureVolumes(ps, makeAuditForwarder, auditToSplunk)
 	}
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
 		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
@@ -117,34 +117,6 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 }
 
 var (
-	// config mount for authn-webhook-config that is specified at kube-apiserver commandline
-	authnWebhookConfigVolumeMount = corev1.VolumeMount{
-		Name:      metal.AuthNWebHookConfigName,
-		MountPath: "/etc/webhook/config",
-		ReadOnly:  true,
-	}
-	authnWebhookConfigVolume = corev1.Volume{
-		Name: metal.AuthNWebHookConfigName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuthNWebHookConfigName},
-			},
-		},
-	}
-	// cert mount "kube-jwt-authn-webhook-server" that is referenced from the authn-webhook-config
-	authnWebhookCertVolumeMount = corev1.VolumeMount{
-		Name:      metal.AuthNWebHookCertName,
-		MountPath: "/etc/webhook/certs",
-		ReadOnly:  true,
-	}
-	authnWebhookCertVolume = corev1.Volume{
-		Name: metal.AuthNWebHookCertName,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: "kube-jwt-authn-webhook-server",
-			},
-		},
-	}
 	// config mount for the audit policy; it gets mounted where the kube-apiserver expects its audit policy.
 	auditPolicyVolumeMount = corev1.VolumeMount{
 		Name:      metal.AuditPolicyName,
@@ -306,22 +278,14 @@ var (
 	}
 )
 
-func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
-	if controllerConfig.Auth.Enabled {
-		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
-		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
-	}
+func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool) {
 	if makeAuditForwarder {
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditPolicyVolumeMount)
 		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditLogVolumeMount)
 	}
 }
 
-func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, controllerConfig config.ControllerConfiguration) {
-	if controllerConfig.Auth.Enabled {
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
-	}
+func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool) {
 	if makeAuditForwarder {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
@@ -333,12 +297,8 @@ func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool, c
 	}
 }
 
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder bool, controllerConfig config.ControllerConfiguration) {
+func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder bool) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
-
-	if controllerConfig.Auth.Enabled {
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
-	}
 
 	if makeAuditForwarder {
 		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")

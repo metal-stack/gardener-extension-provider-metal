@@ -71,9 +71,6 @@ config:
     hecPort:
     tlsEnabled:
     hecCAFile:
-  auth:
-    enabled: false
-    providerTenant: provider-tenant
   storage:
     duros:
       enabled: false

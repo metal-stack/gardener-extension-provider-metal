@@ -24,14 +24,6 @@ firewallSpec:
 accountingExporter:
     enabled: false
 
-groupRolebindingController:
-    enabled: false
-
-limitValidatingWebhook:
-    enabled: false
-    ca: ABCDEF
-    url: https://replace-this-webhook/validate
-
 duros:
   enabled: false
   endpoints: []

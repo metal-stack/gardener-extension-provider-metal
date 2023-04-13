@@ -131,32 +131,6 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
-				Name: metal.GroupRolebindingControllerName,
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         metal.GroupRolebindingControllerName,
-					CommonName:   "system:group-rolebinding-controller",
-					Organization: []string{user.SystemPrivilegedGroup},
-					CertType:     secrets.ClientCert,
-					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-				},
-				KubeConfigRequests: []secrets.KubeConfigRequest{
-					{
-						ClusterName:   clusterName,
-						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
-					},
-				},
-			},
-			&secrets.ControlPlaneSecretConfig{
-				Name: metal.AuthNWebhookServerName,
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       metal.AuthNWebhookServerName,
-					CommonName: metal.AuthNWebhookDeploymentName,
-					DNSNames:   kutil.DNSNamesForService(metal.AuthNWebhookDeploymentName, clusterName),
-					CertType:   secrets.ServerCert,
-					SigningCA:  cas[v1alpha1constants.SecretNameCACluster],
-				},
-			},
-			&secrets.ControlPlaneSecretConfig{
 				Name: metal.AccountingExporterName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.AccountingExporterName,
@@ -328,29 +302,6 @@ func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerCon
 		{Type: &corev1.ConfigMap{}, Name: "shoot-info-node-cidr"},
 	}...)
 
-	if controllerConfig.Auth.Enabled {
-		configChart.Objects = append(configChart.Objects, []*chart.Object{
-			{Type: &corev1.ConfigMap{}, Name: "authn-webhook-config"},
-		}...)
-		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{
-			metal.AuthNWebhookImageName,
-			metal.GroupRolebindingControllerImageName,
-		}...)
-		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
-			// authn webhook
-			{Type: &appsv1.Deployment{}, Name: "kube-jwt-authn-webhook"},
-			{Type: &corev1.Service{}, Name: "kube-jwt-authn-webhook"},
-			{Type: &networkingv1.NetworkPolicy{}, Name: "kubeapi2kube-jwt-authn-webhook"},
-			{Type: &networkingv1.NetworkPolicy{}, Name: "kube-jwt-authn-webhook-allow-namespace"},
-
-			// group rolebinding controller
-			{Type: &appsv1.Deployment{}, Name: "group-rolebinding-controller"},
-		}...)
-		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
-			// group rolebinding controller
-			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:group-rolebinding-controller"},
-		}...)
-	}
 	if controllerConfig.AccountingExporter.Enabled {
 		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.AccountingExporterImageName}...)
 		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
@@ -424,32 +375,12 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
-	authValues := vp.getAuthNConfigValues(cluster)
-
 	clusterAuditValues, err := vp.getClusterAuditConfigValues(ctx, cp, cluster)
 	if err != nil {
 		return nil, err
 	}
 
-	merge(authValues, clusterAuditValues)
-	return authValues, nil
-}
-
-func (vp *valuesProvider) getAuthNConfigValues(cluster *extensionscontroller.Cluster) map[string]interface{} {
-	namespace := cluster.ObjectMeta.Name
-
-	// this should work as the kube-apiserver is a pod in the same cluster as the kube-jwt-authn-webhook
-	// example https://kube-jwt-authn-webhook.shoot--local--myshootname.svc.cluster.local/authenticate
-	url := fmt.Sprintf("https://%s.%s.svc.cluster.local/authenticate", metal.AuthNWebhookDeploymentName, namespace)
-
-	values := map[string]interface{}{
-		"authnWebhook": map[string]interface{}{
-			"url":     url,
-			"enabled": vp.controllerConfig.Auth.Enabled,
-		},
-	}
-
-	return values
+	return clusterAuditValues, nil
 }
 
 func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
@@ -574,11 +505,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	cpConfig.IAMConfig, err = helper.MergeIAMConfig(metalControlPlane.IAMConfig, cpConfig.IAMConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	metalCredentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
 	if err != nil {
 		return nil, err
@@ -619,15 +545,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	metalEndpoint := metalControlPlane.Endpoint
-	ma := metalAccess{
-		url:          metalEndpoint,
-		hmac:         metalCredentials.MetalAPIHMac,
-		hmacAuthType: "", // currently default is used
-		apiToken:     metalCredentials.MetalAPIKey,
-	}
-	authValues := getAuthNGroupRoleChartValues(cpConfig, cluster, vp.controllerConfig.Auth, p.Payload, ma)
-
 	accValues, err := getAccountingExporterChartValues(ctx, vp.Client(), vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, p.Payload)
 	if err != nil {
 		return nil, err
@@ -660,7 +577,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		},
 	}
 
-	merge(values, ccmValues, authValues, accValues, storageValues, firewallValues)
+	merge(values, ccmValues, accValues, storageValues, firewallValues)
 
 	if vp.controllerConfig.ImagePullSecret != nil {
 		values["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
@@ -830,9 +747,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		"apiserverIPs":      apiserverIPs,
 		"nodeCIDR":          *infrastructure.Status.NodesCIDR,
 		"firewallSpec":      fwSpec,
-		"groupRolebindingController": map[string]any{
-			"enabled": vp.controllerConfig.Auth.Enabled,
-		},
 		"accountingExporter": map[string]any{
 			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
 		},
@@ -1266,59 +1180,6 @@ func getCCMChartValues(
 	}
 
 	return values, nil
-}
-
-type metalAccess struct {
-	url          string
-	hmac         string
-	hmacAuthType string
-	apiToken     string
-}
-
-// returns values for "authn-webhook" and "group-rolebinding-controller" that are thematically related
-func getAuthNGroupRoleChartValues(cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, config config.Auth, p *models.V1ProjectResponse, metalAccess metalAccess) map[string]interface{} {
-	if !config.Enabled {
-		return map[string]any{}
-	}
-
-	annotations := cluster.Shoot.GetAnnotations()
-	clusterName := annotations[tag.ClusterName]
-
-	issuerUrl := ""
-	issuerClientID := ""
-
-	if cpConfig.IAMConfig != nil && cpConfig.IAMConfig.IssuerConfig != nil {
-		issuerUrl = cpConfig.IAMConfig.IssuerConfig.Url
-		issuerClientID = cpConfig.IAMConfig.IssuerConfig.ClientId
-	}
-
-	values := map[string]interface{}{
-		"authnWebhook": map[string]interface{}{
-			"enabled":        config.Enabled,
-			"replicas":       extensionscontroller.GetReplicas(cluster, 1),
-			"tenant":         p.TenantID,
-			"providerTenant": config.ProviderTenant,
-			"clusterName":    clusterName,
-			"oidc": map[string]interface{}{
-				"issuerUrl":      issuerUrl,
-				"issuerClientId": issuerClientID,
-			},
-			"metalapi": map[string]interface{}{
-				"url":            metalAccess.url,
-				"hmac":           metalAccess.hmac,
-				"hmac_auth_type": metalAccess.hmacAuthType,
-				"apitoken":       metalAccess.apiToken,
-			},
-		},
-
-		"groupRolebindingController": map[string]interface{}{
-			"enabled":     config.Enabled,
-			"replicas":    extensionscontroller.GetReplicas(cluster, 1),
-			"clusterName": clusterName,
-		},
-	}
-
-	return values
 }
 
 func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, p *models.V1ProjectResponse) (map[string]interface{}, error) {
