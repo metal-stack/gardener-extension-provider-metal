@@ -137,7 +137,7 @@ spec:
               items:
               - key: token
                 path: token
-              name: shoot-access-accounting-exporter
+              name: shoot-access-cloud-controller-manager
               optional: false
       - name: cloud-controller-manager-server
         secret:
