@@ -90,6 +90,7 @@ rules:
     - ""
   resources:
     - serviceaccounts
+    - serviceaccounts/token
   verbs:
     - create
     - get
