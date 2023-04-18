@@ -30,6 +30,10 @@ spec:
     - jsonPath: .status.unhealthyReplicas
       name: Unhealthy
       type: integer
+    - jsonPath: .spec.distance
+      name: Distance
+      priority: 1
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -55,6 +59,10 @@ spec:
           spec:
             description: Spec contains the firewall set specification.
             properties:
+              distance:
+                description: Distance defines the as-path length of the firewalls.
+                  This field is typically orchestrated by the deployment controller.
+                type: integer
               replicas:
                 description: Replicas is the amount of firewall replicas targeted
                   to be running.
@@ -235,6 +243,7 @@ spec:
                     type: object
                 type: object
             required:
+            - distance
             - replicas
             - template
             type: object
@@ -273,4 +282,7 @@ spec:
     served: true
     storage: true
     subresources:
+      scale:
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.readyReplicas
       status: {}
