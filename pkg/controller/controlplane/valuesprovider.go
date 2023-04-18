@@ -131,23 +131,6 @@ var controlPlaneSecrets = &secrets.Secrets{
 				},
 			},
 			&secrets.ControlPlaneSecretConfig{
-				Name: metal.AccountingExporterName,
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:       metal.AccountingExporterName,
-					CommonName: "system:accounting-exporter",
-					// Groupname of user
-					Organization: []string{metal.AccountingExporterName},
-					CertType:     secrets.ClientCert,
-					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-				},
-				KubeConfigRequests: []secrets.KubeConfigRequest{
-					{
-						ClusterName:   clusterName,
-						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
-					},
-				},
-			},
-			&secrets.ControlPlaneSecretConfig{
 				Name: metal.CloudControllerManagerServerName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:       metal.CloudControllerManagerServerName,
@@ -174,6 +157,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 	return []*gutil.ShootAccessSecret{
 		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
+		gutil.NewShootAccessSecret(metal.AccountingExporterName, namespace),
 	}
 }
 
