@@ -51,6 +51,7 @@ spec:
       tolerations:
       - effect: NoExecute
         operator: Exists
+      automountServiceAccountToken: false
       containers:
       - name: cloud-controller-manager
         image: {{ index .Values.images "metalccm" }}
