@@ -81,22 +81,6 @@ var controlPlaneSecrets = &secrets.Secrets{
 	SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
 		return []secrets.ConfigInterface{
 			&secrets.ControlPlaneSecretConfig{
-				Name: metal.CloudControllerManagerDeploymentName,
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         metal.CloudControllerManagerDeploymentName,
-					CommonName:   "system:cloud-controller-manager",
-					Organization: []string{user.SystemPrivilegedGroup},
-					CertType:     secrets.ClientCert,
-					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-				},
-				KubeConfigRequests: []secrets.KubeConfigRequest{
-					{
-						ClusterName:   clusterName,
-						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
-					},
-				},
-			},
-			&secrets.ControlPlaneSecretConfig{
 				Name: metal.DurosControllerDeploymentName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
 					Name:         metal.DurosControllerDeploymentName,
@@ -174,6 +158,7 @@ var controlPlaneSecrets = &secrets.Secrets{
 func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 	return []*gutil.ShootAccessSecret{
 		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
+		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
 	}
 }
 
