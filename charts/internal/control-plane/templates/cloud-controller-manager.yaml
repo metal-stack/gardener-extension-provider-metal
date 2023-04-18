@@ -122,6 +122,7 @@ spec:
       restartPolicy: Always
       schedulerName: default-scheduler
       terminationGracePeriodSeconds: 30
+      volumes:
       - name: kubeconfig
         projected:
           defaultMode: 420
