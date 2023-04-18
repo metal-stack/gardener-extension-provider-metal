@@ -41,6 +41,7 @@ spec:
 {{- end }}
       labels:
         garden.sapcloud.io/role: controlplane
+        gardener.cloud/role: controlplane
         app: kubernetes
         role: cloud-controller-manager
         networking.gardener.cloud/from-prometheus: allowed
