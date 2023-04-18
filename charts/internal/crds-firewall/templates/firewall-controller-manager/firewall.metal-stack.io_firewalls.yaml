@@ -27,17 +27,20 @@ spec:
     - jsonPath: .status.machineStatus.lastEvent.event
       name: Last Event
       type: string
-    - jsonPath: .status.machineStatus.allocationTimestamp
-      name: Age
-      type: date
+    - jsonPath: .distance
+      name: Distance
+      priority: 1
+      type: string
+    - jsonPath: .status.controllerStatus.actualVersion
+      name: Version
+      type: string
     - jsonPath: .spec.controllerVersion
       name: Spec Version
       priority: 1
       type: string
-    - jsonPath: .status.controllerStatus.actualVersion
-      name: Actual Version
-      priority: 1
-      type: string
+    - jsonPath: .status.machineStatus.allocationTimestamp
+      name: Age
+      type: date
     name: v2
     schema:
       openAPIV3Schema:
@@ -49,6 +52,10 @@ spec:
               of an object. Servers should convert recognized schemas to the latest
               internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
+          distance:
+            description: Distance defines the as-path length of a firewall. This field
+              is typically orchestrated by the deployment controller.
+            type: integer
           kind:
             description: 'Kind is a string value representing the REST resource this
               object represents. Servers may infer this from the endpoint the client
@@ -238,6 +245,10 @@ spec:
                   inside the firewall resource. This will be updated by the firewall
                   monitor controller.
                 properties:
+                  actualDistance:
+                    description: ActualDistance is the actual distance as reflected
+                      by the firewall-controller.
+                    type: integer
                   actualVersion:
                     description: ActualVersion is the actual version running at the
                       firewall-controller.
@@ -389,6 +400,7 @@ spec:
             - phase
             type: object
         required:
+        - distance
         - spec
         type: object
     served: true
