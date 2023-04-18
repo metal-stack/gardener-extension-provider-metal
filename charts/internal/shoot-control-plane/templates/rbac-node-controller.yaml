@@ -73,6 +73,7 @@ rules:
   resources:
     - services
   verbs:
+    - get
     - list
     - patch
     - update
@@ -82,6 +83,7 @@ rules:
   resources:
     - services/status
   verbs:
+    - get
     - list
     - patch
     - update
