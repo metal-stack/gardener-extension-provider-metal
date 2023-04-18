@@ -49,28 +49,94 @@ metadata:
   name: cloud-controller-manager
 rules:
 - apiGroups:
-  - ""
+    - ""
   resources:
-  - nodes
-  - services
+    - events
   verbs:
-  - get
-  - patch
-  - update
-  - watch
-  - list
+    - create
+    - patch
+    - update
 - apiGroups:
-  - ""
+    - ""
   resources:
-  - configmaps
+    - nodes
   verbs:
-  - "*"
+    - "*"
 - apiGroups:
-  - crd.projectcalico.org
+    - ""
   resources:
-  - ipamblocks
+    - nodes/status
   verbs:
-  - list
+    - patch
+- apiGroups:
+    - ""
+  resources:
+    - services
+  verbs:
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - ""
+  resources:
+    - services/status
+  verbs:
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - ""
+  resources:
+    - serviceaccounts
+    - serviceaccounts/token
+  verbs:
+    - create
+    - get
+    - list
+    - watch
+    - update
+- apiGroups:
+    - ""
+  resources:
+    - persistentvolumes
+  verbs:
+    - get
+    - list
+    - update
+    - watch
+- apiGroups:
+    - ""
+  resources:
+    - endpoints
+  verbs:
+    - create
+    - get
+    - list
+    - watch
+    - update
+- apiGroups:
+    - ""
+  resources:
+    - secrets
+    - configmaps
+  verbs:
+    - get
+    - list
+    - watch
+    - update
+    - patch
+- apiGroups:
+    - coordination.k8s.io
+  resources:
+    - leases
+  verbs:
+    - get
+    - create
+    - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
