@@ -88,7 +88,8 @@ spec:
       labels:
         app: duros-controller
     spec:
-      automountServiceAccountToken: false
+      # required to be able to read the duros cr from the seed
+      automountServiceAccountToken: true
       serviceAccountName: duros-controller
       containers:
       - name: duros-controller
