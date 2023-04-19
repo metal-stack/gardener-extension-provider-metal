@@ -126,6 +126,7 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.AccountingExporterName, namespace),
 		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
+		gutil.NewShootAccessSecret(metal.MachineControllerManagerName, namespace),
 	}
 }
 
