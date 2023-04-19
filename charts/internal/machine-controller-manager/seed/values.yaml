@@ -19,3 +19,5 @@ vpa:
   enabled: true
   updatePolicy:
     updateMode: "Auto"
+
+genericTokenKubeconfigSecretName: generic-token-kubeconfig
