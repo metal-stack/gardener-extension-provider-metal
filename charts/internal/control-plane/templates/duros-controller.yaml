@@ -88,6 +88,7 @@ spec:
       labels:
         app: duros-controller
     spec:
+      automountServiceAccountToken: false
       serviceAccountName: duros-controller
       containers:
       - name: duros-controller
