@@ -6,9 +6,11 @@ metadata:
   name: duros-controller
 rules:
 - apiGroups:
-  - storage.k8s.io
+  - snapshot.storage.k8s.io
   resources:
-  - storageclasses
+  - volumesnapshotclasses
+  - volumesnapshotcontents
+  - volumesnapshots
   verbs:
   - create
   - delete
@@ -112,7 +114,7 @@ roleRef:
   kind: ClusterRole
   name: duros-controller
 subjects:
-- kind: User
-  name: system:duros-controller
-  apiGroup: ""
+- kind: ServiceAccount
+  name: duros-controller
+  namespace: kube-system
 {{- end }}

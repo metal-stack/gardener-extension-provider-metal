@@ -64,7 +64,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -80,23 +79,6 @@ var controlPlaneSecrets = &secrets.Secrets{
 	},
 	SecretConfigsFunc: func(cas map[string]*secrets.Certificate, clusterName string) []secrets.ConfigInterface {
 		return []secrets.ConfigInterface{
-			&secrets.ControlPlaneSecretConfig{
-				Name: metal.DurosControllerDeploymentName,
-				CertificateSecretConfig: &secrets.CertificateSecretConfig{
-					Name:         metal.DurosControllerDeploymentName,
-					CommonName:   "system:duros-controller",
-					DNSNames:     kutil.DNSNamesForService(metal.DurosControllerDeploymentName, clusterName),
-					Organization: []string{user.SystemPrivilegedGroup},
-					CertType:     secrets.ClientCert,
-					SigningCA:    cas[v1alpha1constants.SecretNameCACluster],
-				},
-				KubeConfigRequests: []secrets.KubeConfigRequest{
-					{
-						ClusterName:   clusterName,
-						APIServerHost: v1alpha1constants.DeploymentNameKubeAPIServer,
-					},
-				},
-			},
 			&secrets.ControlPlaneSecretConfig{
 				Name: metal.AudittailerClientSecretName,
 				CertificateSecretConfig: &secrets.CertificateSecretConfig{
@@ -143,6 +125,7 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.AccountingExporterName, namespace),
+		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
 	}
 }
 
