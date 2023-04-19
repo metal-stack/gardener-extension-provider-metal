@@ -36,7 +36,6 @@ spec:
 {{ toYaml .Values.podLabels | indent 8 }}
 {{- end }}
     spec:
-      automountServiceAccountToken: false
       serviceAccountName: machine-controller-manager
       terminationGracePeriodSeconds: 5
       containers:
