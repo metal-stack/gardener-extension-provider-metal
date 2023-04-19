@@ -6,9 +6,11 @@ metadata:
   name: duros-controller
 rules:
 - apiGroups:
-  - storage.k8s.io
+  - snapshot.storage.k8s.io/v1
   resources:
-  - storageclasses
+  - volumesnapshotclasses
+  - volumesnapshotcontents
+  - volumesnapshots
   verbs:
   - create
   - delete
