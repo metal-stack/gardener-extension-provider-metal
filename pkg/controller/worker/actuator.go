@@ -56,8 +56,6 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 		mcmShootChart,
 		imagevector.ImageVector(),
 		extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
-		true,
-		true,
 	)
 }
 

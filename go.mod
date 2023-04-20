@@ -167,7 +167,7 @@ require (
 )
 
 replace (
-	github.com/gardener/gardener => github.com/gardener/gardener v1.44.6
+	github.com/gardener/gardener => github.com/gardener/gardener v1.46.3
 
 	k8s.io/api => k8s.io/api v0.23.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.2
