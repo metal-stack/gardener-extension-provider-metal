@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"path"
 
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -12,12 +13,16 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	gutil "github.com/gardener/gardener/pkg/utils/gardener"
+
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
@@ -193,6 +198,44 @@ var (
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
+	auditKubeconfig = corev1.Volume{
+		Name: "kubeconfig",
+		VolumeSource: corev1.VolumeSource{
+			Projected: &corev1.ProjectedVolumeSource{
+				DefaultMode: pointer.Pointer(int32(420)),
+				Sources: []corev1.VolumeProjection{
+					{
+						Secret: &corev1.SecretProjection{
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "kubeconfig",
+									Path: "kubeconfig",
+								},
+							},
+							Optional: pointer.Pointer(false),
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: v1beta1constants.SecretNameGenericTokenKubeconfig,
+							},
+						},
+					},
+					{
+						Secret: &corev1.SecretProjection{
+							Items: []corev1.KeyToPath{
+								{
+									Key:  "token",
+									Path: "token",
+								},
+							},
+							Optional: pointer.Pointer(false),
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "shoot-access-" + metal.AudittailerClientSecretName,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 	reversedVpnVolumeMounts = []corev1.VolumeMount{
 		{
 			Name:      "kube-apiserver-http-proxy",
@@ -222,7 +265,7 @@ var (
 		Env: []corev1.EnvVar{
 			{
 				Name:  "AUDIT_KUBECFG",
-				Value: "/shootconfig/kubeconfig",
+				Value: path.Join(gutil.VolumeMountPathGenericKubeconfig, "kubeconfig"),
 			},
 			{
 				Name:  "AUDIT_NAMESPACE",
@@ -273,6 +316,11 @@ var (
 				ReadOnly:  true,
 				MountPath: "/shootconfig",
 			},
+			{
+				Name:      "kubeconfig",
+				MountPath: gutil.VolumeMountPathGenericKubeconfig,
+				ReadOnly:  true,
+			},
 			auditLogVolumeMount,
 		},
 	}
@@ -287,6 +335,7 @@ func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool) {
 
 func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool) {
 	if makeAuditForwarder {
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditKubeconfig)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)

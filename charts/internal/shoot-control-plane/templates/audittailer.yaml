@@ -137,7 +137,7 @@ roleRef:
   kind: Role
   name: audittailer
 subjects:
-- kind: User
-  name: audittailer
-  namespace: audit
+- kind: ServiceAccount
+  name: audittailer-client
+  namespace: kube-system
 {{- end }}
