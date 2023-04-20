@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"path"
 
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -264,7 +265,7 @@ var (
 		Env: []corev1.EnvVar{
 			{
 				Name:  "AUDIT_KUBECFG",
-				Value: gutil.VolumeMountPathGenericKubeconfig,
+				Value: path.Join(gutil.VolumeMountPathGenericKubeconfig, "kubeconfig"),
 			},
 			{
 				Name:  "AUDIT_NAMESPACE",
