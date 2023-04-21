@@ -711,10 +711,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 			"destinations":           egressDestinations,
 		},
 		"droptailer": map[string]any{
-			"secretName": droptailerServerSecret.Name,
+			"secretName": droptailerServerSecretName,
 		},
 		"audittailer": map[string]any{
-			"secretName": audittailerServerSecret.Name,
+			"secretName": audittailerServerSecretName,
 		},
 	}
 
