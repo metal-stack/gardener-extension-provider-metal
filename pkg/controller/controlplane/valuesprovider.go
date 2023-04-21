@@ -594,12 +594,6 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient)
-	if err != nil {
-		vp.logger.Error(err, "Error getting shoot control plane chart values")
-		return nil, err
-	}
-
 	// FIXME stefan what to do here
 	if !extensionscontroller.IsHibernated(cluster) {
 		if err := vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, vp.audittailerSecretConfigs); err != nil {
@@ -609,6 +603,12 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		if err := vp.deploySecretsToShoot(ctx, cluster, metal.DroptailerNamespace, vp.droptailerSecretConfigs); err != nil {
 			vp.logger.Error(err, "error deploying droptailer certs")
 		}
+	}
+
+	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient)
+	if err != nil {
+		vp.logger.Error(err, "Error getting shoot control plane chart values")
+		return nil, err
 	}
 
 	return values, nil
@@ -684,6 +684,15 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		})
 	}
 
+	droptailerServerSecret, err := vp.getSecretFromShoot(ctx, cluster, metal.DroptailerNamespace, metal.DroptailerServerSecretName)
+	if err != nil {
+		return nil, fmt.Errorf("secret %q not found", metal.DroptailerServerSecretName)
+	}
+	audittailerServerSecret, err := vp.getSecretFromShoot(ctx, cluster, metal.AudittailerNamespace, metal.AudittailerServerSecretName)
+	if err != nil {
+		return nil, fmt.Errorf("secret %q not found", metal.AudittailerServerSecretName)
+	}
+
 	values := map[string]any{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
@@ -698,6 +707,12 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
 			"destinations":           egressDestinations,
+		},
+		"droptailer": map[string]any{
+			"secretName": droptailerServerSecret.Name,
+		},
+		"audittailer": map[string]any{
+			"secretName": audittailerServerSecret.Name,
 		},
 	}
 
@@ -955,6 +970,20 @@ func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *ext
 	_, err = extensionssecretsmanager.GenerateAllSecrets(ctx, manager, secretConfigsFn())
 
 	return err
+}
+
+func (vp *valuesProvider) getSecretFromShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, name string) (*corev1.Secret, error) {
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{})
+	if err != nil {
+		return nil, fmt.Errorf("could not create shoot client %w", err)
+	}
+
+	c, err := client.New(shootConfig, client.Options{})
+	if err != nil {
+		return nil, fmt.Errorf("could not create shoot kubernetes client %w", err)
+	}
+
+	return helper.GetLatestSecret(ctx, c, namespace, name)
 }
 
 // getSecret returns the secret with the given namespace/secretName
