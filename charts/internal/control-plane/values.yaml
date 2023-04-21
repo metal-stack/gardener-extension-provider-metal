@@ -42,6 +42,8 @@ cloudControllerManager:
     limits:
       cpu: 250m
       memory: 300Mi
+  secrets:
+    server: cloud-controller-manager-server
 
 accountingExporter:
   enabled: false

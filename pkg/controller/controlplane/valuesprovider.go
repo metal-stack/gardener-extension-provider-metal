@@ -481,7 +481,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not retrieve project from metal-api %w", err)
 	}
 
-	ccmValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws)
+	ccmValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws, secretsReader)
 	if err != nil {
 		return nil, err
 	}
@@ -1033,6 +1033,7 @@ func getCCMChartValues(
 	mclient metalgo.Client,
 	mcp *apismetal.MetalControlPlane,
 	nws networkMap,
+	secretsReader secretsmanager.Reader,
 ) (map[string]interface{}, error) {
 	projectID := infrastructureConfig.ProjectID
 	nodeCIDR := infrastructure.Status.NodesCIDR
@@ -1101,6 +1102,11 @@ func getCCMChartValues(
 		}
 	}
 
+	serverSecret, found := secretsReader.Get(metal.CloudControllerManagerServerName)
+	if !found {
+		return nil, fmt.Errorf("secret %q not found", metal.CloudControllerManagerServerName)
+	}
+
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"cloudControllerManager": map[string]interface{}{
@@ -1120,6 +1126,9 @@ func getCCMChartValues(
 				"checksum/secret-cloud-controller-manager-server": checksums[metal.CloudControllerManagerServerName],
 				"checksum/secret-cloudprovider":                   checksums[v1alpha1constants.SecretNameCloudProvider],
 				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
+			},
+			"secrets": map[string]any{
+				"server": serverSecret.Name,
 			},
 		},
 	}
