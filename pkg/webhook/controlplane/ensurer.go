@@ -289,11 +289,11 @@ var (
 			},
 			{
 				Name:  "AUDIT_TLS_CRT_FILE",
-				Value: "audittailer-client.crt",
+				Value: "tls.crt",
 			},
 			{
 				Name:  "AUDIT_TLS_KEY_FILE",
-				Value: "audittailer-client.key",
+				Value: "tls.key",
 			},
 			{
 				Name:  "AUDIT_TLS_VHOST",
