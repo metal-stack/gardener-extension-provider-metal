@@ -21,6 +21,8 @@ firewallControllerManager:
     -----BEGIN CERTIFICATE-----
     ...
     -----END CERTIFICATE-----
+  secrets:
+    server: firewall-controller-manager
 
 cloudControllerManager:
   additionalParameters: []

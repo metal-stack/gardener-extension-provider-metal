@@ -506,7 +506,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, metalControlPlane, sshSecret, caBundle)
+	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, metalControlPlane, sshSecret, caBundle, secretsReader)
 	if err != nil {
 		return nil, err
 	}
@@ -1333,7 +1333,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Context, cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, sshSecret, caBundle *corev1.Secret) (map[string]any, error) {
+func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Context, cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, sshSecret, caBundle *corev1.Secret, secretsReader secretsmanager.Reader) (map[string]any, error) {
 	if cluster.Shoot.Spec.DNS.Domain == nil {
 		return nil, fmt.Errorf("cluster dns domain is not yet set")
 	}
@@ -1366,6 +1366,10 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, err
 	}
+	serverSecret, found := secretsReader.Get(metal.FirewallControllerManagerDeploymentName)
+	if !found {
+		return nil, fmt.Errorf("secret %q not found", metal.CloudControllerManagerServerName)
+	}
 
 	return map[string]any{
 		"firewallControllerManager": map[string]any{
@@ -1382,6 +1386,9 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 				"url": metalControlPlane.Endpoint,
 			},
 			"caBundle": strings.TrimSpace(string(caBundle.Data["bundle.crt"])),
+			"secrets": map[string]any{
+				"server": serverSecret.Name,
+			},
 		},
 	}, nil
 }
