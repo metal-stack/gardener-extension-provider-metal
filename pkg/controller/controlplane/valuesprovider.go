@@ -684,13 +684,15 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		})
 	}
 
+	droptailerServerSecretName := metal.DroptailerClientSecretName
 	droptailerServerSecret, err := vp.getSecretFromShoot(ctx, cluster, metal.DroptailerNamespace, metal.DroptailerServerSecretName)
-	if err != nil {
-		vp.logger.Info("secret not found", "secret", metal.DroptailerServerSecretName)
+	if err == nil {
+		droptailerServerSecretName = droptailerServerSecret.Name
 	}
+	audittailerServerSecretName := metal.AudittailerClientSecretName
 	audittailerServerSecret, err := vp.getSecretFromShoot(ctx, cluster, metal.AudittailerNamespace, metal.AudittailerServerSecretName)
-	if err != nil {
-		vp.logger.Info("secret not found", "secret", metal.AudittailerServerSecretName)
+	if err == nil {
+		audittailerServerSecretName = audittailerServerSecret.Name
 	}
 
 	values := map[string]any{
