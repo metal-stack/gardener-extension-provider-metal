@@ -11,6 +11,7 @@ import (
 
 	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 )
 
 func GetLatestSSHSecret(ctx context.Context, c client.Client, namespace string) (*corev1.Secret, error) {
@@ -29,9 +30,8 @@ func GetLatestSSHSecret(ctx context.Context, c client.Client, namespace string) 
 func GetLatestCABundle(ctx context.Context, c client.Client, namespace string) (*corev1.Secret, error) {
 	secretList := &corev1.SecretList{}
 	if err := c.List(ctx, secretList, client.InNamespace(namespace), client.MatchingLabels{
-		secretsmanager.LabelKeyManagedBy:       secretsmanager.LabelValueSecretsManager,
-		secretsmanager.LabelKeyManagerIdentity: constants.SecretManagerIdentityGardenlet,
-		secretsmanager.LabelKeyName:            "ca-bundle",
+		secretsmanager.LabelKeyManagedBy: secretsmanager.LabelValueSecretsManager,
+		secretsmanager.LabelKeyName:      metal.FirewallControllerManagerDeploymentName,
 	}); err != nil {
 		return nil, err
 	}

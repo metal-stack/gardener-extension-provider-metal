@@ -97,7 +97,7 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 				CommonName:                  metal.FirewallControllerManagerDeploymentName,
 				DNSNames:                    kutil.DNSNamesForService(metal.FirewallControllerManagerDeploymentName, namespace),
 				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: true,
+				SkipPublishingCACertificate: false,
 			},
 			// use current CA for signing server cert to prevent mismatches when dropping the old CA from the webhook
 			// config in phase Completing
@@ -1385,7 +1385,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 			"metalapi": map[string]any{
 				"url": metalControlPlane.Endpoint,
 			},
-			"caBundle": strings.TrimSpace(string(caBundle.Data["bundle.crt"])),
+			"caBundle": strings.TrimSpace(string(caBundle.Data["ca.crt"])),
 			"secrets": map[string]any{
 				"server": serverSecret.Name,
 			},
