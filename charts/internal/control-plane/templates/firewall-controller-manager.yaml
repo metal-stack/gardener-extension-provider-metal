@@ -156,12 +156,7 @@ spec:
       volumes:
       - name: webhook-certs
         secret:
-          secretName: firewall-controller-manager
-          items:
-          - key: firewall-controller-manager.crt
-            path: tls.crt
-          - key: firewall-controller-manager.key
-            path: tls.key
+          secretName: {{ .Values.firewallControllerManager.secrets.server }}
       - name: token-dir
         emptyDir: {}
 ---
