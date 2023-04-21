@@ -686,11 +686,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 
 	droptailerServerSecret, err := vp.getSecretFromShoot(ctx, cluster, metal.DroptailerNamespace, metal.DroptailerServerSecretName)
 	if err != nil {
-		return nil, fmt.Errorf("secret %q not found", metal.DroptailerServerSecretName)
+		vp.logger.Info("secret not found", "secret", metal.DroptailerServerSecretName)
 	}
 	audittailerServerSecret, err := vp.getSecretFromShoot(ctx, cluster, metal.AudittailerNamespace, metal.AudittailerServerSecretName)
 	if err != nil {
-		return nil, fmt.Errorf("secret %q not found", metal.AudittailerServerSecretName)
+		vp.logger.Info("secret not found", "secret", metal.AudittailerServerSecretName)
 	}
 
 	values := map[string]any{
