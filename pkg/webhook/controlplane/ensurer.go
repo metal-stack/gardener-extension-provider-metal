@@ -136,14 +136,6 @@ var (
 			},
 		},
 	}
-	audittailerClientSecretVolume = corev1.Volume{
-		Name: metal.AudittailerClientSecretName,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: metal.AudittailerClientSecretName,
-			},
-		},
-	}
 	auditForwarderSplunkConfigVolumeMount = corev1.VolumeMount{
 		Name:      metal.AuditForwarderSplunkConfigName,
 		MountPath: "/fluent-bit/etc/add",
@@ -312,11 +304,6 @@ var (
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      audittailerClientSecretVolume.Name,
-				ReadOnly:  true,
-				MountPath: "/shootconfig",
-			},
-			{
 				Name:      "kubeconfig",
 				MountPath: gutil.VolumeMountPathGenericKubeconfig,
 				ReadOnly:  true,
@@ -338,7 +325,6 @@ func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool) {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditKubeconfig)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
 	}
 	if auditToSplunk {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditForwarderSplunkConfigVolume)
