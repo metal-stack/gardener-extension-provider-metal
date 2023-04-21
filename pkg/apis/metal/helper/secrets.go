@@ -39,11 +39,11 @@ func GetLatestCABundle(ctx context.Context, c client.Client, namespace string) (
 	return getLatestIssuedSecret(secretList.Items)
 }
 
-func GetLatestSecret(ctx context.Context, c client.Client, namespace string,name string) (*corev1.Secret, error) {
+func GetLatestSecret(ctx context.Context, c client.Client, namespace string, name string) (*corev1.Secret, error) {
 	secretList := &corev1.SecretList{}
 	if err := c.List(ctx, secretList, client.InNamespace(namespace), client.MatchingLabels{
-		secretsmanager.LabelKeyManagedBy:       secretsmanager.LabelValueSecretsManager,
-		secretsmanager.LabelKeyName:            name,
+		secretsmanager.LabelKeyManagedBy: secretsmanager.LabelValueSecretsManager,
+		secretsmanager.LabelKeyName:      name,
 	}); err != nil {
 		return nil, err
 	}
