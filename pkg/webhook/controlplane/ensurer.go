@@ -82,6 +82,17 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if validation.ClusterAuditEnabled(&e.controllerConfig, cpConfig) {
 		makeAuditForwarder = true
 	}
+	if makeAuditForwarder {
+		audittailersecret := &corev1.Secret{}
+		if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, "shoot-access-audittailer-client"), audittailersecret); err != nil {
+			logger.Error(err, "could not get shoot-access-audittailer-client for cluster", "cluster name", cluster.ObjectMeta.Name)
+			makeAuditForwarder = false
+		}
+		if len(audittailersecret.Data) == 0 {
+			logger.Error(err, "token for shoot-access-audittailer-client not yet set in cluster", "cluster name", cluster.ObjectMeta.Name)
+			makeAuditForwarder = false
+		}
+	}
 
 	auditToSplunk := false
 	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
