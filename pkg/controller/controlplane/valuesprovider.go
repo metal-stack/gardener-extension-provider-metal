@@ -503,7 +503,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	caBundle, err := helper.GetLatestSecret(ctx, vp.Client(), cp.Namespace, metal.FirewallControllerManagerDeploymentName)
 	if err != nil {
-		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
+		return nil, fmt.Errorf("could not get ca from secret: %w", err)
 	}
 
 	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, metalControlPlane, sshSecret, caBundle, secretsReader)
