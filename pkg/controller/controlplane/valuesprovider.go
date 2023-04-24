@@ -89,7 +89,7 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 				CertType:                    secrets.ServerCert,
 				SkipPublishingCACertificate: true,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(v1alpha1constants.SecretNameCACluster)},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(v1alpha1constants.SecretNameCACluster, secretsmanager.UseCurrentCA)},
 		},
 		{
 			Config: &secrets.CertificateSecretConfig{
@@ -501,7 +501,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	caBundle, err := helper.GetLatestCABundle(ctx, vp.Client(), cp.Namespace)
+	caBundle, err := helper.GetLatestSecret(ctx, vp.Client(), cp.Namespace, metal.FirewallControllerManagerDeploymentName)
 	if err != nil {
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
@@ -594,7 +594,6 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	// FIXME stefan what to do here
 	if !extensionscontroller.IsHibernated(cluster) {
 		if err := vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, vp.audittailerSecretConfigs); err != nil {
 			vp.logger.Error(err, "error deploying audittailer certs")
@@ -872,11 +871,12 @@ func (vp *valuesProvider) audittailerSecretConfigs() []extensionssecretsmanager.
 		return nil
 	}
 
+	const auditTailerCAName = "ca-provider-metal-audittailer"
 	return []extensionssecretsmanager.SecretConfigWithOptions{
 		{
 			Config: &secrets.CertificateSecretConfig{
-				Name:       "ca-provider-metal-audittailer",
-				CommonName: "ca-provider-metal-audittailer",
+				Name:       auditTailerCAName,
+				CommonName: auditTailerCAName,
 				CertType:   secrets.CACert,
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
@@ -890,7 +890,7 @@ func (vp *valuesProvider) audittailerSecretConfigs() []extensionssecretsmanager.
 				CertType:                    secrets.ClientCert,
 				SkipPublishingCACertificate: false,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-audittailer")},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
 		},
 		{
 			Config: &secrets.CertificateSecretConfig{
@@ -901,17 +901,19 @@ func (vp *valuesProvider) audittailerSecretConfigs() []extensionssecretsmanager.
 				CertType:                    secrets.ServerCert,
 				SkipPublishingCACertificate: false,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-audittailer")},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
 		},
 	}
 }
 
 func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.SecretConfigWithOptions {
+
+	const droptailerCAName = "ca-provider-metal-droptailer"
 	return []extensionssecretsmanager.SecretConfigWithOptions{
 		{
 			Config: &secrets.CertificateSecretConfig{
-				Name:       "ca-provider-metal-droptailer",
-				CommonName: "ca-provider-metal-droptailer",
+				Name:       droptailerCAName,
+				CommonName: droptailerCAName,
 				CertType:   secrets.CACert,
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
@@ -925,7 +927,7 @@ func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.S
 				CertType:                    secrets.ClientCert,
 				SkipPublishingCACertificate: false,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-droptailer")},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
 		},
 		{
 			Config: &secrets.CertificateSecretConfig{
@@ -936,7 +938,7 @@ func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.S
 				CertType:                    secrets.ServerCert,
 				SkipPublishingCACertificate: false,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA("ca-provider-metal-droptailer")},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
 		},
 	}
 }
@@ -964,7 +966,7 @@ func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *ext
 		return fmt.Errorf("could not ensure namespace: %w", err)
 	}
 
-	manager, err := secretsmanager.New(ctx, vp.logger.WithName("shoot-secrets-manager"), clock.RealClock{}, c, namespace, metal.Type+"-provider-shoot-controlplane", nil)
+	manager, err := secretsmanager.New(ctx, vp.logger.WithName("shoot-secrets-manager"), clock.RealClock{}, c, namespace, metal.ManagerIdentity, nil)
 	if err != nil {
 		return fmt.Errorf("unable to create secrets manager: %w", err)
 	}
@@ -1368,7 +1370,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 	}
 	serverSecret, found := secretsReader.Get(metal.FirewallControllerManagerDeploymentName)
 	if !found {
-		return nil, fmt.Errorf("secret %q not found", metal.CloudControllerManagerServerName)
+		return nil, fmt.Errorf("secret %q not found", metal.FirewallControllerManagerDeploymentName)
 	}
 
 	return map[string]any{

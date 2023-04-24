@@ -84,12 +84,12 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	}
 	if makeAuditForwarder {
 		audittailersecret := &corev1.Secret{}
-		if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, "shoot-access-audittailer-client"), audittailersecret); err != nil {
-			logger.Error(err, "could not get shoot-access-audittailer-client for cluster", "cluster name", cluster.ObjectMeta.Name)
+		if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, gutil.SecretNamePrefixShootAccess+metal.AudittailerClientSecretName), audittailersecret); err != nil {
+			logger.Error(err, "could not get secret for cluster", "secret", gutil.SecretNamePrefixShootAccess+metal.AudittailerClientSecretName, "cluster name", cluster.ObjectMeta.Name)
 			makeAuditForwarder = false
 		}
 		if len(audittailersecret.Data) == 0 {
-			logger.Error(err, "token for shoot-access-audittailer-client not yet set in cluster", "cluster name", cluster.ObjectMeta.Name)
+			logger.Error(err, "token for secret not yet set in cluster", "secret", gutil.SecretNamePrefixShootAccess+metal.AudittailerClientSecretName, "cluster name", cluster.ObjectMeta.Name)
 			makeAuditForwarder = false
 		}
 	}
@@ -231,7 +231,7 @@ var (
 							},
 							Optional: pointer.Pointer(false),
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "shoot-access-" + metal.AudittailerClientSecretName,
+								Name: gutil.SecretNamePrefixShootAccess + metal.AudittailerClientSecretName,
 							},
 						},
 					},
