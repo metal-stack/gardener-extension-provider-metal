@@ -10,6 +10,7 @@ rules:
   resources:
   - volumesnapshotclasses
   - volumesnapshotcontents
+  - volumesnapshotcontents/status
   - volumesnapshots
   - volumesnapshots/status
   verbs:
