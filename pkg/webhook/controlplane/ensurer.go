@@ -82,6 +82,17 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if validation.ClusterAuditEnabled(&e.controllerConfig, cpConfig) {
 		makeAuditForwarder = true
 	}
+	if makeAuditForwarder {
+		audittailersecret := &corev1.Secret{}
+		if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, gutil.SecretNamePrefixShootAccess+metal.AudittailerClientSecretName), audittailersecret); err != nil {
+			logger.Error(err, "could not get secret for cluster", "secret", gutil.SecretNamePrefixShootAccess+metal.AudittailerClientSecretName, "cluster name", cluster.ObjectMeta.Name)
+			makeAuditForwarder = false
+		}
+		if len(audittailersecret.Data) == 0 {
+			logger.Error(err, "token for secret not yet set in cluster", "secret", gutil.SecretNamePrefixShootAccess+metal.AudittailerClientSecretName, "cluster name", cluster.ObjectMeta.Name)
+			makeAuditForwarder = false
+		}
+	}
 
 	auditToSplunk := false
 	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
@@ -133,14 +144,6 @@ var (
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditPolicyName},
-			},
-		},
-	}
-	audittailerClientSecretVolume = corev1.Volume{
-		Name: metal.AudittailerClientSecretName,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: metal.AudittailerClientSecretName,
 			},
 		},
 	}
@@ -228,7 +231,7 @@ var (
 							},
 							Optional: pointer.Pointer(false),
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: "shoot-access-" + metal.AudittailerClientSecretName,
+								Name: gutil.SecretNamePrefixShootAccess + metal.AudittailerClientSecretName,
 							},
 						},
 					},
@@ -289,11 +292,11 @@ var (
 			},
 			{
 				Name:  "AUDIT_TLS_CRT_FILE",
-				Value: "audittailer-client.crt",
+				Value: "tls.crt",
 			},
 			{
 				Name:  "AUDIT_TLS_KEY_FILE",
-				Value: "audittailer-client.key",
+				Value: "tls.key",
 			},
 			{
 				Name:  "AUDIT_TLS_VHOST",
@@ -311,11 +314,6 @@ var (
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      audittailerClientSecretVolume.Name,
-				ReadOnly:  true,
-				MountPath: "/shootconfig",
-			},
 			{
 				Name:      "kubeconfig",
 				MountPath: gutil.VolumeMountPathGenericKubeconfig,
@@ -338,7 +336,6 @@ func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool) {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditKubeconfig)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, audittailerClientSecretVolume)
 	}
 	if auditToSplunk {
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditForwarderSplunkConfigVolume)

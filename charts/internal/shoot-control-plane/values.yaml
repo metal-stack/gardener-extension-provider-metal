@@ -39,3 +39,9 @@ restrictEgress:
       matchPattern: '*.a-name.org'
       protocol: TCP
       port: 443
+
+droptailer:
+  secretName: 'droptailer-server'
+
+audittailer:
+  secretName: 'audittailer-server'

@@ -10,12 +10,15 @@ rules:
   resources:
   - volumesnapshotclasses
   - volumesnapshotcontents
+  - volumesnapshotcontents/status
   - volumesnapshots
+  - volumesnapshots/status
   verbs:
   - create
   - delete
   - get
   - list
+  - watch
   - patch
   - update
 - apiGroups:
@@ -36,6 +39,7 @@ rules:
   - csidrivers
   - csinodes
   - volumeattachments
+  - volumeattachments/status
   - storageclasses
   verbs:
   - create

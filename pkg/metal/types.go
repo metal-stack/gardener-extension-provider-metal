@@ -77,6 +77,8 @@ const (
 	FirewallControllerManagerDeploymentName = "firewall-controller-manager"
 	// FirewallDeploymentName is the name of the firewall deployment deployed to the seed cluster to get managed by the FCM.
 	FirewallDeploymentName = "shoot-firewall"
+	// ManagerIdentity is put as a label to every secret managed by the gepm and secretsmanager to make searching easier
+	ManagerIdentity = "provider-" + Type + "-controlplane"
 )
 
 var (

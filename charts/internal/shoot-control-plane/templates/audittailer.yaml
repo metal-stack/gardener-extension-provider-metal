@@ -63,7 +63,7 @@ spec:
           name: audittailer-config
       - name: fluentd-certs
         secret:
-          secretName: audittailer-server
+          secretName: {{ .Values.audittailer.secretName }}
       - name: fluentbuffer
         emptyDir: {}
 ---
@@ -82,8 +82,8 @@ data:
       bind 0.0.0.0
       <transport tls>
         ca_path                   /fluentd/etc/ssl/ca.crt
-        cert_path                 /fluentd/etc/ssl/audittailer-server.crt
-        private_key_path          /fluentd/etc/ssl/audittailer-server.key
+        cert_path                 /fluentd/etc/ssl/tls.crt
+        private_key_path          /fluentd/etc/ssl/tls.key
         client_cert_auth          true
       </transport>
     </source>
@@ -126,6 +126,7 @@ rules:
   - secrets
   verbs:
   - get
+  - list
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1

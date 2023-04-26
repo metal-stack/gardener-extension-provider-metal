@@ -21,6 +21,8 @@ firewallControllerManager:
     -----BEGIN CERTIFICATE-----
     ...
     -----END CERTIFICATE-----
+  secrets:
+    server: firewall-controller-manager
 
 cloudControllerManager:
   additionalParameters: []
@@ -42,6 +44,8 @@ cloudControllerManager:
     limits:
       cpu: 250m
       memory: 300Mi
+  secrets:
+    server: cloud-controller-manager-server
 
 accountingExporter:
   enabled: false

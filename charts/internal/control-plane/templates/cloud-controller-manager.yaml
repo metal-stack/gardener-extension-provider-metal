@@ -68,8 +68,8 @@ spec:
         - --secure-port={{ include "cloud-controller-manager.port" . }}
         - --authentication-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
         - --authorization-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
-        - --tls-cert-file=/var/lib/cloud-controller-manager-server/cloud-controller-manager-server.crt
-        - --tls-private-key-file=/var/lib/cloud-controller-manager-server/cloud-controller-manager-server.key
+        - --tls-cert-file=/var/lib/cloud-controller-manager-server/tls.crt
+        - --tls-private-key-file=/var/lib/cloud-controller-manager-server/tls.key
         - --tls-cipher-suites={{ include "kubernetes.tlsCipherSuites" . | replace "\n" "," | trimPrefix "," }}
         - --use-service-account-credentials
         - --v=2
@@ -143,7 +143,7 @@ spec:
               optional: false
       - name: cloud-controller-manager-server
         secret:
-          secretName: cloud-controller-manager-server
+          secretName: {{ .Values.cloudControllerManager.secrets.server }}
       - name: cloudprovider
         secret:
           secretName: cloudprovider
