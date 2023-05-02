@@ -55,6 +55,10 @@ start-admission-metal:
 # Rules related to binary build, Docker image build and release #
 #################################################################
 
+.PHONY: build
+build:
+	go build -ldflags $(LD_FLAGS) -tags netgo ./cmd/gardener-extension-provider-metal
+
 .PHONY: install
 install: revendor $(HELM)
 	@LD_FLAGS="-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(VERSION)" \
