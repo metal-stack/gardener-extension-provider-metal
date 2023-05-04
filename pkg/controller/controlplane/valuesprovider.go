@@ -72,9 +72,7 @@ import (
 )
 
 const (
-	caNameControlPlane                  = "ca-" + metal.Name + "-controlplane"
-	cloudControllerManagerServerName    = metal.CloudControllerManagerDeploymentName + "-server"
-	firewallControllerManagerServerName = metal.FirewallControllerManagerDeploymentName + "-server"
+	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
