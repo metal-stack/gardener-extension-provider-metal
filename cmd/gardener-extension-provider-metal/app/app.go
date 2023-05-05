@@ -23,6 +23,7 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
+	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
@@ -76,7 +77,13 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			Namespace: os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
 		}
 		webhookSwitches = metalcmd.WebhookSwitchOptions()
-		webhookOptions  = webhookcmd.NewAddToManagerOptions(metal.Name, webhookServerOptions, webhookSwitches)
+		webhookOptions  = webhookcmd.NewAddToManagerOptions(
+			metal.Name,
+			genericactuator.ShootWebhooksResourceName,
+			genericactuator.ShootWebhookNamespaceSelector(metal.Type),
+			webhookServerOptions,
+			webhookSwitches,
+		)
 
 		aggOption = controllercmd.NewOptionAggregator(
 			restOpts,
@@ -162,11 +169,9 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			reconcileOpts.Completed().Apply(&metalworker.DefaultAddOptions.IgnoreOperationAnnotation)
 			workerCtrlOpts.Completed().Apply(&metalworker.DefaultAddOptions.Controller)
 
-			_, shootWebhooks, err := webhookOptions.Completed().AddToManager(ctx, mgr)
-			if err != nil {
+			if _, err := webhookOptions.Completed().AddToManager(ctx, mgr); err != nil {
 				return fmt.Errorf("could not add webhooks to manager: %w", err)
 			}
-			metalcontrolplane.DefaultAddOptions.ShootWebhooks = shootWebhooks
 
 			if err := controllerSwitches.Completed().AddToManager(mgr); err != nil {
 				return fmt.Errorf("could not add controllers to manager: %w", err)

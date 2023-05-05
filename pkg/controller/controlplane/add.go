@@ -42,7 +42,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
 			secretConfigsFunc, shootAccessSecretsFunc, nil, nil,
 			configChart, controlPlaneChart, cpShootChart, nil, storageClassChart, nil,
 			NewValuesProvider(logger, opts.ControllerConfig), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
-			imagevector.ImageVector(), "", opts.ShootWebhooks, mgr.GetWebhookServer().Port, logger,
+			imagevector.ImageVector(), "", nil, mgr.GetWebhookServer().Port, logger,
 		),
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(opts.IgnoreOperationAnnotation),
