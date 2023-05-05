@@ -71,12 +71,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
+)
+
 func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
 	return []extensionssecretsmanager.SecretConfigWithOptions{
 		{
 			Config: &secrets.CertificateSecretConfig{
-				Name:       v1alpha1constants.SecretNameCACluster,
-				CommonName: "kubernetes",
+				Name:       caNameControlPlane,
+				CommonName: caNameControlPlane,
 				CertType:   secrets.CACert,
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
@@ -89,7 +93,7 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 				CertType:                    secrets.ServerCert,
 				SkipPublishingCACertificate: true,
 			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(v1alpha1constants.SecretNameCACluster, secretsmanager.UseCurrentCA)},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane, secretsmanager.UseCurrentCA)},
 		},
 		{
 			Config: &secrets.CertificateSecretConfig{
@@ -101,7 +105,7 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 			},
 			// use current CA for signing server cert to prevent mismatches when dropping the old CA from the webhook
 			// config in phase Completing
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(v1alpha1constants.SecretNameCACluster, secretsmanager.UseCurrentCA)},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane, secretsmanager.UseCurrentCA)},
 		},
 	}
 }
