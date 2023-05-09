@@ -48,6 +48,7 @@ data:
       tlsEnabled: {{ .Values.config.auditToSplunk.tlsEnabled }}
       hecCAFile: |
 {{ .Values.config.auditToSplunk.hecCAFile | indent 8}}
+{{- end }}
     storage:
       duros:
         enabled: {{ .Values.config.storage.duros.enabled }}
