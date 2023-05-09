@@ -969,7 +969,7 @@ func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *ext
 		return fmt.Errorf("could not ensure namespace: %w", err)
 	}
 
-	manager, err := secretsmanager.New(ctx, logger, secrets.Clock, c, namespace, metal.ManagerIdentity, secretsmanager.Config{
+	manager, err := secretsmanager.New(ctx, vp.logger.WithName("shoot-secrets-manager"), secrets.Clock, c, namespace, metal.ManagerIdentity, secretsmanager.Config{
 		CASecretAutoRotation: false,
 	})
 	if err != nil {
