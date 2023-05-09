@@ -336,11 +336,6 @@ func (w *workerDelegate) ensureMigrationFirewall(ctx context.Context, metalContr
 		return err
 	}
 
-	internalPrefixes := []string{}
-	if w.controllerConfig.AccountingExporter.Enabled && w.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
-		internalPrefixes = w.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
-	}
-
 	for _, fw := range toMigrate {
 		fw := fw
 
@@ -371,7 +366,7 @@ func (w *workerDelegate) ensureMigrationFirewall(ctx context.Context, metalContr
 				Userdata:                fw.Allocation.UserData,
 				SSHPublicKeys:           fw.Allocation.SSHPubKeys,
 				RateLimits:              rateLimit(infrastructureConfig.Firewall.RateLimits),
-				InternalPrefixes:        internalPrefixes,
+				InternalPrefixes:        w.controllerConfig.FirewallInternalPrefixes,
 				EgressRules:             egressRules(infrastructureConfig.Firewall.EgressRules),
 				Interval:                "10s",
 				DryRun:                  false,
@@ -526,11 +521,6 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 		}
 	)
 
-	internalPrefixes := []string{}
-	if w.controllerConfig.AccountingExporter.Enabled && w.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
-		internalPrefixes = w.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
-	}
-
 	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
 	if err != nil {
 		return err
@@ -574,7 +564,7 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 		deploy.Spec.Template.Spec.Image = infrastructureConfig.Firewall.Image
 		deploy.Spec.Template.Spec.Networks = append(infrastructureConfig.Firewall.Networks, privateNetworkID)
 		deploy.Spec.Template.Spec.RateLimits = rateLimit(infrastructureConfig.Firewall.RateLimits)
-		deploy.Spec.Template.Spec.InternalPrefixes = internalPrefixes
+		deploy.Spec.Template.Spec.InternalPrefixes = w.controllerConfig.FirewallInternalPrefixes
 		deploy.Spec.Template.Spec.EgressRules = egressRules(infrastructureConfig.Firewall.EgressRules)
 		deploy.Spec.Template.Spec.ControllerVersion = fwcv.Version
 		deploy.Spec.Template.Spec.ControllerURL = fwcv.URL

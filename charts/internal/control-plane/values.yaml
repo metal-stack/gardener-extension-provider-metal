@@ -5,7 +5,6 @@ podAnnotations: {}
 
 images:
   metalccm: image-repository:image-tag
-  accounting-exporter: image-repository:image-tag
   duros-controller: image-repository:image-tag
   firewall-controller-manager: image-repository:image-tag
 
@@ -46,34 +45,6 @@ cloudControllerManager:
       memory: 300Mi
   secrets:
     server: cloud-controller-manager-server
-
-accountingExporter:
-  enabled: false
-  replicas: 1
-  enrichments:
-    projectID: project-id
-    projectName: project-name
-    partitionID: partition-id
-    tenant: some-tenant
-    clusterID: cluster-id
-    clusterName: cluster-name
-  networkTraffic:
-    enabled: false
-  accountingAPI:
-    hostname: hostname
-    port: 9000
-    ca: |
-      -----BEGIN CERTIFICATE-----
-      ...
-      -----END CERTIFICATE-----
-    cert: |
-      -----BEGIN CERTIFICATE-----
-      ...
-      -----END CERTIFICATE-----
-    certKey: |
-      -----BEGIN RSA PRIVATE KEY-----
-      ...
-      -----END RSA PRIVATE KEY-----
 
 duros:
   enabled: false

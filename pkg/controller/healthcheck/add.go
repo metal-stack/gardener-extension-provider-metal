@@ -44,9 +44,6 @@ type AddOptions struct {
 
 // RegisterHealthChecks registers health checks for each extension resource
 func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
-	accountingPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
-		return opts.ControllerConfig.AccountingExporter.Enabled
-	}
 	durosPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.Storage.Duros.Enabled
 	}
@@ -63,11 +60,6 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 			{
 				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
 				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.CloudControllerManagerDeploymentName),
-			},
-			{
-				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
-				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.AccountingExporterName),
-				PreCheckFunc:  accountingPreCheck,
 			},
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),

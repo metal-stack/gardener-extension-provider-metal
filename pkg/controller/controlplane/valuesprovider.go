@@ -13,7 +13,6 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
-	"github.com/metal-stack/metal-go/api/client/project"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -114,7 +113,6 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 	return []*gutil.ShootAccessSecret{
 		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
-		gutil.NewShootAccessSecret(metal.AccountingExporterName, namespace),
 		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.MachineControllerManagerName, namespace),
 		gutil.NewShootAccessSecret(metal.AudittailerClientSecretName, namespace),
@@ -246,20 +244,6 @@ func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerCon
 		{Type: &corev1.ConfigMap{}, Name: "shoot-info-node-cidr"},
 	}...)
 
-	if controllerConfig.AccountingExporter.Enabled {
-		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.AccountingExporterImageName}...)
-		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
-			// accounting exporter
-			{Type: &corev1.Secret{}, Name: "accounting-exporter-tls"},
-			{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
-		}...)
-		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
-			// accounting controller
-			{Type: &rbacv1.ClusterRole{}, Name: "system:accounting-exporter"},
-			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:accounting-exporter"},
-		}...)
-
-	}
 	if controllerConfig.Storage.Duros.Enabled {
 		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.DurosControllerImageName}...)
 		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
@@ -480,17 +464,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	p, err := mclient.Project().FindProject(project.NewFindProjectParams().WithID(infrastructureConfig.ProjectID).WithContext(ctx), nil)
-	if err != nil {
-		return nil, fmt.Errorf("could not retrieve project from metal-api %w", err)
-	}
-
 	ccmValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws, secretsReader)
-	if err != nil {
-		return nil, err
-	}
-
-	accValues, err := getAccountingExporterChartValues(ctx, vp.Client(), vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, p.Payload)
 	if err != nil {
 		return nil, err
 	}
@@ -522,7 +496,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		},
 	}
 
-	merge(values, ccmValues, accValues, storageValues, firewallValues)
+	merge(values, ccmValues, storageValues, firewallValues)
 
 	if vp.controllerConfig.ImagePullSecret != nil {
 		values["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
@@ -703,11 +677,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		"apiserverIPs":      apiserverIPs,
 		"nodeCIDR":          *infrastructure.Status.NodesCIDR,
 		"firewallSpec":      fwSpec,
-		"accountingExporter": map[string]any{
-			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
-		},
-		"duros":        durosValues,
-		"clusterAudit": clusterAuditValues,
+		"duros":             durosValues,
+		"clusterAudit":      clusterAuditValues,
 		"restrictEgress": map[string]any{
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
@@ -742,11 +713,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 // getFirewallSpec returns the firewall v1 specification to be deployed to the shoot cluster.
 // this is kept for backwards-compatibility to support firewall-controller v1.x, can be removed as soon as all firewall-controllers are migrated to v2.x
 func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient metalgo.Client) (*firewallv1.FirewallSpec, error) {
-	internalPrefixes := []string{}
-	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
-		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
-	}
-
 	rateLimits := []firewallv1.RateLimit{}
 	for _, rateLimit := range infrastructureConfig.Firewall.RateLimits {
 		rateLimits = append(rateLimits, firewallv1.RateLimit{
@@ -766,7 +732,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 	spec := firewallv1.FirewallSpec{
 		Data: firewallv1.Data{
 			Interval:         "10s",
-			InternalPrefixes: internalPrefixes,
+			InternalPrefixes: vp.controllerConfig.FirewallInternalPrefixes,
 			RateLimits:       rateLimits,
 			EgressRules:      egressRules,
 		},
@@ -1143,77 +1109,6 @@ func getCCMChartValues(
 
 	if cpConfig.CloudControllerManager != nil {
 		values["featureGates"] = cpConfig.CloudControllerManager.FeatureGates
-	}
-
-	return values, nil
-}
-
-func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, p *models.V1ProjectResponse) (map[string]interface{}, error) {
-	annotations := cluster.Shoot.GetAnnotations()
-	partitionID := infrastructure.PartitionID
-	projectID := infrastructure.ProjectID
-	clusterID := cluster.Shoot.ObjectMeta.UID
-	clusterName := annotations[tag.ClusterName]
-
-	if accountingConfig.Enabled {
-		cp := &firewallv1.ClusterwideNetworkPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "egress-allow-accounting-api",
-				Namespace: "firewall",
-			},
-		}
-
-		_, err := controllerutil.CreateOrUpdate(ctx, client, cp, func() error {
-			port9000 := intstr.FromInt(9000)
-			tcp := corev1.ProtocolTCP
-
-			cp.Spec.Egress = []firewallv1.EgressRule{
-				{
-					Ports: []networkingv1.NetworkPolicyPort{
-						{
-							Port:     &port9000,
-							Protocol: &tcp,
-						},
-					},
-					To: []networkingv1.IPBlock{
-						{
-							CIDR: "0.0.0.0/0",
-						},
-					},
-				},
-			}
-
-			return nil
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("unable to deploy clusterwide network policy for accounting-api into firewall namespace %w", err)
-		}
-	}
-
-	values := map[string]interface{}{
-		"accountingExporter": map[string]interface{}{
-			"enabled":  accountingConfig.Enabled,
-			"replicas": extensionscontroller.GetReplicas(cluster, 1),
-			"networkTraffic": map[string]interface{}{
-				"enabled": accountingConfig.NetworkTraffic.Enabled,
-			},
-			"enrichments": map[string]interface{}{
-				"partitionID": partitionID,
-				"tenant":      p.TenantID,
-				"projectID":   projectID,
-				"projectName": p.Name,
-				"clusterName": clusterName,
-				"clusterID":   clusterID,
-			},
-			"accountingAPI": map[string]interface{}{
-				"hostname": accountingConfig.Client.Hostname,
-				"port":     accountingConfig.Client.Port,
-				"ca":       accountingConfig.Client.CA,
-				"cert":     accountingConfig.Client.Cert,
-				"certKey":  accountingConfig.Client.CertKey,
-			},
-		},
 	}
 
 	return values, nil
