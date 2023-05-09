@@ -969,7 +969,9 @@ func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *ext
 		return fmt.Errorf("could not ensure namespace: %w", err)
 	}
 
-	manager, err := extensionssecretsmanager.SecretsManagerForCluster(ctx, vp.logger.WithName("shoot-secrets-manager"), secrets.Clock, c, cluster, metal.ManagerIdentity, nil)
+	manager, err := secretsmanager.New(ctx, logger, secrets.Clock, c, namespace, metal.ManagerIdentity, secretsmanager.Config{
+		CASecretAutoRotation: false,
+	})
 	if err != nil {
 		return fmt.Errorf("unable to create secrets manager: %w", err)
 	}
