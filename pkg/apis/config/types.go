@@ -5,6 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
+	componentbaseconfig "k8s.io/component-base/config"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -12,6 +13,10 @@ import (
 // ControllerConfiguration defines the configuration for the metal provider.
 type ControllerConfiguration struct {
 	metav1.TypeMeta
+
+	// ClientConnection specifies the kubeconfig file and client connection
+	// settings for the proxy server to use when communicating with the apiserver.
+	ClientConnection *componentbaseconfig.ClientConnectionConfiguration
 
 	// MachineImages is the list of machine images that are understood by the controller. It maps
 	// logical names and versions to metal-specific identifiers, i.e. AMIs.

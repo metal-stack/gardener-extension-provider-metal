@@ -6,3 +6,4 @@ helm
 .vscode
 hack/tools/bin/*
 gardener-extension-provider-metal
+!gardener-extension-provider-metal/

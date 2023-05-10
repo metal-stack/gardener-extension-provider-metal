@@ -42,7 +42,6 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/clock"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -970,7 +969,9 @@ func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *ext
 		return fmt.Errorf("could not ensure namespace: %w", err)
 	}
 
-	manager, err := secretsmanager.New(ctx, vp.logger.WithName("shoot-secrets-manager"), clock.RealClock{}, c, namespace, metal.ManagerIdentity, nil)
+	manager, err := secretsmanager.New(ctx, vp.logger.WithName("shoot-secrets-manager"), secrets.Clock, c, namespace, metal.ManagerIdentity, secretsmanager.Config{
+		CASecretAutoRotation: false,
+	})
 	if err != nil {
 		return fmt.Errorf("unable to create secrets manager: %w", err)
 	}

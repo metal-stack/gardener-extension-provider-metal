@@ -6,6 +6,8 @@ image:
 replicaCount: 1
 resources: {}
 
+healthPort: 8081
+
 controllers:
   controlplane:
     concurrentSyncs: 5
@@ -34,6 +36,13 @@ disableWebhooks: []
 
 webhookConfig:
   serverPort: 443
+
+## settings for metrics, e.g. scraping by seed-prometheus
+##
+metrics:
+  ## enable metrics scraping
+  ##
+  enableScraping: true
 
 config:
   clientConnection:
