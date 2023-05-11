@@ -232,6 +232,7 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 		cluster: cluster,
 		worker:  worker,
 
+		controllerConfig: controllerConfig,
 		additionalData: additionalData,
 	}, nil
 }
