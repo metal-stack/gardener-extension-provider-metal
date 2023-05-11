@@ -160,5 +160,7 @@ func NewWorkerDelegate(
 
 		cluster: cluster,
 		worker:  worker,
+
+		controllerConfig: controllerConfig,
 	}
 }
