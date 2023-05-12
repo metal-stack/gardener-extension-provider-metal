@@ -1,9 +1,12 @@
 package controlplane
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"net/url"
 	"path"
+	"path/filepath"
 
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -15,6 +18,7 @@ import (
 	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/extensions"
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
@@ -30,6 +34,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
+	apiserverv1alpha1 "k8s.io/apiserver/pkg/apis/apiserver/v1alpha1"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -109,8 +115,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
 		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
 	}
+
 	if makeAuditForwarder {
-		err := ensureAuditForwarder(ps, auditToSplunk)
+		err := e.ensureAuditForwarder(ctx, cluster, ps, auditToSplunk)
 		if err != nil {
 			logger.Error(err, "could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
 			return err
@@ -239,28 +246,6 @@ var (
 			},
 		},
 	}
-	reversedVpnVolumeMounts = []corev1.VolumeMount{
-		{
-			Name:      "kube-apiserver-http-proxy",
-			MountPath: "/proxy/ca",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "kube-aggregator",
-			MountPath: "/proxy/client",
-			ReadOnly:  true,
-		},
-	}
-	kubeAggregatorClientTlsEnvVars = []corev1.EnvVar{
-		{
-			Name:  "AUDIT_PROXY_CLIENT_CRT_FILE",
-			Value: "/proxy/client/kube-aggregator.crt",
-		},
-		{
-			Name:  "AUDIT_PROXY_CLIENT_KEY_FILE",
-			Value: "/proxy/client/kube-aggregator.key",
-		},
-	}
 	auditForwarderSidecarTemplate = corev1.Container{
 		Name: "auditforwarder",
 		// Image:   // is added from the image vector in the ensure function
@@ -366,7 +351,7 @@ func ensureVPNSeedEnvVars(c *corev1.Container, nodeCIDR string) {
 	})
 }
 
-func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
+func (e *ensurer) ensureAuditForwarder(ctx context.Context, cluster *extensions.Cluster, ps *corev1.PodSpec, auditToSplunk bool) error {
 	auditForwarderSidecar := auditForwarderSidecarTemplate.DeepCopy()
 	auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
 	if err != nil {
@@ -375,20 +360,64 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	}
 	auditForwarderSidecar.Image = auditForwarderImage.String()
 
-	var proxyHost string
+	egressSelectorConfigMap := &corev1.ConfigMap{}
+	egressSelectionConfiguration := &apiserverv1alpha1.EgressSelectorConfiguration{}
+	egressSelection := &apiserverv1alpha1.EgressSelection{}
+	egressSelectionTCPTransport := &apiserverv1alpha1.TCPTransport{}
 
 	for _, volume := range ps.Volumes {
 		switch volume.Name {
-		case "kube-apiserver-http-proxy":
-			proxyHost = "vpn-seed-server"
+		case "egress-selection-config":
+			if volume.ConfigMap != nil && volume.ConfigMap.Name != "" {
+				if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, volume.ConfigMap.Name), egressSelectorConfigMap); err != nil {
+					logger.Error(err, "could not get egressSelector configmap for cluster", "configmap", volume.ConfigMap.Name, "cluster name", cluster.ObjectMeta.Name)
+					return nil
+				}
+			}
 		}
 	}
 
-	if proxyHost != "" {
-		err := ensureAuditForwarderProxy(auditForwarderSidecar, proxyHost)
+	if len(egressSelectorConfigMap.Data) != 1 {
+		logger.Error(fmt.Errorf("wrong configMap length"), "egressSelector configmap for cluster has the wrong length, should contain only one key", "configmap", egressSelectorConfigMap.Name, "length", len(egressSelectorConfigMap.Data), "cluster name", cluster.ObjectMeta.Name)
+		return nil
+	}
+	for key, value := range egressSelectorConfigMap.Data {
+		decoder := k8syaml.NewYAMLOrJSONDecoder(bytes.NewReader([]byte(value)), 1000)
+		if err = decoder.Decode(&egressSelectionConfiguration); err != nil {
+			logger.Error(err, "could not decode egressSelector configmap for cluster", "configmap", egressSelectorConfigMap.Name, "key", key, "value", value, "cluster name", cluster.ObjectMeta.Name)
+			return nil
+		}
+	}
+
+	if egressSelectionConfiguration != nil {
+		for _, es := range egressSelectionConfiguration.EgressSelections {
+			switch es.Name {
+			case "cluster":
+				egressSelection = &es
+			}
+		}
+	}
+
+	switch egressSelection.Connection.ProxyProtocol {
+	case apiserverv1alpha1.ProtocolDirect:
+		logger.Info("cluster egressSelection is Direct, no proxy needed", "cluster name", cluster.ObjectMeta.Name)
+	case apiserverv1alpha1.ProtocolHTTPConnect:
+		logger.Info("cluster egressSelection is HTTPConnect, finding proxy", "cluster name", cluster.ObjectMeta.Name)
+		if egressSelection.Connection.Transport.TCP == nil {
+			logger.Error(fmt.Errorf("noTCPTransport"), "no TCP transport for egressSelection cluster proxyProtocol for cluster", "proxyProtocol", egressSelection.Connection.ProxyProtocol, "cluster name", cluster.ObjectMeta.Name)
+			return nil
+		}
+		egressSelectionTCPTransport = egressSelection.Connection.Transport.TCP
+	default:
+		logger.Error(fmt.Errorf("unsupportedProtocol"), "can not handle egressSelection cluster proxyProtocol for cluster", "proxyProtocol", egressSelection.Connection.ProxyProtocol, "cluster name", cluster.ObjectMeta.Name)
+		// return nil // CHECKME this might be the code path when no egressSelectorConfiguration is there at all?
+	}
+
+	if egressSelectionTCPTransport != nil {
+		err := ensureAuditForwarderProxy(ps, auditForwarderSidecar, egressSelectionTCPTransport)
 		if err != nil {
 			logger.Error(err, "could not ensure auditForwarder proxy")
-			return err
+			return nil
 		}
 	}
 
@@ -405,8 +434,17 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 	return nil
 }
 
-func ensureAuditForwarderProxy(auditForwarderSidecar *corev1.Container, proxyHost string) error {
-	logger.Info("ensureAuditForwarderProxy called", "proxyHost=", proxyHost)
+func ensureAuditForwarderProxy(ps *corev1.PodSpec, auditForwarderSidecar *corev1.Container, tcpTransport *apiserverv1alpha1.TCPTransport) error {
+	logger.Info("ensureAuditForwarderProxy called", "tcp transport", tcpTransport)
+
+	url, err := url.Parse(tcpTransport.URL)
+	if err != nil {
+		logger.Error(err, "could not parse TCP transport URL for cluster connection", "url", tcpTransport.URL)
+		return nil
+	}
+	proxyHost := url.Hostname()
+	proxyPort := url.Port()
+
 	proxyEnvVars := []corev1.EnvVar{
 		{
 			Name:  "AUDIT_PROXY_HOST",
@@ -414,24 +452,47 @@ func ensureAuditForwarderProxy(auditForwarderSidecar *corev1.Container, proxyHos
 		},
 		{
 			Name:  "AUDIT_PROXY_PORT",
-			Value: "9443",
+			Value: proxyPort,
 		},
+	}
+
+	if tcpTransport.TLSConfig != nil {
+		if tcpTransport.TLSConfig.CABundle != "" {
+			proxyEnvVars = append(proxyEnvVars, corev1.EnvVar{
+				Name:  "AUDIT_PROXY_CA_FILE",
+				Value: tcpTransport.TLSConfig.CABundle,
+			})
+		}
+		if tcpTransport.TLSConfig.ClientCert != "" {
+			proxyEnvVars = append(proxyEnvVars, corev1.EnvVar{
+				Name:  "AUDIT_PROXY_CLIENT_CRT_FILE",
+				Value: tcpTransport.TLSConfig.ClientCert,
+			})
+		}
+		if tcpTransport.TLSConfig.ClientKey != "" {
+			proxyEnvVars = append(proxyEnvVars, corev1.EnvVar{
+				Name:  "AUDIT_PROXY_CLIENT_KEY_FILE",
+				Value: tcpTransport.TLSConfig.ClientKey,
+			})
+		}
 	}
 
 	for _, envVar := range proxyEnvVars {
 		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
 	}
 
-	switch proxyHost {
-	case "vpn-seed-server":
-		for _, envVar := range kubeAggregatorClientTlsEnvVars {
-			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
+	apiserverContainer := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver")
+	if apiserverContainer == nil {
+		logger.Error(fmt.Errorf("noApiserverContainer"), "no kube-apiserver container found", "podspec", ps)
+		return fmt.Errorf("noApiserverContainer")
+	}
+
+	for _, volumeMount := range apiserverContainer.VolumeMounts {
+		if volumeMount.MountPath == filepath.Dir(tcpTransport.TLSConfig.CABundle) ||
+			volumeMount.MountPath == filepath.Dir(tcpTransport.TLSConfig.ClientCert) ||
+			volumeMount.MountPath == filepath.Dir(tcpTransport.TLSConfig.ClientKey) {
+			extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, *volumeMount.DeepCopy())
 		}
-		for _, mount := range reversedVpnVolumeMounts {
-			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
-		}
-	default:
-		return fmt.Errorf("%q is not a valid proxy name", proxyHost)
 	}
 
 	return nil
