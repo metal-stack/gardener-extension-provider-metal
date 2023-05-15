@@ -21,6 +21,10 @@ data:
     machineImages:
 {{ toYaml .Values.config.machineImages | indent 4 }}
 {{- end }}
+{{- if .Values.config.firewallInternalPrefixes }}
+    firewallInternalPrefixes:
+{{ toYaml .Values.config.firewallInternalPrefixes | indent 4 }}
+{{- end }}
 {{- if .Values.config.egressDestinations }}
     egressDestinations:
 {{ toYaml .Values.config.egressDestinations | indent 4 }}
@@ -44,23 +48,6 @@ data:
       tlsEnabled: {{ .Values.config.auditToSplunk.tlsEnabled }}
       hecCAFile: |
 {{ .Values.config.auditToSplunk.hecCAFile | indent 8}}
-{{- end }}
-    accountingExporter:
-      enabled: {{ .Values.config.accountingExporter.enabled }}
-{{- if .Values.config.accountingExporter.enabled }}
-      networkTraffic:
-        enabled: {{ .Values.config.accountingExporter.networkTraffic.enabled }}
-        internalNetworks:
-{{ toYaml .Values.config.accountingExporter.networkTraffic.internalNetworks | indent 10 }}
-      clientConfig:
-        hostname: {{ .Values.config.accountingExporter.clientConfig.hostname }}
-        port: {{ .Values.config.accountingExporter.clientConfig.port }}
-        ca: |
-{{ .Values.config.accountingExporter.clientConfig.ca | indent 10 }}
-        cert: |
-{{ .Values.config.accountingExporter.clientConfig.cert | indent 10 }}
-        certKey: |
-{{ .Values.config.accountingExporter.clientConfig.certkey | indent 10 }}
 {{- end }}
     storage:
       duros:

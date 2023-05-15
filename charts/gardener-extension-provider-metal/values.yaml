@@ -52,6 +52,7 @@ config:
     burst: 130
   machineImages: []
   egressDestinations: []
+  firewallInternalPrefixes: []
   etcd:
     storage:
       className:
@@ -59,17 +60,6 @@ config:
     backup:
       schedule:
       deltaSnapshotPeriod:
-  accountingExporter:
-    enabled: false
-    networkTraffic:
-      enabled: false
-      internalNetworks: []
-    clientConfig:
-      hostname:
-      port:
-      ca:
-      cert:
-      certkey:
   clusterAudit:
     enabled: false
   auditToSplunk:
