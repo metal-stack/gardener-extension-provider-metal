@@ -241,24 +241,28 @@ var (
 	}
 	reversedVpnVolumeMounts = []corev1.VolumeMount{
 		{
-			Name:      "kube-apiserver-http-proxy",
+			Name:      "ca-vpn",
 			MountPath: "/proxy/ca",
 			ReadOnly:  true,
 		},
 		{
-			Name:      "kube-aggregator",
+			Name:      "http-proxy",
 			MountPath: "/proxy/client",
 			ReadOnly:  true,
 		},
 	}
 	kubeAggregatorClientTlsEnvVars = []corev1.EnvVar{
 		{
+			Name:  "AUDIT_PROXY_CA_FILE",
+			Value: "/proxy/ca/bundle.crt",
+		},
+		{
 			Name:  "AUDIT_PROXY_CLIENT_CRT_FILE",
-			Value: "/proxy/client/kube-aggregator.crt",
+			Value: "/proxy/client/tls.crt",
 		},
 		{
 			Name:  "AUDIT_PROXY_CLIENT_KEY_FILE",
-			Value: "/proxy/client/kube-aggregator.key",
+			Value: "/proxy/client/tls.key",
 		},
 	}
 	auditForwarderSidecarTemplate = corev1.Container{
@@ -379,7 +383,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 
 	for _, volume := range ps.Volumes {
 		switch volume.Name {
-		case "kube-apiserver-http-proxy":
+		case "egress-selection-config":
 			proxyHost = "vpn-seed-server"
 		}
 	}
