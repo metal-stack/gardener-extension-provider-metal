@@ -49,19 +49,19 @@ type (
 		controllerConfig config.ControllerConfiguration
 		networkCache     *cache.Cache[*cacheKey, *models.V1NetworkResponse]
 
-		client  client.Client
-		scheme  *runtime.Scheme
-		decoder runtime.Decoder
+		restConfig *rest.Config
+		client     client.Client
+		scheme     *runtime.Scheme
+		decoder    runtime.Decoder
 	}
 
 	delegateFactory struct {
 		logger logr.Logger
 
 		restConfig *rest.Config
-
-		client  client.Client
-		scheme  *runtime.Scheme
-		decoder runtime.Decoder
+		client     client.Client
+		scheme     *runtime.Scheme
+		decoder    runtime.Decoder
 
 		dataGetter       func(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (*additionalData, error)
 		controllerConfig config.ControllerConfiguration
@@ -93,13 +93,22 @@ type (
 )
 
 func (a *actuator) InjectScheme(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(metalv1alpha1.SchemeGroupVersion,
+		&metalv1alpha1.MetalMachineClass{},
+		&metalv1alpha1.MetalMachineClassList{},
+	)
 	a.scheme = scheme
-	a.decoder = serializer.NewCodecFactory(a.scheme).UniversalDecoder()
+	a.decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
 	return nil
 }
 
 func (a *actuator) InjectClient(client client.Client) error {
 	a.client = client
+	return nil
+}
+
+func (a *actuator) InjectConfig(restConfig *rest.Config) error {
+	a.restConfig = restConfig
 	return nil
 }
 
@@ -115,21 +124,23 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 			if !ok {
 				return nil, fmt.Errorf("no client passed in context")
 			}
-
 			privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, accessor.projectID, accessor.nodeCIDR)
 			if err != nil {
 				return nil, err
 			}
-
 			return privateNetwork, nil
 		}),
 	}
 
 	delegateFactory := &delegateFactory{
 		logger:              log.Log.WithName("worker-actuator"),
-		machineImageMapping: machineImages,
+		restConfig:          a.restConfig,
+		client:              a.client,
+		scheme:              a.scheme,
+		decoder:             a.decoder,
 		dataGetter:          a.getAdditionalData,
 		controllerConfig:    controllerConfig,
+		machineImageMapping: machineImages,
 	}
 
 	a.workerActuator = genericactuator.NewActuator(
@@ -179,26 +190,6 @@ func (a *actuator) Restore(ctx context.Context, worker *extensionsv1alpha1.Worke
 	}
 
 	return a.workerActuator.Restore(ctx, worker, cluster)
-}
-
-func (d *delegateFactory) InjectScheme(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(metalv1alpha1.SchemeGroupVersion,
-		&metalv1alpha1.MetalMachineClass{},
-		&metalv1alpha1.MetalMachineClassList{},
-	)
-	d.scheme = scheme
-	d.decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
-	return nil
-}
-
-func (d *delegateFactory) InjectConfig(restConfig *rest.Config) error {
-	d.restConfig = restConfig
-	return nil
-}
-
-func (d *delegateFactory) InjectClient(client client.Client) error {
-	d.client = client
-	return nil
 }
 
 func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (genericactuator.WorkerDelegate, error) {
