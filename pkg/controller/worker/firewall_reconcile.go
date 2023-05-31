@@ -60,11 +60,6 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, worker *extensi
 		return fmt.Errorf("error getting additional data: %w", err)
 	}
 
-	internalPrefixes := []string{}
-	if a.controllerConfig.AccountingExporter.Enabled && a.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
-		internalPrefixes = a.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
-	}
-
 	fwcv, err := validation.ValidateFirewallControllerVersion(d.mcp.FirewallControllerVersions, d.infrastructureConfig.Firewall.ControllerVersion)
 	if err != nil {
 		return err
@@ -108,7 +103,7 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, worker *extensi
 		deploy.Spec.Template.Spec.Image = d.infrastructureConfig.Firewall.Image
 		deploy.Spec.Template.Spec.Networks = append(d.infrastructureConfig.Firewall.Networks, d.privateNetworkID)
 		deploy.Spec.Template.Spec.RateLimits = mapRateLimits(d.infrastructureConfig.Firewall.RateLimits)
-		deploy.Spec.Template.Spec.InternalPrefixes = internalPrefixes
+		deploy.Spec.Template.Spec.InternalPrefixes = a.controllerConfig.FirewallInternalPrefixes
 		deploy.Spec.Template.Spec.EgressRules = mapEgressRules(d.infrastructureConfig.Firewall.EgressRules)
 		deploy.Spec.Template.Spec.ControllerVersion = fwcv.Version
 		deploy.Spec.Template.Spec.ControllerURL = fwcv.URL

@@ -86,7 +86,8 @@ type (
 		machineDeployments worker.MachineDeployments
 		machineImages      []apismetal.MachineImage
 
-		additionalData *additionalData
+		controllerConfig config.ControllerConfiguration
+		additionalData   *additionalData
 	}
 )
 
@@ -233,6 +234,6 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 		worker:  worker,
 
 		controllerConfig: controllerConfig,
-		additionalData: additionalData,
+		additionalData:   additionalData,
 	}, nil
 }

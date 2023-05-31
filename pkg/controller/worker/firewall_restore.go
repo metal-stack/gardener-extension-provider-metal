@@ -60,14 +60,9 @@ func (a *actuator) restoreFirewalls(ctx context.Context, worker *extensionsv1alp
 	}
 
 	var (
-		namespace        = cluster.ObjectMeta.Name
-		clusterID        = string(cluster.Shoot.GetUID())
-		internalPrefixes = []string{}
+		namespace = cluster.ObjectMeta.Name
+		clusterID = string(cluster.Shoot.GetUID())
 	)
-
-	if a.controllerConfig.AccountingExporter.Enabled && a.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
-		internalPrefixes = a.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
-	}
 
 	for _, mon := range mons.Items {
 		resp, err := d.mclient.Firewall().FindFirewall(firewall.NewFindFirewallParams().WithID(mon.MachineStatus.MachineID).WithContext(ctx), nil)
@@ -101,7 +96,7 @@ func (a *actuator) restoreFirewalls(ctx context.Context, worker *extensionsv1alp
 				Userdata:                resp.Payload.Allocation.UserData,
 				SSHPublicKeys:           resp.Payload.Allocation.SSHPubKeys,
 				RateLimits:              mapRateLimits(d.infrastructureConfig.Firewall.RateLimits),
-				InternalPrefixes:        internalPrefixes,
+				InternalPrefixes:        a.controllerConfig.FirewallInternalPrefixes,
 				EgressRules:             mapEgressRules(d.infrastructureConfig.Firewall.EgressRules),
 				DryRun:                  false,
 				ControllerVersion:       fwcv.Version,
