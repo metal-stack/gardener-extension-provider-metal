@@ -63,7 +63,8 @@ type (
 		scheme  *runtime.Scheme
 		decoder runtime.Decoder
 
-		dataGetter func(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (*additionalData, error)
+		dataGetter       func(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (*additionalData, error)
+		controllerConfig config.ControllerConfiguration
 
 		machineImageMapping []config.MachineImage
 	}
@@ -128,6 +129,7 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 		logger:              log.Log.WithName("worker-actuator"),
 		machineImageMapping: machineImages,
 		dataGetter:          a.getAdditionalData,
+		controllerConfig:    controllerConfig,
 	}
 
 	a.workerActuator = genericactuator.NewActuator(
@@ -233,7 +235,7 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 		cluster: cluster,
 		worker:  worker,
 
-		controllerConfig: controllerConfig,
+		controllerConfig: d.controllerConfig,
 		additionalData:   additionalData,
 	}, nil
 }
