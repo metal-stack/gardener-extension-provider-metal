@@ -111,7 +111,7 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 		logger:           logger,
 		controllerConfig: controllerConfig,
 		networkCache: cache.New(15*time.Minute, func(ctx context.Context, accessor *cacheKey) (*models.V1NetworkResponse, error) {
-			mclient, ok := ctx.Value("client").(metalgo.Client)
+			mclient, ok := ctx.Value(ClientKey).(metalgo.Client)
 			if !ok {
 				return nil, fmt.Errorf("no client passed in context")
 			}

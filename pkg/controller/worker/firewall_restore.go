@@ -32,7 +32,7 @@ func (a *actuator) firewallRestore(ctx context.Context, worker *extensionsv1alph
 
 	err = shootClient.List(ctx, mons, &client.ListOptions{Namespace: fcmv2.FirewallShootNamespace})
 	if err != nil {
-		return fmt.Errorf("error listing firewall resources: %w", err)
+		return fmt.Errorf("error listing firewall monitor resources: %w", err)
 	}
 
 	err = a.client.List(ctx, firewalls, client.InNamespace(namespace))
