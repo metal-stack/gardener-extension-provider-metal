@@ -12,8 +12,6 @@ const (
 	MCMProviderMetalImageName = "machine-controller-manager-provider-metal"
 	// CCMImageName is the name of the cloud controller manager image.
 	CCMImageName = "metalccm"
-	// AccountingExporterImageName is the name of the accounting exporter image
-	AccountingExporterImageName = "accounting-exporter"
 	// AudittailerImageName is the name of the Audittailer to deploy to the shoot.
 	AudittailerImageName = "audittailer"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
@@ -69,8 +67,6 @@ const (
 	CloudControllerManagerDeploymentName = "cloud-controller-manager"
 	// CloudControllerManagerServerName is the name of the secret containing the certificates for the cloud controller manager server.
 	CloudControllerManagerServerName = "cloud-controller-manager-server"
-	// AccountingExporterName is the name of the deployment for the accounting exporter.
-	AccountingExporterName = "accounting-exporter"
 	// DurosControllerDeploymentName is the name of the deployment for the duros-controller.
 	DurosControllerDeploymentName = "duros-controller"
 	// FirewallControllerManagerDeploymentName is the name of the deployment for the firewall controller manager
