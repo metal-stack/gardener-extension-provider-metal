@@ -58,10 +58,7 @@ type (
 	delegateFactory struct {
 		logger logr.Logger
 
-		restConfig *rest.Config
-		client     client.Client
-		scheme     *runtime.Scheme
-		decoder    runtime.Decoder
+		clientGetter func() (*rest.Config, client.Client, *runtime.Scheme, runtime.Decoder)
 
 		dataGetter       func(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (*additionalData, error)
 		controllerConfig config.ControllerConfiguration
@@ -133,11 +130,10 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 	}
 
 	delegateFactory := &delegateFactory{
-		logger:              log.Log.WithName("worker-actuator"),
-		restConfig:          a.restConfig,
-		client:              a.client,
-		scheme:              a.scheme,
-		decoder:             a.decoder,
+		logger: log.Log.WithName("worker-actuator"),
+		clientGetter: func() (*rest.Config, client.Client, *runtime.Scheme, runtime.Decoder) {
+			return a.restConfig, a.client, a.scheme, a.decoder
+		},
 		dataGetter:          a.getAdditionalData,
 		controllerConfig:    controllerConfig,
 		machineImageMapping: machineImages,
@@ -193,7 +189,9 @@ func (a *actuator) Restore(ctx context.Context, worker *extensionsv1alpha1.Worke
 }
 
 func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (genericactuator.WorkerDelegate, error) {
-	clientset, err := kubernetes.NewForConfig(d.restConfig)
+	config, client, scheme, decoder := d.clientGetter()
+
+	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +201,7 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 		return nil, err
 	}
 
-	seedChartApplier, err := gardener.NewChartApplierForConfig(d.restConfig)
+	seedChartApplier, err := gardener.NewChartApplierForConfig(config)
 	if err != nil {
 		return nil, err
 	}
@@ -215,9 +213,9 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 
 	return &workerDelegate{
 		logger:  d.logger,
-		client:  d.client,
-		scheme:  d.scheme,
-		decoder: d.decoder,
+		client:  client,
+		scheme:  scheme,
+		decoder: decoder,
 
 		machineImageMapping: d.machineImageMapping,
 		seedChartApplier:    seedChartApplier,
