@@ -36,18 +36,22 @@ import (
 
 type (
 	// actuator reconciles the cluster's worker nodes and the firewalls.
+	// we are wrapping gardener's worker actuator here because we need to intercept the migrate call from the actuator.
+	// unfortunately, there is no callback provided which we could use for this.
 	//
 	// why is the firewall reconciliation here and not in the controlplane controller?
+	//
 	// the controlplane controller deploys the firewall-controller-manager including validating and mutating webhooks
 	// this has to be running before we can create a firewall deployment because the mutating webhook is creating the userdata
 	// the worker controller acts after the controlplane controller, also the terms and responsibilities are pretty similar between machine-controller-manager and firewall-controller-manager,
 	// so this place seems to be a valid fit.
 	actuator struct {
-		workerActuator worker.Actuator
-
 		logger           logr.Logger
 		controllerConfig config.ControllerConfiguration
-		networkCache     *cache.Cache[*cacheKey, *models.V1NetworkResponse]
+
+		workerActuator worker.Actuator
+
+		networkCache *cache.Cache[*cacheKey, *models.V1NetworkResponse]
 
 		restConfig *rest.Config
 		client     client.Client
@@ -56,12 +60,11 @@ type (
 	}
 
 	delegateFactory struct {
-		logger logr.Logger
+		logger           logr.Logger
+		controllerConfig config.ControllerConfiguration
 
 		clientGetter func() (*rest.Config, client.Client, *runtime.Scheme, runtime.Decoder)
-
-		dataGetter       func(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (*additionalData, error)
-		controllerConfig config.ControllerConfiguration
+		dataGetter   func(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (*additionalData, error)
 
 		machineImageMapping []config.MachineImage
 	}
@@ -109,7 +112,6 @@ func (a *actuator) InjectConfig(restConfig *rest.Config) error {
 	return nil
 }
 
-// NewActuator creates a new Actuator that updates the status of the handled WorkerPoolConfigs.
 func NewActuator(machineImages []config.MachineImage, controllerConfig config.ControllerConfiguration) worker.Actuator {
 	logger := log.Log.WithName("metal-worker-actuator")
 
@@ -212,7 +214,8 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 	}
 
 	return &workerDelegate{
-		logger:  d.logger,
+		logger: d.logger,
+
 		client:  client,
 		scheme:  scheme,
 		decoder: decoder,

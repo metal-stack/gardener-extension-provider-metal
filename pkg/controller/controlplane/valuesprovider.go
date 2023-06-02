@@ -52,7 +52,7 @@ import (
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
-	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 
 	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -491,7 +491,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	values := map[string]any{
 		"podAnnotations": map[string]interface{}{
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
-			"checksum/secret-cloudprovider":                                    checksums[v1alpha1constants.SecretNameCloudProvider],
+			"checksum/secret-cloudprovider":                                    checksums[v1beta1constants.SecretNameCloudProvider],
 		},
 	}
 
@@ -815,7 +815,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 }
 
 func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace string, spec *firewallv1.FirewallSpec) error {
-	secret, err := vp.getSecret(ctx, namespace, v1alpha1constants.SecretNameCACluster)
+	secret, err := vp.getSecret(ctx, namespace, v1beta1constants.SecretNameCACluster)
 	if err != nil {
 		return fmt.Errorf("could not find ca secret for signing firewall values %w", err)
 	}
@@ -1099,7 +1099,7 @@ func getCCMChartValues(
 			"podAnnotations": map[string]interface{}{
 				"checksum/secret-cloud-controller-manager":        checksums[metal.CloudControllerManagerDeploymentName],
 				"checksum/secret-cloud-controller-manager-server": checksums[metal.CloudControllerManagerServerName],
-				"checksum/secret-cloudprovider":                   checksums[v1alpha1constants.SecretNameCloudProvider],
+				"checksum/secret-cloudprovider":                   checksums[v1beta1constants.SecretNameCloudProvider],
 				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
 			},
 			"secrets": map[string]any{

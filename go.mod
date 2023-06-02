@@ -34,7 +34,7 @@ require (
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.26.3
 	k8s.io/component-base v0.26.3
-	k8s.io/kubelet v0.23.3
+	k8s.io/kubelet v0.24.3
 	sigs.k8s.io/controller-runtime v0.14.6
 )
 
@@ -50,7 +50,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
-	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
+	github.com/emicklei/go-restful/v3 v3.10.2 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -77,10 +77,10 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20230323073829-e72429f035bd // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -109,6 +109,7 @@ require (
 	github.com/moby/spdystream v0.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.2 // indirect
@@ -167,21 +168,19 @@ require (
 )
 
 replace (
-	github.com/gardener/gardener => github.com/gardener/gardener v1.48.7
+	github.com/gardener/gardener => github.com/gardener/gardener v1.51.1
 
-	k8s.io/api => k8s.io/api v0.23.3
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.3
-	k8s.io/apimachinery => k8s.io/apimachinery v0.23.3
-	k8s.io/apiserver => k8s.io/apiserver v0.23.3
-	k8s.io/autoscaler => k8s.io/autoscaler v0.0.0-20201008123815-1d78814026aa // translates to k8s.io/autoscaler/vertical-pod-autoscaler@v0.9.0
-	k8s.io/autoscaler/vertical-pod-autoscaler => k8s.io/autoscaler/vertical-pod-autoscaler v0.9.0
-	k8s.io/client-go => k8s.io/client-go v0.23.3
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.23.3
-	k8s.io/code-generator => k8s.io/code-generator v0.23.3
-	k8s.io/component-base => k8s.io/component-base v0.23.3
-	k8s.io/gengo => k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
-	k8s.io/helm => k8s.io/helm v2.13.1+incompatible
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.23.3
-	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.11.1
+	k8s.io/api => k8s.io/api v0.24.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.24.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.24.2
+	k8s.io/apiserver => k8s.io/apiserver v0.24.2
+	k8s.io/autoscaler => k8s.io/autoscaler v0.0.0-20220531185024-cc90d57b7fe1 // translates to k8s.io/autoscaler/vertical-pod-autoscaler@v0.11.0
+	k8s.io/autoscaler/vertical-pod-autoscaler => k8s.io/autoscaler/vertical-pod-autoscaler v0.11.0
+	k8s.io/client-go => k8s.io/client-go v0.24.2
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.24.2
+	k8s.io/code-generator => k8s.io/code-generator v0.24.2
+	k8s.io/component-base => k8s.io/component-base v0.24.2
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.24.2
+
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.12.1
 )
