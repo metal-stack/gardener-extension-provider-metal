@@ -104,5 +104,5 @@ func everyFirewallHasAMonitor(firewalls *fcmv2.FirewallList, mons *fcmv2.Firewal
 		monNames = append(monNames, mon.Name)
 	}
 
-	return sets.NewString(monNames...).IsSuperset(sets.NewString(fwNames...))
+	return sets.NewString(monNames...).Equal(sets.NewString(fwNames...))
 }

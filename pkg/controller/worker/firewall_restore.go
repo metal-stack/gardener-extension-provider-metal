@@ -41,6 +41,11 @@ func (a *actuator) firewallRestore(ctx context.Context, worker *extensionsv1alph
 		return fmt.Errorf("error restoring firewall: %w", err)
 	}
 
+	err = a.ensureFirewallDeployment(ctx, worker, cluster)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
