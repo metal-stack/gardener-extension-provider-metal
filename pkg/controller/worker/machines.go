@@ -9,6 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	"github.com/metal-stack/gardener-extension-provider-metal/charts"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
@@ -49,7 +50,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 
 	values := kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses})
 
-	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", values)
+	return w.seedChartApplier.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", values)
 }
 
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.
