@@ -60,7 +60,7 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 
 	a.logger.Info("shallow deleting firewall entities for shoot migration")
 
-	if err := removeFinalizersAllObjects(ctx, a.client, mons); err != nil {
+	if err := removeFinalizersAllObjects(ctx, shootClient, mons); err != nil {
 		return err
 	}
 	if err := shallowDeleteAllObjects(ctx, a.client, fwdeploys); err != nil {
