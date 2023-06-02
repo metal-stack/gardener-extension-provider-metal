@@ -50,7 +50,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 
 	values := kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses})
 
-	return w.seedChartApplier.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", values)
+	return w.seedChartApplier.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "machineclass"), w.worker.Namespace, "machineclass", values)
 }
 
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.
