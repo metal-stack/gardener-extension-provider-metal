@@ -87,6 +87,8 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, worker *extensi
 		// this is the selector for the mutating webhook, without it the mutation will not happen
 		deploy.Labels[MutatingWebhookObjectSelectorLabel] = cluster.ObjectMeta.Name
 
+		_ = controllerutil.AddFinalizer(deploy, fcmv2.FinalizerName)
+
 		deploy.Spec.Replicas = 1
 
 		// we explicitly set the selector as otherwise firewall migration does not match, which should be prevented

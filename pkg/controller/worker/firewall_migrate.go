@@ -53,6 +53,7 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 	}
 
 	if len(firewalls.Items) == 0 {
+		a.logger.Info("firewalls already migrated")
 		return nil
 	}
 
@@ -64,9 +65,6 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 
 	a.logger.Info("shallow deleting firewall entities for shoot migration")
 
-	if err := removeFinalizersAllObjects(ctx, shootClient, mons); err != nil {
-		return err
-	}
 	if err := shallowDeleteAllObjects(ctx, a.client, fwdeploys); err != nil {
 		return fmt.Errorf("error shallow deleting firewall deployments: %w", err)
 	}
@@ -78,17 +76,6 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 	}
 
 	return nil
-}
-
-func removeFinalizersAllObjects(ctx context.Context, c client.Client, objectList client.ObjectList) error {
-	return meta.EachListItem(objectList, func(obj runtime.Object) error {
-		object := obj.(client.Object)
-		return removeFinalizersObject(ctx, c, object)
-	})
-}
-
-func removeFinalizersObject(ctx context.Context, c client.Client, object client.Object) error {
-	return controllerutils.RemoveAllFinalizers(ctx, c, c, object)
 }
 
 func shallowDeleteAllObjects(ctx context.Context, c client.Client, objectList client.ObjectList) error {
@@ -107,6 +94,10 @@ func shallowDeleteObject(ctx context.Context, c client.Client, object client.Obj
 	}
 
 	return nil
+}
+
+func removeFinalizersObject(ctx context.Context, c client.Client, object client.Object) error {
+	return controllerutils.RemoveAllFinalizers(ctx, c, c, object)
 }
 
 func everyFirewallHasAMonitor(firewalls *fcmv2.FirewallList, mons *fcmv2.FirewallMonitorList) bool {
