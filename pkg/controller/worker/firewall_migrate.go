@@ -12,7 +12,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontroller.Cluster) error {
@@ -89,7 +92,9 @@ func shallowDeleteObject(ctx context.Context, c client.Client, object client.Obj
 	if err := removeFinalizersObject(ctx, c, object); err != nil {
 		return err
 	}
-	if err := c.Delete(ctx, object); client.IgnoreNotFound(err) != nil {
+	if err := c.Delete(ctx, object, &client.DeleteOptions{
+		PropagationPolicy: pointer.Pointer(metav1.DeletePropagationOrphan),
+	}); client.IgnoreNotFound(err) != nil {
 		return err
 	}
 
