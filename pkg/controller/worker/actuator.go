@@ -32,6 +32,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 )
 
 type (
@@ -91,6 +92,10 @@ type (
 		additionalData   *additionalData
 	}
 )
+
+func (a *actuator) InjectFunc(f inject.Func) error {
+	return f(a.workerActuator)
+}
 
 func (a *actuator) InjectScheme(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(metalv1alpha1.SchemeGroupVersion,
