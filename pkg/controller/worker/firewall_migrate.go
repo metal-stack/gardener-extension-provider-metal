@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/gardener/gardener/pkg/controllerutils"
@@ -49,8 +50,13 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 
 	err = shootClient.List(ctx, mons, &client.ListOptions{Namespace: fcmv2.FirewallShootNamespace})
 	if err != nil {
-		return fmt.Errorf("error listing firewall resources: %w", err)
+		return fmt.Errorf("error listing firewall monitors: %w", err)
 	}
+
+	a.logger.Info("migrating firewalls", "amount", len(firewalls.Items), "monitors-amount", len(mons.Items))
+
+	spew.Dump(firewalls.Items)
+	spew.Dump(mons.Items)
 
 	if !everyFirewallHasAMonitor(firewalls, mons) {
 		return fmt.Errorf("every firewall needs to have a corresponding firewall monitor before migration, because firewalls are restored from the monitors")
@@ -90,10 +96,6 @@ func shallowDeleteObject(ctx context.Context, c client.Client, object client.Obj
 }
 
 func everyFirewallHasAMonitor(firewalls *fcmv2.FirewallList, mons *fcmv2.FirewallMonitorList) bool {
-	if len(firewalls.Items) != len(mons.Items) {
-		return false
-	}
-
 	var (
 		fwNames  []string
 		monNames []string

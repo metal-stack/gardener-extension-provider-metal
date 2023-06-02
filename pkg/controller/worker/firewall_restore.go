@@ -21,8 +21,7 @@ func (a *actuator) firewallRestore(ctx context.Context, worker *extensionsv1alph
 	var (
 		namespace = cluster.ObjectMeta.Name
 
-		firewalls = &fcmv2.FirewallList{}
-		mons      = &fcmv2.FirewallMonitorList{}
+		mons = &fcmv2.FirewallMonitorList{}
 	)
 
 	_, shootClient, err := util.NewClientForShoot(ctx, a.client, namespace, client.Options{})
@@ -32,13 +31,10 @@ func (a *actuator) firewallRestore(ctx context.Context, worker *extensionsv1alph
 
 	err = shootClient.List(ctx, mons, &client.ListOptions{Namespace: fcmv2.FirewallShootNamespace})
 	if err != nil {
-		return fmt.Errorf("error listing firewall monitor resources: %w", err)
+		return fmt.Errorf("error listing firewall monitors: %w", err)
 	}
 
-	err = a.client.List(ctx, firewalls, client.InNamespace(namespace))
-	if err != nil {
-		return fmt.Errorf("error listing firewalls: %w", err)
-	}
+	a.logger.Info("restoring firewalls from monitors", "amount", len(mons.Items))
 
 	err = a.restoreFirewalls(ctx, worker, cluster, mons)
 	if err != nil {
