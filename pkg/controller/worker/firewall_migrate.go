@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/gardener/gardener/pkg/controllerutils"
@@ -54,9 +53,6 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 	}
 
 	a.logger.Info("migrating firewalls", "amount", len(firewalls.Items), "monitors-amount", len(mons.Items))
-
-	spew.Dump(firewalls.Items)
-	spew.Dump(mons.Items)
 
 	if !everyFirewallHasAMonitor(firewalls, mons) {
 		return fmt.Errorf("every firewall needs to have a corresponding firewall monitor before migration, because firewalls are restored from the monitors")
@@ -108,5 +104,5 @@ func everyFirewallHasAMonitor(firewalls *fcmv2.FirewallList, mons *fcmv2.Firewal
 		monNames = append(monNames, mon.Name)
 	}
 
-	return sets.NewString(fwNames...).Equal(sets.NewString(monNames...))
+	return sets.NewString(monNames...).IsSuperset(sets.NewString(fwNames...))
 }
