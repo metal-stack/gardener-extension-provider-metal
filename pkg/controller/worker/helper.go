@@ -77,18 +77,15 @@ func (a *actuator) getAdditionalData(ctx context.Context, worker *extensionsv1al
 	}
 
 	projectID := infrastructureConfig.ProjectID
-	nodeCIDR := infrastructure.Status.NodesCIDR
 
-	if nodeCIDR == nil {
-		if cluster.Shoot.Spec.Networking.Nodes == nil {
-			return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
-		}
-		nodeCIDR = cluster.Shoot.Spec.Networking.Nodes
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return nil, err
 	}
 
 	nw, err := a.networkCache.Get(context.WithValue(ctx, ClientKey, mclient), &cacheKey{
 		projectID: projectID,
-		nodeCIDR:  *nodeCIDR,
+		nodeCIDR:  nodeCIDR,
 	})
 	if err != nil {
 		return nil, err

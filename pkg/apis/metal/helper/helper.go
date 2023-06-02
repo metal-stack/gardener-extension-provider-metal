@@ -3,6 +3,9 @@ package helper
 import (
 	"fmt"
 
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 )
 
@@ -28,4 +31,20 @@ func FindMetalControlPlane(cloudProfileConfig *metal.CloudProfileConfig, partiti
 		}
 	}
 	return nil, nil, fmt.Errorf("no metal control plane found for partition %s in cloud profile config", partition)
+}
+
+func GetNodeCIDR(infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, error) {
+	var nodeCIDR string
+
+	if cluster.Shoot.Spec.Networking.Nodes != nil {
+		nodeCIDR = *cluster.Shoot.Spec.Networking.Nodes
+	} else if infrastructure != nil && infrastructure.Status.NodesCIDR != nil {
+		nodeCIDR = *infrastructure.Status.NodesCIDR
+	}
+
+	if nodeCIDR == "" {
+		return "", fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	}
+
+	return nodeCIDR, nil
 }

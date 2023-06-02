@@ -594,8 +594,9 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
-		return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return nil, err
 	}
 
 	fwSpec, err := vp.getFirewallSpec(ctx, metalControlPlane, infrastructureConfig, cluster, nws, mclient)
@@ -674,7 +675,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	values := map[string]any{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
-		"nodeCIDR":          *infrastructure.Status.NodesCIDR,
+		"nodeCIDR":          nodeCIDR,
 		"firewallSpec":      fwSpec,
 		"duros":             durosValues,
 		"clusterAudit":      clusterAuditValues,
@@ -1011,16 +1012,13 @@ func getCCMChartValues(
 	secretsReader secretsmanager.Reader,
 ) (map[string]interface{}, error) {
 	projectID := infrastructureConfig.ProjectID
-	nodeCIDR := infrastructure.Status.NodesCIDR
 
-	if nodeCIDR == nil {
-		if cluster.Shoot.Spec.Networking.Nodes == nil {
-			return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
-		}
-		nodeCIDR = cluster.Shoot.Spec.Networking.Nodes
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return nil, err
 	}
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, *nodeCIDR)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, nodeCIDR)
 	if err != nil {
 		return nil, err
 	}

@@ -73,8 +73,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
-	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
-		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return err
 	}
 
 	makeAuditForwarder := false
@@ -106,7 +107,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureVolumes(ps, makeAuditForwarder, auditToSplunk)
 	}
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
-		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
+		ensureVPNSeedEnvVars(c, nodeCIDR)
 	}
 	if makeAuditForwarder {
 		err := ensureAuditForwarder(ps, auditToSplunk)
@@ -507,15 +508,16 @@ func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
-	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
-		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return err
 	}
 
 	template := &new.Spec.Template
 	ps := &template.Spec
 
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed-server"); c != nil {
-		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
+		ensureVPNSeedEnvVars(c, nodeCIDR)
 	}
 
 	return nil
