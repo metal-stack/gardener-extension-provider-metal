@@ -52,6 +52,10 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 		return fmt.Errorf("error listing firewall monitors: %w", err)
 	}
 
+	if len(firewalls.Items) == 0 {
+		return nil
+	}
+
 	a.logger.Info("migrating firewalls", "amount", len(firewalls.Items), "monitors-amount", len(mons.Items))
 
 	if !everyFirewallHasAMonitor(firewalls, mons) {
