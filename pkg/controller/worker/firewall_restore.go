@@ -12,6 +12,7 @@ import (
 	"github.com/metal-stack/metal-go/api/client/firewall"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -23,6 +24,21 @@ func (a *actuator) firewallRestore(ctx context.Context, worker *extensionsv1alph
 
 		mons = &fcmv2.FirewallMonitorList{}
 	)
+
+	fcm := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "firewall-controller-manager",
+			Namespace: namespace,
+		},
+	}
+	err := a.client.Get(ctx, client.ObjectKeyFromObject(fcm), fcm)
+	if err != nil {
+		return fmt.Errorf("unable to get firewall-controller-manager deployment: %w", err)
+	}
+
+	if fcm.Status.Replicas != fcm.Status.ReadyReplicas {
+		return fmt.Errorf("firewall-controller-manager deployment is not yet ready, waiting...")
+	}
 
 	_, shootClient, err := util.NewClientForShoot(ctx, a.client, namespace, client.Options{})
 	if err != nil {
