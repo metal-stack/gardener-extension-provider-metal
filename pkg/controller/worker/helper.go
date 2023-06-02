@@ -103,6 +103,7 @@ func (a *actuator) getAdditionalData(ctx context.Context, worker *extensionsv1al
 		infrastructureConfig: infrastructureConfig,
 		privateNetworkID:     *nw.ID,
 		credentials:          credentials,
+		mclient:              mclient,
 	}, nil
 }
 
