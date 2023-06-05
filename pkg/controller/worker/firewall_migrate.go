@@ -11,15 +11,22 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
+const (
+	migrationSecretKey = "gardener-extension-provider-metal/shoot-migration"
+)
+
 func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontroller.Cluster) error {
 	// approach is to restore firewalls from the firewall monitors in the shoot cluster
+	// we also need to store the service accounts secrets for the firewall-controller to access the seed
 
 	var (
 		namespace = cluster.ObjectMeta.Name
@@ -58,6 +65,57 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 	if len(firewalls.Items) == 0 {
 		a.logger.Info("firewalls already migrated")
 		return nil
+	}
+
+	a.logger.Info("copying service account secrets into the shoot")
+
+	for _, fwdeploy := range fwdeploys.Items {
+		saName := fmt.Sprintf("firewall-controller-seed-access-%s", fwdeploy.Name)
+		sa := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      saName,
+				Namespace: namespace,
+			},
+		}
+
+		err = a.client.Get(ctx, client.ObjectKeyFromObject(sa), sa)
+		if err != nil {
+			return fmt.Errorf("error getting service account: %w", err)
+		}
+
+		if len(sa.Secrets) != 1 {
+			return fmt.Errorf("firewall service account %q needs to reference exactly one token secret", sa.Name)
+		}
+
+		saSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sa.Secrets[0].Name,
+				Namespace: namespace,
+			},
+		}
+		err = a.client.Get(ctx, client.ObjectKeyFromObject(saSecret), saSecret)
+		if err != nil {
+			return fmt.Errorf("error getting service account secret: %w", err)
+		}
+
+		migrationSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      saName,
+				Namespace: fcmv2.FirewallShootNamespace,
+			},
+		}
+
+		_, err = controllerutil.CreateOrUpdate(ctx, shootClient, migrationSecret, func() error {
+			migrationSecret.Annotations = saSecret.Annotations
+			migrationSecret.Labels = saSecret.Labels
+			migrationSecret.Labels[migrationSecretKey] = ""
+			migrationSecret.Data = saSecret.Data
+			migrationSecret.Type = saSecret.Type
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create / update migration secret: %w", err)
+		}
 	}
 
 	a.logger.Info("migrating firewalls", "amount", len(firewalls.Items), "monitors-amount", len(mons.Items))
