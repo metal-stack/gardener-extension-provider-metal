@@ -65,66 +65,9 @@ func (a *actuator) firewallRestore(ctx context.Context, worker *extensionsv1alph
 		return err
 	}
 
-	a.logger.Info("copying previous service account secrets into the shoot")
-
-	migrationSecrets := &corev1.SecretList{}
-	err = shootClient.List(ctx, migrationSecrets, &client.ListOptions{Namespace: fcmv2.FirewallShootNamespace}, client.HasLabels{
-		fmt.Sprintf("%s=", migrationSecretKey),
-	})
+	err = a.restoreRBAC(ctx, shootClient, namespace)
 	if err != nil {
-		return fmt.Errorf("error retrieving migration secrets")
-	}
-
-	for _, migrationSecret := range migrationSecrets.Items {
-		migrationSecret := migrationSecret
-
-		saSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      migrationSecret.Name,
-				Namespace: namespace,
-			},
-		}
-
-		_, err = controllerutil.CreateOrUpdate(ctx, a.client, saSecret, func() error {
-			saSecret.Annotations = migrationSecret.Annotations
-			saSecret.Labels = migrationSecret.Labels
-			saSecret.Data = migrationSecret.Data
-			saSecret.Type = migrationSecret.Type
-			return nil
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create / update service account secret: %w", err)
-		}
-
-		sa := &corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      migrationSecret.Name,
-				Namespace: namespace,
-			},
-		}
-		err = a.client.Get(ctx, client.ObjectKeyFromObject(sa), sa)
-		if err != nil {
-			return fmt.Errorf("service account %q not yet created by firewall controller manager: %w", sa.Name, err)
-		}
-
-		refNames := map[string]bool{}
-		for _, s := range sa.Secrets {
-			refNames[s.Name] = true
-		}
-
-		_, ok := refNames[saSecret.Name]
-		if ok {
-			continue
-		}
-
-		sa.Secrets = append(sa.Secrets, corev1.ObjectReference{
-			Name: saSecret.Name,
-		})
-
-		err = a.client.Update(ctx, sa)
-		if err != nil {
-			return fmt.Errorf("error adding secret to service account: %w", err)
-		}
+		return err
 	}
 
 	return nil
@@ -196,6 +139,61 @@ func (a *actuator) restoreFirewalls(ctx context.Context, worker *extensionsv1alp
 		}
 
 		a.logger.Info("restored firewall", "name", f.Name, "cluster-id", clusterID)
+	}
+
+	return nil
+}
+
+func (a *actuator) restoreRBAC(ctx context.Context, shootClient client.Client, namespace string) error {
+	migrationSecrets := &corev1.SecretList{}
+	err := shootClient.List(ctx, migrationSecrets, &client.ListOptions{Namespace: fcmv2.FirewallShootNamespace}, client.HasLabels{
+		fmt.Sprintf("%s=", migrationSecretKey),
+	})
+	if err != nil {
+		return fmt.Errorf("error retrieving migration secrets")
+	}
+
+	a.logger.Info("copying previous service account secrets into the shoot", "amount", len(migrationSecrets.Items))
+
+	for _, migrationSecret := range migrationSecrets.Items {
+		migrationSecret := migrationSecret
+
+		saSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      migrationSecret.Name,
+				Namespace: namespace,
+			},
+		}
+
+		_, err = controllerutil.CreateOrUpdate(ctx, a.client, saSecret, func() error {
+			saSecret.Annotations = migrationSecret.Annotations
+			saSecret.Labels = migrationSecret.Labels
+			saSecret.Data = migrationSecret.Data
+			saSecret.Type = migrationSecret.Type
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create / update service account secret: %w", err)
+		}
+
+		sa := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      migrationSecret.Name,
+				Namespace: namespace,
+			},
+		}
+
+		_, err = controllerutil.CreateOrUpdate(ctx, a.client, sa, func() error {
+			sa.Secrets = []corev1.ObjectReference{
+				{
+					Name: saSecret.Name,
+				},
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("error to create / update service account: %w", err)
+		}
 	}
 
 	return nil

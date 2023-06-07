@@ -26,7 +26,7 @@ const (
 
 func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontroller.Cluster) error {
 	// approach is to restore firewalls from the firewall monitors in the shoot cluster
-	// we also need to store the service accounts secrets for the firewall-controller to access the seed
+	// we also need to store the service accounts secret for the firewall-controller to access the seed
 
 	var (
 		namespace = cluster.ObjectMeta.Name
@@ -37,9 +37,14 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 		mons      = &fcmv2.FirewallMonitorList{}
 	)
 
-	err := a.client.List(ctx, fwdeploys, client.InNamespace(namespace))
+	err := a.client.List(ctx, firewalls, client.InNamespace(namespace))
 	if err != nil {
-		return fmt.Errorf("error listing firewall deployments: %w", err)
+		return fmt.Errorf("error listing firewalls: %w", err)
+	}
+
+	if len(firewalls.Items) == 0 {
+		a.logger.Info("firewalls already migrated")
+		return nil
 	}
 
 	err = a.client.List(ctx, fwsets, client.InNamespace(namespace))
@@ -47,9 +52,9 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 		return fmt.Errorf("error listing firewall sets: %w", err)
 	}
 
-	err = a.client.List(ctx, firewalls, client.InNamespace(namespace))
+	err = a.client.List(ctx, fwdeploys, client.InNamespace(namespace))
 	if err != nil {
-		return fmt.Errorf("error listing firewalls: %w", err)
+		return fmt.Errorf("error listing firewall deployments: %w", err)
 	}
 
 	_, shootClient, err := util.NewClientForShoot(ctx, a.client, namespace, client.Options{})
@@ -62,67 +67,16 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 		return fmt.Errorf("error listing firewall monitors: %w", err)
 	}
 
-	if len(firewalls.Items) == 0 {
-		a.logger.Info("firewalls already migrated")
-		return nil
-	}
-
-	a.logger.Info("copying service account secrets into the shoot")
-
-	for _, fwdeploy := range fwdeploys.Items {
-		saName := fmt.Sprintf("firewall-controller-seed-access-%s", fwdeploy.Name)
-		sa := &corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      saName,
-				Namespace: namespace,
-			},
-		}
-
-		err = a.client.Get(ctx, client.ObjectKeyFromObject(sa), sa)
-		if err != nil {
-			return fmt.Errorf("error getting service account: %w", err)
-		}
-
-		if len(sa.Secrets) != 1 {
-			return fmt.Errorf("firewall service account %q needs to reference exactly one token secret", sa.Name)
-		}
-
-		saSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      sa.Secrets[0].Name,
-				Namespace: namespace,
-			},
-		}
-		err = a.client.Get(ctx, client.ObjectKeyFromObject(saSecret), saSecret)
-		if err != nil {
-			return fmt.Errorf("error getting service account secret: %w", err)
-		}
-
-		migrationSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      saName,
-				Namespace: fcmv2.FirewallShootNamespace,
-			},
-		}
-
-		_, err = controllerutil.CreateOrUpdate(ctx, shootClient, migrationSecret, func() error {
-			migrationSecret.Annotations = saSecret.Annotations
-			migrationSecret.Labels = saSecret.Labels
-			migrationSecret.Labels[migrationSecretKey] = ""
-			migrationSecret.Data = saSecret.Data
-			migrationSecret.Type = saSecret.Type
-			return nil
-		})
-		if err != nil {
-			return fmt.Errorf("unable to create / update migration secret: %w", err)
-		}
-	}
-
-	a.logger.Info("migrating firewalls", "amount", len(firewalls.Items), "monitors-amount", len(mons.Items))
-
 	if !everyFirewallHasAMonitor(firewalls, mons) {
 		return fmt.Errorf("every firewall needs to have a corresponding firewall monitor before migration, because firewalls are restored from the monitors")
 	}
+
+	err = a.migrateRBAC(ctx, shootClient, fwdeploys, namespace)
+	if err != nil {
+		return err
+	}
+
+	a.logger.Info("migrating firewalls", "amount", len(firewalls.Items), "monitors-amount", len(mons.Items))
 
 	a.logger.Info("shallow deleting firewall entities for shoot migration")
 
@@ -177,4 +131,59 @@ func everyFirewallHasAMonitor(firewalls *fcmv2.FirewallList, mons *fcmv2.Firewal
 	}
 
 	return sets.NewString(monNames...).Equal(sets.NewString(fwNames...))
+}
+
+func (a *actuator) migrateRBAC(ctx context.Context, shootClient client.Client, fwdeploys *fcmv2.FirewallDeploymentList, namespace string) error {
+	a.logger.Info("copying service account secrets into the shoot", "amount", len(fwdeploys.Items))
+
+	for _, fwdeploy := range fwdeploys.Items {
+		saName := fmt.Sprintf("firewall-controller-seed-access-%s", fwdeploy.Name) // TODO: name should be exposed by fcm
+		sa := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      saName,
+				Namespace: namespace,
+			},
+		}
+
+		err := a.client.Get(ctx, client.ObjectKeyFromObject(sa), sa)
+		if err != nil {
+			return fmt.Errorf("error getting service account: %w", err)
+		}
+
+		if len(sa.Secrets) != 1 {
+			return fmt.Errorf("firewall service account %q needs to reference exactly one token secret", sa.Name)
+		}
+
+		saSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      sa.Secrets[0].Name,
+				Namespace: namespace,
+			},
+		}
+		err = a.client.Get(ctx, client.ObjectKeyFromObject(saSecret), saSecret)
+		if err != nil {
+			return fmt.Errorf("error getting service account secret: %w", err)
+		}
+
+		migrationSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      saName,
+				Namespace: fcmv2.FirewallShootNamespace,
+			},
+		}
+
+		_, err = controllerutil.CreateOrUpdate(ctx, shootClient, migrationSecret, func() error {
+			migrationSecret.Annotations = saSecret.Annotations
+			migrationSecret.Labels = saSecret.Labels
+			migrationSecret.Labels[migrationSecretKey] = ""
+			migrationSecret.Data = saSecret.Data
+			migrationSecret.Type = saSecret.Type
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("unable to create / update migration secret: %w", err)
+		}
+	}
+
+	return nil
 }
