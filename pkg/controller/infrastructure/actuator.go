@@ -130,6 +130,7 @@ func UpdateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 
 		fw.ResourceVersion = ""
 		fw.OwnerReferences = nil
+		fw.Status = fcmv2.FirewallStatus{}
 
 		raw, err := yaml.Marshal(fw)
 		if err != nil {
