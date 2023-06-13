@@ -93,7 +93,7 @@ func (a *actuator) InjectConfig(config *rest.Config) error {
 	return nil
 }
 
-func decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, decoder runtime.Decoder) (*metalapi.InfrastructureConfig, *metalapi.InfrastructureStatus, error) {
+func DecodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, decoder runtime.Decoder) (*metalapi.InfrastructureConfig, *metalapi.InfrastructureStatus, error) {
 	infrastructureConfig, err := helper.InfrastructureConfigFromInfrastructure(infrastructure)
 	if err != nil {
 		return nil, nil, err
@@ -109,7 +109,7 @@ func decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, dec
 	return infrastructureConfig, infrastructureStatus, nil
 }
 
-func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string) error {
+func UpdateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string) error {
 	patch := client.MergeFrom(infrastructure.DeepCopy())
 
 	var (
@@ -126,6 +126,11 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 	}
 
 	for _, fw := range firewalls.Items {
+		fw := fw
+
+		fw.ResourceVersion = ""
+		fw.OwnerReferences = nil
+
 		raw, err := yaml.Marshal(fw)
 		if err != nil {
 			return err
@@ -169,6 +174,8 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 				return fmt.Errorf("error getting service account secret: %w", err)
 			}
 
+			saSecret.ResourceVersion = ""
+
 			raw, err := yaml.Marshal(*saSecret)
 			if err != nil {
 				return err
@@ -176,6 +183,8 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 
 			secrets = append(secrets, string(raw))
 		}
+
+		sa.ResourceVersion = ""
 
 		raw, err := yaml.Marshal(*sa)
 		if err != nil {

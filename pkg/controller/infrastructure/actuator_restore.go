@@ -8,8 +8,8 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
@@ -35,7 +35,7 @@ func (a *actuator) Restore(ctx context.Context, infrastructure *extensionsv1alph
 		}
 
 		err = a.client.Create(ctx, fw)
-		if client.IgnoreNotFound(err) != nil {
+		if err != nil && !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("unable restoring firewall resource: %w", err)
 		}
 	}
@@ -49,7 +49,7 @@ func (a *actuator) Restore(ctx context.Context, infrastructure *extensionsv1alph
 		}
 
 		err = a.client.Create(ctx, sa)
-		if client.IgnoreNotFound(err) != nil {
+		if err != nil && !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("unable restoring service account: %w", err)
 		}
 
@@ -63,7 +63,7 @@ func (a *actuator) Restore(ctx context.Context, infrastructure *extensionsv1alph
 			}
 
 			err = a.client.Create(ctx, secret)
-			if client.IgnoreNotFound(err) != nil {
+			if err != nil && !apierrors.IsAlreadyExists(err) {
 				return fmt.Errorf("unable restoring service account secret %q: %w", secret.Name, err)
 			}
 		}

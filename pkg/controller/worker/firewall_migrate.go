@@ -5,10 +5,13 @@ import (
 	"fmt"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/controllerutils"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrastructurectrl "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/infrastructure"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -16,7 +19,7 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
-func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) firewallMigrate(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
 	var (
 		namespace = cluster.ObjectMeta.Name
 
@@ -25,7 +28,22 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 		firewalls = &fcmv2.FirewallList{}
 	)
 
-	err := a.client.List(ctx, firewalls, client.InNamespace(namespace))
+	d, err := a.getAdditionalData(ctx, worker, cluster)
+	if err != nil {
+		return fmt.Errorf("error getting additional data: %w", err)
+	}
+
+	_, infraStatus, err := infrastructurectrl.DecodeInfrastructure(d.infrastructure, a.decoder)
+	if err != nil {
+		return err
+	}
+
+	err = infrastructurectrl.UpdateProviderStatus(ctx, a.client, d.infrastructure, infraStatus, d.infrastructure.Status.NodesCIDR)
+	if err != nil {
+		return fmt.Errorf("error updating infrastructure status")
+	}
+
+	err = a.client.List(ctx, firewalls, client.InNamespace(namespace))
 	if err != nil {
 		return fmt.Errorf("error listing firewalls: %w", err)
 	}

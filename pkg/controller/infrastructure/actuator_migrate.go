@@ -49,11 +49,5 @@ func (a *actuator) Migrate(ctx context.Context, infrastructure *extensionsv1alph
 		}
 	}
 
-	// updating the provider status one more time to catch latest firewalls
-	_, internalInfrastructureStatus, err := decodeInfrastructure(infrastructure, a.decoder)
-	if err != nil {
-		return err
-	}
-
-	return updateProviderStatus(ctx, a.client, infrastructure, internalInfrastructureStatus, infrastructure.Status.NodesCIDR)
+	return nil
 }

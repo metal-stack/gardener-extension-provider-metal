@@ -23,6 +23,7 @@ import (
 type (
 	additionalData struct {
 		privateNetworkID     string
+		infrastructure       *extensionsv1alpha1.Infrastructure
 		infrastructureConfig *apismetal.InfrastructureConfig
 		mcp                  *apismetal.MetalControlPlane
 		credentials          *metal.Credentials
@@ -97,6 +98,7 @@ func (a *actuator) getAdditionalData(ctx context.Context, worker *extensionsv1al
 
 	return &additionalData{
 		mcp:                  metalControlPlane,
+		infrastructure:       infrastructure,
 		infrastructureConfig: infrastructureConfig,
 		privateNetworkID:     *nw.ID,
 		credentials:          credentials,
