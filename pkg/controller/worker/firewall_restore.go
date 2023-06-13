@@ -146,8 +146,8 @@ func (a *actuator) restoreFirewalls(ctx context.Context, worker *extensionsv1alp
 
 func (a *actuator) restoreRBAC(ctx context.Context, shootClient client.Client, namespace string) error {
 	migrationSecrets := &corev1.SecretList{}
-	err := shootClient.List(ctx, migrationSecrets, &client.ListOptions{Namespace: fcmv2.FirewallShootNamespace}, client.HasLabels{
-		fmt.Sprintf("%s=", migrationSecretKey),
+	err := shootClient.List(ctx, migrationSecrets, &client.ListOptions{Namespace: fcmv2.FirewallShootNamespace}, client.MatchingLabels{
+		migrationSecretKey: "",
 	})
 	if err != nil {
 		return fmt.Errorf("error retrieving migration secrets")
