@@ -24,6 +24,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/yaml"
 
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -36,14 +37,14 @@ import (
 // is used by the MCM already.
 type InfrastructureState struct {
 	// Firewalls contains the running firewalls.
-	Firewalls []fcmv2.Firewall `json:"firewalls"`
+	Firewalls [][]byte `json:"firewalls"`
 
-	SeedAccessTokens []SeedAccessToken `json:"seedAccessTokens"`
+	SeedAccess []SeedAccessState `json:"seedAccess"`
 }
 
-type SeedAccessToken struct {
-	ServiceAccount        corev1.ServiceAccount `json:"serviceAccount"`
-	ServiceAccountSecrets []corev1.Secret       `json:"serviceAccountSecrets"`
+type SeedAccessState struct {
+	ServiceAccount        []byte   `json:"serviceAccount"`
+	ServiceAccountSecrets [][]byte `json:"serviceAccountSecrets"`
 }
 
 type actuator struct {
@@ -124,7 +125,14 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 		return fmt.Errorf("unable to list firewalls: %w", err)
 	}
 
-	infraState.Firewalls = firewalls.Items
+	for _, fw := range firewalls.Items {
+		raw, err := yaml.Marshal(fw)
+		if err != nil {
+			return err
+		}
+
+		infraState.Firewalls = append(infraState.Firewalls, raw)
+	}
 
 	err = c.List(ctx, fwdeploys, client.InNamespace(infrastructure.Namespace))
 	if err != nil {
@@ -145,7 +153,7 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 			continue
 		}
 
-		secrets := []corev1.Secret{}
+		secrets := [][]byte{}
 
 		for _, ref := range sa.Secrets {
 
@@ -161,11 +169,21 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 				return fmt.Errorf("error getting service account secret: %w", err)
 			}
 
-			secrets = append(secrets, *saSecret)
+			raw, err := yaml.Marshal(*saSecret)
+			if err != nil {
+				return err
+			}
+
+			secrets = append(secrets, raw)
 		}
 
-		infraState.SeedAccessTokens = append(infraState.SeedAccessTokens, SeedAccessToken{
-			ServiceAccount:        *sa,
+		raw, err := yaml.Marshal(*sa)
+		if err != nil {
+			return err
+		}
+
+		infraState.SeedAccess = append(infraState.SeedAccess, SeedAccessState{
+			ServiceAccount:        raw,
 			ServiceAccountSecrets: secrets,
 		})
 	}
