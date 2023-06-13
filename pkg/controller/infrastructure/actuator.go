@@ -26,13 +26,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // InfrastructureState represents the last known State of an Infrastructure resource.
 // It is saved after a reconciliation and used during restore operations.
+// We use this for restoring firewalls, which are actually maintained by the worker controller
+// because the worker controller does not allow adding our state to the worker resource as it
+// is used by the MCM already.
 type InfrastructureState struct {
 	// Firewalls contains the running firewalls.
 	Firewalls []fcmv2.Firewall `json:"firewalls"`
+
+	SeedAccessTokens []SeedAccessToken `json:"seedAccessTokens"`
+}
+
+type SeedAccessToken struct {
+	ServiceAccount        corev1.ServiceAccount `json:"serviceAccount"`
+	ServiceAccountSecrets []corev1.Secret       `json:"serviceAccountSecrets"`
 }
 
 type actuator struct {
@@ -100,14 +111,63 @@ func decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, dec
 func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string) error {
 	patch := client.MergeFrom(infrastructure.DeepCopy())
 
-	firewalls := &fcmv2.FirewallList{}
+	var (
+		namespace = infrastructure.Namespace
+
+		infraState = &InfrastructureState{}
+		fwdeploys  = &fcmv2.FirewallDeploymentList{}
+		firewalls  = &fcmv2.FirewallList{}
+	)
+
 	err := c.List(ctx, firewalls, client.InNamespace(infrastructure.Namespace))
 	if err != nil {
 		return fmt.Errorf("unable to list firewalls: %w", err)
 	}
 
-	infraState := &InfrastructureState{
-		Firewalls: firewalls.Items,
+	infraState.Firewalls = firewalls.Items
+
+	err = c.List(ctx, fwdeploys, client.InNamespace(infrastructure.Namespace))
+	if err != nil {
+		return fmt.Errorf("unable to list firewall deployments: %w", err)
+	}
+
+	for _, fwdeploy := range fwdeploys.Items {
+		saName := fmt.Sprintf("firewall-controller-seed-access-%s", fwdeploy.Name) // TODO: name should be exposed by fcm
+		sa := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      saName,
+				Namespace: namespace,
+			},
+		}
+
+		err := c.Get(ctx, client.ObjectKeyFromObject(sa), sa)
+		if err != nil {
+			continue
+		}
+
+		secrets := []corev1.Secret{}
+
+		for _, ref := range sa.Secrets {
+
+			saSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ref.Name,
+					Namespace: ref.Namespace,
+				},
+			}
+
+			err = c.Get(ctx, client.ObjectKeyFromObject(saSecret), saSecret)
+			if err != nil {
+				return fmt.Errorf("error getting service account secret: %w", err)
+			}
+
+			secrets = append(secrets, *saSecret)
+		}
+
+		infraState.SeedAccessTokens = append(infraState.SeedAccessTokens, SeedAccessToken{
+			ServiceAccount:        *sa,
+			ServiceAccountSecrets: secrets,
+		})
 	}
 
 	infraStateBytes, err := json.Marshal(infraState)
