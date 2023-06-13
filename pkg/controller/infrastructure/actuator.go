@@ -160,7 +160,7 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 			saSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ref.Name,
-					Namespace: ref.Namespace,
+					Namespace: namespace,
 				},
 			}
 
