@@ -62,6 +62,8 @@ func (a *actuator) Restore(ctx context.Context, infrastructure *extensionsv1alph
 				return err
 			}
 
+			secret.Annotations["kubernetes.io/service-account.uid"] = string(sa.UID)
+
 			err = a.client.Create(ctx, secret)
 			if err != nil && !apierrors.IsAlreadyExists(err) {
 				return fmt.Errorf("unable restoring service account secret %q: %w", secret.Name, err)
