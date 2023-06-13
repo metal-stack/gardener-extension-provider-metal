@@ -183,7 +183,7 @@ func (a *actuator) Migrate(ctx context.Context, worker *extensionsv1alpha1.Worke
 		return err
 	}
 
-	return a.firewallMigrate(ctx, worker, cluster)
+	return a.firewallMigrate(ctx, cluster)
 }
 
 func (a *actuator) Restore(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
