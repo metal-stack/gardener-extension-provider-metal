@@ -194,6 +194,8 @@ func (a *actuator) restoreRBAC(ctx context.Context, shootClient client.Client, n
 		if err != nil {
 			return fmt.Errorf("error to create / update service account: %w", err)
 		}
+
+		a.logger.Info("restored service account secret from shoot", "name", migrationSecret.Name, "namespace", migrationSecret.Namespace, "sa", sa.Name)
 	}
 
 	return nil

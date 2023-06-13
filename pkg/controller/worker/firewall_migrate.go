@@ -181,8 +181,10 @@ func (a *actuator) migrateRBAC(ctx context.Context, shootClient client.Client, f
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("unable to create / update migration secret: %w", err)
+			return fmt.Errorf("unable to create / update shoot migration secret: %w", err)
 		}
+
+		a.logger.Info("copied service account secret into shoot", "name", migrationSecret.Name, "namespace", migrationSecret.Namespace)
 	}
 
 	return nil
