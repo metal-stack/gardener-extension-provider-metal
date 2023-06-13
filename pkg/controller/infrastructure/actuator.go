@@ -37,14 +37,14 @@ import (
 // is used by the MCM already.
 type InfrastructureState struct {
 	// Firewalls contains the running firewalls.
-	Firewalls [][]byte `json:"firewalls"`
+	Firewalls []string `json:"firewalls"`
 
 	SeedAccess []SeedAccessState `json:"seedAccess"`
 }
 
 type SeedAccessState struct {
-	ServiceAccount        []byte   `json:"serviceAccount"`
-	ServiceAccountSecrets [][]byte `json:"serviceAccountSecrets"`
+	ServiceAccount        string   `json:"serviceAccount"`
+	ServiceAccountSecrets []string `json:"serviceAccountSecrets"`
 }
 
 type actuator struct {
@@ -131,7 +131,7 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 			return err
 		}
 
-		infraState.Firewalls = append(infraState.Firewalls, raw)
+		infraState.Firewalls = append(infraState.Firewalls, string(raw))
 	}
 
 	err = c.List(ctx, fwdeploys, client.InNamespace(infrastructure.Namespace))
@@ -153,7 +153,7 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 			continue
 		}
 
-		secrets := [][]byte{}
+		secrets := []string{}
 
 		for _, ref := range sa.Secrets {
 
@@ -174,7 +174,7 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 				return err
 			}
 
-			secrets = append(secrets, raw)
+			secrets = append(secrets, string(raw))
 		}
 
 		raw, err := yaml.Marshal(*sa)
@@ -183,7 +183,7 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 		}
 
 		infraState.SeedAccess = append(infraState.SeedAccess, SeedAccessState{
-			ServiceAccount:        raw,
+			ServiceAccount:        string(raw),
 			ServiceAccountSecrets: secrets,
 		})
 	}

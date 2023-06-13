@@ -29,7 +29,7 @@ func (a *actuator) Restore(ctx context.Context, infrastructure *extensionsv1alph
 		raw := raw
 
 		fw := &fcmv2.Firewall{}
-		err := yaml.Unmarshal(raw, fw)
+		err := yaml.Unmarshal([]byte(raw), fw)
 		if err != nil {
 			return err
 		}
@@ -43,7 +43,7 @@ func (a *actuator) Restore(ctx context.Context, infrastructure *extensionsv1alph
 	for _, seedAccess := range infraState.SeedAccess {
 
 		sa := &corev1.ServiceAccount{}
-		err := yaml.Unmarshal(seedAccess.ServiceAccount, sa)
+		err := yaml.Unmarshal([]byte(seedAccess.ServiceAccount), sa)
 		if err != nil {
 			return err
 		}
@@ -57,7 +57,7 @@ func (a *actuator) Restore(ctx context.Context, infrastructure *extensionsv1alph
 			raw := raw
 
 			secret := &corev1.Secret{}
-			err := yaml.Unmarshal(raw, secret)
+			err := yaml.Unmarshal([]byte(raw), secret)
 			if err != nil {
 				return err
 			}
