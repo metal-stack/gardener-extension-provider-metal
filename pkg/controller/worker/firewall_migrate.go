@@ -175,6 +175,9 @@ func (a *actuator) migrateRBAC(ctx context.Context, shootClient client.Client, f
 		_, err = controllerutil.CreateOrUpdate(ctx, shootClient, migrationSecret, func() error {
 			migrationSecret.Annotations = saSecret.Annotations
 			migrationSecret.Labels = saSecret.Labels
+			if migrationSecret.Labels == nil {
+				migrationSecret.Labels = map[string]string{}
+			}
 			migrationSecret.Labels[migrationSecretKey] = ""
 			migrationSecret.Data = saSecret.Data
 			migrationSecret.Type = saSecret.Type
