@@ -3,9 +3,11 @@ package worker
 import (
 	"context"
 	"fmt"
+	"time"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,11 +28,17 @@ func (a *actuator) firewallRestore(ctx context.Context, worker *extensionsv1alph
 	}
 	err := a.client.Get(ctx, client.ObjectKeyFromObject(fcm), fcm)
 	if err != nil {
-		return fmt.Errorf("unable to get firewall-controller-manager deployment: %w", err)
+		return &reconciler.RequeueAfterError{
+			Cause:        fmt.Errorf("unable to get firewall-controller-manager deployment: %w", err),
+			RequeueAfter: 10 * time.Second,
+		}
 	}
 
 	if fcm.Status.Replicas != fcm.Status.ReadyReplicas {
-		return fmt.Errorf("firewall-controller-manager deployment is not yet ready, waiting...")
+		return &reconciler.RequeueAfterError{
+			Cause:        fmt.Errorf("firewall-controller-manager deployment is not yet ready, waiting..."),
+			RequeueAfter: 10 * time.Second,
+		}
 	}
 
 	a.logger.Info("restoring firewalls deployment")
