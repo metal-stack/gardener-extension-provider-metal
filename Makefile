@@ -27,10 +27,6 @@ TOOLS_DIR := hack/tools
 # Rules for local development scenarios #
 #########################################
 
-.PHONY: build
-build:
-	go build -ldflags $(LD_FLAGS) -tags netgo ./cmd/gardener-extension-provider-metal
-
 .PHONY: start-provider-metal
 start-provider-metal:
 	@LEADER_ELECTION_NAMESPACE=garden go run \
@@ -58,6 +54,10 @@ start-admission-metal:
 #################################################################
 # Rules related to binary build, Docker image build and release #
 #################################################################
+
+.PHONY: build
+build:
+	go build -ldflags $(LD_FLAGS) -tags netgo ./cmd/gardener-extension-provider-metal
 
 .PHONY: install
 install: revendor $(HELM)
@@ -108,7 +108,7 @@ generate: $(HELM)
 .PHONY: generate-in-docker
 generate-in-docker: revendor $(HELM)
 	echo $(shell git describe --abbrev=0 --tags) > VERSION
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.19.4 \
+	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.20.5 \
 		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 				&& make generate \
 				&& chown -R $(shell id -u):$(shell id -g) ."
