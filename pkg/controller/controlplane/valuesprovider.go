@@ -489,6 +489,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	}
 
 	values := map[string]any{
+		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
 		"podAnnotations": map[string]interface{}{
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
 			"checksum/secret-cloudprovider":                                    checksums[v1alpha1constants.SecretNameCloudProvider],
@@ -672,6 +673,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	values := map[string]any{
+		"imagePullPolicy":   helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
 		"nodeCIDR":          *infrastructure.Status.NodesCIDR,

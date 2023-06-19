@@ -74,6 +74,7 @@ config:
     duros:
       enabled: false
       partitionConfig: {}
+  imagePullPolicy: IfNotPresent
   imagePullSecret:
     encodedDockerConfigJSON:
 

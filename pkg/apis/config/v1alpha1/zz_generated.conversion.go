@@ -231,6 +231,7 @@ func autoConvert_v1alpha1_ControllerConfiguration_To_config_ControllerConfigurat
 	if err := Convert_v1alpha1_StorageConfiguration_To_config_StorageConfiguration(&in.Storage, &out.Storage, s); err != nil {
 		return err
 	}
+	out.ImagePullPolicy = in.ImagePullPolicy
 	out.ImagePullSecret = (*config.ImagePullSecret)(unsafe.Pointer(in.ImagePullSecret))
 	out.EgressDestinations = *(*[]config.EgressDest)(unsafe.Pointer(&in.EgressDestinations))
 	return nil
@@ -258,6 +259,7 @@ func autoConvert_config_ControllerConfiguration_To_v1alpha1_ControllerConfigurat
 	if err := Convert_config_StorageConfiguration_To_v1alpha1_StorageConfiguration(&in.Storage, &out.Storage, s); err != nil {
 		return err
 	}
+	out.ImagePullPolicy = in.ImagePullPolicy
 	out.ImagePullSecret = (*ImagePullSecret)(unsafe.Pointer(in.ImagePullSecret))
 	out.EgressDestinations = *(*[]EgressDest)(unsafe.Pointer(&in.EgressDestinations))
 	return nil
