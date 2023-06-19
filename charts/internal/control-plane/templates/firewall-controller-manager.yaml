@@ -108,7 +108,7 @@ spec:
       containers:
       - name: firewall-controller-manager
         image: {{ index .Values.images "firewall-controller-manager" }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         args:
           - -cert-dir=/certs
           - -log-level=info

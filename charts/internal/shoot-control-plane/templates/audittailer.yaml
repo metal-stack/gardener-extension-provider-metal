@@ -33,7 +33,7 @@ spec:
       automountServiceAccountToken: false
       containers:
       - image: {{ index .Values.images "audittailer" }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         name: audittailer
         env:
         # This is supposed to limit fluentd memory usage. See https://docs.fluentd.org/deployment/performance-tuning-single-process#reduce-memory-usage.

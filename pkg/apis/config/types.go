@@ -42,6 +42,10 @@ type ControllerConfiguration struct {
 	// Storage is the configuration for storage.
 	Storage StorageConfiguration
 
+	// ImagePullPolicy defines the pull policy for the components deployed through the control plane controller.
+	// Defaults to IfNotPresent if empty or unknown.
+	ImagePullPolicy string
+
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 	ImagePullSecret *ImagePullSecret
 

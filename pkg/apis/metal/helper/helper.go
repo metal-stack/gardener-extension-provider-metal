@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // FindMachineImage takes a list of machine images and tries to find the first entry
@@ -28,4 +30,15 @@ func FindMetalControlPlane(cloudProfileConfig *metal.CloudProfileConfig, partiti
 		}
 	}
 	return nil, nil, fmt.Errorf("no metal control plane found for partition %s in cloud profile config", partition)
+}
+
+// ImagePullPolicyFromString returns an image pull policy from string
+// If the pull policy is unknown it returns "IfNotPresent"
+func ImagePullPolicyFromString(policy string) corev1.PullPolicy {
+	switch p := corev1.PullPolicy(policy); p {
+	case corev1.PullAlways, corev1.PullIfNotPresent, corev1.PullNever:
+		return p
+	default:
+		return corev1.PullIfNotPresent
+	}
 }
