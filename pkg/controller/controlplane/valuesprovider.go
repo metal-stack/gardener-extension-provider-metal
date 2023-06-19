@@ -1089,7 +1089,7 @@ func getCCMChartValues(
 	if err != nil {
 		return nil, fmt.Errorf("ssh secret not found %w", err)
 	}
-	sshPublicKeys := []string{string(latestSSHSecret.Data["id_rsa.pub"])}
+	sshPublicKey := string(latestSSHSecret.Data["id_rsa.pub"])
 
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
@@ -1102,7 +1102,7 @@ func getCCMChartValues(
 			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
 			"defaultExternalNetwork": defaultExternalNetwork,
 			"additionalNetworks":     strings.Join(infrastructureConfig.Firewall.Networks, ","),
-			"sshPublicKeys":          strings.Join(sshPublicKeys, ","),
+			"sshPublicKey":           sshPublicKey,
 			"metal": map[string]interface{}{
 				"endpoint": mcp.Endpoint,
 			},
