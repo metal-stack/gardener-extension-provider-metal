@@ -37,6 +37,7 @@ cloudControllerManager:
   clusterID: cluster-id
   defaultExternalNetwork: external-network-id
   additionalNetworks: internet,mpls
+  sshPublicKeys: publickey1,publickey2
   metal:
     endpoint: api-url
   resources:

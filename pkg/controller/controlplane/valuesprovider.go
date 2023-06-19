@@ -463,7 +463,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	ccmValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws, secretsReader)
+	ccmValues, err := getCCMChartValues(ctx, vp.Client(), cp.Namespace, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws, secretsReader)
 	if err != nil {
 		return nil, err
 	}
@@ -1001,6 +1001,8 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 // getCCMChartValues collects and returns the CCM chart values.
 func getCCMChartValues(
 	ctx context.Context,
+	client client.Client,
+	namespace string,
 	cpConfig *apismetal.ControlPlaneConfig,
 	infrastructureConfig *apismetal.InfrastructureConfig,
 	infrastructure *extensionsv1alpha1.Infrastructure,
@@ -1083,6 +1085,11 @@ func getCCMChartValues(
 	if !found {
 		return nil, fmt.Errorf("secret %q not found", metal.CloudControllerManagerServerName)
 	}
+	latestSSHSecret, err := helper.GetLatestSSHSecret(ctx, client, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("ssh secret not found %w", err)
+	}
+	sshPublicKeys := []string{string(latestSSHSecret.Data["id_rsa.pub"])}
 
 	values := map[string]interface{}{
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
@@ -1095,6 +1102,7 @@ func getCCMChartValues(
 			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
 			"defaultExternalNetwork": defaultExternalNetwork,
 			"additionalNetworks":     strings.Join(infrastructureConfig.Firewall.Networks, ","),
+			"sshPublicKeys":          strings.Join(sshPublicKeys, ","),
 			"metal": map[string]interface{}{
 				"endpoint": mcp.Endpoint,
 			},
