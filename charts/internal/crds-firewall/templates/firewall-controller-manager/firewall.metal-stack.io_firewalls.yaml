@@ -380,10 +380,6 @@ spec:
                     description: Namespace is the namespace in the seed where the
                       secrets reside.
                     type: string
-                  sshKeySecretName:
-                    description: SSHKeySecretName is the secret name containing the
-                      ssh keys for the machine access.
-                    type: string
                   tokenSecretName:
                     description: TokenSecretName is the secret name for the access
                       token for shoot access.
@@ -392,7 +388,6 @@ spec:
                 - apiServerURL
                 - genericKubeconfigSecretName
                 - namespace
-                - sshKeySecretName
                 - tokenSecretName
                 type: object
             required:
