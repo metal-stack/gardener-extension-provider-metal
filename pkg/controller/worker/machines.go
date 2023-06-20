@@ -124,16 +124,13 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	projectID := infrastructureConfig.ProjectID
-	nodeCIDR := infrastructure.Status.NodesCIDR
 
-	if nodeCIDR == nil {
-		if w.cluster.Shoot.Spec.Networking.Nodes == nil {
-			return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
-		}
-		nodeCIDR = w.cluster.Shoot.Spec.Networking.Nodes
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, w.cluster)
+	if err != nil {
+		return err
 	}
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, *nodeCIDR)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, nodeCIDR)
 	if err != nil {
 		return err
 	}

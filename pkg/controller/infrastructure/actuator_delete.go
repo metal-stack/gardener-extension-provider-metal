@@ -24,6 +24,7 @@ import (
 type networkDeleter struct {
 	ctx                  context.Context
 	logger               logr.Logger
+	cluster              *extensionscontroller.Cluster
 	infrastructure       *extensionsv1alpha1.Infrastructure
 	infrastructureConfig *metalapi.InfrastructureConfig
 	mclient              metalgo.Client
@@ -54,6 +55,7 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 	deleter := &networkDeleter{
 		ctx:                  ctx,
 		logger:               a.logger,
+		cluster:              cluster,
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
 		mclient:              mclient,
@@ -109,10 +111,11 @@ func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 		}
 	}
 
-	if d.infrastructure.Status.NodesCIDR != nil {
-		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, *d.infrastructure.Status.NodesCIDR)
+	nodeCIDR, err := helper.GetNodeCIDR(d.infrastructure, d.cluster)
+	if err != nil {
+		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, nodeCIDR)
 		if err != nil {
-			d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", *d.infrastructure.Status.NodesCIDR)
+			d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", nodeCIDR)
 			return err
 		}
 
@@ -123,6 +126,8 @@ func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 				return err
 			}
 		}
+	} else {
+		a.logger.Error(err, "unable to cleanup private networks as the node cidr is not defined")
 	}
 
 	return nil

@@ -3,6 +3,9 @@ package helper
 import (
 	"fmt"
 
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
 	corev1 "k8s.io/api/core/v1"
@@ -41,4 +44,22 @@ func ImagePullPolicyFromString(policy string) corev1.PullPolicy {
 	default:
 		return corev1.PullIfNotPresent
 	}
+}
+
+// GetNodeCIDR returns the node cidr from the shoot spec. if this is not yet set, it returns the
+// node cidr from the infrastructure status. if it's set nowhere, it returns an error.
+func GetNodeCIDR(infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, error) {
+	var nodeCIDR string
+
+	if cluster.Shoot.Spec.Networking.Nodes != nil {
+		nodeCIDR = *cluster.Shoot.Spec.Networking.Nodes
+	} else if infrastructure != nil && infrastructure.Status.NodesCIDR != nil {
+		nodeCIDR = *infrastructure.Status.NodesCIDR
+	}
+
+	if nodeCIDR == "" {
+		return "", fmt.Errorf("nodeCIDR is not yet set")
+	}
+
+	return nodeCIDR, nil
 }
