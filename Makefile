@@ -27,10 +27,6 @@ TOOLS_DIR := hack/tools
 # Rules for local development scenarios #
 #########################################
 
-.PHONY: build
-build:
-	go build -ldflags $(LD_FLAGS) -tags netgo ./cmd/gardener-extension-provider-metal
-
 .PHONY: start-provider-metal
 start-provider-metal:
 	@LEADER_ELECTION_NAMESPACE=garden go run \
@@ -58,6 +54,10 @@ start-admission-metal:
 #################################################################
 # Rules related to binary build, Docker image build and release #
 #################################################################
+
+.PHONY: build
+build:
+	go build -ldflags $(LD_FLAGS) -tags netgo ./cmd/gardener-extension-provider-metal
 
 .PHONY: install
 install: revendor $(HELM)
