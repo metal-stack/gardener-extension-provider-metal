@@ -93,7 +93,7 @@ func (a *actuator) InjectConfig(config *rest.Config) error {
 	return nil
 }
 
-func DecodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, decoder runtime.Decoder) (*metalapi.InfrastructureConfig, *metalapi.InfrastructureStatus, error) {
+func decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, decoder runtime.Decoder) (*metalapi.InfrastructureConfig, *metalapi.InfrastructureStatus, error) {
 	infrastructureConfig, err := helper.InfrastructureConfigFromInfrastructure(infrastructure)
 	if err != nil {
 		return nil, nil, err
@@ -109,7 +109,7 @@ func DecodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, dec
 	return infrastructureConfig, infrastructureStatus, nil
 }
 
-func UpdateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string) error {
+func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string) error {
 	patch := client.MergeFrom(infrastructure.DeepCopy())
 
 	var (

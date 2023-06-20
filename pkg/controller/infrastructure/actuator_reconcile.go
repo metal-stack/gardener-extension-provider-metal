@@ -43,7 +43,7 @@ type egressIPReconciler struct {
 }
 
 func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
-	internalInfrastructureConfig, internalInfrastructureStatus, err := DecodeInfrastructure(infrastructure, a.decoder)
+	internalInfrastructureConfig, internalInfrastructureStatus, err := decodeInfrastructure(infrastructure, a.decoder)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 		}
 	}
 
-	err = UpdateProviderStatus(ctx, a.client, infrastructure, internalInfrastructureStatus, &nodeCIDR)
+	err = updateProviderStatus(ctx, a.client, infrastructure, internalInfrastructureStatus, &nodeCIDR)
 	if err != nil {
 		return err
 	}

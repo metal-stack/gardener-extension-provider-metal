@@ -32,7 +32,7 @@ type networkDeleter struct {
 }
 
 func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
-	internalInfrastructureConfig, _, err := DecodeInfrastructure(infrastructure, a.decoder)
+	internalInfrastructureConfig, _, err := decodeInfrastructure(infrastructure, a.decoder)
 	if err != nil {
 		return err
 	}
