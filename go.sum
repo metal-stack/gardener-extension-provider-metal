@@ -713,12 +713,12 @@ github.com/metal-stack/duros-controller v0.6.1 h1:jq9sWuoNWPUaZZ9kHQ+YNFul5xZbj4
 github.com/metal-stack/duros-controller v0.6.1/go.mod h1:nxBVCLUXeMPjtLACT6ZP+hH1PmjWKUghRpMnvD/GWcw=
 github.com/metal-stack/firewall-controller v1.3.0 h1:K6QSP74BrKW0tmTCwT0xS5oByE2CqtyL6roTsvSbuDg=
 github.com/metal-stack/firewall-controller v1.3.0/go.mod h1:Ltmu4CWekOqd1m4GD/XlYtPl9p0q7U/an1WGqR1w+vc=
-github.com/metal-stack/firewall-controller-manager v0.2.2-0.20230620072053-240088238adf h1:9r71NGn/MT7luBQ58Z+Swe6/6P6wT2ViIg99hVUeO8g=
-github.com/metal-stack/firewall-controller-manager v0.2.2-0.20230620072053-240088238adf/go.mod h1:dROKw29FdXgIEJg+/BX8EcskSqxam4lwqtttwzPNjq0=
+github.com/metal-stack/firewall-controller-manager v0.2.2 h1:PM60rnyIb38EVnm4MEm8y2AGeiqwopf8h707qaTJsso=
+github.com/metal-stack/firewall-controller-manager v0.2.2/go.mod h1:f4c+yYBQLuNpS5cyGXBj7c0b5TeR770LaElgPgA6DTw=
 github.com/metal-stack/machine-controller-manager-provider-metal v0.1.13 h1:qfSvrkudwydRouGF+R1FO4cVCEwsCUBjLH9JVDkg1BY=
 github.com/metal-stack/machine-controller-manager-provider-metal v0.1.13/go.mod h1:0AoHiLFZDTbmVYpAQrdfB1D1/Z/yijF0IuhiGMXfrMg=
-github.com/metal-stack/metal-go v0.22.6-0.20230619121107-88274d9d710f h1:6/qPso/kk18D8Uz4VzYG/oPg5S+iCt5XYB8k2XgIQLQ=
-github.com/metal-stack/metal-go v0.22.6-0.20230619121107-88274d9d710f/go.mod h1:+bivKADq/HISSFG6rnnN6wpXhwMXOgXfHZzIQiBGtOo=
+github.com/metal-stack/metal-go v0.22.6 h1:nWjk2VH1B1CWGoupYGxxceblWszTjpD08729riaRyUE=
+github.com/metal-stack/metal-go v0.22.6/go.mod h1:n0KALbtB6JGAICDmgSU5B/jekEFODuqcluTHEAXMPng=
 github.com/metal-stack/metal-lib v0.11.10 h1:8Dgz4aPJHJvv1gSrxWsm3r9TlR3BdPPlt7xl3p5C8tI=
 github.com/metal-stack/metal-lib v0.11.10/go.mod h1:f0HJJdwR6KaAyOWPUCvq6jqQDMxu+aNGtON1UU5Chdo=
 github.com/metal-stack/security v0.6.6 h1:KSPNN8YZd2EJEjsJ0xCBcd5o53uU0iFupahHA9Twuh0=
