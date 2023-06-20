@@ -47,7 +47,12 @@ func (a *actuator) firewallReconcile(ctx context.Context, worker *extensionsv1al
 		return fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	err = a.ensureFirewallDeployment(ctx, worker, cluster, string(sshSecret.Data["id_rsa.pub"]))
+	d, err := a.getAdditionalData(ctx, worker, cluster)
+	if err != nil {
+		return fmt.Errorf("error getting additional data: %w", err)
+	}
+
+	err = a.ensureFirewallDeployment(ctx, d, cluster, string(sshSecret.Data["id_rsa.pub"]))
 	if err != nil {
 		return err
 	}
@@ -55,16 +60,11 @@ func (a *actuator) firewallReconcile(ctx context.Context, worker *extensionsv1al
 	return nil
 }
 
-func (a *actuator) ensureFirewallDeployment(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster, sshKey string) error {
+func (a *actuator) ensureFirewallDeployment(ctx context.Context, d *additionalData, cluster *extensionscontroller.Cluster, sshKey string) error {
 	var (
 		clusterID = string(cluster.Shoot.GetUID())
 		namespace = cluster.ObjectMeta.Name
 	)
-
-	d, err := a.getAdditionalData(ctx, worker, cluster)
-	if err != nil {
-		return fmt.Errorf("error getting additional data: %w", err)
-	}
 
 	fwcv, err := validation.ValidateFirewallControllerVersion(d.mcp.FirewallControllerVersions, d.infrastructureConfig.Firewall.ControllerVersion)
 	if err != nil {

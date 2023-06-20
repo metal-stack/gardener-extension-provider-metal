@@ -2,7 +2,6 @@ package infrastructure
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/infrastructure"
@@ -24,28 +23,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/yaml"
-
-	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
-	corev1 "k8s.io/api/core/v1"
 )
-
-// InfrastructureState represents the last known State of an Infrastructure resource.
-// It is saved after a reconciliation and used during restore operations.
-// We use this for restoring firewalls, which are actually maintained by the worker controller
-// because the worker controller does not allow adding our state to the worker resource as it
-// is used by the MCM already.
-type InfrastructureState struct {
-	// Firewalls contains the running firewalls.
-	Firewalls []string `json:"firewalls"`
-
-	SeedAccess []SeedAccessState `json:"seedAccess"`
-}
-
-type SeedAccessState struct {
-	ServiceAccount        string   `json:"serviceAccount"`
-	ServiceAccountSecrets []string `json:"serviceAccountSecrets"`
-}
 
 type actuator struct {
 	logger logr.Logger
@@ -111,100 +89,6 @@ func decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, dec
 
 func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string) error {
 	patch := client.MergeFrom(infrastructure.DeepCopy())
-
-	var (
-		namespace = infrastructure.Namespace
-
-		infraState = &InfrastructureState{}
-		fwdeploys  = &fcmv2.FirewallDeploymentList{}
-		firewalls  = &fcmv2.FirewallList{}
-	)
-
-	err := c.List(ctx, firewalls, client.InNamespace(infrastructure.Namespace))
-	if err != nil {
-		return fmt.Errorf("unable to list firewalls: %w", err)
-	}
-
-	for _, fw := range firewalls.Items {
-		fw := fw
-
-		fw.ResourceVersion = ""
-		fw.OwnerReferences = nil
-		fw.Status = fcmv2.FirewallStatus{}
-
-		raw, err := yaml.Marshal(fw)
-		if err != nil {
-			return err
-		}
-
-		infraState.Firewalls = append(infraState.Firewalls, string(raw))
-	}
-
-	err = c.List(ctx, fwdeploys, client.InNamespace(infrastructure.Namespace))
-	if err != nil {
-		return fmt.Errorf("unable to list firewall deployments: %w", err)
-	}
-
-	for _, fwdeploy := range fwdeploys.Items {
-		saName := fmt.Sprintf("firewall-controller-seed-access-%s", fwdeploy.Name) // TODO: name should be exposed by fcm
-		sa := &corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      saName,
-				Namespace: namespace,
-			},
-		}
-
-		err := c.Get(ctx, client.ObjectKeyFromObject(sa), sa)
-		if err != nil {
-			continue
-		}
-
-		secrets := []string{}
-
-		for _, ref := range sa.Secrets {
-
-			saSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ref.Name,
-					Namespace: namespace,
-				},
-			}
-
-			err = c.Get(ctx, client.ObjectKeyFromObject(saSecret), saSecret)
-			if err != nil {
-				return fmt.Errorf("error getting service account secret: %w", err)
-			}
-
-			saSecret.ResourceVersion = ""
-
-			raw, err := yaml.Marshal(*saSecret)
-			if err != nil {
-				return err
-			}
-
-			secrets = append(secrets, string(raw))
-		}
-
-		sa.ResourceVersion = ""
-
-		raw, err := yaml.Marshal(*sa)
-		if err != nil {
-			return err
-		}
-
-		infraState.SeedAccess = append(infraState.SeedAccess, SeedAccessState{
-			ServiceAccount:        string(raw),
-			ServiceAccountSecrets: secrets,
-		})
-	}
-
-	infraStateBytes, err := json.Marshal(infraState)
-	if err != nil {
-		return err
-	}
-
-	infrastructure.Status.State = &runtime.RawExtension{Raw: infraStateBytes}
-	infrastructure.Status.NodesCIDR = nodeCIDR
 	infrastructure.Status.ProviderStatus = &runtime.RawExtension{Object: &metalv1alpha1.InfrastructureStatus{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
@@ -214,6 +98,6 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 			MachineID: providerStatus.Firewall.MachineID,
 		},
 	}}
-
+	infrastructure.Status.NodesCIDR = nodeCIDR
 	return c.Status().Patch(ctx, infrastructure, patch)
 }

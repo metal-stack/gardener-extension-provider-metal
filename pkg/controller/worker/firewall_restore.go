@@ -42,6 +42,18 @@ func (a *actuator) firewallRestore(ctx context.Context, worker *extensionsv1alph
 		}
 	}
 
+	a.logger.Info("restoring state from infrastructure status")
+
+	d, err := a.getAdditionalData(ctx, worker, cluster)
+	if err != nil {
+		return fmt.Errorf("error getting additional data: %w", err)
+	}
+
+	err = a.restoreState(ctx, d.infrastructure)
+	if err != nil {
+		return fmt.Errorf("error restoring firewall state: %w", err)
+	}
+
 	a.logger.Info("restoring firewalls deployment")
 
 	sshSecret, err := helper.GetLatestSSHSecret(ctx, a.client, worker.Namespace)
@@ -49,7 +61,7 @@ func (a *actuator) firewallRestore(ctx context.Context, worker *extensionsv1alph
 		return fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	err = a.ensureFirewallDeployment(ctx, worker, cluster, string(sshSecret.Data["id_rsa.pub"]))
+	err = a.ensureFirewallDeployment(ctx, d, cluster, string(sshSecret.Data["id_rsa.pub"]))
 	if err != nil {
 		return err
 	}
