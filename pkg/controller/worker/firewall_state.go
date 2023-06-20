@@ -54,6 +54,7 @@ func (a *actuator) updateState(ctx context.Context, infrastructure *extensionsv1
 		fw.ResourceVersion = ""
 		fw.OwnerReferences = nil
 		fw.Status = fcmv2.FirewallStatus{}
+		fw.ManagedFields = nil
 
 		raw, err := yaml.Marshal(fw)
 		if err != nil {
@@ -99,6 +100,7 @@ func (a *actuator) updateState(ctx context.Context, infrastructure *extensionsv1
 			}
 
 			saSecret.ResourceVersion = ""
+			saSecret.ManagedFields = nil
 
 			raw, err := yaml.Marshal(*saSecret)
 			if err != nil {
@@ -109,6 +111,7 @@ func (a *actuator) updateState(ctx context.Context, infrastructure *extensionsv1
 		}
 
 		sa.ResourceVersion = ""
+		sa.ManagedFields = nil
 
 		raw, err := yaml.Marshal(*sa)
 		if err != nil {
