@@ -154,12 +154,17 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			return err
 		}
 
+		sshSecret, err := helper.GetLatestSSHSecret(ctx, w.client, w.worker.Namespace)
+		if err != nil {
+			return fmt.Errorf("could not find current ssh secret: %w", err)
+		}
+
 		err = w.migrateFirewall(ctx, metalControlPlane, infrastructureConfig, w.cluster, mclient, *privateNetwork.ID)
 		if err != nil {
 			return err
 		}
 
-		err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, *privateNetwork.ID)
+		err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, *privateNetwork.ID, string(sshSecret.Data["id_rsa.pub"]))
 		if err != nil {
 			return err
 		}
@@ -488,7 +493,7 @@ func (w *workerDelegate) toggleAnnotation(ctx context.Context, cluster *extensio
 	return nil
 }
 
-func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, privateNetworkID string) error {
+func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, privateNetworkID, sshKey string) error {
 	// why is this code here and not in the controlplane controller?
 	// the controlplane controller deploys the firewall-controller-manager including validating and mutating webhooks
 	// this has to be running before we can create a firewall deployment because the mutating webhook is creating the userdata
@@ -571,6 +576,7 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 		deploy.Spec.Template.Spec.NftablesExporterVersion = metalControlPlane.NftablesExporter.Version
 		deploy.Spec.Template.Spec.NftablesExporterURL = metalControlPlane.NftablesExporter.URL
 		deploy.Spec.Template.Spec.LogAcceptedConnections = infrastructureConfig.Firewall.LogAcceptedConnections
+		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
 
 		return nil
 	})
