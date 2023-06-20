@@ -463,16 +463,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	ccmValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws, secretsReader)
-	if err != nil {
-		return nil, err
-	}
-
-	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.Client(), vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
-	if err != nil {
-		return nil, err
-	}
-
 	sshSecret, err := helper.GetLatestSSHSecret(ctx, vp.Client(), cp.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
@@ -483,12 +473,23 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not get ca from secret: %w", err)
 	}
 
+	ccmValues, err := getCCMChartValues(ctx, sshSecret, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws, secretsReader)
+	if err != nil {
+		return nil, err
+	}
+
+	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.Client(), vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
+	if err != nil {
+		return nil, err
+	}
+
 	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, metalControlPlane, sshSecret, caBundle, secretsReader)
 	if err != nil {
 		return nil, err
 	}
 
 	values := map[string]any{
+		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
 		"podAnnotations": map[string]interface{}{
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
 			"checksum/secret-cloudprovider":                                    checksums[v1beta1constants.SecretNameCloudProvider],
@@ -673,6 +674,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	values := map[string]any{
+		"imagePullPolicy":   helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
 		"apiserverIPs":      apiserverIPs,
 		"nodeCIDR":          nodeCIDR,
@@ -1000,6 +1002,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 // getCCMChartValues collects and returns the CCM chart values.
 func getCCMChartValues(
 	ctx context.Context,
+	sshSecret *corev1.Secret,
 	cpConfig *apismetal.ControlPlaneConfig,
 	infrastructureConfig *apismetal.InfrastructureConfig,
 	infrastructure *extensionsv1alpha1.Infrastructure,
@@ -1091,6 +1094,7 @@ func getCCMChartValues(
 			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
 			"defaultExternalNetwork": defaultExternalNetwork,
 			"additionalNetworks":     strings.Join(infrastructureConfig.Firewall.Networks, ","),
+			"sshPublicKey":           string(sshSecret.Data["id_rsa.pub"]),
 			"metal": map[string]interface{}{
 				"endpoint": mcp.Endpoint,
 			},

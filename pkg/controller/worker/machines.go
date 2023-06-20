@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"path/filepath"
 
-	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
-	"github.com/metal-stack/gardener-extension-provider-metal/charts"
-	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
-
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
-
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/charts"
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+
+	"github.com/metal-stack/metal-lib/pkg/tag"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -87,9 +87,9 @@ func (w *workerDelegate) generateMachineConfig() error {
 		})
 
 		var (
-			metalClusterIDTag      = fmt.Sprintf("%s=%s", metaltag.ClusterID, w.cluster.Shoot.GetUID())
-			metalClusterNameTag    = fmt.Sprintf("%s=%s", metaltag.ClusterName, w.worker.Namespace)
-			metalClusterProjectTag = fmt.Sprintf("%s=%s", metaltag.ClusterProject, w.additionalData.infrastructureConfig.ProjectID)
+			metalClusterIDTag      = fmt.Sprintf("%s=%s", tag.ClusterID, w.cluster.Shoot.GetUID())
+			metalClusterNameTag    = fmt.Sprintf("%s=%s", tag.ClusterName, w.worker.Namespace)
+			metalClusterProjectTag = fmt.Sprintf("%s=%s", tag.ClusterProject, w.additionalData.infrastructureConfig.ProjectID)
 
 			kubernetesClusterTag        = fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace)
 			kubernetesRoleTag           = "kubernetes.io/role=node"

@@ -44,7 +44,12 @@ type ControllerConfiguration struct {
 	// Storage is the configuration for storage.
 	Storage StorageConfiguration `json:"storage,omitempty"`
 
+	// ImagePullPolicy defines the pull policy for the components deployed through the control plane controller.
+	// Defaults to IfNotPresent if empty or unknown.
+	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
+
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
+	// +optional
 	ImagePullSecret *ImagePullSecret `json:"imagePullSecret,omitempty"`
 
 	// EgressDestinations is used when the RestrictEgress control plane feature gate is enabled

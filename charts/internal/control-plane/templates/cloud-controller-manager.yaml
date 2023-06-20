@@ -56,7 +56,7 @@ spec:
       containers:
       - name: cloud-controller-manager
         image: {{ index .Values.images "metalccm" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         command:
         - ./metal-cloud-controller-manager
         - --cluster-cidr={{ .Values.cloudControllerManager.podNetwork }}
@@ -96,6 +96,8 @@ spec:
             value: {{ .Values.cloudControllerManager.defaultExternalNetwork }}
           - name: METAL_ADDITIONAL_NETWORKS
             value: {{ .Values.cloudControllerManager.additionalNetworks }}
+          - name: METAL_SSH_PUBLICKEY
+            value: {{ .Values.cloudControllerManager.sshPublicKey | quote }}
         livenessProbe:
           httpGet:
             path: /healthz

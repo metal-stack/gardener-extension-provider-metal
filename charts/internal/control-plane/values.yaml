@@ -8,6 +8,9 @@ images:
   duros-controller: image-repository:image-tag
   firewall-controller-manager: image-repository:image-tag
 
+imagePullSecret:
+imagePullPolicy: IfNotPresent
+
 firewallControllerManager:
   replicas: 1
   clusterID: cluster-id
@@ -34,6 +37,7 @@ cloudControllerManager:
   clusterID: cluster-id
   defaultExternalNetwork: external-network-id
   additionalNetworks: internet,mpls
+  sshPublicKey: publickey
   metal:
     endpoint: api-url
   resources:
@@ -62,7 +66,5 @@ duros:
     apiCA:
     apiKey:
     apiCert:
-
-imagePullSecret:
 
 genericTokenKubeconfigSecretName: generic-token-kubeconfig

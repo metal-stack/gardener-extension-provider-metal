@@ -24,11 +24,11 @@ import (
 type networkDeleter struct {
 	ctx                  context.Context
 	logger               logr.Logger
+	cluster              *extensionscontroller.Cluster
 	infrastructure       *extensionsv1alpha1.Infrastructure
 	infrastructureConfig *metalapi.InfrastructureConfig
 	mclient              metalgo.Client
 	clusterID            string
-	cluster              *extensionscontroller.Cluster
 }
 
 func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
@@ -55,11 +55,11 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 	deleter := &networkDeleter{
 		ctx:                  ctx,
 		logger:               a.logger,
+		cluster:              cluster,
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
 		mclient:              mclient,
 		clusterID:            string(cluster.Shoot.GetUID()),
-		cluster:              cluster,
 	}
 
 	err = a.releaseNetworkResources(deleter)
@@ -126,6 +126,8 @@ func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 				return err
 			}
 		}
+	} else {
+		a.logger.Error(err, "unable to cleanup private networks as the node cidr is not defined")
 	}
 
 	return nil

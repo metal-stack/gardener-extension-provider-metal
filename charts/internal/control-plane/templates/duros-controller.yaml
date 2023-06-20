@@ -107,7 +107,7 @@ spec:
           - -api-key=/duros/api-key
 {{- end }}
         image: {{ index .Values.images "duros-controller" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         resources:
           limits:
             cpu: 400m

@@ -12,6 +12,8 @@ images:
     node-init: image-repository:image-tag
     kubectl: image-repository:image-tag
 
+imagePullPolicy: IfNotPresent
+
 firewallSpec:
     interval: 10s
     dryrun: false
