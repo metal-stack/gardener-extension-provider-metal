@@ -8,6 +8,7 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +44,12 @@ func (a *actuator) firewallRestore(ctx context.Context, worker *extensionsv1alph
 
 	a.logger.Info("restoring firewalls deployment")
 
-	err = a.ensureFirewallDeployment(ctx, worker, cluster)
+	sshSecret, err := helper.GetLatestSSHSecret(ctx, a.client, worker.Namespace)
+	if err != nil {
+		return fmt.Errorf("could not find current ssh secret: %w", err)
+	}
+
+	err = a.ensureFirewallDeployment(ctx, worker, cluster, string(sshSecret.Data["id_rsa.pub"]))
 	if err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -41,7 +42,12 @@ func (a *actuator) firewallReconcile(ctx context.Context, worker *extensionsv1al
 		return err
 	}
 
-	err = a.ensureFirewallDeployment(ctx, worker, cluster)
+	sshSecret, err := helper.GetLatestSSHSecret(ctx, a.client, worker.Namespace)
+	if err != nil {
+		return fmt.Errorf("could not find current ssh secret: %w", err)
+	}
+
+	err = a.ensureFirewallDeployment(ctx, worker, cluster, string(sshSecret.Data["id_rsa.pub"]))
 	if err != nil {
 		return err
 	}
@@ -49,7 +55,7 @@ func (a *actuator) firewallReconcile(ctx context.Context, worker *extensionsv1al
 	return nil
 }
 
-func (a *actuator) ensureFirewallDeployment(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) ensureFirewallDeployment(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster, sshKey string) error {
 	var (
 		clusterID = string(cluster.Shoot.GetUID())
 		namespace = cluster.ObjectMeta.Name
@@ -112,6 +118,7 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, worker *extensi
 		deploy.Spec.Template.Spec.NftablesExporterVersion = d.mcp.NftablesExporter.Version
 		deploy.Spec.Template.Spec.NftablesExporterURL = d.mcp.NftablesExporter.URL
 		deploy.Spec.Template.Spec.LogAcceptedConnections = d.infrastructureConfig.Firewall.LogAcceptedConnections
+		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
 
 		return nil
 	})
