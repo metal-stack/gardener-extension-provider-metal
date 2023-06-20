@@ -57,6 +57,11 @@ func (a *actuator) firewallReconcile(ctx context.Context, worker *extensionsv1al
 		return err
 	}
 
+	err = a.updateState(ctx, d.infrastructure)
+	if err != nil {
+		return fmt.Errorf("unable to update firewall state: %w", err)
+	}
+
 	return nil
 }
 

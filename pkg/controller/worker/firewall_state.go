@@ -32,7 +32,7 @@ type SeedAccessState struct {
 	ServiceAccountSecrets []string `json:"serviceAccountSecrets"`
 }
 
-func updateState(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure) error {
+func (a *actuator) updateState(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure) error {
 	patch := client.MergeFrom(infrastructure.DeepCopy())
 
 	var (
@@ -43,7 +43,7 @@ func updateState(ctx context.Context, c client.Client, infrastructure *extension
 		firewalls  = &fcmv2.FirewallList{}
 	)
 
-	err := c.List(ctx, firewalls, client.InNamespace(infrastructure.Namespace))
+	err := a.client.List(ctx, firewalls, client.InNamespace(infrastructure.Namespace))
 	if err != nil {
 		return fmt.Errorf("unable to list firewalls: %w", err)
 	}
@@ -63,7 +63,7 @@ func updateState(ctx context.Context, c client.Client, infrastructure *extension
 		infraState.Firewalls = append(infraState.Firewalls, string(raw))
 	}
 
-	err = c.List(ctx, fwdeploys, client.InNamespace(infrastructure.Namespace))
+	err = a.client.List(ctx, fwdeploys, client.InNamespace(infrastructure.Namespace))
 	if err != nil {
 		return fmt.Errorf("unable to list firewall deployments: %w", err)
 	}
@@ -77,7 +77,7 @@ func updateState(ctx context.Context, c client.Client, infrastructure *extension
 			},
 		}
 
-		err := c.Get(ctx, client.ObjectKeyFromObject(sa), sa)
+		err := a.client.Get(ctx, client.ObjectKeyFromObject(sa), sa)
 		if err != nil {
 			continue
 		}
@@ -93,7 +93,7 @@ func updateState(ctx context.Context, c client.Client, infrastructure *extension
 				},
 			}
 
-			err = c.Get(ctx, client.ObjectKeyFromObject(saSecret), saSecret)
+			err = a.client.Get(ctx, client.ObjectKeyFromObject(saSecret), saSecret)
 			if err != nil {
 				return fmt.Errorf("error getting service account secret: %w", err)
 			}
@@ -128,7 +128,7 @@ func updateState(ctx context.Context, c client.Client, infrastructure *extension
 
 	infrastructure.Status.State = &runtime.RawExtension{Raw: infraStateBytes}
 
-	return c.Status().Patch(ctx, infrastructure, patch)
+	return a.client.Status().Patch(ctx, infrastructure, patch)
 }
 
 func (a *actuator) restoreState(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure) error {
