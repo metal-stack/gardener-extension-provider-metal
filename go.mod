@@ -180,10 +180,10 @@ replace (
 	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.24.2
 	k8s.io/code-generator => k8s.io/code-generator v0.24.2
 	k8s.io/component-base => k8s.io/component-base v0.24.2
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.24.2
 
 	// for some reason, newer gengo versions will fail with "hit an unsupported type"
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.24.2
 
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.12.1
 )
