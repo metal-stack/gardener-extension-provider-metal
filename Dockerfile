@@ -6,5 +6,6 @@ RUN make install
 
 FROM alpine:3.18
 WORKDIR /
+COPY charts /charts
 COPY --from=builder /go/bin/gardener-extension-metal-hyper /gardener-extension-metal-hyper
 CMD ["/gardener-extension-metal-hyper"]
