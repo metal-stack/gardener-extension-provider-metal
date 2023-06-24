@@ -351,7 +351,3 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 
 	return nil
 }
-
-func clusterTag(clusterID string) string {
-	return fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
-}
