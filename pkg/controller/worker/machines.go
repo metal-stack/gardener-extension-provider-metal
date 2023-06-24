@@ -4,19 +4,13 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"strconv"
 
-	"github.com/Masterminds/semver/v3"
-	metalgo "github.com/metal-stack/metal-go"
-	"github.com/metal-stack/metal-go/api/client/firewall"
-	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
-	"github.com/gardener/gardener/extensions/pkg/util"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
@@ -36,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
-	v2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 )
@@ -157,11 +150,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			return fmt.Errorf("could not find current ssh secret: %w", err)
 		}
 
-		err = w.migrateFirewall(ctx, metalControlPlane, infrastructureConfig, w.cluster, mclient, *privateNetwork.ID)
-		if err != nil {
-			return err
-		}
-
 		err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, *privateNetwork.ID, string(sshSecret.Data["id_rsa.pub"]))
 		if err != nil {
 			return err
@@ -264,229 +252,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 	w.machineDeployments = machineDeployments
 	w.machineClasses = machineClasses
-
-	return nil
-}
-
-// migrateFirewall can be removed along with the deployment of the old firewall resource after all firewalls are running firewall-controller >= v0.2.0
-func (w *workerDelegate) migrateFirewall(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient metalgo.Client, privateNetworkID string) error {
-	err := w.ensureMigrationFirewall(ctx, metalControlPlane, infrastructureConfig, cluster, mclient, privateNetworkID)
-	if err != nil {
-		return err
-	}
-
-	return w.toggleAnnotation(ctx, cluster)
-}
-
-func (w *workerDelegate) ensureMigrationFirewall(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, mclient metalgo.Client, privateNetworkID string) error {
-	var (
-		clusterID = string(cluster.Shoot.GetUID())
-		projectID = infrastructureConfig.ProjectID
-		namespace = cluster.ObjectMeta.Name
-	)
-
-	resp, err := mclient.Firewall().FindFirewalls(firewall.NewFindFirewallsParams().WithBody(&models.V1FirewallFindRequest{
-		AllocationProject: projectID,
-		Tags:              []string{clusterTag(clusterID)},
-	}).WithContext(ctx), nil)
-	if err != nil {
-		return fmt.Errorf("error finding firewall: %w", err)
-	}
-
-	var toMigrate []*models.V1FirewallResponse
-
-	for _, fw := range resp.Payload {
-		tm := tag.NewTagMap(fw.Tags)
-
-		if value, _ := tm.Value(fcmv2.FirewallControllerManagedByAnnotation); value == v2.FirewallControllerManager {
-			// firewall is already owned by the firewall-cotroller-manager, does not need migration
-			continue
-		}
-
-		toMigrate = append(toMigrate, fw)
-	}
-
-	if len(toMigrate) == 0 {
-		w.logger.Info("no firewalls to be migrated to firewall-controller-manager")
-		return nil
-	}
-
-	rateLimit := func(limits []apismetal.RateLimit) []fcmv2.RateLimit {
-		var result []fcmv2.RateLimit
-		for _, l := range limits {
-			result = append(result, fcmv2.RateLimit{
-				NetworkID: l.NetworkID,
-				Rate:      l.RateLimit,
-			})
-		}
-		return result
-	}
-
-	egressRules := func(egress []apismetal.EgressRule) []fcmv2.EgressRuleSNAT {
-		var result []fcmv2.EgressRuleSNAT
-		for _, rule := range egress {
-			rule := rule
-			result = append(result, fcmv2.EgressRuleSNAT{
-				NetworkID: rule.NetworkID,
-				IPs:       rule.IPs,
-			})
-		}
-		return result
-	}
-
-	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
-	if err != nil {
-		return err
-	}
-
-	for _, fw := range toMigrate {
-		fw := fw
-
-		f := &fcmv2.Firewall{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      *fw.Allocation.Name,
-				Namespace: namespace,
-			},
-		}
-
-		_, err = controllerutil.CreateOrUpdate(ctx, w.client, f, func() error {
-			if f.Labels == nil {
-				f.Labels = map[string]string{}
-			}
-			f.Labels[tag.ClusterID] = clusterID
-
-			if v, err := semver.NewVersion(fwcv.Version); err == nil && v.LessThan(semver.MustParse("v2.0.0")) {
-				f.Annotations = map[string]string{
-					fcmv2.FirewallNoControllerConnectionAnnotation: "true",
-				}
-			}
-			f.Spec = fcmv2.FirewallSpec{
-				Size:                    *fw.Size.ID,
-				Image:                   *fw.Allocation.Image.ID,
-				Partition:               *fw.Partition.ID,
-				Project:                 *fw.Allocation.Project,
-				Networks:                append(infrastructureConfig.Firewall.Networks, privateNetworkID),
-				Userdata:                fw.Allocation.UserData,
-				SSHPublicKeys:           fw.Allocation.SSHPubKeys,
-				RateLimits:              rateLimit(infrastructureConfig.Firewall.RateLimits),
-				InternalPrefixes:        w.controllerConfig.FirewallInternalPrefixes,
-				EgressRules:             egressRules(infrastructureConfig.Firewall.EgressRules),
-				Interval:                "10s",
-				DryRun:                  false,
-				Ipv4RuleFile:            "",
-				ControllerVersion:       fwcv.Version,
-				ControllerURL:           fwcv.URL,
-				NftablesExporterVersion: metalControlPlane.NftablesExporter.Version,
-				NftablesExporterURL:     metalControlPlane.NftablesExporter.URL,
-				LogAcceptedConnections:  infrastructureConfig.Firewall.LogAcceptedConnections,
-				DNSServerAddress:        "",
-				DNSPort:                 nil,
-			}
-			return nil
-		})
-		if err != nil {
-			return fmt.Errorf("error creating firewall resource for firewall migration: %w", err)
-		}
-
-		w.logger.Info("created firewall migration", "id", fw.ID, "cluster-id", clusterID)
-
-	}
-
-	return nil
-}
-
-// toggleAnnotation removes the no-controller-connection annotation on the firewall
-// when the firewall-controller has connected to the firewall which will happen as soon as
-// the firewall-controller was updated to version >= 2.x.
-//
-// It adds the annotation when it's missing on a firewall-controller specified for a
-// version < 2.x.
-func (w *workerDelegate) toggleAnnotation(ctx context.Context, cluster *extensionscontroller.Cluster) error {
-	var (
-		namespace = cluster.ObjectMeta.Name
-	)
-
-	firewalls := &v2.FirewallList{}
-	err := w.client.List(ctx, firewalls, &client.ListOptions{Namespace: namespace})
-	if err != nil {
-		return fmt.Errorf("error listing firewall resources: %w", err)
-	}
-
-	for _, fw := range firewalls.Items {
-		fw := fw
-		value, ok := fw.Annotations[v2.FirewallNoControllerConnectionAnnotation]
-
-		if v, err := semver.NewVersion(fw.Spec.ControllerVersion); err == nil && v.LessThan(semver.MustParse("v2.0.0")) {
-			if ok {
-				continue
-			}
-
-			_, err = controllerutil.CreateOrUpdate(ctx, w.client, &fw, func() error {
-				if fw.Annotations == nil {
-					fw.Annotations = map[string]string{}
-				}
-				fw.Annotations[fcmv2.FirewallNoControllerConnectionAnnotation] = "true"
-
-				return nil
-			})
-
-			if err != nil {
-				return fmt.Errorf("unable to add no-controller-connection annotation on firewall %q: %w", fw.Name, err)
-			}
-
-			continue
-		}
-
-		if !ok {
-			continue
-		}
-
-		active, err := strconv.ParseBool(value)
-		if err != nil {
-			return fmt.Errorf("unable to parse no-controller-connection annotation on firewall %q: %w", fw.Name, err)
-		}
-
-		if !active {
-			continue
-		}
-
-		shootConfig, _, err := util.NewClientForShoot(ctx, w.client, cluster.ObjectMeta.Name, client.Options{
-			Scheme: w.scheme,
-		})
-		if err != nil {
-			return fmt.Errorf("could not create shoot client config: %w", err)
-		}
-
-		shootClient, err := client.New(shootConfig, client.Options{Scheme: w.scheme})
-		if err != nil {
-			return fmt.Errorf("could not create shoot client: %w", err)
-		}
-
-		mon := &v2.FirewallMonitor{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fw.Name,
-				Namespace: v2.FirewallShootNamespace,
-			},
-		}
-
-		err = shootClient.Get(ctx, client.ObjectKeyFromObject(mon), mon)
-		if err != nil {
-			return fmt.Errorf("could not get firewall monitor for firewall %q: %w", fw.Name, err)
-		}
-
-		if mon.ControllerStatus == nil {
-			continue
-		}
-
-		delete(fw.Annotations, v2.FirewallNoControllerConnectionAnnotation)
-
-		err = w.client.Update(ctx, &fw)
-		if err != nil {
-			return fmt.Errorf("unable to toggle no-controller-connection annotation on firewall %q: %w", fw.Name, err)
-		}
-
-		w.logger.Info("toggled no-controller-connection annotation on firewall because controller has connected", "firewall-name", fw.Name)
-	}
 
 	return nil
 }

@@ -192,10 +192,6 @@ var cpShootChart = &chart.Chart{
 		{Type: &admissionregistrationv1.ValidatingWebhookConfiguration{}, Name: "firewall-controller-manager-namespace"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-firewall-controller-manager-webhook"},
 
-		// firewall policy controller TODO can be removed in a future version
-		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
-		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-policy-controller"},
-
 		// droptailer
 		{Type: &appsv1.Deployment{}, Name: "droptailer"},
 
