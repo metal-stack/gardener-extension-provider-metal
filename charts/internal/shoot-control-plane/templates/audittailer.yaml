@@ -23,6 +23,8 @@ kind: Secret
 metadata:
   name: audittailer-client
   namespace: audit
+  labels:
+    name: audittailer-client
 type: Opaque
 data:
   ca.crt: {{ .Values.audittailer.client.ca }}
