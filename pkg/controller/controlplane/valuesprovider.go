@@ -636,7 +636,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient, secretsReader)
+	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient, secretsReader, checksums)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -646,7 +646,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client, secretsReader secretsmanager.Reader) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
@@ -732,9 +732,13 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	droptailerServer, serverOK := secretsReader.Get(metal.DroptailerServerSecretName)
-	droptailerClient, clientOK := secretsReader.Get(metal.DroptailerServerSecretName)
+	droptailerClient, clientOK := secretsReader.Get(metal.DroptailerClientSecretName)
 	if serverOK && clientOK {
 		values["droptailer"] = map[string]any{
+			"podAnnotations": map[string]interface{}{
+				"checksum/secret-droptailer-server": checksums[metal.DroptailerServerSecretName],
+				"checksum/secret-droptailer-client": checksums[metal.DroptailerClientSecretName],
+			},
 			"server": map[string]any{
 				"ca":   droptailerServer.Data["ca.crt"],
 				"cert": droptailerServer.Data["tls.crt"],
@@ -752,6 +756,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	audittailerClient, clientOK := secretsReader.Get(metal.AudittailerClientSecretName)
 	if serverOK && clientOK {
 		values["audittailer"] = map[string]any{
+			"podAnnotations": map[string]interface{}{
+				"checksum/secret-audittailer-server": checksums[metal.AudittailerServerSecretName],
+				"checksum/secret-audittailer-client": checksums[metal.AudittailerClientSecretName],
+			},
 			"server": map[string]any{
 				"ca":   audittailerServer.Data["ca.crt"],
 				"cert": audittailerServer.Data["tls.crt"],

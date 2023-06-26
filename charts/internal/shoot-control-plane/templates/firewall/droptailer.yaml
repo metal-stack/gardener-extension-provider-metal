@@ -50,6 +50,10 @@ spec:
         k8s-app: droptailer
         app: droptailer
         networking.gardener.cloud/from-prometheus: allowed
+{{- if .Values.droptailer.podAnnotations }}
+      annotations:
+{{ toYaml .Values.droptailer.podAnnotations | indent 8 }}
+{{- end }}
     spec:
       containers:
       - image: {{ index .Values.images "droptailer" }}

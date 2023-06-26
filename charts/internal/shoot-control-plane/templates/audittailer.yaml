@@ -47,6 +47,10 @@ spec:
       labels:
         k8s-app: audittailer
         app: audittailer
+{{- if .Values.audittailer.podAnnotations }}
+      annotations:
+{{ toYaml .Values.audittailer.podAnnotations | indent 8 }}
+{{- end }}
     spec:
       securityContext:
         runAsUser: 65534
