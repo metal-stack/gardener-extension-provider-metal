@@ -15,6 +15,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: droptailer-server
+  namespace: firewall
 type: kubernetes.io/tls
 immutable: true
 data:
@@ -26,6 +27,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: droptailer-client
+  namespace: firewall
 type: kubernetes.io/tls
 immutable: true
 data:
