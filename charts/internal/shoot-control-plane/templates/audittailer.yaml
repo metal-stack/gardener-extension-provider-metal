@@ -12,8 +12,7 @@ kind: Secret
 metadata:
   name: audittailer-server
   namespace: audit
-type: kubernetes.io/tls
-immutable: true
+type: Opaque
 data:
   ca.crt: {{ .Values.audittailer.server.ca | b64enc }}
   tls.crt: {{ .Values.audittailer.server.cert | b64enc }}
@@ -24,8 +23,7 @@ kind: Secret
 metadata:
   name: audittailer-client
   namespace: audit
-type: kubernetes.io/tls
-immutable: true
+type: Opaque
 data:
   ca.crt: {{ .Values.audittailer.client.ca | b64enc }}
   tls.crt: {{ .Values.audittailer.client.cert | b64enc }}

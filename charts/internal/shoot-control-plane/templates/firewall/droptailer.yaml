@@ -16,8 +16,7 @@ kind: Secret
 metadata:
   name: droptailer-server
   namespace: firewall
-type: kubernetes.io/tls
-immutable: true
+type: Opaque
 data:
   ca.crt: {{ .Values.audittailer.server.ca | b64enc }}
   tls.crt: {{ .Values.audittailer.server.cert | b64enc }}
@@ -28,8 +27,7 @@ kind: Secret
 metadata:
   name: droptailer-client
   namespace: firewall
-type: kubernetes.io/tls
-immutable: true
+type: Opaque
 data:
   ca.crt: {{ .Values.audittailer.server.ca | b64enc }}
   tls.crt: {{ .Values.audittailer.server.cert | b64enc }}
