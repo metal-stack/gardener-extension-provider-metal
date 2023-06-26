@@ -14,9 +14,9 @@ metadata:
   namespace: audit
 type: Opaque
 data:
-  ca.crt: {{ .Values.audittailer.server.ca | b64enc }}
-  tls.crt: {{ .Values.audittailer.server.cert | b64enc }}
-  tls.key: {{ .Values.audittailer.server.key | b64enc }}
+  ca.crt: {{ .Values.audittailer.server.ca }}
+  tls.crt: {{ .Values.audittailer.server.cert }}
+  tls.key: {{ .Values.audittailer.server.key }}
 ---
 apiVersion: v1
 kind: Secret
@@ -25,9 +25,9 @@ metadata:
   namespace: audit
 type: Opaque
 data:
-  ca.crt: {{ .Values.audittailer.client.ca | b64enc }}
-  tls.crt: {{ .Values.audittailer.client.cert | b64enc }}
-  tls.key: {{ .Values.audittailer.client.key | b64enc }}
+  ca.crt: {{ .Values.audittailer.client.ca }}
+  tls.crt: {{ .Values.audittailer.client.cert }}
+  tls.key: {{ .Values.audittailer.client.key }}
 ---
 apiVersion: apps/v1
 kind: Deployment
