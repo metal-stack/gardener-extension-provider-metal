@@ -71,6 +71,8 @@ import (
 
 const (
 	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
+	droptailerCAName   = "ca-" + metal.Name + "-droptailer"
+	auditTailerCAName  = "ca-" + metal.Name + "-audittailer"
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
@@ -104,6 +106,68 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 			// use current CA for signing server cert to prevent mismatches when dropping the old CA from the webhook
 			// config in phase Completing
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane, secretsmanager.UseCurrentCA)},
+		},
+		// droptailer
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:       droptailerCAName,
+				CommonName: droptailerCAName,
+				CertType:   secrets.CACert,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
+		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:                        metal.DroptailerClientSecretName,
+				CommonName:                  "droptailer",
+				DNSNames:                    []string{"droptailer"},
+				Organization:                []string{"droptailer-client"},
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: false,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
+		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:                        metal.DroptailerServerSecretName,
+				CommonName:                  "droptailer",
+				DNSNames:                    []string{"droptailer"},
+				Organization:                []string{"droptailer-server"},
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: false,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
+		},
+		// audit tailer
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:       auditTailerCAName,
+				CommonName: auditTailerCAName,
+				CertType:   secrets.CACert,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
+		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:                        metal.AudittailerClientSecretName,
+				CommonName:                  "audittailer",
+				DNSNames:                    []string{"audittailer"},
+				Organization:                []string{"audittailer-client"},
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: false,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
+		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:                        metal.AudittailerServerSecretName,
+				CommonName:                  "audittailer",
+				DNSNames:                    []string{"audittailer"},
+				Organization:                []string{"audittailer-server"},
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: false,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
 		},
 	}
 }
@@ -572,17 +636,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	if !extensionscontroller.IsHibernated(cluster) {
-		if err := vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, vp.audittailerSecretConfigs); err != nil {
-			vp.logger.Error(err, "error deploying audittailer certs")
-		}
-
-		if err := vp.deploySecretsToShoot(ctx, cluster, metal.DroptailerNamespace, vp.droptailerSecretConfigs); err != nil {
-			vp.logger.Error(err, "error deploying droptailer certs")
-		}
-	}
-
-	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient)
+	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient, secretsReader)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -592,7 +646,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client, secretsReader secretsmanager.Reader) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
@@ -662,17 +716,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		})
 	}
 
-	droptailerServerSecretName := metal.DroptailerClientSecretName
-	droptailerServerSecret, err := vp.getSecretFromShoot(ctx, cluster, metal.DroptailerNamespace, metal.DroptailerServerSecretName)
-	if err == nil {
-		droptailerServerSecretName = droptailerServerSecret.Name
-	}
-	audittailerServerSecretName := metal.AudittailerClientSecretName
-	audittailerServerSecret, err := vp.getSecretFromShoot(ctx, cluster, metal.AudittailerNamespace, metal.AudittailerServerSecretName)
-	if err == nil {
-		audittailerServerSecretName = audittailerServerSecret.Name
-	}
-
 	values := map[string]any{
 		"imagePullPolicy":   helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
 		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
@@ -686,12 +729,40 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
 			"destinations":           egressDestinations,
 		},
-		"droptailer": map[string]any{
-			"secretName": droptailerServerSecretName,
-		},
-		"audittailer": map[string]any{
-			"secretName": audittailerServerSecretName,
-		},
+	}
+
+	droptailerServer, serverOK := secretsReader.Get(metal.DroptailerServerSecretName)
+	droptailerClient, clientOK := secretsReader.Get(metal.DroptailerServerSecretName)
+	if serverOK && clientOK {
+		values["droptailer"] = map[string]any{
+			"server": map[string]any{
+				"ca":   droptailerServer.Data["ca.crt"],
+				"cert": droptailerServer.Data["tls.crt"],
+				"key":  droptailerServer.Data["tls.key"],
+			},
+			"client": map[string]any{
+				"ca":   droptailerClient.Data["ca.crt"],
+				"cert": droptailerClient.Data["tls.crt"],
+				"key":  droptailerClient.Data["tls.key"],
+			},
+		}
+	}
+
+	audittailerServer, serverOK := secretsReader.Get(metal.AudittailerServerSecretName)
+	audittailerClient, clientOK := secretsReader.Get(metal.AudittailerClientSecretName)
+	if vp.controllerConfig.ClusterAudit.Enabled && serverOK && clientOK {
+		values["audittailer"] = map[string]any{
+			"server": map[string]any{
+				"ca":   audittailerServer.Data["ca.crt"],
+				"cert": audittailerServer.Data["tls.crt"],
+				"key":  audittailerServer.Data["tls.key"],
+			},
+			"client": map[string]any{
+				"ca":   audittailerClient.Data["ca.crt"],
+				"cert": audittailerClient.Data["tls.crt"],
+				"key":  audittailerClient.Data["tls.key"],
+			},
+		}
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
@@ -836,132 +907,6 @@ func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace stri
 
 	spec.Signature = signature
 	return nil
-}
-
-func (vp *valuesProvider) audittailerSecretConfigs() []extensionssecretsmanager.SecretConfigWithOptions {
-	if !vp.controllerConfig.ClusterAudit.Enabled {
-		return nil
-	}
-
-	const auditTailerCAName = "ca-provider-metal-audittailer"
-	return []extensionssecretsmanager.SecretConfigWithOptions{
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:       auditTailerCAName,
-				CommonName: auditTailerCAName,
-				CertType:   secrets.CACert,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.AudittailerClientSecretName,
-				CommonName:                  "audittailer",
-				DNSNames:                    []string{"audittailer"},
-				Organization:                []string{"audittailer-client"},
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.AudittailerServerSecretName,
-				CommonName:                  "audittailer",
-				DNSNames:                    []string{"audittailer"},
-				Organization:                []string{"audittailer-server"},
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
-		},
-	}
-}
-
-func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.SecretConfigWithOptions {
-
-	const droptailerCAName = "ca-provider-metal-droptailer"
-	return []extensionssecretsmanager.SecretConfigWithOptions{
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:       droptailerCAName,
-				CommonName: droptailerCAName,
-				CertType:   secrets.CACert,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.DroptailerClientSecretName,
-				CommonName:                  "droptailer",
-				DNSNames:                    []string{"droptailer"},
-				Organization:                []string{"droptailer-client"},
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.DroptailerServerSecretName,
-				CommonName:                  "droptailer",
-				DNSNames:                    []string{"droptailer"},
-				Organization:                []string{"droptailer-server"},
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
-		},
-	}
-}
-
-func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, secretConfigsFn func() []extensionssecretsmanager.SecretConfigWithOptions) error {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{})
-	if err != nil {
-		return fmt.Errorf("could not create shoot client %w", err)
-	}
-
-	c, err := client.New(shootConfig, client.Options{})
-	if err != nil {
-		return fmt.Errorf("could not create shoot kubernetes client %w", err)
-	}
-
-	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-		},
-	}
-	_, err = controllerutil.CreateOrUpdate(ctx, c, ns, func() error {
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("could not ensure namespace: %w", err)
-	}
-
-	manager, err := secretsmanager.New(ctx, vp.logger.WithName("shoot-secrets-manager"), secrets.Clock, c, namespace, metal.ManagerIdentity, secretsmanager.Config{
-		CASecretAutoRotation: false,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create secrets manager: %w", err)
-	}
-
-	_, err = extensionssecretsmanager.GenerateAllSecrets(ctx, manager, secretConfigsFn())
-
-	return err
-}
-
-func (vp *valuesProvider) getSecretFromShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, name string) (*corev1.Secret, error) {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{})
-	if err != nil {
-		return nil, fmt.Errorf("could not create shoot client %w", err)
-	}
-
-	c, err := client.New(shootConfig, client.Options{})
-	if err != nil {
-		return nil, fmt.Errorf("could not create shoot kubernetes client %w", err)
-	}
-
-	return helper.GetLatestSecret(ctx, c, namespace, name)
 }
 
 // getSecret returns the secret with the given namespace/secretName

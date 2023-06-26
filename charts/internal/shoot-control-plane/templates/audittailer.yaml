@@ -7,6 +7,28 @@ metadata:
     k8s-app: audittailer
   name: audit
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: audittailer-server
+type: kubernetes.io/tls
+immutable: true
+data:
+  ca.crt: {{ .Values.audittailer.server.ca | b64enc }}
+  tls.crt: {{ .Values.audittailer.server.cert | b64enc }}
+  tls.key: {{ .Values.audittailer.server.key | b64enc }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: audittailer-client
+type: kubernetes.io/tls
+immutable: true
+data:
+  ca.crt: {{ .Values.audittailer.server.ca | b64enc }}
+  tls.crt: {{ .Values.audittailer.server.cert | b64enc }}
+  tls.key: {{ .Values.audittailer.server.key | b64enc }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -63,7 +85,7 @@ spec:
           name: audittailer-config
       - name: fluentd-certs
         secret:
-          secretName: {{ .Values.audittailer.secretName }}
+          secretName: {{ .Values.audittailer.server.secretName }}
       - name: fluentbuffer
         emptyDir: {}
 ---

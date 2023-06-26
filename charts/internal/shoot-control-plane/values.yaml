@@ -40,7 +40,21 @@ restrictEgress:
       port: 443
 
 droptailer:
-  secretName: 'droptailer-server'
+  server:
+    ca: ""
+    cert: ""
+    key: ""
+  client:
+    ca: ""
+    cert: ""
+    key: ""
 
 audittailer:
-  secretName: 'audittailer-server'
+  server:
+    ca: ""
+    cert: ""
+    key: ""
+  client:
+    ca: ""
+    cert: ""
+    key: ""
