@@ -750,7 +750,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 
 	audittailerServer, serverOK := secretsReader.Get(metal.AudittailerServerSecretName)
 	audittailerClient, clientOK := secretsReader.Get(metal.AudittailerClientSecretName)
-	if vp.controllerConfig.ClusterAudit.Enabled && serverOK && clientOK {
+	if serverOK && clientOK {
 		values["audittailer"] = map[string]any{
 			"server": map[string]any{
 				"ca":   audittailerServer.Data["ca.crt"],
