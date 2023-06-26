@@ -29,9 +29,9 @@ metadata:
   namespace: firewall
 type: Opaque
 data:
-  ca.crt: {{ .Values.droptailer.server.ca }}
-  tls.crt: {{ .Values.droptailer.server.cert }}
-  tls.key: {{ .Values.droptailer.server.key }}
+  ca.crt: {{ .Values.droptailer.client.ca }}
+  tls.crt: {{ .Values.droptailer.client.cert }}
+  tls.key: {{ .Values.droptailer.client.key }}
 ---
 apiVersion: apps/v1
 kind: Deployment
