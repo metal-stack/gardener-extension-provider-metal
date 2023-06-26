@@ -25,9 +25,9 @@ metadata:
 type: kubernetes.io/tls
 immutable: true
 data:
-  ca.crt: {{ .Values.audittailer.server.ca | b64enc }}
-  tls.crt: {{ .Values.audittailer.server.cert | b64enc }}
-  tls.key: {{ .Values.audittailer.server.key | b64enc }}
+  ca.crt: {{ .Values.audittailer.client.ca | b64enc }}
+  tls.crt: {{ .Values.audittailer.client.cert | b64enc }}
+  tls.key: {{ .Values.audittailer.client.key | b64enc }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -85,7 +85,7 @@ spec:
           name: audittailer-config
       - name: fluentd-certs
         secret:
-          secretName: {{ .Values.audittailer.server.secretName }}
+          secretName: audittailer-server
       - name: fluentbuffer
         emptyDir: {}
 ---

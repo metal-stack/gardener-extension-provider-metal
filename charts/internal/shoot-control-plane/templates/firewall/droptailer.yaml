@@ -84,4 +84,4 @@ spec:
       volumes:
       - name: droptailer-server
         secret:
-          secretName: {{ .Values.droptailer.secretName }}
+          secretName: droptailer-server
