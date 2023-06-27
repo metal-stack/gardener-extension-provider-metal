@@ -9,9 +9,7 @@ import (
 
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,27 +24,18 @@ import (
 type InfrastructureState struct {
 	// Firewalls contains the running firewalls.
 	Firewalls []string `json:"firewalls"`
-
-	SeedAccess []SeedAccessState `json:"seedAccess"`
-}
-
-type SeedAccessState struct {
-	ServiceAccount        string   `json:"serviceAccount"`
-	ServiceAccountSecrets []string `json:"serviceAccountSecrets"`
 }
 
 func (a *actuator) updateState(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure) error {
 	patch := client.MergeFrom(infrastructure.DeepCopy())
 
 	var (
-		namespace = infrastructure.Namespace
-
+		namespace  = infrastructure.Namespace
 		infraState = &InfrastructureState{}
-		fwdeploys  = &fcmv2.FirewallDeploymentList{}
 		firewalls  = &fcmv2.FirewallList{}
 	)
 
-	err := a.client.List(ctx, firewalls, client.InNamespace(infrastructure.Namespace))
+	err := a.client.List(ctx, firewalls, client.InNamespace(namespace))
 	if err != nil {
 		return fmt.Errorf("unable to list firewalls: %w", err)
 	}
@@ -67,66 +56,6 @@ func (a *actuator) updateState(ctx context.Context, infrastructure *extensionsv1
 		infraState.Firewalls = append(infraState.Firewalls, string(raw))
 	}
 
-	err = a.client.List(ctx, fwdeploys, client.InNamespace(infrastructure.Namespace))
-	if err != nil {
-		return fmt.Errorf("unable to list firewall deployments: %w", err)
-	}
-
-	for _, fwdeploy := range fwdeploys.Items {
-		saName := fmt.Sprintf("firewall-controller-seed-access-%s", fwdeploy.Name) // TODO: name should be exposed by fcm
-		sa := &corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      saName,
-				Namespace: namespace,
-			},
-		}
-
-		err := a.client.Get(ctx, client.ObjectKeyFromObject(sa), sa)
-		if err != nil {
-			continue
-		}
-
-		secrets := []string{}
-
-		for _, ref := range sa.Secrets {
-
-			saSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ref.Name,
-					Namespace: namespace,
-				},
-			}
-
-			err = a.client.Get(ctx, client.ObjectKeyFromObject(saSecret), saSecret)
-			if err != nil {
-				return fmt.Errorf("error getting service account secret: %w", err)
-			}
-
-			saSecret.ResourceVersion = ""
-			saSecret.ManagedFields = nil
-
-			raw, err := yaml.Marshal(*saSecret)
-			if err != nil {
-				return err
-			}
-
-			secrets = append(secrets, string(raw))
-		}
-
-		sa.ResourceVersion = ""
-		sa.ManagedFields = nil
-
-		raw, err := yaml.Marshal(*sa)
-		if err != nil {
-			return err
-		}
-
-		infraState.SeedAccess = append(infraState.SeedAccess, SeedAccessState{
-			ServiceAccount:        string(raw),
-			ServiceAccountSecrets: secrets,
-		})
-	}
-
 	infraStateBytes, err := json.Marshal(infraState)
 	if err != nil {
 		return err
@@ -144,7 +73,7 @@ func (a *actuator) restoreState(ctx context.Context, infrastructure *extensionsv
 		return fmt.Errorf("unable to decode infrastructure status: %w", err)
 	}
 
-	a.logger.Info("restoring firewalls and service accounts", "firewalls", len(infraState.Firewalls), "service-accounts", len(infraState.SeedAccess))
+	a.logger.Info("restoring firewalls", "firewalls", len(infraState.Firewalls))
 
 	for _, raw := range infraState.Firewalls {
 		raw := raw
@@ -158,37 +87,6 @@ func (a *actuator) restoreState(ctx context.Context, infrastructure *extensionsv
 		err = a.client.Create(ctx, fw)
 		if err != nil && !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("unable restoring firewall resource: %w", err)
-		}
-	}
-
-	for _, seedAccess := range infraState.SeedAccess {
-
-		sa := &corev1.ServiceAccount{}
-		err := yaml.Unmarshal([]byte(seedAccess.ServiceAccount), sa)
-		if err != nil {
-			return err
-		}
-
-		err = a.client.Create(ctx, sa)
-		if err != nil && !apierrors.IsAlreadyExists(err) {
-			return fmt.Errorf("unable restoring service account: %w", err)
-		}
-
-		for _, raw := range seedAccess.ServiceAccountSecrets {
-			raw := raw
-
-			secret := &corev1.Secret{}
-			err := yaml.Unmarshal([]byte(raw), secret)
-			if err != nil {
-				return err
-			}
-
-			secret.Annotations["kubernetes.io/service-account.uid"] = string(sa.UID)
-
-			err = a.client.Create(ctx, secret)
-			if err != nil && !apierrors.IsAlreadyExists(err) {
-				return fmt.Errorf("unable restoring service account secret %q: %w", secret.Name, err)
-			}
 		}
 	}
 
