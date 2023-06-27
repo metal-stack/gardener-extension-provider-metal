@@ -113,21 +113,21 @@ func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 
 	nodeCIDR, err := helper.GetNodeCIDR(d.infrastructure, d.cluster)
 	if err != nil {
-		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, nodeCIDR)
+		return fmt.Errorf("unable to cleanup private networks as the node cidr is not defined: %w", err)
+	}
+
+	privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, nodeCIDR)
+	if err != nil {
+		d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", nodeCIDR)
+		return err
+	}
+
+	for _, pn := range privateNetworks {
+		_, err := d.mclient.Network().FreeNetwork(network.NewFreeNetworkParams().WithID(*pn.ID).WithContext(d.ctx), nil)
 		if err != nil {
-			d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", nodeCIDR)
+			d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID)
 			return err
 		}
-
-		for _, pn := range privateNetworks {
-			_, err := d.mclient.Network().FreeNetwork(network.NewFreeNetworkParams().WithID(*pn.ID).WithContext(d.ctx), nil)
-			if err != nil {
-				d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID)
-				return err
-			}
-		}
-	} else {
-		a.logger.Error(err, "unable to cleanup private networks as the node cidr is not defined")
 	}
 
 	return nil
