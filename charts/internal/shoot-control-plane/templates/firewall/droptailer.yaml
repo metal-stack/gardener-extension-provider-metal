@@ -54,14 +54,15 @@ spec:
         securityContext:
           runAsUser: 65534
           allowPrivilegeEscalation: false
-           runAsNonRoot: true
+            runAsNonRoot: true
 {{- if semverCompare ">= 1.19" .Values.kubernetesVersion }}
-           seccompProfile:
-             type: RuntimeDefault
+            seccompProfile:
+              type: RuntimeDefault
 {{- end }}
           capabilities:
             drop:
-            - ALL      restartPolicy: Always
+            - ALL
+      restartPolicy: Always
       automountServiceAccountToken: false
       volumes:
       - name: droptailer-server
