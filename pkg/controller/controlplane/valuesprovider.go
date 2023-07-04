@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/netip"
 	"net/url"
 	"os"
@@ -1286,15 +1285,10 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 		if err != nil {
 			return nil, err
 		}
-		host, _, err := net.SplitHostPort(u.Host)
-		if err != nil {
-			return nil, err
-		}
 
-		_, err = netip.ParseAddr(host)
+		_, err = netip.ParseAddr(u.Hostname())
 		if err == nil {
-			// Gardener mutating webhook which ensures that KUBERNETES_SERVICE_HOST is injected
-			// is started sometimes to late to do its job. Only solution is to start gepm again.
+			// If hostname is a parsable ipaddress we error out because we need a dnsname.
 			panic(fmt.Sprintf("seedApiUrl:%q is not a dns entry, exiting", seedApiURL))
 		}
 	}
