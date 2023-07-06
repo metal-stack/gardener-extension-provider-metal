@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1260,16 +1262,37 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 			Namespace: "garden",
 		},
 	}
+	isConfigMapConfigured := false
 	err := vp.Client().Get(ctx, client.ObjectKeyFromObject(cm), cm)
 	if err == nil {
 		url, ok := cm.Data["url"]
 		if ok {
 			seedApiURL = url
+			isConfigMapConfigured = true
 		}
 	}
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, err
 	}
+
+	// We generally expect to get a DNS name for the seed api url.
+	// This is alway true for gardener managed clusters, because the mutating webhook
+	// of the api-server-proxy sets the KUBERNETES_SERVICE_HOST env variable.
+	// But for Managed Seeds where the control plane resides at GKE, this is always a IP
+	// in this case we set the seedAPI URL in a configmap.
+	if !isConfigMapConfigured {
+		u, err := url.Parse(seedApiURL)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = netip.ParseAddr(u.Hostname())
+		if err == nil {
+			// If hostname is a parsable ipaddress we error out because we need a dnsname.
+			panic(fmt.Sprintf("seedApiUrl:%q is not a dns entry, exiting", seedApiURL))
+		}
+	}
+
 	serverSecret, found := secretsReader.Get(metal.FirewallControllerManagerDeploymentName)
 	if !found {
 		return nil, fmt.Errorf("secret %q not found", metal.FirewallControllerManagerDeploymentName)
