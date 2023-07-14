@@ -13,6 +13,7 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
 
+	extensionsconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
@@ -452,7 +453,7 @@ func (w *workerDelegate) toggleAnnotation(ctx context.Context, cluster *extensio
 
 		shootConfig, _, err := util.NewClientForShoot(ctx, w.client, cluster.ObjectMeta.Name, client.Options{
 			Scheme: w.scheme,
-		})
+		}, extensionsconfig.RESTOptions{})
 		if err != nil {
 			return fmt.Errorf("could not create shoot client config: %w", err)
 		}

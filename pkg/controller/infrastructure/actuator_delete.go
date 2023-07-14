@@ -31,7 +31,7 @@ type networkDeleter struct {
 	clusterID            string
 }
 
-func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
 	internalInfrastructureConfig, _, err := decodeInfrastructure(infrastructure, a.decoder)
 	if err != nil {
 		return err
