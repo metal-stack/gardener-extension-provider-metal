@@ -64,7 +64,7 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastruc
 	}
 
 	networkReconciler := &networkReconciler{
-		logger:               a.logger,
+		logger:               logger,
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
 		cluster:              cluster,
@@ -85,7 +85,7 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastruc
 	}
 
 	egressIPReconciler := &egressIPReconciler{
-		logger:               a.logger,
+		logger:               logger,
 		infrastructureConfig: internalInfrastructureConfig,
 		mclient:              mclient,
 		clusterID:            string(cluster.Shoot.GetUID()),

@@ -54,7 +54,7 @@ func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructur
 
 	deleter := &networkDeleter{
 		ctx:                  ctx,
-		logger:               a.logger,
+		logger:               logger,
 		cluster:              cluster,
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
@@ -76,7 +76,7 @@ func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructur
 func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, d.clusterID)
 	if err != nil {
-		a.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
+		d.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
 		return err
 	}
 

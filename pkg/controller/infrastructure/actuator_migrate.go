@@ -39,7 +39,7 @@ func (a *actuator) Migrate(ctx context.Context, logger logr.Logger, infrastructu
 		}
 
 		if controllerutil.ContainsFinalizer(secret, deleteFinalizerName) {
-			a.logger.Info("removing dangling finalizer from mcm secret", "secret", secret.Name)
+			logger.Info("removing dangling finalizer from mcm secret", "secret", secret.Name)
 
 			controllerutil.RemoveFinalizer(secret, deleteFinalizerName)
 
