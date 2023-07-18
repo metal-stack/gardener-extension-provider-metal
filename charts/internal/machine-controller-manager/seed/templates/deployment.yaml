@@ -52,8 +52,6 @@ spec:
         - --machine-safety-apiserver-statuscheck-timeout=30s
         - --machine-safety-apiserver-statuscheck-period=1m
         - --machine-safety-orphan-vms-period=30m
-        - --machine-pv-detach-timeout=3m
-        - --machine-pv-reattach-timeout=3m
         - --namespace={{ .Release.Namespace }}
         - --port={{ .Values.metricsPort2 }}
         - --v=3
