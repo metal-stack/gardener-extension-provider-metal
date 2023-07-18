@@ -31,7 +31,7 @@ type networkDeleter struct {
 	clusterID            string
 }
 
-func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
 	internalInfrastructureConfig, _, err := decodeInfrastructure(infrastructure, a.decoder)
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 
 	deleter := &networkDeleter{
 		ctx:                  ctx,
-		logger:               a.logger,
+		logger:               logger,
 		cluster:              cluster,
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
@@ -76,7 +76,7 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, d.clusterID)
 	if err != nil {
-		a.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
+		d.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
 		return err
 	}
 
