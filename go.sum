@@ -290,8 +290,8 @@ github.com/gardener/hvpa-controller v0.3.1/go.mod h1:rjsb3BPKJFMluudZ8/bhCCDQfFC
 github.com/gardener/hvpa-controller/api v0.5.0 h1:f4F3O7YUrenwh4S3TgPREPiB287JjjUiUL18OqPLyAA=
 github.com/gardener/hvpa-controller/api v0.5.0/go.mod h1:QQl3ELkCaki+8RhXl0FZMfvnm0WCGwGJlGmrxJj6lvM=
 github.com/gardener/machine-controller-manager v0.45.0/go.mod h1:+4j/6ab3jqbM6tM6FPtlajYgaJHM0xZ44ErOjCBlsP8=
-github.com/gardener/machine-controller-manager v0.49.3 h1:/ghxZVMij00SpeaORMZJlodosePWWByrIOr8fcp45sU=
-github.com/gardener/machine-controller-manager v0.49.3/go.mod h1:ypFf18+Y6mJpohfZrOJI+vq7NQ3Yn7Ke4ujW23u/6nM=
+github.com/gardener/machine-controller-manager v0.47.0 h1:TnDvdNxYgC7FXQAHv4AXGcHEe8x1m1NFrtGWWc8uj0U=
+github.com/gardener/machine-controller-manager v0.47.0/go.mod h1:U6nJVNKJlCYouXC5QUl83fRmgp+r55ZPNxSPv+XXU9A=
 github.com/getkin/kin-openapi v0.76.0/go.mod h1:660oXbgy5JFMKreazJaQTw7o+X00qeSyhcnluiMv+Xg=
 github.com/getsentry/raven-go v0.2.0/go.mod h1:KungGk8q33+aIAZUIVWZDr2OfAEBsO49PX4NzFV5kcQ=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
