@@ -11,7 +11,7 @@ require (
 	github.com/gardener/gardener v1.59.0
 	github.com/gardener/gardener-extension-networking-calico v1.9.1
 	github.com/gardener/gardener-extension-networking-cilium v1.18.0
-	github.com/gardener/machine-controller-manager v0.47.0
+	github.com/gardener/machine-controller-manager v0.49.3
 	github.com/go-logr/logr v1.2.4
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/golang/mock v1.6.0
@@ -150,7 +150,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	istio.io/api v0.0.0-20220512181135-e8ec1e1d89de // indirect
 	istio.io/client-go v1.14.0 // indirect
-	k8s.io/apiserver v0.25.0 // indirect
+	k8s.io/apiserver v0.26.2 // indirect
 	k8s.io/autoscaler/vertical-pod-autoscaler v0.12.0 // indirect
 	k8s.io/gengo v0.0.0-20220913193501-391367153a38 // indirect
 	k8s.io/helm v2.16.1+incompatible // indirect
