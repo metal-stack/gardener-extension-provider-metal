@@ -5,7 +5,7 @@ metadata:
     app: metallb
   name: metallb-system
 
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.Version }}
+{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -134,7 +134,7 @@ rules:
   verbs:
   - create
   - patch
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.Version }}
+{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
 - apiGroups:
   - policy
   resourceNames:
@@ -176,7 +176,7 @@ rules:
   verbs:
   - create
   - patch
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.Version }}
+{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
 - apiGroups:
   - policy
   resourceNames:
@@ -386,7 +386,7 @@ spec:
         operator: Exists
       - effect: NoExecute
         operator: Exists
-{{- if semverCompare ">= 1.17" .Capabilities.KubeVersion.Version }}
+{{- if semverCompare ">= 1.17" .Capabilities.KubeVersion.GitVersion }}
       priorityClassName: system-node-critical
 {{- end }}
 ---

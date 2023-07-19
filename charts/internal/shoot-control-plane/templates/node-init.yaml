@@ -5,7 +5,7 @@ metadata:
   name: node-init
   namespace: kube-system
 
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.Version }}
+{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -40,7 +40,7 @@ rules:
   - watch
   - list
   - get
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.Version }}
+{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
 - apiGroups:
   - extensions
   resources:
