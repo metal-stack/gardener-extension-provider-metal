@@ -30,6 +30,9 @@ duros:
 clusterAudit:
   enabled: false
 
+nodeInit:
+  enabled: true
+
 restrictEgress:
   enabled: false
   apiServerIngressDomain: api.kube-apiserver
