@@ -29,8 +29,11 @@ func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
 	if err != nil {
 		return err
 	}
+	if shoot.Spec.Kubernetes.AllowPrivilegedContainers == nil && k8version.LessThan(semver.MustParse("1.25")) {
+		shoot.Spec.Kubernetes.AllowPrivilegedContainers = pointer.Pointer(d.c.allowedPrivilegedContainers())
+	}
 
-	if shoot.Spec.Kubernetes.KubeControllerManager == nil && k8version.LessThan(semver.MustParse("1.25")) {
+	if shoot.Spec.Kubernetes.KubeControllerManager == nil {
 		shoot.Spec.Kubernetes.KubeControllerManager = &gardenv1beta1.KubeControllerManagerConfig{}
 	}
 
