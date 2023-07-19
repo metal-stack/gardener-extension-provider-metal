@@ -1,3 +1,4 @@
+{{- if .Values.nodeInit.enabled }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -100,3 +101,4 @@ spec:
         operator: Exists
       - effect: NoExecute
         operator: Exists
+{{- end }}
