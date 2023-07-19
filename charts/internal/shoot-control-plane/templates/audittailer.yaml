@@ -54,7 +54,7 @@ spec:
           runAsUser: 65534
           allowPrivilegeEscalation: false
           runAsNonRoot: true
-{{- if semverCompare ">= 1.19" .Capabilities.KubeVersion.GitVersion }}
+{{- if semverCompare ">= 1.19" .Values.kubernetesVersion }}
           seccompProfile:
             type: RuntimeDefault
 {{- end }}

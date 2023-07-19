@@ -63,10 +63,8 @@ rules:
   - extensions
   resourceNames:
   - gardener.privileged
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
   resources:
   - podsecuritypolicies
-{{- end }}
   verbs:
   - use
 ---
@@ -129,8 +127,6 @@ kind: ServiceAccount
 metadata:
   name: csi-lvm-reviver
   namespace: csi-lvm
-
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -151,7 +147,6 @@ spec:
     rule: RunAsAny
   volumes:
   - '*'
-{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -161,10 +156,8 @@ metadata:
 rules:
 - apiGroups:
   - extensions
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
   resources:
   - podsecuritypolicies
-{{- end }}
   resourceNames:
   - csi-lvm-reviver-psp
   verbs:
