@@ -49,6 +49,7 @@ rules:
   - patch
   - update
   - watch
+{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
 - apiGroups:
   - "policy"
   resources:
@@ -62,6 +63,7 @@ rules:
   - update
   - watch
   - use
+{{- end }}
 - apiGroups:
   - "rbac.authorization.k8s.io"
   resources:

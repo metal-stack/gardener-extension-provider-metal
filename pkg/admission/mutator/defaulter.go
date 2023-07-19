@@ -25,11 +25,12 @@ type defaulter struct {
 }
 
 func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
-	if shoot.Spec.Kubernetes.AllowPrivilegedContainers == nil {
-		shoot.Spec.Kubernetes.AllowPrivilegedContainers = pointer.Pointer(d.c.allowedPrivilegedContainers())
+	k8version, err := semver.NewVersion(shoot.Spec.Kubernetes.Version)
+	if err != nil {
+		return err
 	}
 
-	if shoot.Spec.Kubernetes.KubeControllerManager == nil {
+	if shoot.Spec.Kubernetes.KubeControllerManager == nil && k8version.LessThan(semver.MustParse("1.25")) {
 		shoot.Spec.Kubernetes.KubeControllerManager = &gardenv1beta1.KubeControllerManagerConfig{}
 	}
 
@@ -45,7 +46,7 @@ func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
 		shoot.Spec.Kubernetes.Kubelet.MaxPods = pointer.Pointer(d.c.maxPods())
 	}
 
-	err := d.defaultInfrastructureConfig(shoot)
+	err = d.defaultInfrastructureConfig(shoot)
 	if err != nil {
 		return err
 	}
