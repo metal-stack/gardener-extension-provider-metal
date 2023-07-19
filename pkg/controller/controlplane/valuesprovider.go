@@ -624,6 +624,13 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		clusterAuditValues["enabled"] = true
 	}
 
+	nodeInitValues := map[string]any{
+		"enabled": true,
+	}
+	if cluster.Shoot.Spec.Networking.Type == "cilium" {
+		nodeInitValues["enabled"] = false
+	}
+
 	apiserverIPs := []string{}
 	if !extensionscontroller.IsHibernated(cluster) {
 		// get apiserver ip adresses from external dns entry
@@ -684,6 +691,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		"firewallSpec":      fwSpec,
 		"duros":             durosValues,
 		"clusterAudit":      clusterAuditValues,
+		"nodeInit":          nodeInitValues,
 		"restrictEgress": map[string]any{
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
