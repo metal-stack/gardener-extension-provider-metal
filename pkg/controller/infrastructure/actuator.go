@@ -14,20 +14,15 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/go-logr/logr"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type actuator struct {
-	logger logr.Logger
-
 	clientset         kubernetes.Interface
 	gardenerClientset gardenerkubernetes.Interface
 	restConfig        *rest.Config
@@ -39,9 +34,7 @@ type actuator struct {
 
 // NewActuator creates a new Actuator that updates the status of the handled Infrastructure resources.
 func NewActuator() infrastructure.Actuator {
-	return &actuator{
-		logger: log.Log.WithName("infrastructure-actuator"),
-	}
+	return &actuator{}
 }
 
 func (a *actuator) InjectScheme(scheme *runtime.Scheme) error {

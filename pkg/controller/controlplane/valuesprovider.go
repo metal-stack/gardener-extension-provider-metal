@@ -22,6 +22,7 @@ import (
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 
+	extensionsconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -363,7 +364,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 }
 
 func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName string, auditToSplunkValues map[string]interface{}) (map[string]interface{}, error) {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), clusterName, client.Options{})
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), clusterName, client.Options{}, extensionsconfig.RESTOptions{})
 	if err != nil {
 		return auditToSplunkValues, err
 	}
@@ -926,7 +927,7 @@ func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.S
 }
 
 func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, secretConfigsFn func() []extensionssecretsmanager.SecretConfigWithOptions) error {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{})
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{}, extensionsconfig.RESTOptions{})
 	if err != nil {
 		return fmt.Errorf("could not create shoot client %w", err)
 	}
@@ -961,7 +962,7 @@ func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *ext
 }
 
 func (vp *valuesProvider) getSecretFromShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, name string) (*corev1.Secret, error) {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{})
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{}, extensionsconfig.RESTOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("could not create shoot client %w", err)
 	}

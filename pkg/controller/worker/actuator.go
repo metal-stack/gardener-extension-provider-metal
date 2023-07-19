@@ -49,7 +49,6 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 		controllerConfig:    controllerConfig,
 	}
 	return genericactuator.NewActuator(
-		log.Log.WithName("metal-worker-actuator"),
 		delegateFactory,
 		metal.MachineControllerManagerName,
 		mcmChart,
