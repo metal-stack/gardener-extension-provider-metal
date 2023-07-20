@@ -12,7 +12,9 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
+	"github.com/metal-stack/metal-lib/pkg/k8s"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -25,11 +27,11 @@ type defaulter struct {
 }
 
 func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
-	k8version, err := semver.NewVersion(shoot.Spec.Kubernetes.Version)
+	lessThan125, err := k8s.LessThan(shoot.Spec.Kubernetes.Version, k8s.KubernetesV125)
 	if err != nil {
 		return err
 	}
-	if shoot.Spec.Kubernetes.AllowPrivilegedContainers == nil && k8version.LessThan(semver.MustParse("1.25")) {
+	if shoot.Spec.Kubernetes.AllowPrivilegedContainers == nil && lessThan125 {
 		shoot.Spec.Kubernetes.AllowPrivilegedContainers = pointer.Pointer(d.c.allowedPrivilegedContainers())
 	}
 
