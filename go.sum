@@ -445,8 +445,8 @@ github.com/metal-stack/machine-controller-manager-provider-metal v0.1.14 h1:qbbd
 github.com/metal-stack/machine-controller-manager-provider-metal v0.1.14/go.mod h1:d36VmegtqJd7AKv8FVFvuimRPK+M93odICUUbTXg8CU=
 github.com/metal-stack/metal-go v0.22.8 h1:32HZdR8BNWWdKkhfJ5OVFGLLuTQ+bkw44PvU0ObqbIo=
 github.com/metal-stack/metal-go v0.22.8/go.mod h1:n0KALbtB6JGAICDmgSU5B/jekEFODuqcluTHEAXMPng=
-github.com/metal-stack/metal-lib v0.12.3 h1:IsurXFoLpgJ/9GG3zsAYmk72tukcJSw40UvPYI47rEI=
-github.com/metal-stack/metal-lib v0.12.3/go.mod h1:j9I8YAqxS8AFZ6z0T113hlwy2MHpb0ExQsGhi6zlteI=
+github.com/metal-stack/metal-lib v0.12.4 h1:ISdh1kYsb75UbQWwRwbwY38wN4h+i6KqvaFMeItdX7Q=
+github.com/metal-stack/metal-lib v0.12.4/go.mod h1:YyE9IbyA38sgoyrgBZgvmlWhwUU6G+o4+tqNiLDXOgI=
 github.com/metal-stack/security v0.6.6 h1:KSPNN8YZd2EJEjsJ0xCBcd5o53uU0iFupahHA9Twuh0=
 github.com/metal-stack/security v0.6.6/go.mod h1:WchPm3+2Xjj1h7AxM+DsnR9EWgLw+ktoGCl/0gcmgSA=
 github.com/miekg/dns v1.1.55 h1:GoQ4hpsj0nFLYe+bWiCToyrBEJXkQfOOIvFGFy0lEgo=
