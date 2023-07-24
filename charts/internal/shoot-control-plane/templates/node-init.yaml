@@ -4,7 +4,7 @@ kind: ServiceAccount
 metadata:
   name: node-init
   namespace: kube-system
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
+{{- if not .Values.pspDisabled }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -39,7 +39,7 @@ rules:
   - watch
   - list
   - get
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
+{{- if not .Values.pspDisabled }}
 - apiGroups:
   - extensions
   resources:
