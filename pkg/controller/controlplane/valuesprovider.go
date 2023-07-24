@@ -995,7 +995,7 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
-func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, _ *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	cp, err := helper.ControlPlaneConfigFromControlPlane(controlPlane)
 	if err != nil {
 		return nil, err
@@ -1007,6 +1007,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 	}
 
 	values := map[string]interface{}{
+		"pspDisabled":           gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"isDefaultStorageClass": isDefaultSC,
 	}
 
