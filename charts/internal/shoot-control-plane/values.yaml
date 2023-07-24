@@ -1,31 +1,27 @@
 ---
 kubernetesVersion: "1.16.0"
 apiserverIPs: []
+nodeCIDR:
 
 images:
     audittailer: image-repository:image-tag
     droptailer: image-repository:image-tag
     metallb-speaker: image-repository:image-tag
     metallb-controller: image-repository:image-tag
+    fluentd-splunk-audit: image-repository:image-tag
+    node-init: image-repository:image-tag
+    kubectl: image-repository:image-tag
+
+imagePullPolicy: IfNotPresent
 
 firewallSpec:
     interval: 10s
     dryrun: false
+    logAcceptedConnections: false
     rateLimits: []
     internalprefixes: []
     egressRules: []
     firewallNetworks: []
-
-accountingExporter:
-    enabled: false
-
-groupRolebindingController:
-    enabled: false
-
-limitValidatingWebhook:
-    enabled: false
-    ca: ABCDEF
-    url: https://replace-this-webhook/validate
 
 duros:
   enabled: false
@@ -33,3 +29,21 @@ duros:
 
 clusterAudit:
   enabled: false
+
+nodeInit:
+  enabled: true
+
+restrictEgress:
+  enabled: false
+  apiServerIngressDomain: api.kube-apiserver
+  destinations:
+    - matchName: 'a-name.org'
+      matchPattern: '*.a-name.org'
+      protocol: TCP
+      port: 443
+
+droptailer:
+  secretName: 'droptailer-server'
+
+audittailer:
+  secretName: 'audittailer-server'

@@ -9,7 +9,10 @@ import (
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 
+	gardenerhealthz "github.com/gardener/gardener/pkg/healthz"
+	"github.com/metal-stack/gardener-extension-provider-metal/charts"
 	metalinstall "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/install"
 	metalcmd "github.com/metal-stack/gardener-extension-provider-metal/pkg/cmd"
 	metalcontrolplane "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/controlplane"
@@ -22,26 +25,33 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
+	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	"github.com/gardener/gardener/extensions/pkg/util"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 
-	dnsv1alpha1 "github.com/gardener/external-dns-management/pkg/apis/dns/v1alpha1"
 	"github.com/spf13/cobra"
+	"k8s.io/component-base/version/verflag"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // NewControllerManagerCommand creates a new command for running a Metal provider controller.
 func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 	var (
-		restOpts = &controllercmd.RESTOptions{}
-		mgrOpts  = &controllercmd.ManagerOptions{
-			LeaderElection:          true,
-			LeaderElectionID:        controllercmd.LeaderElectionNameID(metal.Name),
-			LeaderElectionNamespace: os.Getenv("LEADER_ELECTION_NAMESPACE"),
-			WebhookServerPort:       443,
+		generalOpts = &controllercmd.GeneralOptions{}
+		restOpts    = &controllercmd.RESTOptions{}
+		mgrOpts     = &controllercmd.ManagerOptions{
+			LeaderElection:             true,
+			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+			LeaderElectionID:           controllercmd.LeaderElectionNameID(metal.Name),
+			LeaderElectionNamespace:    os.Getenv("LEADER_ELECTION_NAMESPACE"),
+			WebhookServerPort:          443,
+			WebhookCertDir:             "/tmp/gardener-extensions-cert",
+			HealthBindAddress:          ":8081",
 		}
 		configFileOpts = &metalcmd.ConfigOptions{}
 
@@ -75,9 +85,16 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			Namespace: os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
 		}
 		webhookSwitches = metalcmd.WebhookSwitchOptions()
-		webhookOptions  = webhookcmd.NewAddToManagerOptions(metal.Name, webhookServerOptions, webhookSwitches)
+		webhookOptions  = webhookcmd.NewAddToManagerOptions(
+			metal.Name,
+			genericactuator.ShootWebhooksResourceName,
+			genericactuator.ShootWebhookNamespaceSelector(metal.Type),
+			webhookServerOptions,
+			webhookSwitches,
+		)
 
 		aggOption = controllercmd.NewOptionAggregator(
+			generalOpts,
 			restOpts,
 			mgrOpts,
 			controllercmd.PrefixOption("controlplane-", controlPlaneCtrlOpts),
@@ -94,25 +111,34 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use: fmt.Sprintf("%s-controller-manager", metal.Name),
 
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			verflag.PrintAndExitIfRequested()
+
 			if err := aggOption.Complete(); err != nil {
-				controllercmd.LogErrAndExit(err, "Error completing options")
+				return fmt.Errorf("error completing options: %w", err)
 			}
+
+			util.ApplyClientConnectionConfigurationToRESTConfig(configFileOpts.Completed().Config.ClientConnection, restOpts.Completed().Config)
 
 			if workerReconcileOpts.Completed().DeployCRDs {
 				ca, err := kubernetes.NewChartApplierForConfig(restOpts.Completed().Config)
 				if err != nil {
-					controllercmd.LogErrAndExit(err, "Error creating chart renderer")
+					return fmt.Errorf("error creating chart renderer: %w", err)
 				}
 
-				err = ca.Apply(ctx, filepath.Join(metal.InternalChartsPath, "metal-crds"), "", "metal-crds")
+				err = ca.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "crds-firewall"), "", "crds-firewall")
 				if err != nil {
-					controllercmd.LogErrAndExit(err, "Error applying metal-crds chart")
+					return fmt.Errorf("error applying crds-firewall chart: %w", err)
+				}
+
+				err = ca.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "crds-storage"), "", "crds-storage")
+				if err != nil {
+					return fmt.Errorf("error applying crds-storage chart: %w", err)
 				}
 
 				c, err := client.New(restOpts.Completed().Config, client.Options{})
 				if err != nil {
-					controllercmd.LogErrAndExit(err, "Error creating k8s client for firewall namespace deployment")
+					return fmt.Errorf("error creating k8s client for firewall namespace deployment: %w", err)
 				}
 
 				// the firewall namespace needs to exist in order to be able to deploy the control plane chart properly
@@ -125,29 +151,26 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 				if _, err := controllerutil.CreateOrUpdate(ctx, c, &namespace, func() error {
 					return nil
 				}); err != nil {
-					controllercmd.LogErrAndExit(err, "Error ensuring the firewall namespace")
+					return fmt.Errorf("error ensuring the firewall namespace: %w", err)
 				}
 			}
 
 			mgr, err := manager.New(restOpts.Completed().Config, mgrOpts.Completed().Options())
 			if err != nil {
-				controllercmd.LogErrAndExit(err, "Could not instantiate manager")
+				return fmt.Errorf("could not instantiate manager: %w", err)
 			}
 
-			if err := controller.AddToScheme(mgr.GetScheme()); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
+			scheme := mgr.GetScheme()
+			if err := controller.AddToScheme(scheme); err != nil {
+				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
 
-			if err := metalinstall.AddToScheme(mgr.GetScheme()); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
+			if err := metalinstall.AddToScheme(scheme); err != nil {
+				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
 
-			if err := druidv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
-			}
-
-			if err := dnsv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
+			if err := druidv1alpha1.AddToScheme(scheme); err != nil {
+				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
 
 			configFileOpts.Completed().ApplyETCD(&metalcontrolplaneexposure.DefaultAddOptions.ETCD)
@@ -155,6 +178,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			configFileOpts.Completed().ApplyControllerConfig(&metalcontrolplane.DefaultAddOptions.ControllerConfig)
 			configFileOpts.Completed().ApplyControllerConfig(&shootcontrolplanewebhook.DefaultAddOptions.ControllerConfig)
 			configFileOpts.Completed().ApplyControllerConfig(&healthcheck.DefaultAddOptions.ControllerConfig)
+			configFileOpts.Completed().ApplyControllerConfig(&metalworker.DefaultAddOptions.ControllerConfig)
 			configFileOpts.Completed().ApplyHealthCheckConfig(&healthcheck.DefaultAddOptions.HealthCheckDefaults.HealthCheckConfig)
 			controlPlaneCtrlOpts.Completed().Apply(&metalcontrolplane.DefaultAddOptions.Controller)
 			infraCtrlOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.Controller)
@@ -164,22 +188,37 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			reconcileOpts.Completed().Apply(&metalworker.DefaultAddOptions.IgnoreOperationAnnotation)
 			workerCtrlOpts.Completed().Apply(&metalworker.DefaultAddOptions.Controller)
 
-			_, shootWebhooks, err := webhookOptions.Completed().AddToManager(mgr)
+			atomicShootWebhookConfig, err := webhookOptions.Completed().AddToManager(ctx, mgr)
 			if err != nil {
-				controllercmd.LogErrAndExit(err, "Could not add webhooks to manager")
+				return fmt.Errorf("could not add webhooks to manager: %w", err)
 			}
-			metalcontrolplane.DefaultAddOptions.ShootWebhooks = shootWebhooks
+			metalcontrolplane.DefaultAddOptions.ShootWebhooks = atomicShootWebhookConfig
 
 			if err := controllerSwitches.Completed().AddToManager(mgr); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not add controllers to manager")
+				return fmt.Errorf("could not add controllers to manager: %w", err)
+			}
+
+			if err := mgr.AddReadyzCheck("informer-sync", gardenerhealthz.NewCacheSyncHealthz(mgr.GetCache())); err != nil {
+				return fmt.Errorf("could not add readycheck for informers: %w", err)
+			}
+
+			if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+				return fmt.Errorf("could not add health check to manager: %w", err)
+			}
+
+			if err := mgr.AddReadyzCheck("webhook-server", mgr.GetWebhookServer().StartedChecker()); err != nil {
+				return fmt.Errorf("could not add ready check for webhook server to manager: %w", err)
 			}
 
 			if err := mgr.Start(ctx); err != nil {
-				controllercmd.LogErrAndExit(err, "Error running manager")
+				return fmt.Errorf("error running manager: %w", err)
 			}
+
+			return nil
 		},
 	}
 
+	verflag.AddFlags(cmd.Flags())
 	aggOption.AddFlags(cmd.Flags())
 
 	return cmd

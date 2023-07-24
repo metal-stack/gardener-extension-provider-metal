@@ -9,6 +9,7 @@ import (
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalvalidation "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
@@ -64,6 +65,11 @@ func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 	// Provider validation
 	fldPath := field.NewPath("spec", "provider")
 
+	_, ok := shoot.Annotations[tag.ClusterTenant]
+	if !ok {
+		return field.Required(field.NewPath("metadata", "annotations"), fmt.Sprintf("cluster must be annotated with a tenant using the annotations: %s", tag.ClusterTenant))
+	}
+
 	// InfrastructureConfig
 	infraConfigFldPath := fldPath.Child("infrastructureConfig")
 
@@ -94,19 +100,9 @@ func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 		return errList.ToAggregate()
 	}
 
-	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infraConfig.PartitionID)
-	if err != nil {
-		return err
-	}
-
 	controlPlaneConfigFldPath := fldPath.Child("controlPlaneConfig")
 
 	controlPlaneConfig, err := decodeControlPlaneConfig(s.decoder, shoot.Spec.Provider.ControlPlaneConfig, fldPath.Child("controlPlaneConfig"))
-	if err != nil {
-		return err
-	}
-
-	controlPlaneConfig.IAMConfig, err = helper.MergeIAMConfig(metalControlPlane.IAMConfig, controlPlaneConfig.IAMConfig)
 	if err != nil {
 		return err
 	}
@@ -161,6 +157,10 @@ func (s *shoot) validateShootUpdate(ctx context.Context, oldShoot, shoot *core.S
 		}
 	}
 
+	if shoot.Annotations[tag.ClusterTenant] != oldShoot.Annotations[tag.ClusterTenant] {
+		return field.Forbidden(field.NewPath("metadata", "annotations"), "tenant annotation of a shoot is immutable")
+	}
+
 	return s.validateShoot(ctx, shoot)
 }
 
@@ -171,7 +171,7 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 		return err
 	}
 
-	if err := s.validateAgainstCloudProfile(ctx, shoot, nil, infraConfig, fldPath.Child("infrastructureConfig")); err != nil {
+	if err := s.validateAgainstCloudProfile(ctx, shoot, infraConfig, fldPath.Child("infrastructureConfig")); err != nil {
 		return err
 	}
 
@@ -180,7 +180,7 @@ func (s *shoot) validateShootCreation(ctx context.Context, shoot *core.Shoot) er
 
 // func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.InfrastructureConfig, shoot *core.Shoot, cloudProfile *gardencorev1beta1.CloudProfile, cloudProfileConfig *apismetal.CloudProfileConfig, fldPath *field.Path) field.ErrorList {
 
-func (s *shoot) validateAgainstCloudProfile(ctx context.Context, shoot *core.Shoot, oldInfraConfig, infraConfig *apismetal.InfrastructureConfig, fldPath *field.Path) error {
+func (s *shoot) validateAgainstCloudProfile(ctx context.Context, shoot *core.Shoot, infraConfig *apismetal.InfrastructureConfig, fldPath *field.Path) error {
 	cloudProfile := &gardencorev1beta1.CloudProfile{}
 	if err := s.client.Get(ctx, kutil.Key(shoot.Spec.CloudProfileName), cloudProfile); err != nil {
 		return err

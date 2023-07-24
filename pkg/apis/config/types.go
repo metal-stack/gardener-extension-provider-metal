@@ -1,24 +1,11 @@
-// Copyright (c) 2018 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package config
 
 import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
+	componentbaseconfig "k8s.io/component-base/config"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -27,9 +14,18 @@ import (
 type ControllerConfiguration struct {
 	metav1.TypeMeta
 
+	// ClientConnection specifies the kubeconfig file and client connection
+	// settings for the proxy server to use when communicating with the apiserver.
+	ClientConnection *componentbaseconfig.ClientConnectionConfiguration
+
 	// MachineImages is the list of machine images that are understood by the controller. It maps
 	// logical names and versions to metal-specific identifiers, i.e. AMIs.
 	MachineImages []MachineImage
+
+	// FirewallInternalPrefixes is a list of prefixes for the firewall-controller
+	// which will be counted as internal network traffic. this is important for accounting
+	// networking traffic.
+	FirewallInternalPrefixes []string
 
 	// ETCD is the etcd configuration.
 	ETCD ETCD
@@ -37,11 +33,8 @@ type ControllerConfiguration struct {
 	// ClusterAudit is the configuration for cluster auditing.
 	ClusterAudit ClusterAudit
 
-	// Auth is the configuration for metal stack specific user authentication in the cluster.
-	Auth Auth
-
-	// AccountingExporter is the configuration for the accounting exporter
-	AccountingExporter AccountingExporterConfiguration
+	// AuditToSplunk is the configuration for forwarding audit (and firewall) logs to Splunk.
+	AuditToSplunk AuditToSplunk
 
 	// HealthCheckConfig is the config for the health check controller
 	HealthCheckConfig *healthcheckconfig.HealthCheckConfig
@@ -49,8 +42,18 @@ type ControllerConfiguration struct {
 	// Storage is the configuration for storage.
 	Storage StorageConfiguration
 
+	// ImagePullPolicy defines the pull policy for the components deployed through the control plane controller.
+	// Defaults to IfNotPresent if empty or unknown.
+	ImagePullPolicy string
+
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 	ImagePullSecret *ImagePullSecret
+
+	// EgressDestinations is used when the RestrictEgress control plane feature gate is enabled
+	// and provides additional egress destinations to the kube-apiserver.
+	//
+	// It is intended to be configured at least with container registries for the cluster.
+	EgressDestinations []EgressDest
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
@@ -93,44 +96,17 @@ type ClusterAudit struct {
 	Enabled bool
 }
 
-// Auth contains the configuration for metal stack specific user authentication in the cluster.
-type Auth struct {
-	// Enabled enables the deployment of metal stack specific cluster authentication when set to true.
+// AuditToSplunk is the configuration for forwarding audit (and firewall) logs to Splunk.
+type AuditToSplunk struct {
+	// Enabled enables forwarding of the kube-apiserver auditlog to splunk.
 	Enabled bool
-	// ProviderTenant is the name of the provider tenant who has special privileges.
-	ProviderTenant string
-}
-
-// AccountingExporterConfiguration contains the configuration for the accounting exporter.
-type AccountingExporterConfiguration struct {
-	// Enabled enables the deployment of the accounting exporter when set to true.
-	Enabled bool
-	// NetworkTraffic contains the configuration for accounting network traffic
-	NetworkTraffic AccountingExporterNetworkTrafficConfiguration
-	// Client contains the configuration for the accounting exporter client.
-	Client AccountingExporterClientConfiguration
-}
-
-// AccountingExporterClientConfiguration contains the configuration for the network traffic accounting.
-type AccountingExporterNetworkTrafficConfiguration struct {
-	// Enabled enables network traffic accounting of the accounting exporter when set to true.
-	Enabled bool
-	// InternalNetworks defines the networks for the firewall that are considered internal (which can be accounted differently)
-	InternalNetworks []string
-}
-
-// AccountingExporterClientConfiguration contains the configuration for the accounting exporter client
-type AccountingExporterClientConfiguration struct {
-	// Hostname is the hostname of the accounting api
-	Hostname string
-	// Port is the port of the accounting api
-	Port int
-	// CA is the ca certificate used for communicating with the accounting api
-	CA string
-	// Cert is the client certificate used for communicating with the accounting api
-	Cert string
-	// CertKey is the client certificate key used for communicating with the accounting api
-	CertKey string
+	// This defines the default splunk endpoint unless otherwise specified by the cluster user
+	HECToken   string
+	Index      string
+	HECHost    string
+	HECPort    int
+	TLSEnabled bool
+	HECCAFile  string
 }
 
 // StorageConfiguration contains the configuration for provider specfic storage solutions.
@@ -181,10 +157,25 @@ type DurosSeedStorageClass struct {
 	ReplicaCount int
 	// Compression enables compression for this storage class
 	Compression bool
+	// Encryption defines a SC with client side encryption enabled
+	Encryption bool
 }
 
 // ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 type ImagePullSecret struct {
 	// DockerConfigJSON contains the already base64 encoded JSON content for the image pull secret
 	DockerConfigJSON string
+}
+
+type EgressDest struct {
+	// Description is a description for this egress destination.
+	Description string
+	// MatchPattern is the DNS match pattern for this destination. Use either a pattern or a name.
+	MatchPattern string
+	// MatchName is the DNS match name for this destination. Use either a pattern or a name.
+	MatchName string
+	// Protocol is either TCP or UDP.
+	Protocol string
+	// Port is the port for this destination.
+	Port int
 }

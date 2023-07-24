@@ -31,12 +31,14 @@ rules:
   resources:
   - configmaps
   - leases
+  - events
   verbs:
   - get
   - watch
   - update
   - patch
   - create
+
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -80,12 +82,14 @@ spec:
   selector:
     matchLabels:
       app: duros-controller
-  replicas: 1
+  replicas: {{ .Values.duros.replicas }}
   template:
     metadata:
       labels:
         app: duros-controller
     spec:
+      # required to be able to read the duros cr from the seed
+      automountServiceAccountToken: true
       serviceAccountName: duros-controller
       containers:
       - name: duros-controller
@@ -95,7 +99,7 @@ spec:
           - -enable-leader-election
           - -admin-token=/duros/admin-token
           - -admin-key=/duros/admin-key
-          - -shoot-kubeconfig=/duros/client/kubeconfig
+          - -shoot-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
 {{- if .Values.duros.controller.apiEndpoint }}
           - -api-endpoint={{ .Values.duros.controller.apiEndpoint }}
           - -api-ca=/duros/api-ca
@@ -103,7 +107,7 @@ spec:
           - -api-key=/duros/api-key
 {{- end }}
         image: {{ index .Values.images "duros-controller" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         resources:
           limits:
             cpu: 400m
@@ -115,14 +119,28 @@ spec:
           - name: duros-admin
             mountPath: /duros
           - name: kubeconfig
-            mountPath: /duros/client
+            mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
+            readOnly: true
       volumes:
         - name: duros-admin
           secret:
             secretName: duros-admin
         - name: kubeconfig
-          secret:
-            secretName: duros-controller
+          projected:
+            defaultMode: 420
+            sources:
+            - secret:
+                items:
+                - key: kubeconfig
+                  path: kubeconfig
+                name: {{ .Values.genericTokenKubeconfigSecretName }}
+                optional: false
+            - secret:
+                items:
+                - key: token
+                  path: token
+                name: shoot-access-duros-controller
+                optional: false
 ---
 apiVersion: storage.metal-stack.io/v1
 kind: Duros

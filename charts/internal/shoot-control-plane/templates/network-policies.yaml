@@ -2,21 +2,6 @@
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
 metadata:
-  name: allow-to-vpn
-  namespace: firewall
-spec:
-  egress:
-  - ports:
-    - port: 4314
-      protocol: UDP
-    - port: 4314
-      protocol: TCP
-    to:
-    - cidr: 0.0.0.0/0
----
-apiVersion: metal-stack.io/v1
-kind: ClusterwideNetworkPolicy
-metadata:
   name: allow-to-dns
   namespace: firewall
 spec:
@@ -28,6 +13,64 @@ spec:
       port: 53
     - protocol: TCP
       port: 53
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-ntp
+  namespace: firewall
+spec:
+  egress:
+  - to:
+    - cidr: 0.0.0.0/0
+    ports:
+    - protocol: UDP
+      port: 123
+
+{{- if .Values.restrictEgress.enabled }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-apiserver
+  namespace: firewall
+spec:
+  egress:
+  - toFQDNs:
+    - matchName: {{ quote .Values.restrictEgress.apiServerIngressDomain }}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: UDP
+      port: 4314
+    - protocol: TCP
+      port: 4314
+    - protocol: TCP
+      port: 8443
+    - protocol: TCP
+      port: 8132
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-external-dependencies
+  namespace: firewall
+spec:
+  egress:
+{{- range $i, $dest := .Values.restrictEgress.destinations }}
+  - toFQDNs:
+{{- if $dest.matchPattern }}
+    - matchPattern: {{ quote $dest.matchPattern }}
+{{- else }}
+    - matchName: {{ quote $dest.matchName }}
+{{- end }}
+    ports:
+    - protocol: {{ $dest.protocol }}
+      port: {{ $dest.port }}
+{{- end }}
+
+{{- else }}
+
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
@@ -54,40 +97,6 @@ spec:
     ports:
     - protocol: TCP
       port: 80
----
-apiVersion: metal-stack.io/v1
-kind: ClusterwideNetworkPolicy
-metadata:
-  name: allow-to-ntp
-  namespace: firewall
-spec:
-  egress:
-  - to:
-    - cidr: 0.0.0.0/0
-    ports:
-    - protocol: UDP
-      port: 123
-{{- if .Values.duros.enabled }}
----
-apiVersion: metal-stack.io/v1
-kind: ClusterwideNetworkPolicy
-metadata:
-  name: allow-to-storage
-  namespace: firewall
-spec:
-  egress:
-  - ports:
-    - port: 443
-      protocol: TCP
-    - port: 4420
-      protocol: TCP
-    - port: 8009
-      protocol: TCP
-    to:
-{{ range $i, $endpoint := .Values.duros.endpoints }}
-    - cidr: {{ (split ":" $endpoint)._0 }}/32
-{{- end }}
-{{- end }}
 {{- if gt (len .Values.apiserverIPs) 0 }}
 ---
 apiVersion: metal-stack.io/v1
@@ -108,4 +117,43 @@ spec:
       port: 8443
     - protocol: TCP
       port: 8132
+{{- end }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-vpn
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 4314
+      protocol: UDP
+    - port: 4314
+      protocol: TCP
+    to:
+    - cidr: 0.0.0.0/0
+
+{{- end }}
+
+{{- if .Values.duros.enabled }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-storage
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 4420
+      protocol: TCP
+    - port: 8009
+      protocol: TCP
+    to:
+{{ range $i, $endpoint := .Values.duros.endpoints }}
+    - cidr: {{ (split ":" $endpoint)._0 }}/32
+{{- end }}
 {{- end }}

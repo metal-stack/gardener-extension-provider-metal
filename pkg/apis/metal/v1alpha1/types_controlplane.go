@@ -14,12 +14,20 @@ type ControlPlaneConfig struct {
 	// +optional
 	CloudControllerManager *CloudControllerManagerConfig `json:"cloudControllerManager,omitempty"`
 
-	// IAMConfig contains the config for all AuthN/AuthZ related components
-	// +optional
-	IAMConfig *IAMConfig `json:"iamconfig,omitempty"`
-
 	// FeatureGates contains feature gates for the control plane.
 	FeatureGates ControlPlaneFeatures `json:"featureGates,omitempty"`
+
+	// CustomDefaultStorageClass
+	CustomDefaultStorageClass *CustomDefaultStorageClass `json:"customDefaultStorageClass,omitempty"`
+}
+
+// CustomDefaultStorageClass defines the custom storageclass which should be set as default
+// This applies only to storageClasses managed by metal-stack.
+// If set to nil, our default storageClass (e.g. csi-lvm) is set as default
+type CustomDefaultStorageClass struct {
+	// ClassName name of the storageclass to be set as default
+	// If you want to have your own SC be set as default, set classname to ""
+	ClassName string `json:"className"`
 }
 
 // ControlPlaneFeatures contains feature gates for the control plane.
@@ -34,6 +42,18 @@ type ControlPlaneFeatures struct {
 	// can be picked up by any of the available Kubernetes logging solutions.
 	// +optional
 	ClusterAudit *bool `json:"clusterAudit,omitempty"`
+	// AuditToSplunk enables the forwarding of the apiserver auditlog to a defined splunk instance in addition to
+	// forwarding it into the cluster. Needs the clusterAudit featureGate to be active.
+	// +optional
+	AuditToSplunk *bool `json:"auditToSplunk,omitempty"`
+	// DurosStorageEncryption enables the deployment of configured encrypted storage classes for the duros-controller.
+	// +optional
+	DurosStorageEncryption *bool `json:"durosStorageEncryption,omitempty"`
+	// RestrictEgress limits the cluster egress to the API server and necessary external dependencies (like container registries)
+	// by using DNS egress policies.
+	// Requires firewall-controller >= 1.2.0.
+	// +optional
+	RestrictEgress *bool `json:"restrictEgress,omitempty"`
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.

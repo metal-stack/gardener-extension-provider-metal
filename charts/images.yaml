@@ -6,15 +6,15 @@ images:
 - name: machine-controller-manager
   sourceRepository: github.com/gardener/machine-controller-manager
   repository: eu.gcr.io/gardener-project/gardener/machine-controller-manager
-  tag: "0.35.0"
+  tag: "0.44.0"
 - name: machine-controller-manager-provider-metal
   sourceRepository: https://github.com/metal-stack/machine-controller-manager-provider-metal
   repository: ghcr.io/metal-stack/machine-controller-manager-provider-metal
-  tag: "v0.1.5"
+  tag: "v0.1.10"
 - name: auditforwarder
   sourceRepository: https://github.com/metal-stack/audit-forwarder
   repository: ghcr.io/metal-stack/audit-forwarder
-  tag: "v0.1.0"
+  tag: "v0.2.2"
 - name: audittailer
   sourceRepository: https://github.com/fluent/fluentd
   repository: fluent/fluentd
@@ -22,7 +22,7 @@ images:
 - name: droptailer
   sourceRepository: github.com/metal-stack/droptailer
   repository: ghcr.io/metal-stack/droptailer
-  tag: "v0.2.5"
+  tag: "v0.2.7"
 - name: csi-lvm-controller
   sourceRepository: github.com/metal-stack/csi-lvm-controller
   repository: ghcr.io/metal-stack/csi-lvm-controller
@@ -33,28 +33,25 @@ images:
   tag: "v0.6.3"
 - name: metallb-speaker
   sourceRepository: https://github.com/metallb/metallb
-  repository: metallb/speaker
-  tag: "v0.8.3"
+  repository: quay.io/metallb/speaker
+  tag: "v0.10.3"
 - name: metallb-controller
   sourceRepository: https://github.com/metallb/metallb
-  repository: metallb/controller
-  tag: "v0.8.3"
+  repository: quay.io/metallb/controller
+  tag: "v0.10.3"
 - name: duros-controller
   sourceRepository: https://github.com/metal-stack/duros-controller
   repository: ghcr.io/metal-stack/duros-controller
+  tag: "v0.3.1"
+- name: node-init
+  sourceRepository: https://github.com/metal-stack/node-init
+  repository: ghcr.io/metal-stack/node-init
+  tag: "v0.1.1"
+- name: kubectl
+  sourceRepository: https://github.com/bitnami/containers
+  repository: bitnami/kubectl
+  tag: "1.25.0"
+- name: firewall-controller-manager
+  sourceRepository: https://github.com/metal-stack/firewall-controller-manager
+  repository: ghcr.io/metal-stack/firewall-controller-manager
   tag: "v0.2.0"
-
-
-# can be provided via image override:
-# - name: authn-webhook
-#   sourceRepository:
-#   repository:
-#   tag:
-# - name: group-rolebinding-controller
-#   sourceRepository:
-#   repository:
-#   tag:
-# - name: accounting-exporter
-#   sourceRepository:
-#   repository:
-#   tag:

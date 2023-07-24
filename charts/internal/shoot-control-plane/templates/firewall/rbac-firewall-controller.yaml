@@ -11,6 +11,7 @@ rules:
   - secrets
   - services
   verbs:
+  - get
   - list
   - watch
 - apiGroups:
@@ -42,10 +43,10 @@ rules:
 - apiGroups:
   - metal-stack.io
   resources:
-  - networkids
   - firewalls
   - firewalls/status
   - clusterwidenetworkpolicies
+  - clusterwidenetworkpolicies/status
   verbs:
   - list
   - get

@@ -12,8 +12,11 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/util"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	"github.com/gardener/gardener/pkg/apis/core/install"
+	gardenerhealthz "github.com/gardener/gardener/pkg/healthz"
 	"github.com/spf13/cobra"
 	componentbaseconfig "k8s.io/component-base/config"
+	"k8s.io/component-base/version/verflag"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -26,6 +29,7 @@ func NewAdmissionCommand(ctx context.Context) *cobra.Command {
 		restOpts = &controllercmd.RESTOptions{}
 		mgrOpts  = &controllercmd.ManagerOptions{
 			WebhookServerPort: 443,
+			HealthBindAddress: ":8081",
 		}
 		webhookSwitches = admissioncmd.GardenWebhookSwitchOptions()
 		webhookOptions  = webhookcmd.NewAddToManagerSimpleOptions(webhookSwitches)
@@ -41,8 +45,10 @@ func NewAdmissionCommand(ctx context.Context) *cobra.Command {
 		Use: fmt.Sprintf("admission-%s", providermetal.Type),
 
 		RunE: func(cmd *cobra.Command, args []string) error {
+			verflag.PrintAndExitIfRequested()
+
 			if err := aggOption.Complete(); err != nil {
-				controllercmd.LogErrAndExit(err, "Error completing options")
+				return fmt.Errorf("error completing options: %w", err)
 			}
 
 			util.ApplyClientConnectionConfigurationToRESTConfig(&componentbaseconfig.ClientConnectionConfiguration{
@@ -52,13 +58,13 @@ func NewAdmissionCommand(ctx context.Context) *cobra.Command {
 
 			mgr, err := manager.New(restOpts.Completed().Config, mgrOpts.Completed().Options())
 			if err != nil {
-				controllercmd.LogErrAndExit(err, "Could not instantiate manager")
+				return fmt.Errorf("could not instantiate manager: %w", err)
 			}
 
 			install.Install(mgr.GetScheme())
 
 			if err := metalinstall.AddToScheme(mgr.GetScheme()); err != nil {
-				controllercmd.LogErrAndExit(err, "Could not update manager scheme")
+				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
 
 			log.Info("Setting up webhook server")
@@ -66,10 +72,23 @@ func NewAdmissionCommand(ctx context.Context) *cobra.Command {
 				return err
 			}
 
+			if err := mgr.AddReadyzCheck("informer-sync", gardenerhealthz.NewCacheSyncHealthz(mgr.GetCache())); err != nil {
+				return fmt.Errorf("could not add readycheck for informers: %w", err)
+			}
+
+			if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+				return fmt.Errorf("could not add healthcheck: %w", err)
+			}
+
+			if err := mgr.AddReadyzCheck("webhook-server", mgr.GetWebhookServer().StartedChecker()); err != nil {
+				return fmt.Errorf("could not add readycheck of webhook to manager: %w", err)
+			}
+
 			return mgr.Start(ctx)
 		},
 	}
 
+	verflag.AddFlags(cmd.Flags())
 	aggOption.AddFlags(cmd.Flags())
 
 	return cmd

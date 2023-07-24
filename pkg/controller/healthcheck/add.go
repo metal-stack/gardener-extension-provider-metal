@@ -1,15 +1,16 @@
 package healthcheck
 
 import (
+	"context"
 	"time"
 
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	genericcontrolplaneactuator "github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck/general"
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck/worker"
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
@@ -43,11 +44,8 @@ type AddOptions struct {
 
 // RegisterHealthChecks registers health checks for each extension resource
 func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
-	accountingPreCheck := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
-		return opts.ControllerConfig.AccountingExporter.Enabled
-	}
-	authPreCheck := func(_ client.Object, cluster *extensionscontroller.Cluster) bool {
-		return opts.ControllerConfig.Auth.Enabled
+	durosPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
+		return opts.ControllerConfig.Storage.Duros.Enabled
 	}
 
 	if err := healthcheck.DefaultRegistration(
@@ -64,27 +62,25 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.CloudControllerManagerDeploymentName),
 			},
 			{
-				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
-				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.AccountingExporterName),
-				PreCheckFunc:  accountingPreCheck,
-			},
-			{
-				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
-				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.GroupRolebindingControllerName),
-				PreCheckFunc:  authPreCheck,
-			},
-			{
-				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
-				HealthCheck:   general.NewSeedDeploymentHealthChecker(metal.AuthNWebhookDeploymentName),
-				PreCheckFunc:  authPreCheck,
-			},
-			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
 				HealthCheck:   general.CheckManagedResource(genericcontrolplaneactuator.ControlPlaneShootChartResourceName),
 			},
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
 				HealthCheck:   general.CheckManagedResource(genericcontrolplaneactuator.StorageClassesChartResourceName),
+			},
+			{
+				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
+				HealthCheck:   CheckDuros(metal.DurosResourceName),
+				PreCheckFunc:  durosPreCheck,
+			},
+			{
+				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
+				HealthCheck:   CheckFirewall(),
+			},
+			{
+				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
+				HealthCheck:   CheckMetalLB(),
 			},
 		}); err != nil {
 		return err

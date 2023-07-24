@@ -1,9 +1,8 @@
 package helper
 
 import (
+	"encoding/json"
 	"fmt"
-
-	"github.com/pkg/errors"
 
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -16,21 +15,21 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 var (
-	// Scheme is a scheme with the types relevant for metal actuators.
-	Scheme *runtime.Scheme
+	// scheme is a scheme with the types relevant for metal actuators.
+	scheme *runtime.Scheme
 
 	decoder runtime.Decoder
 )
 
 func init() {
-	Scheme = runtime.NewScheme()
-	utilruntime.Must(install.AddToScheme(Scheme))
+	scheme = runtime.NewScheme()
 
-	decoder = serializer.NewCodecFactory(Scheme).UniversalDecoder()
+	install.Install(scheme)
+
+	decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
 }
 
 // DecodeCloudProfileConfig decodes the cloud profile config
@@ -39,7 +38,7 @@ func DecodeCloudProfileConfig(cloudProfile *gardencorev1beta1.CloudProfile) (*ap
 	if cloudProfile != nil && cloudProfile.Spec.ProviderConfig != nil && cloudProfile.Spec.ProviderConfig.Raw != nil {
 		cloudProfileConfig = &api.CloudProfileConfig{}
 		if _, _, err := decoder.Decode(cloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
-			return nil, errors.Wrapf(err, "could not decode providerConfig of cloudProfile for %q", kutil.ObjectName(cloudProfile))
+			return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for %q %w", kutil.ObjectName(cloudProfile), err)
 		}
 	}
 	return cloudProfileConfig, nil
@@ -89,8 +88,30 @@ func CloudProfileConfigFromCluster(cluster *controller.Cluster) (*api.CloudProfi
 	if cluster != nil && cluster.CloudProfile != nil && cluster.CloudProfile.Spec.ProviderConfig != nil && cluster.CloudProfile.Spec.ProviderConfig.Raw != nil {
 		cloudProfileConfig = &api.CloudProfileConfig{}
 		if _, _, err := decoder.Decode(cluster.CloudProfile.Spec.ProviderConfig.Raw, nil, cloudProfileConfig); err != nil {
-			return nil, errors.Wrapf(err, "could not decode providerConfig of cloudProfile for '%s'", kutil.ObjectName(cluster.CloudProfile))
+			return nil, fmt.Errorf("could not decode providerConfig of cloudProfile for '%s' %w", kutil.ObjectName(cluster.CloudProfile), err)
 		}
 	}
 	return cloudProfileConfig, nil
+}
+
+// DecodeRawExtension decodes a raw extension into an object
+func DecodeRawExtension[T runtime.Object](extension *runtime.RawExtension, object T, decoder runtime.Decoder) error {
+	if extension != nil && extension.Raw != nil {
+		if _, _, err := decoder.Decode(extension.Raw, nil, object); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// EncodeRawExtension encodes an object into a raw extension
+func EncodeRawExtension(from runtime.Object) (*runtime.RawExtension, error) {
+	encoded, err := json.Marshal(from)
+	if err != nil {
+		return nil, err
+	}
+
+	return &runtime.RawExtension{
+		Raw: encoded,
+	}, nil
 }

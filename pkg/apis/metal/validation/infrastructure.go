@@ -36,27 +36,27 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 		return allErrs
 	}
 
-	availableFirewallImages := sets.NewString()
-	var availableFirewallControllerVersions []apismetal.FirewallControllerVersion
-	for _, mcp := range cloudProfileConfig.MetalControlPlanes {
-		availableFirewallImages.Insert(mcp.FirewallImages...)
-		availableFirewallControllerVersions = append(
-			availableFirewallControllerVersions,
-			mcp.FirewallControllerVersions...,
-		)
+	mcp, p, err := helper.FindMetalControlPlane(cloudProfileConfig, infra.PartitionID)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("partitionID"), infra.PartitionID, "cloud profile does not define the given shoot partition"))
+		return allErrs
 	}
 
-	// Check if firewall image is allowed
-	found := false
-	for _, image := range availableFirewallImages.List() {
-		if infra.Firewall.Image == image {
-			found = true
-			break
-		}
-	}
-	if !found {
+	availableFirewallImages := sets.NewString(mcp.FirewallImages...)
+	if availableFirewallImages.Len() > 0 && !availableFirewallImages.Has(infra.Firewall.Image) {
 		allErrs = append(allErrs, field.Invalid(firewallPath.Child("image"), infra.Firewall.Image, fmt.Sprintf("supported values: %v", availableFirewallImages.List())))
 	}
+
+	availableFirewallTypes := sets.NewString(p.FirewallTypes...)
+	if availableFirewallTypes.Len() > 0 && !availableFirewallTypes.Has(infra.Firewall.Size) {
+		allErrs = append(allErrs, field.Invalid(firewallPath.Child("size"), infra.Firewall.Size, fmt.Sprintf("supported values: %v", availableFirewallTypes.List())))
+	}
+
+	var availableFirewallControllerVersions []apismetal.FirewallControllerVersion
+	availableFirewallControllerVersions = append(
+		availableFirewallControllerVersions,
+		mcp.FirewallControllerVersions...,
+	)
 
 	// Check if firewall-controller version is allowed
 	if _, err := ValidateFirewallControllerVersion(
@@ -64,11 +64,6 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 		infra.Firewall.ControllerVersion,
 	); err != nil {
 		allErrs = append(allErrs, field.Required(field.NewPath("controllerVersion"), err.Error()))
-	}
-
-	_, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infra.PartitionID)
-	if err != nil {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("partitionID"), infra.PartitionID, "cloud profile does not define the given shoot partition"))
 	}
 
 	return allErrs
@@ -167,9 +162,34 @@ func ValidateInfrastructureConfigUpdate(oldConfig, newConfig *apismetal.Infrastr
 		allErrs = append(allErrs, field.Required(firewallPath.Child("networks"), "at least one external network needs to be defined as otherwise the cluster will under no circumstances be able to bootstrap"))
 	}
 
-	_, _, err := helper.FindMetalControlPlane(cloudProfileConfig, newConfig.PartitionID)
+	mcp, p, err := helper.FindMetalControlPlane(cloudProfileConfig, newConfig.PartitionID)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("partitionID"), newConfig.PartitionID, "cloud profile does not define the given shoot partition"))
+		return allErrs
+	}
+
+	availableFirewallImages := sets.NewString(mcp.FirewallImages...)
+	if availableFirewallImages.Len() > 0 && !availableFirewallImages.Has(newConfig.Firewall.Image) {
+		allErrs = append(allErrs, field.Invalid(firewallPath.Child("image"), newConfig.Firewall.Image, fmt.Sprintf("supported values: %v", availableFirewallImages.List())))
+	}
+
+	availableFirewallTypes := sets.NewString(p.FirewallTypes...)
+	if availableFirewallTypes.Len() > 0 && !availableFirewallTypes.Has(newConfig.Firewall.Size) {
+		allErrs = append(allErrs, field.Invalid(firewallPath.Child("size"), newConfig.Firewall.Size, fmt.Sprintf("supported values: %v", availableFirewallTypes.List())))
+	}
+
+	var availableFirewallControllerVersions []apismetal.FirewallControllerVersion
+	availableFirewallControllerVersions = append(
+		availableFirewallControllerVersions,
+		mcp.FirewallControllerVersions...,
+	)
+
+	// Check if firewall-controller version is allowed
+	if _, err := ValidateFirewallControllerVersion(
+		availableFirewallControllerVersions,
+		newConfig.Firewall.ControllerVersion,
+	); err != nil {
+		allErrs = append(allErrs, field.Required(field.NewPath("controllerVersion"), err.Error()))
 	}
 
 	return allErrs

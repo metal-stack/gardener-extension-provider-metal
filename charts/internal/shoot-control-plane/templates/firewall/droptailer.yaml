@@ -1,4 +1,16 @@
 ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: droptailer
+  namespace: firewall
+spec:
+  podSelector:
+    matchLabels:
+      k8s-app: droptailer
+  policyTypes:
+  - Egress
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,13 +31,11 @@ spec:
     spec:
       containers:
       - image: {{ index .Values.images "droptailer" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         name: droptailer
         ports:
         - protocol: TCP
           containerPort: 50051
-        securityContext:
-          runAsUser: 65534
         env:
         - name: SERVER_CERTIFICATE
           value: /certificates/tls.crt
@@ -41,15 +51,20 @@ spec:
           limits:
             cpu: 50m
             memory: 200Mi
+        securityContext:
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+{{- if semverCompare ">= 1.19" .Capabilities.KubeVersion.GitVersion }}
+          seccompProfile:
+            type: RuntimeDefault
+{{- end }}
+          capabilities:
+            drop:
+            - ALL
       restartPolicy: Always
+      automountServiceAccountToken: false
       volumes:
       - name: droptailer-server
         secret:
-          secretName: droptailer-server
-          items:
-          - key: droptailer-server.key
-            path: tls.key
-          - key: droptailer-server.crt
-            path: tls.crt
-          - key: ca.crt
-            path: ca.crt
+          secretName: {{ .Values.droptailer.secretName }}

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shoot-info-node-cidr
+  namespace: kube-system
+data:
+  node-cidr: {{ .Values.nodeCIDR }}

@@ -23,7 +23,7 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			PartitionID: "partition-a",
 			ProjectID:   "project-1",
 			Firewall: apismetal.Firewall{
-				Size:  "c1-xlarge-x86",
+				Size:  "n1-medium-x86",
 				Image: "image",
 				Networks: []string{
 					"internet",
@@ -92,6 +92,17 @@ var _ = Describe("InfrastructureConfig validation", func() {
 					"Type":   Equal(field.ErrorTypeInvalid),
 					"Field":  Equal("spec.firewall.image"),
 					"Detail": Equal("supported values: [image]"),
+				}))))
+			})
+
+			It("should forbid firewall type is not specified in CloudProfileConfig", func() {
+				infrastructureConfig.Firewall.Size = "something"
+				errorList := ValidateInfrastructureConfigAgainstCloudProfile(infrastructureConfig, shoot, cloudProfile, cloudProfileConfig, field.NewPath("spec"))
+
+				Expect(errorList).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":   Equal(field.ErrorTypeInvalid),
+					"Field":  Equal("spec.firewall.size"),
+					"Detail": Equal("supported values: [n1-medium-x86]"),
 				}))))
 			})
 		})
@@ -166,12 +177,18 @@ var _ = Describe("InfrastructureConfig validation", func() {
 			cloudProfileConfig *apismetal.CloudProfileConfig
 		)
 		BeforeEach(func() {
+			supported := apismetal.ClassificationSupported
 			cloudProfileConfig = &apismetal.CloudProfileConfig{
 				MetalControlPlanes: map[string]apismetal.MetalControlPlane{
 					"prod": {
 						FirewallImages: []string{"image"},
 						Partitions: map[string]apismetal.Partition{
-							"partition-a": {},
+							"partition-a": {
+								FirewallTypes: []string{"n1-medium-x86"},
+							},
+						},
+						FirewallControllerVersions: []apismetal.FirewallControllerVersion{
+							{Version: "v1.0.1", Classification: &supported},
 						},
 					},
 				},
@@ -228,7 +245,9 @@ func createCloudProfileConfig() *apismetal.CloudProfileConfig {
 			"prod": {
 				FirewallImages: []string{"image"},
 				Partitions: map[string]apismetal.Partition{
-					"partition-a": {},
+					"partition-a": {
+						FirewallTypes: []string{"n1-medium-x86"},
+					},
 				},
 				FirewallControllerVersions: []apismetal.FirewallControllerVersion{
 					{Version: "v1.0.1", Classification: &supported},

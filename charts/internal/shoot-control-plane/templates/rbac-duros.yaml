@@ -6,14 +6,19 @@ metadata:
   name: duros-controller
 rules:
 - apiGroups:
-  - storage.k8s.io
+  - snapshot.storage.k8s.io
   resources:
-  - storageclasses
+  - volumesnapshotclasses
+  - volumesnapshotcontents
+  - volumesnapshotcontents/status
+  - volumesnapshots
+  - volumesnapshots/status
   verbs:
   - create
   - delete
   - get
   - list
+  - watch
   - patch
   - update
 - apiGroups:
@@ -34,6 +39,7 @@ rules:
   - csidrivers
   - csinodes
   - volumeattachments
+  - volumeattachments/status
   - storageclasses
   verbs:
   - create
@@ -43,6 +49,7 @@ rules:
   - patch
   - update
   - watch
+{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
 - apiGroups:
   - "policy"
   resources:
@@ -56,6 +63,7 @@ rules:
   - update
   - watch
   - use
+{{- end }}
 - apiGroups:
   - "rbac.authorization.k8s.io"
   resources:
@@ -112,7 +120,7 @@ roleRef:
   kind: ClusterRole
   name: duros-controller
 subjects:
-- kind: User
-  name: system:duros-controller
-  apiGroup: ""
+- kind: ServiceAccount
+  name: duros-controller
+  namespace: kube-system
 {{- end }}

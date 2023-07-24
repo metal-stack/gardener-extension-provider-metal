@@ -4,7 +4,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	healthcheckconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config/v1alpha1"
+	healthcheckconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
+	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -13,9 +14,19 @@ import (
 type ControllerConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// ClientConnection specifies the kubeconfig file and client connection
+	// settings for the proxy server to use when communicating with the apiserver.
+	// +optional
+	ClientConnection *componentbaseconfigv1alpha1.ClientConnectionConfiguration `json:"clientConnection,omitempty"`
+
 	// MachineImages is the list of machine images that are understood by the controller. It maps
 	// logical names and versions to metal-specific identifiers, i.e. AMIs.
 	MachineImages []MachineImage `json:"machineImages,omitempty"`
+
+	// FirewallInternalPrefixes is a list of prefixes for the firewall-controller
+	// which will be counted as internal network traffic. this is important for accounting
+	// networking traffic.
+	FirewallInternalPrefixes []string `json:"firewallInternalPrefixes,omitempty"`
 
 	// ETCD is the etcd configuration.
 	ETCD ETCD `json:"etcd"`
@@ -23,11 +34,8 @@ type ControllerConfiguration struct {
 	// ClusterAudit is the configuration for cluster auditing.
 	ClusterAudit ClusterAudit `json:"clusterAudit"`
 
-	// Auth is the configuration for metal stack specific user authentication in the cluster.
-	Auth Auth `json:"auth"`
-
-	// AccountingExporter is the configuration for the accounting exporter.
-	AccountingExporter AccountingExporterConfiguration `json:"accountingExporter,omitempty"`
+	// AuditToSplunk is the configuration for forwarding audit (and firewall) logs to Splunk.
+	AuditToSplunk AuditToSplunk `json:"auditToSplunk"`
 
 	// HealthCheckConfig is the config for the health check controller
 	// +optional
@@ -36,8 +44,19 @@ type ControllerConfiguration struct {
 	// Storage is the configuration for storage.
 	Storage StorageConfiguration `json:"storage,omitempty"`
 
+	// ImagePullPolicy defines the pull policy for the components deployed through the control plane controller.
+	// Defaults to IfNotPresent if empty or unknown.
+	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
+
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
+	// +optional
 	ImagePullSecret *ImagePullSecret `json:"imagePullSecret,omitempty"`
+
+	// EgressDestinations is used when the RestrictEgress control plane feature gate is enabled
+	// and provides additional egress destinations to the kube-apiserver.
+	//
+	// It is intended to be configured at least with container registries for the cluster.
+	EgressDestinations []EgressDest `json:"egressDestinations,omitempty"`
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
@@ -83,44 +102,17 @@ type ClusterAudit struct {
 	Enabled bool `json:"enabled"`
 }
 
-// Auth contains the configuration for metal stack specific user authentication in the cluster.
-type Auth struct {
-	// Enabled enables the deployment of metal stack specific cluster authentication when set to true.
+// AuditToSplunk is the configuration for forwarding audit (and firewall) logs to Splunk.
+type AuditToSplunk struct {
+	// Enabled enables forwarding of the kube-apiserver auditlogto splunk.
 	Enabled bool `json:"enabled"`
-	// ProviderTenant is the name of the provider tenant who has special privileges.
-	ProviderTenant string `json:"providerTenant"`
-}
-
-// AccountingExporterConfiguration contains the configuration for the accounting exporter.
-type AccountingExporterConfiguration struct {
-	// Enabled enables the deployment of the accounting exporter when set to true.
-	Enabled bool `json:"enabled"`
-	// NetworkTraffic contains the configuration for accounting network traffic
-	NetworkTraffic AccountingExporterNetworkTrafficConfiguration `json:"networkTraffic"`
-	// Client contains the configuration for the accounting exporter client.
-	Client AccountingExporterClientConfiguration `json:"clientConfig"`
-}
-
-// AccountingExporterClientConfiguration contains the configuration for the network traffic accounting.
-type AccountingExporterNetworkTrafficConfiguration struct {
-	// Enabled enables network traffic accounting of the accounting exporter when set to true.
-	Enabled bool `json:"enabled"`
-	// InternalNetworks defines the networks for the firewall that are considered internal (which can be accounted differently)
-	InternalNetworks []string `json:"internalNetworks"`
-}
-
-// AccountingExporterClientConfiguration contains the configuration for the accounting exporter client.
-type AccountingExporterClientConfiguration struct {
-	// Hostname is the hostname of the accounting api.
-	Hostname string `json:"hostname"`
-	// Port is the port of the accounting api.
-	Port int `json:"port"`
-	// CA is the ca certificate used for communicating with the accounting api.
-	CA string `json:"ca"`
-	// Cert is the client certificate used for communicating with the accounting api.
-	Cert string `json:"cert"`
-	// CertKey is the client certificate key used for communicating with the accounting api.
-	CertKey string `json:"certKey"`
+	// This defines the default splunk endpoint unless otherwise specified by the cluster user
+	HECToken   string `json:"hecToken"`
+	Index      string `json:"index"`
+	HECHost    string `json:"hecHost"`
+	HECPort    int    `json:"hecPort"`
+	TLSEnabled bool   `json:"tlsEnabled"`
+	HECCAFile  string `json:"hecCAFile"`
 }
 
 // StorageConfiguration contains the configuration for provider specfic storage solutions.
@@ -172,10 +164,25 @@ type DurosSeedStorageClass struct {
 	ReplicaCount int `json:"replicaCount"`
 	// Compression enables compression for this storage class
 	Compression bool `json:"compression"`
+	// Encryption defines a SC with client side encryption enabled
+	Encryption bool `json:"encryption"`
 }
 
 // ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 type ImagePullSecret struct {
 	// DockerConfigJSON contains the already base64 encoded JSON content for the image pull secret
 	DockerConfigJSON string `json:"encodedDockerConfigJSON"`
+}
+
+type EgressDest struct {
+	// Description is a description for this egress destination.
+	Description string `json:"description,omitempty"`
+	// MatchPattern is the DNS match pattern for this destination.
+	MatchPattern string `json:"matchPattern,omitempty"`
+	// MatchName is the DNS match name for this destination. Use either a pattern or a name.
+	MatchName string `json:"matchName,omitempty"`
+	// Protocol is either TCP or UDP.
+	Protocol string `json:"protocol,omitempty"`
+	// Port is the port for this destination.
+	Port int `json:"port,omitempty"`
 }

@@ -15,12 +15,13 @@ type InfrastructureConfig struct {
 }
 
 type Firewall struct {
-	Size              string
-	Image             string
-	Networks          []string
-	RateLimits        []RateLimit
-	EgressRules       []EgressRule
-	ControllerVersion string
+	Size                   string
+	Image                  string
+	Networks               []string
+	RateLimits             []RateLimit
+	EgressRules            []EgressRule
+	LogAcceptedConnections bool
+	ControllerVersion      string
 }
 
 type RateLimit struct {
@@ -42,6 +43,5 @@ type InfrastructureStatus struct {
 }
 
 type FirewallStatus struct {
-	Succeeded bool
 	MachineID string
 }

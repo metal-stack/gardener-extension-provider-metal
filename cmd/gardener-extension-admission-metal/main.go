@@ -1,10 +1,11 @@
 package main
 
 import (
+	"os"
+
 	"github.com/metal-stack/gardener-extension-provider-metal/cmd/gardener-extension-admission-metal/app"
 
-	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
-	"github.com/gardener/gardener/extensions/pkg/log"
+	log "github.com/gardener/gardener/pkg/logger"
 	runtimelog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -14,6 +15,7 @@ func main() {
 	cmd := app.NewAdmissionCommand(signals.SetupSignalHandler())
 
 	if err := cmd.Execute(); err != nil {
-		controllercmd.LogErrAndExit(err, "error executing the main command")
+		runtimelog.Log.Error(err, "Error executing the main controller command")
+		os.Exit(1)
 	}
 }
