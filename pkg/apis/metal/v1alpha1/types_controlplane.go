@@ -37,15 +37,7 @@ type ControlPlaneFeatures struct {
 	// Deprecated: This is now default and always on. Toggle does not have an effect anymore.
 	// +optional
 	MachineControllerManagerOOT *bool `json:"machineControllerManagerOOT,omitempty"`
-	// ClusterAudit enables the deployment of a non-null audit policy to the apiserver and the forwarding
-	// of the audit events into the cluster where they appear as container log of an audittailer pod, where they
-	// can be picked up by any of the available Kubernetes logging solutions.
-	// +optional
-	ClusterAudit *bool `json:"clusterAudit,omitempty"`
-	// AuditToSplunk enables the forwarding of the apiserver auditlog to a defined splunk instance in addition to
-	// forwarding it into the cluster. Needs the clusterAudit featureGate to be active.
-	// +optional
-	AuditToSplunk *bool `json:"auditToSplunk,omitempty"`
+
 	// DurosStorageEncryption enables the deployment of configured encrypted storage classes for the duros-controller.
 	// +optional
 	DurosStorageEncryption *bool `json:"durosStorageEncryption,omitempty"`

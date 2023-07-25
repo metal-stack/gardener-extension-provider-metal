@@ -269,8 +269,6 @@ func Convert_metal_ControlPlaneConfig_To_v1alpha1_ControlPlaneConfig(in *metal.C
 
 func autoConvert_v1alpha1_ControlPlaneFeatures_To_metal_ControlPlaneFeatures(in *ControlPlaneFeatures, out *metal.ControlPlaneFeatures, s conversion.Scope) error {
 	out.MachineControllerManagerOOT = (*bool)(unsafe.Pointer(in.MachineControllerManagerOOT))
-	out.ClusterAudit = (*bool)(unsafe.Pointer(in.ClusterAudit))
-	out.AuditToSplunk = (*bool)(unsafe.Pointer(in.AuditToSplunk))
 	out.DurosStorageEncryption = (*bool)(unsafe.Pointer(in.DurosStorageEncryption))
 	out.RestrictEgress = (*bool)(unsafe.Pointer(in.RestrictEgress))
 	return nil
@@ -283,8 +281,6 @@ func Convert_v1alpha1_ControlPlaneFeatures_To_metal_ControlPlaneFeatures(in *Con
 
 func autoConvert_metal_ControlPlaneFeatures_To_v1alpha1_ControlPlaneFeatures(in *metal.ControlPlaneFeatures, out *ControlPlaneFeatures, s conversion.Scope) error {
 	out.MachineControllerManagerOOT = (*bool)(unsafe.Pointer(in.MachineControllerManagerOOT))
-	out.ClusterAudit = (*bool)(unsafe.Pointer(in.ClusterAudit))
-	out.AuditToSplunk = (*bool)(unsafe.Pointer(in.AuditToSplunk))
 	out.DurosStorageEncryption = (*bool)(unsafe.Pointer(in.DurosStorageEncryption))
 	out.RestrictEgress = (*bool)(unsafe.Pointer(in.RestrictEgress))
 	return nil

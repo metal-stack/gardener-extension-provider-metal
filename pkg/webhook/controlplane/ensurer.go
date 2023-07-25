@@ -2,12 +2,9 @@ package controlplane
 
 import (
 	"context"
-	"fmt"
-	"path"
 
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
-	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 
@@ -16,21 +13,15 @@ import (
 
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -63,12 +54,6 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
-	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
-	if err != nil {
-		logger.Error(err, "could not read ControlPlaneConfig from cluster shoot spec", "Cluster name", cluster.ObjectMeta.Name)
-		return err
-	}
-
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
 	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
 		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
@@ -80,289 +65,20 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
-	makeAuditForwarder := false
-	if validation.ClusterAuditEnabled(&e.controllerConfig, cpConfig) {
-		makeAuditForwarder = true
-	}
-	if makeAuditForwarder {
-		audittailersecret := &corev1.Secret{}
-		if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, gutil.SecretNamePrefixShootAccess+metal.AudittailerClientSecretName), audittailersecret); err != nil {
-			logger.Error(err, "could not get secret for cluster", "secret", gutil.SecretNamePrefixShootAccess+metal.AudittailerClientSecretName, "cluster name", cluster.ObjectMeta.Name)
-			makeAuditForwarder = false
-		}
-		if len(audittailersecret.Data) == 0 {
-			logger.Error(err, "token for secret not yet set in cluster", "secret", gutil.SecretNamePrefixShootAccess+metal.AudittailerClientSecretName, "cluster name", cluster.ObjectMeta.Name)
-			makeAuditForwarder = false
-		}
-	}
-
-	genericTokenKubeconfigSecretName := extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster)
-
-	auditToSplunk := false
-	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
-		auditToSplunk = true
-	}
-
 	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder)
-		ensureVolumeMounts(c, makeAuditForwarder)
-		ensureVolumes(ps, genericTokenKubeconfigSecretName, makeAuditForwarder, auditToSplunk)
+		ensureKubeAPIServerCommandLineArgs(c)
 	}
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
 		ensureVPNSeedEnvVars(c, nodeCIDR)
-	}
-	if makeAuditForwarder {
-		err := ensureAuditForwarder(ps, auditToSplunk)
-		if err != nil {
-			logger.Error(err, "could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
-			return err
-		}
-		if auditToSplunk {
-			err := controlplane.EnsureConfigMapChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkConfigName)
-			if err != nil {
-				logger.Error(err, "could not ensure the splunk config map checksum annotation", "cluster name", cluster.ObjectMeta.Name, "configmap", metal.AuditForwarderSplunkConfigName)
-				return err
-			}
-			err = controlplane.EnsureSecretChecksumAnnotation(ctx, &new.Spec.Template, e.client, new.Namespace, metal.AuditForwarderSplunkSecretName)
-			if err != nil {
-				logger.Error(err, "could not ensure the splunk secret checksum annotation", "cluster name", cluster.ObjectMeta.Name, "secret", metal.AuditForwarderSplunkSecretName)
-				return err
-			}
-		}
 	}
 
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
 
-var (
-	// config mount for the audit policy; it gets mounted where the kube-apiserver expects its audit policy.
-	auditPolicyVolumeMount = corev1.VolumeMount{
-		Name:      metal.AuditPolicyName,
-		MountPath: "/etc/kubernetes/audit-override",
-		ReadOnly:  true,
-	}
-	auditPolicyVolume = corev1.Volume{
-		Name: metal.AuditPolicyName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditPolicyName},
-			},
-		},
-	}
-	auditForwarderSplunkConfigVolumeMount = corev1.VolumeMount{
-		Name:      metal.AuditForwarderSplunkConfigName,
-		MountPath: "/fluent-bit/etc/add",
-		ReadOnly:  true,
-	}
-	auditForwarderSplunkConfigVolume = corev1.Volume{
-		Name: metal.AuditForwarderSplunkConfigName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: metal.AuditForwarderSplunkConfigName},
-			},
-		},
-	}
-	auditForwarderSplunkSecretVolumeMount = corev1.VolumeMount{
-		Name:      metal.AuditForwarderSplunkSecretName,
-		MountPath: "/fluent-bit/etc/splunkca",
-		ReadOnly:  true,
-	}
-	auditForwarderSplunkSecretVolume = corev1.Volume{
-		Name: metal.AuditForwarderSplunkSecretName,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: metal.AuditForwarderSplunkSecretName,
-			},
-		},
-	}
-	auditForwarderSplunkPodNameEnvVar = corev1.EnvVar{
-		Name: "MY_POD_NAME",
-		ValueFrom: &corev1.EnvVarSource{
-			FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"},
-		},
-	}
-	auditForwarderSplunkHECTokenEnvVar = corev1.EnvVar{
-		Name: "SPLUNK_HEC_TOKEN",
-		ValueFrom: &corev1.EnvVarSource{
-			SecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: metal.AuditForwarderSplunkSecretName,
-				},
-				Key: "splunk_hec_token",
-			},
-		},
-	}
-	auditLogVolumeMount = corev1.VolumeMount{
-		Name:      "auditlog",
-		MountPath: "/auditlog",
-		ReadOnly:  false,
-	}
-	auditLogVolume = corev1.Volume{
-		Name: "auditlog",
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
-		},
-	}
-	auditKubeconfig = func(genericKubeconfigSecretName string) corev1.Volume {
-		return corev1.Volume{
-			Name: "kubeconfig",
-			VolumeSource: corev1.VolumeSource{
-				Projected: &corev1.ProjectedVolumeSource{
-					DefaultMode: pointer.Pointer(int32(420)),
-					Sources: []corev1.VolumeProjection{
-						{
-							Secret: &corev1.SecretProjection{
-								Items: []corev1.KeyToPath{
-									{
-										Key:  "kubeconfig",
-										Path: "kubeconfig",
-									},
-								},
-								Optional: pointer.Pointer(false),
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: genericKubeconfigSecretName,
-								},
-							},
-						},
-						{
-							Secret: &corev1.SecretProjection{
-								Items: []corev1.KeyToPath{
-									{
-										Key:  "token",
-										Path: "token",
-									},
-								},
-								Optional: pointer.Pointer(false),
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: gutil.SecretNamePrefixShootAccess + metal.AudittailerClientSecretName,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-	}
-	reversedVpnVolumeMounts = []corev1.VolumeMount{
-		{
-			Name:      "ca-vpn",
-			MountPath: "/proxy/ca",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "http-proxy",
-			MountPath: "/proxy/client",
-			ReadOnly:  true,
-		},
-	}
-	kubeAggregatorClientTlsEnvVars = []corev1.EnvVar{
-		{
-			Name:  "AUDIT_PROXY_CA_FILE",
-			Value: "/proxy/ca/bundle.crt",
-		},
-		{
-			Name:  "AUDIT_PROXY_CLIENT_CRT_FILE",
-			Value: "/proxy/client/tls.crt",
-		},
-		{
-			Name:  "AUDIT_PROXY_CLIENT_KEY_FILE",
-			Value: "/proxy/client/tls.key",
-		},
-	}
-	auditForwarderSidecarTemplate = corev1.Container{
-		Name: "auditforwarder",
-		// Image:   // is added from the image vector in the ensure function
-		ImagePullPolicy: "Always",
-		Env: []corev1.EnvVar{
-			{
-				Name:  "AUDIT_KUBECFG",
-				Value: path.Join(gutil.VolumeMountPathGenericKubeconfig, "kubeconfig"),
-			},
-			{
-				Name:  "AUDIT_NAMESPACE",
-				Value: metal.AudittailerNamespace,
-			},
-			{
-				Name:  "AUDIT_SERVICE_NAME",
-				Value: "audittailer",
-			},
-			{
-				Name:  "AUDIT_SECRET_NAME",
-				Value: metal.AudittailerClientSecretName,
-			},
-			{
-				Name:  "AUDIT_AUDIT_LOG_PATH",
-				Value: "/auditlog/audit.log",
-			},
-			{
-				Name:  "AUDIT_TLS_CA_FILE",
-				Value: "ca.crt",
-			},
-			{
-				Name:  "AUDIT_TLS_CRT_FILE",
-				Value: "tls.crt",
-			},
-			{
-				Name:  "AUDIT_TLS_KEY_FILE",
-				Value: "tls.key",
-			},
-			{
-				Name:  "AUDIT_TLS_VHOST",
-				Value: "audittailer",
-			},
-		},
-		Resources: corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse("50m"),
-				corev1.ResourceMemory: resource.MustParse("100Mi"),
-			},
-			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse("100m"),
-				corev1.ResourceMemory: resource.MustParse("500Mi"),
-			},
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "kubeconfig",
-				MountPath: gutil.VolumeMountPathGenericKubeconfig,
-				ReadOnly:  true,
-			},
-			auditLogVolumeMount,
-		},
-	}
-)
-
-func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool) {
-	if makeAuditForwarder {
-		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditPolicyVolumeMount)
-		c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, auditLogVolumeMount)
-	}
-}
-
-func ensureVolumes(ps *corev1.PodSpec, genericKubeconfigSecretName string, makeAuditForwarder, auditToSplunk bool) {
-	if makeAuditForwarder {
-
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditKubeconfig(genericKubeconfigSecretName))
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
-	}
-	if auditToSplunk {
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditForwarderSplunkConfigVolume)
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditForwarderSplunkSecretVolume)
-	}
-}
-
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, makeAuditForwarder bool) {
+func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
-
-	if makeAuditForwarder {
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-policy-file=", "/etc/kubernetes/audit-override/audit-policy.yaml")
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-path=", "/auditlog/audit.log")
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-maxsize=", "100")
-		c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--audit-log-maxbackup=", "1")
-	}
 }
 
 func ensureVPNSeedEnvVars(c *corev1.Container, nodeCIDR string) {
@@ -375,77 +91,6 @@ func ensureVPNSeedEnvVars(c *corev1.Container, nodeCIDR string) {
 		Name:  "NODE_NETWORK",
 		Value: nodeCIDR,
 	})
-}
-
-func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
-	auditForwarderSidecar := auditForwarderSidecarTemplate.DeepCopy()
-	auditForwarderImage, err := imagevector.ImageVector().FindImage("auditforwarder")
-	if err != nil {
-		logger.Error(err, "Could not find auditforwarder image in imagevector")
-		return err
-	}
-	auditForwarderSidecar.Image = auditForwarderImage.String()
-
-	var proxyHost string
-
-	for _, volume := range ps.Volumes {
-		switch volume.Name {
-		case "egress-selection-config":
-			proxyHost = "vpn-seed-server"
-		}
-	}
-
-	if proxyHost != "" {
-		err := ensureAuditForwarderProxy(auditForwarderSidecar, proxyHost)
-		if err != nil {
-			logger.Error(err, "could not ensure auditForwarder proxy")
-			return err
-		}
-	}
-
-	if auditToSplunk {
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkConfigVolumeMount)
-		auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, auditForwarderSplunkSecretVolumeMount)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkPodNameEnvVar)
-		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, auditForwarderSplunkHECTokenEnvVar)
-	}
-
-	logger.Info("ensuring audit forwarder sidecar", "container", auditForwarderSidecar.Name)
-
-	ps.Containers = extensionswebhook.EnsureContainerWithName(ps.Containers, *auditForwarderSidecar)
-	return nil
-}
-
-func ensureAuditForwarderProxy(auditForwarderSidecar *corev1.Container, proxyHost string) error {
-	logger.Info("ensureAuditForwarderProxy called", "proxyHost=", proxyHost)
-	proxyEnvVars := []corev1.EnvVar{
-		{
-			Name:  "AUDIT_PROXY_HOST",
-			Value: proxyHost,
-		},
-		{
-			Name:  "AUDIT_PROXY_PORT",
-			Value: "9443",
-		},
-	}
-
-	for _, envVar := range proxyEnvVars {
-		auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
-	}
-
-	switch proxyHost {
-	case "vpn-seed-server":
-		for _, envVar := range kubeAggregatorClientTlsEnvVars {
-			auditForwarderSidecar.Env = extensionswebhook.EnsureEnvVarWithName(auditForwarderSidecar.Env, envVar)
-		}
-		for _, mount := range reversedVpnVolumeMounts {
-			auditForwarderSidecar.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(auditForwarderSidecar.VolumeMounts, mount)
-		}
-	default:
-		return fmt.Errorf("%q is not a valid proxy name", proxyHost)
-	}
-
-	return nil
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.

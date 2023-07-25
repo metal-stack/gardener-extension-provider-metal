@@ -2,7 +2,6 @@ package controlplane
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/netip"
 	"net/url"
@@ -11,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
@@ -20,7 +18,6 @@ import (
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/v2/api/v1"
 
-	extensionsconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
@@ -34,8 +31,6 @@ import (
 	metalgo "github.com/metal-stack/metal-go"
 
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
-
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -66,7 +61,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -74,7 +68,6 @@ import (
 const (
 	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
 	droptailerCAName   = "ca-" + metal.Name + "-droptailer"
-	auditTailerCAName  = "ca-" + metal.Name + "-audittailer"
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
@@ -140,37 +133,6 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
 		},
-		// audit tailer
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:       auditTailerCAName,
-				CommonName: auditTailerCAName,
-				CertType:   secrets.CACert,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.AudittailerClientSecretName,
-				CommonName:                  "audittailer",
-				DNSNames:                    []string{"audittailer"},
-				Organization:                []string{"audittailer-client"},
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.AudittailerServerSecretName,
-				CommonName:                  "audittailer",
-				DNSNames:                    []string{"audittailer"},
-				Organization:                []string{"audittailer-server"},
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
-		},
 	}
 }
 
@@ -180,7 +142,6 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.MachineControllerManagerName, namespace),
-		gutil.NewShootAccessSecret(metal.AudittailerClientSecretName, namespace),
 	}
 }
 
@@ -325,27 +286,6 @@ func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerCon
 			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:duros-controller"},
 		}...)
 	}
-	if controllerConfig.ClusterAudit.Enabled {
-		configChart.Objects = append(configChart.Objects, []*chart.Object{
-			{Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
-		}...)
-		cpShootChart.Images = append(cpShootChart.Images, []string{metal.AudittailerImageName}...)
-		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
-			// audittailer
-			{Type: &corev1.Namespace{}, Name: "audit"},
-			{Type: &appsv1.Deployment{}, Name: "audittailer"},
-			{Type: &corev1.ConfigMap{}, Name: "audittailer-config"},
-			{Type: &corev1.Service{}, Name: "audittailer"},
-			{Type: &rbacv1.Role{}, Name: "audittailer"},
-			{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
-		}...)
-		if controllerConfig.AuditToSplunk.Enabled {
-			configChart.Objects = append(configChart.Objects, []*chart.Object{
-				{Type: &corev1.Secret{}, Name: "audit-to-splunk-secret"},
-				{Type: &corev1.ConfigMap{}, Name: "audit-to-splunk-config"},
-			}...)
-		}
-	}
 
 	return &valuesProvider{
 		logger:           logger.WithName("metal-values-provider"),
@@ -367,106 +307,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
-	clusterAuditValues, err := vp.getClusterAuditConfigValues(ctx, cp, cluster)
-	if err != nil {
-		return nil, err
-	}
-
-	return clusterAuditValues, nil
-}
-
-func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		clusterAuditValues = map[string]interface{}{
-			"enabled": false,
-		}
-		auditToSplunkValues = map[string]interface{}{
-			"enabled": false,
-		}
-		values = map[string]interface{}{
-			"clusterAudit":  clusterAuditValues,
-			"auditToSplunk": auditToSplunkValues,
-		}
-	)
-
-	if !validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
-		return values, nil
-	}
-
-	clusterAuditValues["enabled"] = true
-
-	if !validation.AuditToSplunkEnabled(&vp.controllerConfig, cpConfig) {
-		return values, nil
-	}
-
-	auditToSplunkValues["enabled"] = true
-	auditToSplunkValues["hecToken"] = vp.controllerConfig.AuditToSplunk.HECToken
-	auditToSplunkValues["index"] = vp.controllerConfig.AuditToSplunk.Index
-	auditToSplunkValues["hecHost"] = vp.controllerConfig.AuditToSplunk.HECHost
-	auditToSplunkValues["hecPort"] = vp.controllerConfig.AuditToSplunk.HECPort
-	auditToSplunkValues["tlsEnabled"] = vp.controllerConfig.AuditToSplunk.TLSEnabled
-	auditToSplunkValues["hecCAFile"] = vp.controllerConfig.AuditToSplunk.HECCAFile
-	auditToSplunkValues["clusterName"] = cluster.ObjectMeta.Name
-
-	if !extensionscontroller.IsHibernated(cluster) {
-		customValues, err := vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
-		if err != nil {
-			vp.logger.Error(err, "could not read custom splunk values")
-		} else {
-			values["auditToSplunk"] = customValues
-		}
-	}
-
-	return values, nil
-}
-
-func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName string, auditToSplunkValues map[string]interface{}) (map[string]interface{}, error) {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), clusterName, client.Options{}, extensionsconfig.RESTOptions{})
-	if err != nil {
-		return auditToSplunkValues, err
-	}
-
-	cs, err := kubernetes.NewForConfig(shootConfig)
-	if err != nil {
-		return auditToSplunkValues, err
-	}
-
-	splunkConfigSecret, err := cs.CoreV1().Secrets("kube-system").Get(ctx, "splunk-config", metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return auditToSplunkValues, nil
-		}
-		return nil, err
-	}
-
-	if splunkConfigSecret.Data == nil {
-		vp.logger.Error(errors.New("secret is empty"), "custom splunk config secret contains no data")
-		return auditToSplunkValues, nil
-	}
-
-	for key, value := range splunkConfigSecret.Data {
-		switch key {
-		case "hecToken":
-			auditToSplunkValues[key] = string(value)
-		case "index":
-			auditToSplunkValues[key] = string(value)
-		case "hecHost":
-			auditToSplunkValues[key] = string(value)
-		case "hecPort":
-			auditToSplunkValues[key] = string(value)
-		case "tlsEnabled":
-			auditToSplunkValues[key] = string(value)
-		case "hecCAFile":
-			auditToSplunkValues[key] = string(value)
-		}
-	}
-
-	return auditToSplunkValues, nil
+	return nil, nil
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
@@ -661,13 +502,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
-	clusterAuditValues := map[string]interface{}{
-		"enabled": false,
-	}
-	if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
-		clusterAuditValues["enabled"] = true
-	}
-
 	nodeInitValues := map[string]any{
 		"enabled": true,
 	}
@@ -722,7 +556,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"apiserverIPs":    apiserverIPs,
 		"nodeCIDR":        nodeCIDR,
 		"duros":           durosValues,
-		"clusterAudit":    clusterAuditValues,
 		"nodeInit":        nodeInitValues,
 		"restrictEgress": map[string]any{
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
@@ -748,27 +581,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 				"ca":   droptailerClient.Data["ca.crt"],
 				"cert": droptailerClient.Data["tls.crt"],
 				"key":  droptailerClient.Data["tls.key"],
-			},
-		}
-	}
-
-	audittailerServer, serverOK := secretsReader.Get(metal.AudittailerServerSecretName)
-	audittailerClient, clientOK := secretsReader.Get(metal.AudittailerClientSecretName)
-	if serverOK && clientOK {
-		values["audittailer"] = map[string]any{
-			"podAnnotations": map[string]interface{}{
-				"checksum/secret-audittailer-server": checksums[metal.AudittailerServerSecretName],
-				"checksum/secret-audittailer-client": checksums[metal.AudittailerClientSecretName],
-			},
-			"server": map[string]any{
-				"ca":   audittailerServer.Data["ca.crt"],
-				"cert": audittailerServer.Data["tls.crt"],
-				"key":  audittailerServer.Data["tls.key"],
-			},
-			"client": map[string]any{
-				"ca":   audittailerClient.Data["ca.crt"],
-				"cert": audittailerClient.Data["tls.crt"],
-				"key":  audittailerClient.Data["tls.key"],
 			},
 		}
 	}

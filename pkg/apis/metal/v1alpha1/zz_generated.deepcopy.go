@@ -117,16 +117,6 @@ func (in *ControlPlaneFeatures) DeepCopyInto(out *ControlPlaneFeatures) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.ClusterAudit != nil {
-		in, out := &in.ClusterAudit, &out.ClusterAudit
-		*out = new(bool)
-		**out = **in
-	}
-	if in.AuditToSplunk != nil {
-		in, out := &in.AuditToSplunk, &out.AuditToSplunk
-		*out = new(bool)
-		**out = **in
-	}
 	if in.DurosStorageEncryption != nil {
 		in, out := &in.DurosStorageEncryption, &out.DurosStorageEncryption
 		*out = new(bool)

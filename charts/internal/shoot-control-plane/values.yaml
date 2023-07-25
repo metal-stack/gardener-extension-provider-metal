@@ -5,11 +5,9 @@ nodeCIDR:
 pspDisabled: false
 
 images:
-    audittailer: image-repository:image-tag
     droptailer: image-repository:image-tag
     metallb-speaker: image-repository:image-tag
     metallb-controller: image-repository:image-tag
-    fluentd-splunk-audit: image-repository:image-tag
     node-init: image-repository:image-tag
     metallb-health-sidecar: image-repository:image-tag
 
@@ -18,9 +16,6 @@ imagePullPolicy: IfNotPresent
 duros:
   enabled: false
   endpoints: []
-
-clusterAudit:
-  enabled: false
 
 nodeInit:
   enabled: true
@@ -35,17 +30,6 @@ restrictEgress:
       port: 443
 
 droptailer:
-  podAnnotations: {}
-  server:
-    ca: ""
-    cert: ""
-    key: ""
-  client:
-    ca: ""
-    cert: ""
-    key: ""
-
-audittailer:
   podAnnotations: {}
   server:
     ca: ""
