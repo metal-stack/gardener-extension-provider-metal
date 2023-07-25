@@ -127,7 +127,7 @@ kind: ServiceAccount
 metadata:
   name: csi-lvm-reviver
   namespace: csi-lvm
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
+{{- if not .Values.pspDisabled }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy

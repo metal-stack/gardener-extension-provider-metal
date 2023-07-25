@@ -25,6 +25,8 @@ import (
 	extensionsconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
+
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/pkg/utils"
 
@@ -493,6 +495,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	values := map[string]any{
 		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
+		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"podAnnotations": map[string]interface{}{
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
 			"checksum/secret-cloudprovider":                                    checksums[v1beta1constants.SecretNameCloudProvider],
@@ -684,14 +687,14 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	values := map[string]any{
-		"imagePullPolicy":   helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
-		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-		"apiserverIPs":      apiserverIPs,
-		"nodeCIDR":          nodeCIDR,
-		"firewallSpec":      fwSpec,
-		"duros":             durosValues,
-		"clusterAudit":      clusterAuditValues,
-		"nodeInit":          nodeInitValues,
+		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
+		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
+		"apiserverIPs":    apiserverIPs,
+		"nodeCIDR":        nodeCIDR,
+		"firewallSpec":    fwSpec,
+		"duros":           durosValues,
+		"clusterAudit":    clusterAuditValues,
+		"nodeInit":        nodeInitValues,
 		"restrictEgress": map[string]any{
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
@@ -992,7 +995,7 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
-func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, _ *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	cp, err := helper.ControlPlaneConfigFromControlPlane(controlPlane)
 	if err != nil {
 		return nil, err
@@ -1004,6 +1007,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 	}
 
 	values := map[string]interface{}{
+		"pspDisabled":           gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"isDefaultStorageClass": isDefaultSC,
 	}
 
@@ -1095,7 +1099,7 @@ func getCCMChartValues(
 	}
 
 	values := map[string]interface{}{
-		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
+		"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"cloudControllerManager": map[string]interface{}{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"projectID":              projectID,
@@ -1236,6 +1240,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	values := map[string]any{
+		"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"duros": map[string]any{
 			"enabled":        storageConfig.Duros.Enabled,
 			"replicas":       extensionscontroller.GetReplicas(cluster, 1),
