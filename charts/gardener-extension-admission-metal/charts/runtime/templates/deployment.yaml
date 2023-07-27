@@ -62,7 +62,7 @@ spec:
           periodSeconds: 10
         env:
 {{- range $key, $value := .Values.global.defaulter }}
-{{- if $value }}
+{{- if ne nil $value }}
           - name: DEFAULTER_{{ upper $key }}
             value: {{ $value | quote }}
 {{- end }}
