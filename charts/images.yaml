@@ -55,9 +55,3 @@ images:
   sourceRepository: https://github.com/metal-stack/firewall-controller-manager
   repository: ghcr.io/metal-stack/firewall-controller-manager
   tag: "v0.2.0"
-
-# can be provided via image override:
-# - name: accounting-exporter
-#   sourceRepository:
-#   repository:
-#   tag:

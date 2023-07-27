@@ -24,13 +24,14 @@ import (
 type networkDeleter struct {
 	ctx                  context.Context
 	logger               logr.Logger
+	cluster              *extensionscontroller.Cluster
 	infrastructure       *extensionsv1alpha1.Infrastructure
 	infrastructureConfig *metalapi.InfrastructureConfig
 	mclient              metalgo.Client
 	clusterID            string
 }
 
-func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
 	internalInfrastructureConfig, _, err := decodeInfrastructure(infrastructure, a.decoder)
 	if err != nil {
 		return err
@@ -53,7 +54,8 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 
 	deleter := &networkDeleter{
 		ctx:                  ctx,
-		logger:               a.logger,
+		logger:               logger,
+		cluster:              cluster,
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
 		mclient:              mclient,
@@ -74,7 +76,7 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, d.clusterID)
 	if err != nil {
-		a.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
+		d.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
 		return err
 	}
 
@@ -109,19 +111,22 @@ func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 		}
 	}
 
-	if d.infrastructure.Status.NodesCIDR != nil {
-		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, *d.infrastructure.Status.NodesCIDR)
-		if err != nil {
-			d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", *d.infrastructure.Status.NodesCIDR)
-			return err
-		}
+	nodeCIDR, err := helper.GetNodeCIDR(d.infrastructure, d.cluster)
+	if err != nil {
+		return fmt.Errorf("unable to cleanup private networks as the node cidr is not defined: %w", err)
+	}
 
-		for _, pn := range privateNetworks {
-			_, err := d.mclient.Network().FreeNetwork(network.NewFreeNetworkParams().WithID(*pn.ID).WithContext(d.ctx), nil)
-			if err != nil {
-				d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID)
-				return err
-			}
+	privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, nodeCIDR)
+	if err != nil {
+		d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", nodeCIDR)
+		return err
+	}
+
+	for _, pn := range privateNetworks {
+		_, err := d.mclient.Network().FreeNetwork(network.NewFreeNetworkParams().WithID(*pn.ID).WithContext(d.ctx), nil)
+		if err != nil {
+			d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID)
+			return err
 		}
 	}
 

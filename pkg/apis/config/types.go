@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	componentbaseconfig "k8s.io/component-base/config"
 )
 
@@ -22,6 +22,11 @@ type ControllerConfiguration struct {
 	// logical names and versions to metal-specific identifiers, i.e. AMIs.
 	MachineImages []MachineImage
 
+	// FirewallInternalPrefixes is a list of prefixes for the firewall-controller
+	// which will be counted as internal network traffic. this is important for accounting
+	// networking traffic.
+	FirewallInternalPrefixes []string
+
 	// ETCD is the etcd configuration.
 	ETCD ETCD
 
@@ -31,14 +36,15 @@ type ControllerConfiguration struct {
 	// AuditToSplunk is the configuration for forwarding audit (and firewall) logs to Splunk.
 	AuditToSplunk AuditToSplunk
 
-	// AccountingExporter is the configuration for the accounting exporter
-	AccountingExporter AccountingExporterConfiguration
-
 	// HealthCheckConfig is the config for the health check controller
 	HealthCheckConfig *healthcheckconfig.HealthCheckConfig
 
 	// Storage is the configuration for storage.
 	Storage StorageConfiguration
+
+	// ImagePullPolicy defines the pull policy for the components deployed through the control plane controller.
+	// Defaults to IfNotPresent if empty or unknown.
+	ImagePullPolicy string
 
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 	ImagePullSecret *ImagePullSecret
@@ -101,38 +107,6 @@ type AuditToSplunk struct {
 	HECPort    int
 	TLSEnabled bool
 	HECCAFile  string
-}
-
-// AccountingExporterConfiguration contains the configuration for the accounting exporter.
-type AccountingExporterConfiguration struct {
-	// Enabled enables the deployment of the accounting exporter when set to true.
-	Enabled bool
-	// NetworkTraffic contains the configuration for accounting network traffic
-	NetworkTraffic AccountingExporterNetworkTrafficConfiguration
-	// Client contains the configuration for the accounting exporter client.
-	Client AccountingExporterClientConfiguration
-}
-
-// AccountingExporterClientConfiguration contains the configuration for the network traffic accounting.
-type AccountingExporterNetworkTrafficConfiguration struct {
-	// Enabled enables network traffic accounting of the accounting exporter when set to true.
-	Enabled bool
-	// InternalNetworks defines the networks for the firewall that are considered internal (which can be accounted differently)
-	InternalNetworks []string
-}
-
-// AccountingExporterClientConfiguration contains the configuration for the accounting exporter client
-type AccountingExporterClientConfiguration struct {
-	// Hostname is the hostname of the accounting api
-	Hostname string
-	// Port is the port of the accounting api
-	Port int
-	// CA is the ca certificate used for communicating with the accounting api
-	CA string
-	// Cert is the client certificate used for communicating with the accounting api
-	Cert string
-	// CertKey is the client certificate key used for communicating with the accounting api
-	CertKey string
 }
 
 // StorageConfiguration contains the configuration for provider specfic storage solutions.

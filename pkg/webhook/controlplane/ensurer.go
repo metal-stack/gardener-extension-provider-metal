@@ -12,7 +12,7 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
-	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
@@ -74,8 +74,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
-	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
-		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return err
 	}
 
 	makeAuditForwarder := false
@@ -107,7 +108,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureVolumes(ps, makeAuditForwarder, auditToSplunk)
 	}
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
-		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
+		ensureVPNSeedEnvVars(c, nodeCIDR)
 	}
 	if makeAuditForwarder {
 		err := ensureAuditForwarder(ps, auditToSplunk)
@@ -241,24 +242,28 @@ var (
 	}
 	reversedVpnVolumeMounts = []corev1.VolumeMount{
 		{
-			Name:      "kube-apiserver-http-proxy",
+			Name:      "ca-vpn",
 			MountPath: "/proxy/ca",
 			ReadOnly:  true,
 		},
 		{
-			Name:      "kube-aggregator",
+			Name:      "http-proxy",
 			MountPath: "/proxy/client",
 			ReadOnly:  true,
 		},
 	}
 	kubeAggregatorClientTlsEnvVars = []corev1.EnvVar{
 		{
+			Name:  "AUDIT_PROXY_CA_FILE",
+			Value: "/proxy/ca/bundle.crt",
+		},
+		{
 			Name:  "AUDIT_PROXY_CLIENT_CRT_FILE",
-			Value: "/proxy/client/kube-aggregator.crt",
+			Value: "/proxy/client/tls.crt",
 		},
 		{
 			Name:  "AUDIT_PROXY_CLIENT_KEY_FILE",
-			Value: "/proxy/client/kube-aggregator.key",
+			Value: "/proxy/client/tls.key",
 		},
 	}
 	auditForwarderSidecarTemplate = corev1.Container{
@@ -379,7 +384,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 
 	for _, volume := range ps.Volumes {
 		switch volume.Name {
-		case "kube-apiserver-http-proxy":
+		case "egress-selection-config":
 			proxyHost = "vpn-seed-server"
 		}
 	}
@@ -460,7 +465,7 @@ func ensureKubeControllerManagerAnnotations(t *corev1.PodTemplateSpec) {
 }
 
 func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev1.PodTemplateSpec, namespace string) error {
-	return controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, v1alpha1constants.SecretNameCloudProvider)
+	return controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, v1beta1constants.SecretNameCloudProvider)
 }
 
 // EnsureKubeletServiceUnitOptions ensures that the kubelet.service unit options conform to the provider requirements.
@@ -504,15 +509,16 @@ func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
-	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
-		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return err
 	}
 
 	template := &new.Spec.Template
 	ps := &template.Spec
 
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed-server"); c != nil {
-		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
+		ensureVPNSeedEnvVars(c, nodeCIDR)
 	}
 
 	return nil

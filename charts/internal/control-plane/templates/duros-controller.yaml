@@ -100,6 +100,7 @@ spec:
           - -admin-token=/duros/admin-token
           - -admin-key=/duros/admin-key
           - -shoot-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
+          - -psp-disabled={{ .Values.pspDisabled }}
 {{- if .Values.duros.controller.apiEndpoint }}
           - -api-endpoint={{ .Values.duros.controller.apiEndpoint }}
           - -api-ca=/duros/api-ca
@@ -107,7 +108,7 @@ spec:
           - -api-key=/duros/api-key
 {{- end }}
         image: {{ index .Values.images "duros-controller" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         resources:
           limits:
             cpu: 400m

@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	healthcheckconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config/v1alpha1"
+	healthcheckconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
 	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
 
@@ -23,6 +23,11 @@ type ControllerConfiguration struct {
 	// logical names and versions to metal-specific identifiers, i.e. AMIs.
 	MachineImages []MachineImage `json:"machineImages,omitempty"`
 
+	// FirewallInternalPrefixes is a list of prefixes for the firewall-controller
+	// which will be counted as internal network traffic. this is important for accounting
+	// networking traffic.
+	FirewallInternalPrefixes []string `json:"firewallInternalPrefixes,omitempty"`
+
 	// ETCD is the etcd configuration.
 	ETCD ETCD `json:"etcd"`
 
@@ -32,9 +37,6 @@ type ControllerConfiguration struct {
 	// AuditToSplunk is the configuration for forwarding audit (and firewall) logs to Splunk.
 	AuditToSplunk AuditToSplunk `json:"auditToSplunk"`
 
-	// AccountingExporter is the configuration for the accounting exporter.
-	AccountingExporter AccountingExporterConfiguration `json:"accountingExporter,omitempty"`
-
 	// HealthCheckConfig is the config for the health check controller
 	// +optional
 	HealthCheckConfig *healthcheckconfigv1alpha1.HealthCheckConfig `json:"healthCheckConfig,omitempty"`
@@ -42,7 +44,12 @@ type ControllerConfiguration struct {
 	// Storage is the configuration for storage.
 	Storage StorageConfiguration `json:"storage,omitempty"`
 
+	// ImagePullPolicy defines the pull policy for the components deployed through the control plane controller.
+	// Defaults to IfNotPresent if empty or unknown.
+	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
+
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
+	// +optional
 	ImagePullSecret *ImagePullSecret `json:"imagePullSecret,omitempty"`
 
 	// EgressDestinations is used when the RestrictEgress control plane feature gate is enabled
@@ -106,38 +113,6 @@ type AuditToSplunk struct {
 	HECPort    int    `json:"hecPort"`
 	TLSEnabled bool   `json:"tlsEnabled"`
 	HECCAFile  string `json:"hecCAFile"`
-}
-
-// AccountingExporterConfiguration contains the configuration for the accounting exporter.
-type AccountingExporterConfiguration struct {
-	// Enabled enables the deployment of the accounting exporter when set to true.
-	Enabled bool `json:"enabled"`
-	// NetworkTraffic contains the configuration for accounting network traffic
-	NetworkTraffic AccountingExporterNetworkTrafficConfiguration `json:"networkTraffic"`
-	// Client contains the configuration for the accounting exporter client.
-	Client AccountingExporterClientConfiguration `json:"clientConfig"`
-}
-
-// AccountingExporterClientConfiguration contains the configuration for the network traffic accounting.
-type AccountingExporterNetworkTrafficConfiguration struct {
-	// Enabled enables network traffic accounting of the accounting exporter when set to true.
-	Enabled bool `json:"enabled"`
-	// InternalNetworks defines the networks for the firewall that are considered internal (which can be accounted differently)
-	InternalNetworks []string `json:"internalNetworks"`
-}
-
-// AccountingExporterClientConfiguration contains the configuration for the accounting exporter client.
-type AccountingExporterClientConfiguration struct {
-	// Hostname is the hostname of the accounting api.
-	Hostname string `json:"hostname"`
-	// Port is the port of the accounting api.
-	Port int `json:"port"`
-	// CA is the ca certificate used for communicating with the accounting api.
-	CA string `json:"ca"`
-	// Cert is the client certificate used for communicating with the accounting api.
-	Cert string `json:"cert"`
-	// CertKey is the client certificate key used for communicating with the accounting api.
-	CertKey string `json:"certKey"`
 }
 
 // StorageConfiguration contains the configuration for provider specfic storage solutions.

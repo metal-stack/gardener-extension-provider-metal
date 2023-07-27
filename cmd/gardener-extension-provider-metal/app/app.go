@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 
 	gardenerhealthz "github.com/gardener/gardener/pkg/healthz"
+	"github.com/metal-stack/gardener-extension-provider-metal/charts"
 	metalinstall "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/install"
 	metalcmd "github.com/metal-stack/gardener-extension-provider-metal/pkg/cmd"
 	metalcontrolplane "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/controlplane"
@@ -125,9 +126,14 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 					return fmt.Errorf("error creating chart renderer: %w", err)
 				}
 
-				err = ca.Apply(ctx, filepath.Join(metal.InternalChartsPath, "metal-crds"), "", "metal-crds")
+				err = ca.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "crds-firewall"), "", "crds-firewall")
 				if err != nil {
-					return fmt.Errorf("error applying metal-crds chart: %w", err)
+					return fmt.Errorf("error applying crds-firewall chart: %w", err)
+				}
+
+				err = ca.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "crds-storage"), "", "crds-storage")
+				if err != nil {
+					return fmt.Errorf("error applying crds-storage chart: %w", err)
 				}
 
 				c, err := client.New(restOpts.Completed().Config, client.Options{})

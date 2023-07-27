@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +15,6 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
-	"github.com/metal-stack/metal-go/api/client/project"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -21,8 +22,11 @@ import (
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 
+	extensionsconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
+
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/pkg/utils"
 
@@ -53,7 +57,7 @@ import (
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
-	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 
 	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -113,7 +117,6 @@ func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
 	return []*gutil.ShootAccessSecret{
 		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
-		gutil.NewShootAccessSecret(metal.AccountingExporterName, namespace),
 		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.MachineControllerManagerName, namespace),
 		gutil.NewShootAccessSecret(metal.AudittailerClientSecretName, namespace),
@@ -245,20 +248,6 @@ func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerCon
 		{Type: &corev1.ConfigMap{}, Name: "shoot-info-node-cidr"},
 	}...)
 
-	if controllerConfig.AccountingExporter.Enabled {
-		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.AccountingExporterImageName}...)
-		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
-			// accounting exporter
-			{Type: &corev1.Secret{}, Name: "accounting-exporter-tls"},
-			{Type: &appsv1.Deployment{}, Name: "accounting-exporter"},
-		}...)
-		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
-			// accounting controller
-			{Type: &rbacv1.ClusterRole{}, Name: "system:accounting-exporter"},
-			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:accounting-exporter"},
-		}...)
-
-	}
 	if controllerConfig.Storage.Duros.Enabled {
 		controlPlaneChart.Images = append(controlPlaneChart.Images, []string{metal.DurosControllerImageName}...)
 		controlPlaneChart.Objects = append(controlPlaneChart.Objects, []*chart.Object{
@@ -377,7 +366,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 }
 
 func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName string, auditToSplunkValues map[string]interface{}) (map[string]interface{}, error) {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), clusterName, client.Options{})
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), clusterName, client.Options{}, extensionsconfig.RESTOptions{})
 	if err != nil {
 		return auditToSplunkValues, err
 	}
@@ -479,26 +468,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	p, err := mclient.Project().FindProject(project.NewFindProjectParams().WithID(infrastructureConfig.ProjectID).WithContext(ctx), nil)
-	if err != nil {
-		return nil, fmt.Errorf("could not retrieve project from metal-api %w", err)
-	}
-
-	ccmValues, err := getCCMChartValues(ctx, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws, secretsReader)
-	if err != nil {
-		return nil, err
-	}
-
-	accValues, err := getAccountingExporterChartValues(ctx, vp.Client(), vp.controllerConfig.AccountingExporter, cluster, infrastructureConfig, p.Payload)
-	if err != nil {
-		return nil, err
-	}
-
-	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.Client(), vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
-	if err != nil {
-		return nil, err
-	}
-
 	sshSecret, err := helper.GetLatestSSHSecret(ctx, vp.Client(), cp.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
@@ -509,19 +478,31 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not get ca from secret: %w", err)
 	}
 
+	ccmValues, err := getCCMChartValues(ctx, sshSecret, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws, secretsReader)
+	if err != nil {
+		return nil, err
+	}
+
+	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.Client(), vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
+	if err != nil {
+		return nil, err
+	}
+
 	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, metalControlPlane, sshSecret, caBundle, secretsReader)
 	if err != nil {
 		return nil, err
 	}
 
 	values := map[string]any{
+		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
+		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"podAnnotations": map[string]interface{}{
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
-			"checksum/secret-cloudprovider":                                    checksums[v1alpha1constants.SecretNameCloudProvider],
+			"checksum/secret-cloudprovider":                                    checksums[v1beta1constants.SecretNameCloudProvider],
 		},
 	}
 
-	merge(values, ccmValues, accValues, storageValues, firewallValues)
+	merge(values, ccmValues, storageValues, firewallValues)
 
 	if vp.controllerConfig.ImagePullSecret != nil {
 		values["imagePullSecret"] = vp.controllerConfig.ImagePullSecret.DockerConfigJSON
@@ -620,8 +601,9 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
-	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
-		return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return nil, err
 	}
 
 	fwSpec, err := vp.getFirewallSpec(ctx, metalControlPlane, infrastructureConfig, cluster, nws, mclient)
@@ -643,6 +625,13 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 	if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
 		clusterAuditValues["enabled"] = true
+	}
+
+	nodeInitValues := map[string]any{
+		"enabled": true,
+	}
+	if cluster.Shoot.Spec.Networking.Type == "cilium" {
+		nodeInitValues["enabled"] = false
 	}
 
 	apiserverIPs := []string{}
@@ -698,15 +687,14 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	values := map[string]any{
-		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-		"apiserverIPs":      apiserverIPs,
-		"nodeCIDR":          *infrastructure.Status.NodesCIDR,
-		"firewallSpec":      fwSpec,
-		"accountingExporter": map[string]any{
-			"enabled": vp.controllerConfig.AccountingExporter.Enabled,
-		},
-		"duros":        durosValues,
-		"clusterAudit": clusterAuditValues,
+		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
+		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
+		"apiserverIPs":    apiserverIPs,
+		"nodeCIDR":        nodeCIDR,
+		"firewallSpec":    fwSpec,
+		"duros":           durosValues,
+		"clusterAudit":    clusterAuditValues,
+		"nodeInit":        nodeInitValues,
 		"restrictEgress": map[string]any{
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
@@ -741,11 +729,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 // getFirewallSpec returns the firewall v1 specification to be deployed to the shoot cluster.
 // this is kept for backwards-compatibility to support firewall-controller v1.x, can be removed as soon as all firewall-controllers are migrated to v2.x
 func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient metalgo.Client) (*firewallv1.FirewallSpec, error) {
-	internalPrefixes := []string{}
-	if vp.controllerConfig.AccountingExporter.Enabled && vp.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
-		internalPrefixes = vp.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
-	}
-
 	rateLimits := []firewallv1.RateLimit{}
 	for _, rateLimit := range infrastructureConfig.Firewall.RateLimits {
 		rateLimits = append(rateLimits, firewallv1.RateLimit{
@@ -765,7 +748,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 	spec := firewallv1.FirewallSpec{
 		Data: firewallv1.Data{
 			Interval:         "10s",
-			InternalPrefixes: internalPrefixes,
+			InternalPrefixes: vp.controllerConfig.FirewallInternalPrefixes,
 			RateLimits:       rateLimits,
 			EgressRules:      egressRules,
 		},
@@ -849,7 +832,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 }
 
 func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace string, spec *firewallv1.FirewallSpec) error {
-	secret, err := vp.getSecret(ctx, namespace, v1alpha1constants.SecretNameCACluster)
+	secret, err := vp.getSecret(ctx, namespace, v1beta1constants.SecretNameCACluster)
 	if err != nil {
 		return fmt.Errorf("could not find ca secret for signing firewall values %w", err)
 	}
@@ -947,7 +930,7 @@ func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.S
 }
 
 func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, secretConfigsFn func() []extensionssecretsmanager.SecretConfigWithOptions) error {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{})
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{}, extensionsconfig.RESTOptions{})
 	if err != nil {
 		return fmt.Errorf("could not create shoot client %w", err)
 	}
@@ -982,7 +965,7 @@ func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *ext
 }
 
 func (vp *valuesProvider) getSecretFromShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, name string) (*corev1.Secret, error) {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{})
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{}, extensionsconfig.RESTOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("could not create shoot client %w", err)
 	}
@@ -1012,7 +995,7 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
-func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, _ *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	cp, err := helper.ControlPlaneConfigFromControlPlane(controlPlane)
 	if err != nil {
 		return nil, err
@@ -1024,6 +1007,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 	}
 
 	values := map[string]interface{}{
+		"pspDisabled":           gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"isDefaultStorageClass": isDefaultSC,
 	}
 
@@ -1033,6 +1017,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 // getCCMChartValues collects and returns the CCM chart values.
 func getCCMChartValues(
 	ctx context.Context,
+	sshSecret *corev1.Secret,
 	cpConfig *apismetal.ControlPlaneConfig,
 	infrastructureConfig *apismetal.InfrastructureConfig,
 	infrastructure *extensionsv1alpha1.Infrastructure,
@@ -1045,16 +1030,13 @@ func getCCMChartValues(
 	secretsReader secretsmanager.Reader,
 ) (map[string]interface{}, error) {
 	projectID := infrastructureConfig.ProjectID
-	nodeCIDR := infrastructure.Status.NodesCIDR
 
-	if nodeCIDR == nil {
-		if cluster.Shoot.Spec.Networking.Nodes == nil {
-			return nil, fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
-		}
-		nodeCIDR = cluster.Shoot.Spec.Networking.Nodes
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return nil, err
 	}
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, *nodeCIDR)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, nodeCIDR)
 	if err != nil {
 		return nil, err
 	}
@@ -1117,7 +1099,7 @@ func getCCMChartValues(
 	}
 
 	values := map[string]interface{}{
-		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
+		"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"cloudControllerManager": map[string]interface{}{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"projectID":              projectID,
@@ -1127,13 +1109,14 @@ func getCCMChartValues(
 			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
 			"defaultExternalNetwork": defaultExternalNetwork,
 			"additionalNetworks":     strings.Join(infrastructureConfig.Firewall.Networks, ","),
+			"sshPublicKey":           string(sshSecret.Data["id_rsa.pub"]),
 			"metal": map[string]interface{}{
 				"endpoint": mcp.Endpoint,
 			},
 			"podAnnotations": map[string]interface{}{
 				"checksum/secret-cloud-controller-manager":        checksums[metal.CloudControllerManagerDeploymentName],
 				"checksum/secret-cloud-controller-manager-server": checksums[metal.CloudControllerManagerServerName],
-				"checksum/secret-cloudprovider":                   checksums[v1alpha1constants.SecretNameCloudProvider],
+				"checksum/secret-cloudprovider":                   checksums[v1beta1constants.SecretNameCloudProvider],
 				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
 			},
 			"secrets": map[string]any{
@@ -1144,77 +1127,6 @@ func getCCMChartValues(
 
 	if cpConfig.CloudControllerManager != nil {
 		values["featureGates"] = cpConfig.CloudControllerManager.FeatureGates
-	}
-
-	return values, nil
-}
-
-func getAccountingExporterChartValues(ctx context.Context, client client.Client, accountingConfig config.AccountingExporterConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, p *models.V1ProjectResponse) (map[string]interface{}, error) {
-	annotations := cluster.Shoot.GetAnnotations()
-	partitionID := infrastructure.PartitionID
-	projectID := infrastructure.ProjectID
-	clusterID := cluster.Shoot.ObjectMeta.UID
-	clusterName := annotations[tag.ClusterName]
-
-	if accountingConfig.Enabled {
-		cp := &firewallv1.ClusterwideNetworkPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "egress-allow-accounting-api",
-				Namespace: "firewall",
-			},
-		}
-
-		_, err := controllerutil.CreateOrUpdate(ctx, client, cp, func() error {
-			port9000 := intstr.FromInt(9000)
-			tcp := corev1.ProtocolTCP
-
-			cp.Spec.Egress = []firewallv1.EgressRule{
-				{
-					Ports: []networkingv1.NetworkPolicyPort{
-						{
-							Port:     &port9000,
-							Protocol: &tcp,
-						},
-					},
-					To: []networkingv1.IPBlock{
-						{
-							CIDR: "0.0.0.0/0",
-						},
-					},
-				},
-			}
-
-			return nil
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("unable to deploy clusterwide network policy for accounting-api into firewall namespace %w", err)
-		}
-	}
-
-	values := map[string]interface{}{
-		"accountingExporter": map[string]interface{}{
-			"enabled":  accountingConfig.Enabled,
-			"replicas": extensionscontroller.GetReplicas(cluster, 1),
-			"networkTraffic": map[string]interface{}{
-				"enabled": accountingConfig.NetworkTraffic.Enabled,
-			},
-			"enrichments": map[string]interface{}{
-				"partitionID": partitionID,
-				"tenant":      p.TenantID,
-				"projectID":   projectID,
-				"projectName": p.Name,
-				"clusterName": clusterName,
-				"clusterID":   clusterID,
-			},
-			"accountingAPI": map[string]interface{}{
-				"hostname": accountingConfig.Client.Hostname,
-				"port":     accountingConfig.Client.Port,
-				"ca":       accountingConfig.Client.CA,
-				"cert":     accountingConfig.Client.Cert,
-				"certKey":  accountingConfig.Client.CertKey,
-			},
-		},
 	}
 
 	return values, nil
@@ -1328,6 +1240,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	values := map[string]any{
+		"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"duros": map[string]any{
 			"enabled":        storageConfig.Duros.Enabled,
 			"replicas":       extensionscontroller.GetReplicas(cluster, 1),
@@ -1363,16 +1276,37 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 			Namespace: "garden",
 		},
 	}
+	isConfigMapConfigured := false
 	err := vp.Client().Get(ctx, client.ObjectKeyFromObject(cm), cm)
 	if err == nil {
 		url, ok := cm.Data["url"]
 		if ok {
 			seedApiURL = url
+			isConfigMapConfigured = true
 		}
 	}
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, err
 	}
+
+	// We generally expect to get a DNS name for the seed api url.
+	// This is alway true for gardener managed clusters, because the mutating webhook
+	// of the api-server-proxy sets the KUBERNETES_SERVICE_HOST env variable.
+	// But for Managed Seeds where the control plane resides at GKE, this is always a IP
+	// in this case we set the seedAPI URL in a configmap.
+	if !isConfigMapConfigured {
+		u, err := url.Parse(seedApiURL)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = netip.ParseAddr(u.Hostname())
+		if err == nil {
+			// If hostname is a parsable ipaddress we error out because we need a dnsname.
+			panic(fmt.Sprintf("seedApiUrl:%q is not a dns entry, exiting", seedApiURL))
+		}
+	}
+
 	serverSecret, found := secretsReader.Get(metal.FirewallControllerManagerDeploymentName)
 	if !found {
 		return nil, fmt.Errorf("secret %q not found", metal.FirewallControllerManagerDeploymentName)

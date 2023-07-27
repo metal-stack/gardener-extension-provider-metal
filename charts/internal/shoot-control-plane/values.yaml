@@ -2,6 +2,7 @@
 kubernetesVersion: "1.16.0"
 apiserverIPs: []
 nodeCIDR:
+pspDisabled: false
 
 images:
     audittailer: image-repository:image-tag
@@ -12,6 +13,8 @@ images:
     node-init: image-repository:image-tag
     kubectl: image-repository:image-tag
 
+imagePullPolicy: IfNotPresent
+
 firewallSpec:
     interval: 10s
     dryrun: false
@@ -21,15 +24,15 @@ firewallSpec:
     egressRules: []
     firewallNetworks: []
 
-accountingExporter:
-    enabled: false
-
 duros:
   enabled: false
   endpoints: []
 
 clusterAudit:
   enabled: false
+
+nodeInit:
+  enabled: true
 
 restrictEgress:
   enabled: false

@@ -12,30 +12,32 @@ import (
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	metaltag "github.com/metal-stack/metal-lib/pkg/tag"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	extensionsconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	"github.com/gardener/gardener/extensions/pkg/util"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/client/kubernetes"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/charts"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 	v2 "github.com/metal-stack/firewall-controller-manager/api/v2"
-
-	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
-	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
-	"github.com/gardener/gardener/pkg/client/kubernetes"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 )
@@ -69,7 +71,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 
 	values := kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses})
 
-	return w.seedChartApplier.Apply(ctx, filepath.Join(metal.InternalChartsPath, "machineclass"), w.worker.Namespace, "machineclass", values)
+	return w.seedChartApplier.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "machineclass"), w.worker.Namespace, "machineclass", values)
 }
 
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.
@@ -124,16 +126,13 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	projectID := infrastructureConfig.ProjectID
-	nodeCIDR := infrastructure.Status.NodesCIDR
 
-	if nodeCIDR == nil {
-		if w.cluster.Shoot.Spec.Networking.Nodes == nil {
-			return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
-		}
-		nodeCIDR = w.cluster.Shoot.Spec.Networking.Nodes
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, w.cluster)
+	if err != nil {
+		return err
 	}
 
-	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, *nodeCIDR)
+	privateNetwork, err := metalclient.GetPrivateNetworkFromNodeNetwork(ctx, mclient, projectID, nodeCIDR)
 	if err != nil {
 		return err
 	}
@@ -154,12 +153,17 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			return err
 		}
 
+		sshSecret, err := helper.GetLatestSSHSecret(ctx, w.client, w.worker.Namespace)
+		if err != nil {
+			return fmt.Errorf("could not find current ssh secret: %w", err)
+		}
+
 		err = w.migrateFirewall(ctx, metalControlPlane, infrastructureConfig, w.cluster, mclient, *privateNetwork.ID)
 		if err != nil {
 			return err
 		}
 
-		err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, *privateNetwork.ID)
+		err = w.ensureFirewallDeployment(ctx, metalControlPlane, infrastructureConfig, w.cluster, *privateNetwork.ID, string(sshSecret.Data["id_rsa.pub"]))
 		if err != nil {
 			return err
 		}
@@ -336,11 +340,6 @@ func (w *workerDelegate) ensureMigrationFirewall(ctx context.Context, metalContr
 		return err
 	}
 
-	internalPrefixes := []string{}
-	if w.controllerConfig.AccountingExporter.Enabled && w.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
-		internalPrefixes = w.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
-	}
-
 	for _, fw := range toMigrate {
 		fw := fw
 
@@ -371,7 +370,7 @@ func (w *workerDelegate) ensureMigrationFirewall(ctx context.Context, metalContr
 				Userdata:                fw.Allocation.UserData,
 				SSHPublicKeys:           fw.Allocation.SSHPubKeys,
 				RateLimits:              rateLimit(infrastructureConfig.Firewall.RateLimits),
-				InternalPrefixes:        internalPrefixes,
+				InternalPrefixes:        w.controllerConfig.FirewallInternalPrefixes,
 				EgressRules:             egressRules(infrastructureConfig.Firewall.EgressRules),
 				Interval:                "10s",
 				DryRun:                  false,
@@ -454,7 +453,7 @@ func (w *workerDelegate) toggleAnnotation(ctx context.Context, cluster *extensio
 
 		shootConfig, _, err := util.NewClientForShoot(ctx, w.client, cluster.ObjectMeta.Name, client.Options{
 			Scheme: w.scheme,
-		})
+		}, extensionsconfig.RESTOptions{})
 		if err != nil {
 			return fmt.Errorf("could not create shoot client config: %w", err)
 		}
@@ -493,7 +492,7 @@ func (w *workerDelegate) toggleAnnotation(ctx context.Context, cluster *extensio
 	return nil
 }
 
-func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, privateNetworkID string) error {
+func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, privateNetworkID, sshKey string) error {
 	// why is this code here and not in the controlplane controller?
 	// the controlplane controller deploys the firewall-controller-manager including validating and mutating webhooks
 	// this has to be running before we can create a firewall deployment because the mutating webhook is creating the userdata
@@ -525,11 +524,6 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 			return result
 		}
 	)
-
-	internalPrefixes := []string{}
-	if w.controllerConfig.AccountingExporter.Enabled && w.controllerConfig.AccountingExporter.NetworkTraffic.Enabled {
-		internalPrefixes = w.controllerConfig.AccountingExporter.NetworkTraffic.InternalNetworks
-	}
 
 	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
 	if err != nil {
@@ -574,13 +568,14 @@ func (w *workerDelegate) ensureFirewallDeployment(ctx context.Context, metalCont
 		deploy.Spec.Template.Spec.Image = infrastructureConfig.Firewall.Image
 		deploy.Spec.Template.Spec.Networks = append(infrastructureConfig.Firewall.Networks, privateNetworkID)
 		deploy.Spec.Template.Spec.RateLimits = rateLimit(infrastructureConfig.Firewall.RateLimits)
-		deploy.Spec.Template.Spec.InternalPrefixes = internalPrefixes
+		deploy.Spec.Template.Spec.InternalPrefixes = w.controllerConfig.FirewallInternalPrefixes
 		deploy.Spec.Template.Spec.EgressRules = egressRules(infrastructureConfig.Firewall.EgressRules)
 		deploy.Spec.Template.Spec.ControllerVersion = fwcv.Version
 		deploy.Spec.Template.Spec.ControllerURL = fwcv.URL
 		deploy.Spec.Template.Spec.NftablesExporterVersion = metalControlPlane.NftablesExporter.Version
 		deploy.Spec.Template.Spec.NftablesExporterURL = metalControlPlane.NftablesExporter.URL
 		deploy.Spec.Template.Spec.LogAcceptedConnections = infrastructureConfig.Firewall.LogAcceptedConnections
+		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
 
 		return nil
 	})
