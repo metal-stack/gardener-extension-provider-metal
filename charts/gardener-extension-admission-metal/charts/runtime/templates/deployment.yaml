@@ -61,7 +61,7 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
         env:
-{{- range $key, $value := .Values.defaulter }}
+{{- range $key, $value := .Values.global.defaulter }}
 {{- if $value }}
           - name: DEFAULTER_{{ upper $key }}
             value: {{ $value | quote }}
