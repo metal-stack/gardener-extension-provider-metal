@@ -52,12 +52,6 @@ spec:
 {{ toYaml .Values.audittailer.podAnnotations | indent 8 }}
 {{- end }}
     spec:
-      securityContext:
-        runAsUser: 65534
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-          - ALL
       automountServiceAccountToken: false
       containers:
       - image: {{ index .Values.images "audittailer" }}
@@ -84,6 +78,17 @@ spec:
           limits:
             cpu: 150m
             memory: 512Mi
+        securityContext:
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+{{- if semverCompare ">= 1.19" .Capabilities.KubeVersion.GitVersion }}
+          seccompProfile:
+            type: RuntimeDefault
+{{- end }}
+          capabilities:
+            drop:
+            - ALL
       restartPolicy: Always
       volumes:
       - name: fluentd-config

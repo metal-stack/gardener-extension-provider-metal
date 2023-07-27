@@ -2,6 +2,7 @@
 kubernetesVersion: "1.16.0"
 apiserverIPs: []
 nodeCIDR:
+pspDisabled: false
 
 images:
     audittailer: image-repository:image-tag
@@ -29,6 +30,9 @@ duros:
 
 clusterAudit:
   enabled: false
+
+nodeInit:
+  enabled: true
 
 restrictEgress:
   enabled: false

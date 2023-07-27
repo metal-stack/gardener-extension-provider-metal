@@ -4,6 +4,7 @@ metadata:
   labels:
     app: metallb
   name: metallb-system
+{{- if not .Values.pspDisabled }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -84,6 +85,7 @@ spec:
   - configMap
   - secret
   - emptyDir
+  {{- end }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -131,6 +133,7 @@ rules:
   verbs:
   - create
   - patch
+{{- if not .Values.pspDisabled }}
 - apiGroups:
   - policy
   resourceNames:
@@ -139,6 +142,7 @@ rules:
   - podsecuritypolicies
   verbs:
   - use
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -171,6 +175,7 @@ rules:
   verbs:
   - create
   - patch
+{{- if not .Values.pspDisabled }}
 - apiGroups:
   - policy
   resourceNames:
@@ -179,6 +184,7 @@ rules:
   - podsecuritypolicies
   verbs:
   - use
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -379,9 +385,7 @@ spec:
         operator: Exists
       - effect: NoExecute
         operator: Exists
-{{- if semverCompare ">= 1.17" .Values.kubernetesVersion }}
       priorityClassName: system-node-critical
-{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -42,7 +42,7 @@ type egressIPReconciler struct {
 	egressTag            string
 }
 
-func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
 	internalInfrastructureConfig, internalInfrastructureStatus, err := decodeInfrastructure(infrastructure, a.decoder)
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 	}
 
 	networkReconciler := &networkReconciler{
-		logger:               a.logger,
+		logger:               logger,
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
 		cluster:              cluster,
@@ -85,7 +85,7 @@ func (a *actuator) Reconcile(ctx context.Context, infrastructure *extensionsv1al
 	}
 
 	egressIPReconciler := &egressIPReconciler{
-		logger:               a.logger,
+		logger:               logger,
 		infrastructureConfig: internalInfrastructureConfig,
 		mclient:              mclient,
 		clusterID:            string(cluster.Shoot.GetUID()),
