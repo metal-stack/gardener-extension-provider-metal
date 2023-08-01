@@ -169,7 +169,6 @@ require (
 replace (
 	github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.8.0 // keep this value in sync with k8s.io/apiserver
 	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
-	github.com/gardener/gardener => github.com/gardener/gardener v1.56.0
 	github.com/gardener/hvpa-controller => github.com/gardener/hvpa-controller v0.5.0
 	github.com/gardener/hvpa-controller/api => github.com/gardener/hvpa-controller/api v0.5.0
 	github.com/google/gnostic => github.com/google/gnostic v0.5.7-v3refs // keep this value in sync with k8s.io/apiserver
