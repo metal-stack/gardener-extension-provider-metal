@@ -44,6 +44,7 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/bronze1man/yaml2json v0.0.0-20211227013850-8972abeaea25 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coreos/go-oidc/v3 v3.6.0 // indirect
@@ -149,7 +150,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	istio.io/api v0.0.0-20220512181135-e8ec1e1d89de // indirect
 	istio.io/client-go v1.14.0 // indirect
-	k8s.io/apiserver v0.25.0 // indirect
+	k8s.io/apiserver v0.26.3 // indirect
 	k8s.io/autoscaler/vertical-pod-autoscaler v0.12.0 // indirect
 	k8s.io/gengo v0.0.0-20220913193501-391367153a38 // indirect
 	k8s.io/helm v2.16.1+incompatible // indirect
@@ -168,28 +169,9 @@ require (
 
 replace (
 	github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.8.0 // keep this value in sync with k8s.io/apiserver
-	github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
-	github.com/gardener/gardener => github.com/gardener/gardener v1.56.0
-	github.com/gardener/hvpa-controller => github.com/gardener/hvpa-controller v0.5.0
-	github.com/gardener/hvpa-controller/api => github.com/gardener/hvpa-controller/api v0.5.0
-	github.com/google/gnostic => github.com/google/gnostic v0.5.7-v3refs // keep this value in sync with k8s.io/apiserver
-	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.12.2 // keep this value in sync with sigs.k8s.io/controller-runtime
-	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220516162934-403b01795ae8
 	google.golang.org/grpc => google.golang.org/grpc v1.47.0 // keep this value in sync with k8s.io/apiserver
-	k8s.io/api => k8s.io/api v0.25.0
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.25.0
-	k8s.io/apimachinery => k8s.io/apimachinery v0.25.0
-	k8s.io/apiserver => k8s.io/apiserver v0.25.0
-	k8s.io/autoscaler => k8s.io/autoscaler v0.0.0-20220531185024-cc90d57b7fe1 // translates to k8s.io/autoscaler/vertical-pod-autoscaler@v0.11.0
 	k8s.io/client-go => k8s.io/client-go v0.25.0
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.25.0
-	k8s.io/code-generator => k8s.io/code-generator v0.25.0
-	k8s.io/component-base => k8s.io/component-base v0.25.0
-
 	// for some reason, newer gengo versions will fail with "hit an unsupported type"
 	k8s.io/gengo => k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
-	k8s.io/helm => k8s.io/helm v2.16.1+incompatible
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.25.0
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.25.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.13.0
 )

@@ -23,33 +23,6 @@ export GO111MODULE := on
 TOOLS_DIR := hack/tools
 -include vendor/github.com/gardener/gardener/hack/tools.mk
 
-#########################################
-# Rules for local development scenarios #
-#########################################
-
-.PHONY: start-provider-metal
-start-provider-metal:
-	@LEADER_ELECTION_NAMESPACE=garden go run \
-		-ldflags $(LD_FLAGS) \
-		-tags netgo \
-		./cmd/gardener-extension-provider-metal \
-		--config-file=./example/00-componentconfig.yaml \
-		--ignore-operation-annotation=$(IGNORE_OPERATION_ANNOTATION) \
-		--leader-election=$(LEADER_ELECTION) \
-		--webhook-config-server-host=$(HOSTNAME) \
-		--webhook-config-server-port=8443 \
-		--webhook-config-mode=url \
-		--webhook-config-url=$(WEBHOOK_CONFIG_URL)
-
-.PHONY: start-admission-metal
-start-admission-metal:
-	@LEADER_ELECTION_NAMESPACE=garden go run \
-		-ldflags $(LD_FLAGS) \
-		-tags netgo \
-		./cmd/gardener-extension-admission-metal \
-		--webhook-config-server-host=0.0.0.0 \
-		--webhook-config-server-port=9443 \
-		--webhook-config-cert-dir=./example/admission-metal-certs
 
 #################################################################
 # Rules related to binary build, Docker image build and release #
