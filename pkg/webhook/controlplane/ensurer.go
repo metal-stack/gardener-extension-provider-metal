@@ -7,6 +7,7 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 
@@ -95,10 +96,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		}
 	}
 
-	genericTokenKubeconfigSecret, err := helper.GetLatestSecret(ctx, e.client, cluster.ObjectMeta.Name, v1beta1constants.SecretNameGenericTokenKubeconfig)
-	if err != nil {
-		return fmt.Errorf("unable to fetch generic token kubeconfig secret: %w", err)
-	}
+	genericTokenKubeconfigSecretName := extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster)
 
 	auditToSplunk := false
 	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
@@ -110,7 +108,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder)
 		ensureVolumeMounts(c, makeAuditForwarder)
-		ensureVolumes(ps, genericTokenKubeconfigSecret.Name, makeAuditForwarder, auditToSplunk)
+		ensureVolumes(ps, genericTokenKubeconfigSecretName, makeAuditForwarder, auditToSplunk)
 	}
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
 		ensureVPNSeedEnvVars(c, nodeCIDR)
