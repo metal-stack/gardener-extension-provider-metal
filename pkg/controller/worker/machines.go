@@ -170,9 +170,15 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	for _, pool := range w.worker.Spec.Pools {
-		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster)
-		if err != nil {
-			return err
+		var workerPoolHash string
+
+		if v, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/worker-hash"]; ok {
+			workerPoolHash = v
+		} else {
+			workerPoolHash, err = worker.WorkerPoolHash(pool, w.cluster)
+			if err != nil {
+				return err
+			}
 		}
 
 		machineImage, err := w.findMachineImage(pool.MachineImage.Name, pool.MachineImage.Version)
