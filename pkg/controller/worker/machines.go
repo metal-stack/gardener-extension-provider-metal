@@ -173,6 +173,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		var workerPoolHash string
 
 		if v, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/worker-hash"]; ok {
+			w.logger.Info("using worker hash from annotation", "hash", v)
 			workerPoolHash = v
 		} else {
 			workerPoolHash, err = worker.WorkerPoolHash(pool, w.cluster)
