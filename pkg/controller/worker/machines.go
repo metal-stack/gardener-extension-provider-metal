@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	metalgo "github.com/metal-stack/metal-go"
@@ -169,19 +170,41 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		}
 	}
 
-	for _, pool := range w.worker.Spec.Pools {
-		var workerPoolHash string
-
-		if v, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/worker-hash"]; ok {
-			w.logger.Info("using worker hash from annotation", "hash", v)
-			workerPoolHash = v
-		} else {
-			workerPoolHash, err = worker.WorkerPoolHash(pool, w.cluster)
-			if err != nil {
-				return err
-			}
+	keepHash := func(deploymentName string) (string, bool, error) {
+		if _, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/keep-worker-hash"]; !ok {
+			return "", false, nil
 		}
 
+		classes := &machinev1alpha1.MachineClassList{}
+		err := w.client.List(ctx, classes, client.InNamespace(w.worker.Namespace))
+		if err != nil {
+			return "", false, err
+		}
+
+		var hash string
+		for _, class := range classes.Items {
+			class := class
+
+			_, h, ok := strings.Cut(class.Name, deploymentName+"-")
+			if !ok {
+				continue
+			}
+			if len(h) != 5 {
+				continue
+			}
+
+			hash = h
+		}
+
+		if hash == "" {
+			w.logger.Info("no machine classes found, allow creation of a new one", "name", deploymentName)
+			return "", false, nil
+		}
+
+		return hash, true, nil
+	}
+
+	for _, pool := range w.worker.Spec.Pools {
 		machineImage, err := w.findMachineImage(pool.MachineImage.Name, pool.MachineImage.Version)
 		if err != nil {
 			return err
@@ -237,9 +260,27 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			},
 		}
 
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster)
+		if err != nil {
+			return err
+		}
+
 		var (
 			deploymentName = fmt.Sprintf("%s-%s", w.worker.Namespace, pool.Name)
-			className      = fmt.Sprintf("%s-%s", deploymentName, workerPoolHash)
+		)
+
+		override, ok, err := keepHash(deploymentName)
+		if err != nil {
+			return err
+		}
+
+		if ok {
+			w.logger.Info("using existing worker hash", "value", override)
+			workerPoolHash = override
+		}
+
+		var (
+			className = fmt.Sprintf("%s-%s", deploymentName, workerPoolHash)
 		)
 
 		machineDeployments = append(machineDeployments, worker.MachineDeployment{
