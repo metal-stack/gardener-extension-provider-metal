@@ -564,6 +564,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
 			"checksum/secret-cloudprovider":                                    checksums[v1beta1constants.SecretNameCloudProvider],
 		},
+		"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
 	}
 
 	merge(values, ccmValues, storageValues, firewallValues)
