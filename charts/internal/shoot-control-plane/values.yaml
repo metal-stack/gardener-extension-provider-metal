@@ -44,7 +44,23 @@ restrictEgress:
       port: 443
 
 droptailer:
-  secretName: 'droptailer-server'
+  podAnnotations: {}
+  server:
+    ca: ""
+    cert: ""
+    key: ""
+  client:
+    ca: ""
+    cert: ""
+    key: ""
 
 audittailer:
-  secretName: 'audittailer-server'
+  podAnnotations: {}
+  server:
+    ca: ""
+    cert: ""
+    key: ""
+  client:
+    ca: ""
+    cert: ""
+    key: ""
