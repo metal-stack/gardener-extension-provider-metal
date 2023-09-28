@@ -870,7 +870,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		vp.logger.Info("firewall currently has more than one firewall, rolling update in progress?", "amount", len(firewalls))
 	}
 
-	slices.SortFunc(firewalls, firewallLessFunc)
+	slices.SortFunc(firewalls, firewallCompareFunc)
 
 	latestFirewall := firewalls[0]
 
@@ -1320,16 +1320,22 @@ func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
 	return map[string]interface{}{}, nil
 }
 
-func firewallLessFunc(a, b *models.V1FirewallResponse) bool {
+func firewallCompareFunc(a, b *models.V1FirewallResponse) int {
 	if b.Allocation == nil || b.Allocation.Created == nil {
-		return true
+		return 1
 	}
 	if a.Allocation == nil || a.Allocation.Created == nil {
-		return false
+		return -1
 	}
 
 	atime := time.Time(*a.Allocation.Created)
 	btime := time.Time(*b.Allocation.Created)
 
-	return atime.Before(btime)
+	if atime.Before(btime) {
+		return -1
+	} else if atime.After(btime) {
+		return 1
+	} else {
+		return 0
+	}
 }

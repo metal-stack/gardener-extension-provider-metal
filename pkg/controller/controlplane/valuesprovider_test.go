@@ -12,7 +12,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func Test_firewallLessFunc(t *testing.T) {
+func Test_firewallCompareFunc(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
 		name string
@@ -60,7 +60,7 @@ func Test_firewallLessFunc(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			slices.SortFunc(tt.fws, firewallLessFunc)
+			slices.SortFunc(tt.fws, firewallCompareFunc)
 
 			if diff := cmp.Diff(tt.fws, tt.want, testcommon.StrFmtDateComparer()); diff != "" {
 				t.Errorf("firewallLessFunc() = %s", diff)
