@@ -1,6 +1,6 @@
 module github.com/metal-stack/gardener-extension-provider-metal
 
-go 1.19
+go 1.21
 
 require (
 	github.com/Masterminds/semver v1.5.0
@@ -27,7 +27,6 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb
 	k8s.io/api v0.26.3
 	k8s.io/apiextensions-apiserver v0.26.3
 	k8s.io/apimachinery v0.27.4

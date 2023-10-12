@@ -4,12 +4,13 @@ import (
 	"testing"
 	"time"
 
+	"slices"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/testcommon"
-	"golang.org/x/exp/slices"
 )
 
 func Test_firewallCompareFunc(t *testing.T) {
