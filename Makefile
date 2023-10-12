@@ -9,8 +9,8 @@ VERIFY                      := true
 LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
-
-GOLANGCI_LINT_VERSION := v1.48.0
+GO_VERSION                  := 1.21
+GOLANGCI_LINT_VERSION       := v1.54.2
 
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
@@ -81,10 +81,11 @@ generate: $(HELM)
 .PHONY: generate-in-docker
 generate-in-docker: revendor $(HELM)
 	echo $(shell git describe --abbrev=0 --tags) > VERSION
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.19.4 \
-		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
-				&& make generate \
-				&& chown -R $(shell id -u):$(shell id -g) ."
+	docker run --rm -i$(DOCKER_TTY_ARG) \
+		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:$(GO_VERSION) \
+			sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
+					&& make generate \
+					&& chown -R $(shell id -u):$(shell id -g) ."
 
 .PHONY: format
 format: $(GOIMPORTS)
@@ -96,9 +97,12 @@ test:
 
 .PHONY: test-in-docker
 test-in-docker: revendor
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.19.4 \
-		sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
-				&& make install check test"
+	docker run --rm -i$(DOCKER_TTY_ARG) \
+		--user $$(id -u):$$(id -g) \
+		--mount type=tmpfs,destination=/.cache \
+		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:$(GO_VERSION) \
+			sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
+					&& make install check test"
 
 .PHONY: test-cov
 test-cov:
