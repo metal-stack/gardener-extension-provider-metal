@@ -10,8 +10,7 @@ LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
 GO_VERSION                  := 1.21
-
-GOLANGCI_LINT_VERSION := v1.48.0
+GOLANGCI_LINT_VERSION       := v1.54.2
 
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
