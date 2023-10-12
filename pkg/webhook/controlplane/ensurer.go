@@ -7,6 +7,7 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 
@@ -95,6 +96,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		}
 	}
 
+	genericTokenKubeconfigSecretName := extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster)
+
 	auditToSplunk := false
 	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
 		auditToSplunk = true
@@ -105,7 +108,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder)
 		ensureVolumeMounts(c, makeAuditForwarder)
-		ensureVolumes(ps, makeAuditForwarder, auditToSplunk)
+		ensureVolumes(ps, genericTokenKubeconfigSecretName, makeAuditForwarder, auditToSplunk)
 	}
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
 		ensureVPNSeedEnvVars(c, nodeCIDR)
@@ -202,43 +205,45 @@ var (
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
-	auditKubeconfig = corev1.Volume{
-		Name: "kubeconfig",
-		VolumeSource: corev1.VolumeSource{
-			Projected: &corev1.ProjectedVolumeSource{
-				DefaultMode: pointer.Pointer(int32(420)),
-				Sources: []corev1.VolumeProjection{
-					{
-						Secret: &corev1.SecretProjection{
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "kubeconfig",
-									Path: "kubeconfig",
+	auditKubeconfig = func(genericKubeconfigSecretName string) corev1.Volume {
+		return corev1.Volume{
+			Name: "kubeconfig",
+			VolumeSource: corev1.VolumeSource{
+				Projected: &corev1.ProjectedVolumeSource{
+					DefaultMode: pointer.Pointer(int32(420)),
+					Sources: []corev1.VolumeProjection{
+						{
+							Secret: &corev1.SecretProjection{
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "kubeconfig",
+										Path: "kubeconfig",
+									},
 								},
-							},
-							Optional: pointer.Pointer(false),
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: v1beta1constants.SecretNameGenericTokenKubeconfig,
+								Optional: pointer.Pointer(false),
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: genericKubeconfigSecretName,
+								},
 							},
 						},
-					},
-					{
-						Secret: &corev1.SecretProjection{
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "token",
-									Path: "token",
+						{
+							Secret: &corev1.SecretProjection{
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "token",
+										Path: "token",
+									},
 								},
-							},
-							Optional: pointer.Pointer(false),
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: gutil.SecretNamePrefixShootAccess + metal.AudittailerClientSecretName,
+								Optional: pointer.Pointer(false),
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: gutil.SecretNamePrefixShootAccess + metal.AudittailerClientSecretName,
+								},
 							},
 						},
 					},
 				},
 			},
-		},
+		}
 	}
 	reversedVpnVolumeMounts = []corev1.VolumeMount{
 		{
@@ -336,9 +341,10 @@ func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool) {
 	}
 }
 
-func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool) {
+func ensureVolumes(ps *corev1.PodSpec, genericKubeconfigSecretName string, makeAuditForwarder, auditToSplunk bool) {
 	if makeAuditForwarder {
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditKubeconfig)
+
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditKubeconfig(genericKubeconfigSecretName))
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
 	}

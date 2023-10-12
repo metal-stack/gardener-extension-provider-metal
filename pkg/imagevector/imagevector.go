@@ -1,8 +1,6 @@
 package imagevector
 
 import (
-	"strings"
-
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/charts"
 
@@ -13,7 +11,8 @@ var imageVector imagevector.ImageVector
 
 func init() {
 	var err error
-	imageVector, err = imagevector.Read(strings.NewReader(charts.ImagesYAML))
+
+	imageVector, err = imagevector.Read([]byte(charts.ImagesYAML))
 	runtime.Must(err)
 
 	imageVector, err = imagevector.WithEnvOverride(imageVector)

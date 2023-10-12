@@ -127,6 +127,7 @@ kind: ServiceAccount
 metadata:
   name: csi-lvm-reviver
   namespace: csi-lvm
+{{- if not .Values.pspDisabled }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -162,6 +163,7 @@ rules:
   - csi-lvm-reviver-psp
   verbs:
   - use
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

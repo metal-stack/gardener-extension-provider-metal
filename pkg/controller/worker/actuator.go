@@ -47,7 +47,6 @@ type (
 	// the worker controller acts after the controlplane controller, also the terms and responsibilities are pretty similar between machine-controller-manager and firewall-controller-manager,
 	// so this place seems to be a valid fit.
 	actuator struct {
-		logger           logr.Logger
 		controllerConfig config.ControllerConfiguration
 
 		workerActuator worker.Actuator
@@ -61,7 +60,6 @@ type (
 	}
 
 	delegateFactory struct {
-		logger           logr.Logger
 		controllerConfig config.ControllerConfiguration
 
 		clientGetter func() (*rest.Config, client.Client, *runtime.Scheme, runtime.Decoder)
@@ -118,10 +116,7 @@ func (a *actuator) InjectConfig(restConfig *rest.Config) error {
 }
 
 func NewActuator(machineImages []config.MachineImage, controllerConfig config.ControllerConfiguration) worker.Actuator {
-	logger := log.Log.WithName("metal-worker-actuator")
-
 	a := &actuator{
-		logger:           logger,
 		controllerConfig: controllerConfig,
 		networkCache: cache.New(15*time.Minute, func(ctx context.Context, accessor *cacheKey) (*models.V1NetworkResponse, error) {
 			mclient, ok := ctx.Value(ClientKey).(metalgo.Client)
@@ -137,7 +132,6 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 	}
 
 	delegateFactory := &delegateFactory{
-		logger: log.Log.WithName("worker-actuator"),
 		clientGetter: func() (*rest.Config, client.Client, *runtime.Scheme, runtime.Decoder) {
 			return a.restConfig, a.client, a.scheme, a.decoder
 		},
@@ -147,7 +141,6 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 	}
 
 	a.workerActuator = genericactuator.NewActuator(
-		logger,
 		delegateFactory,
 		metal.MachineControllerManagerName,
 		mcmChart,
@@ -159,40 +152,40 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 	return a
 }
 
-func (a *actuator) Reconcile(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
-	err := a.firewallReconcile(ctx, worker, cluster)
+func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
+	err := a.firewallReconcile(ctx, log, worker, cluster)
 	if err != nil {
 		return err
 	}
 
-	return a.workerActuator.Reconcile(ctx, worker, cluster)
+	return a.workerActuator.Reconcile(ctx, log, worker, cluster)
 }
 
-func (a *actuator) Delete(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
-	err := a.workerActuator.Delete(ctx, worker, cluster)
+func (a *actuator) Delete(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
+	err := a.workerActuator.Delete(ctx, log, worker, cluster)
 	if err != nil {
 		return err
 	}
 
-	return a.firewallDelete(ctx, cluster)
+	return a.firewallDelete(ctx, log, cluster)
 }
 
-func (a *actuator) Migrate(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
-	err := a.workerActuator.Migrate(ctx, worker, cluster)
+func (a *actuator) Migrate(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
+	err := a.workerActuator.Migrate(ctx, log, worker, cluster)
 	if err != nil {
 		return err
 	}
 
-	return a.firewallMigrate(ctx, cluster)
+	return a.firewallMigrate(ctx, log, cluster)
 }
 
-func (a *actuator) Restore(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
-	err := a.firewallRestore(ctx, worker, cluster)
+func (a *actuator) Restore(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
+	err := a.firewallRestore(ctx, log, worker, cluster)
 	if err != nil {
 		return err
 	}
 
-	return a.workerActuator.Restore(ctx, worker, cluster)
+	return a.workerActuator.Restore(ctx, log, worker, cluster)
 }
 
 func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (genericactuator.WorkerDelegate, error) {
@@ -219,7 +212,7 @@ func (d *delegateFactory) WorkerDelegate(ctx context.Context, worker *extensions
 	}
 
 	return &workerDelegate{
-		logger: d.logger,
+		logger: log.Log.WithName("metal-worker-delegate").WithValues("cluster", cluster.ObjectMeta.Name),
 
 		client:  client,
 		scheme:  scheme,

@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
-
-	"golang.org/x/exp/slices"
 
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
@@ -20,8 +21,11 @@ import (
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
 
+	extensionsconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/common"
+	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
+
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 	"github.com/gardener/gardener/pkg/utils"
 
@@ -71,6 +75,8 @@ import (
 
 const (
 	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
+	droptailerCAName   = "ca-" + metal.Name + "-droptailer"
+	auditTailerCAName  = "ca-" + metal.Name + "-audittailer"
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
@@ -104,6 +110,68 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 			// use current CA for signing server cert to prevent mismatches when dropping the old CA from the webhook
 			// config in phase Completing
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane, secretsmanager.UseCurrentCA)},
+		},
+		// droptailer
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:       droptailerCAName,
+				CommonName: droptailerCAName,
+				CertType:   secrets.CACert,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
+		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:                        metal.DroptailerClientSecretName,
+				CommonName:                  "droptailer",
+				DNSNames:                    []string{"droptailer"},
+				Organization:                []string{"droptailer-client"},
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: false,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
+		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:                        metal.DroptailerServerSecretName,
+				CommonName:                  "droptailer",
+				DNSNames:                    []string{"droptailer"},
+				Organization:                []string{"droptailer-server"},
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: false,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
+		},
+		// audit tailer
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:       auditTailerCAName,
+				CommonName: auditTailerCAName,
+				CertType:   secrets.CACert,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
+		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:                        metal.AudittailerClientSecretName,
+				CommonName:                  "audittailer",
+				DNSNames:                    []string{"audittailer"},
+				Organization:                []string{"audittailer-client"},
+				CertType:                    secrets.ClientCert,
+				SkipPublishingCACertificate: false,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
+		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:                        metal.AudittailerServerSecretName,
+				CommonName:                  "audittailer",
+				DNSNames:                    []string{"audittailer"},
+				Organization:                []string{"audittailer-server"},
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: false,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
 		},
 	}
 }
@@ -361,7 +429,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 }
 
 func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName string, auditToSplunkValues map[string]interface{}) (map[string]interface{}, error) {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), clusterName, client.Options{})
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), clusterName, client.Options{}, extensionsconfig.RESTOptions{})
 	if err != nil {
 		return auditToSplunkValues, err
 	}
@@ -490,10 +558,12 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	values := map[string]any{
 		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
+		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"podAnnotations": map[string]interface{}{
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
 			"checksum/secret-cloudprovider":                                    checksums[v1beta1constants.SecretNameCloudProvider],
 		},
+		"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
 	}
 
 	merge(values, ccmValues, storageValues, firewallValues)
@@ -572,17 +642,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	if !extensionscontroller.IsHibernated(cluster) {
-		if err := vp.deploySecretsToShoot(ctx, cluster, metal.AudittailerNamespace, vp.audittailerSecretConfigs); err != nil {
-			vp.logger.Error(err, "error deploying audittailer certs")
-		}
-
-		if err := vp.deploySecretsToShoot(ctx, cluster, metal.DroptailerNamespace, vp.droptailerSecretConfigs); err != nil {
-			vp.logger.Error(err, "error deploying droptailer certs")
-		}
-	}
-
-	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient)
+	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient, secretsReader, checksums)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -592,7 +652,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
@@ -619,6 +679,13 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 	if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
 		clusterAuditValues["enabled"] = true
+	}
+
+	nodeInitValues := map[string]any{
+		"enabled": true,
+	}
+	if cluster.Shoot.Spec.Networking.Type == "cilium" {
+		nodeInitValues["enabled"] = false
 	}
 
 	apiserverIPs := []string{}
@@ -662,36 +729,62 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		})
 	}
 
-	droptailerServerSecretName := metal.DroptailerClientSecretName
-	droptailerServerSecret, err := vp.getSecretFromShoot(ctx, cluster, metal.DroptailerNamespace, metal.DroptailerServerSecretName)
-	if err == nil {
-		droptailerServerSecretName = droptailerServerSecret.Name
-	}
-	audittailerServerSecretName := metal.AudittailerClientSecretName
-	audittailerServerSecret, err := vp.getSecretFromShoot(ctx, cluster, metal.AudittailerNamespace, metal.AudittailerServerSecretName)
-	if err == nil {
-		audittailerServerSecretName = audittailerServerSecret.Name
-	}
-
 	values := map[string]any{
-		"imagePullPolicy":   helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
-		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
-		"apiserverIPs":      apiserverIPs,
-		"nodeCIDR":          nodeCIDR,
-		"firewallSpec":      fwSpec,
-		"duros":             durosValues,
-		"clusterAudit":      clusterAuditValues,
+		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
+		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
+		"apiserverIPs":    apiserverIPs,
+		"nodeCIDR":        nodeCIDR,
+		"firewallSpec":    fwSpec,
+		"duros":           durosValues,
+		"clusterAudit":    clusterAuditValues,
+		"nodeInit":        nodeInitValues,
 		"restrictEgress": map[string]any{
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
 			"destinations":           egressDestinations,
 		},
-		"droptailer": map[string]any{
-			"secretName": droptailerServerSecretName,
-		},
-		"audittailer": map[string]any{
-			"secretName": audittailerServerSecretName,
-		},
+	}
+
+	droptailerServer, serverOK := secretsReader.Get(metal.DroptailerServerSecretName)
+	droptailerClient, clientOK := secretsReader.Get(metal.DroptailerClientSecretName)
+	if serverOK && clientOK {
+		values["droptailer"] = map[string]any{
+			"podAnnotations": map[string]interface{}{
+				"checksum/secret-droptailer-server": checksums[metal.DroptailerServerSecretName],
+				"checksum/secret-droptailer-client": checksums[metal.DroptailerClientSecretName],
+			},
+			"server": map[string]any{
+				"ca":   droptailerServer.Data["ca.crt"],
+				"cert": droptailerServer.Data["tls.crt"],
+				"key":  droptailerServer.Data["tls.key"],
+			},
+			"client": map[string]any{
+				"ca":   droptailerClient.Data["ca.crt"],
+				"cert": droptailerClient.Data["tls.crt"],
+				"key":  droptailerClient.Data["tls.key"],
+			},
+		}
+	}
+
+	audittailerServer, serverOK := secretsReader.Get(metal.AudittailerServerSecretName)
+	audittailerClient, clientOK := secretsReader.Get(metal.AudittailerClientSecretName)
+	if serverOK && clientOK {
+		values["audittailer"] = map[string]any{
+			"podAnnotations": map[string]interface{}{
+				"checksum/secret-audittailer-server": checksums[metal.AudittailerServerSecretName],
+				"checksum/secret-audittailer-client": checksums[metal.AudittailerClientSecretName],
+			},
+			"server": map[string]any{
+				"ca":   audittailerServer.Data["ca.crt"],
+				"cert": audittailerServer.Data["tls.crt"],
+				"key":  audittailerServer.Data["tls.key"],
+			},
+			"client": map[string]any{
+				"ca":   audittailerClient.Data["ca.crt"],
+				"cert": audittailerClient.Data["tls.crt"],
+				"key":  audittailerClient.Data["tls.key"],
+			},
+		}
 	}
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
@@ -776,7 +869,7 @@ func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane
 		vp.logger.Info("firewall currently has more than one firewall, rolling update in progress?", "amount", len(firewalls))
 	}
 
-	slices.SortFunc(firewalls, firewallLessFunc)
+	slices.SortFunc(firewalls, firewallCompareFunc)
 
 	latestFirewall := firewalls[0]
 
@@ -838,132 +931,6 @@ func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace stri
 	return nil
 }
 
-func (vp *valuesProvider) audittailerSecretConfigs() []extensionssecretsmanager.SecretConfigWithOptions {
-	if !vp.controllerConfig.ClusterAudit.Enabled {
-		return nil
-	}
-
-	const auditTailerCAName = "ca-provider-metal-audittailer"
-	return []extensionssecretsmanager.SecretConfigWithOptions{
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:       auditTailerCAName,
-				CommonName: auditTailerCAName,
-				CertType:   secrets.CACert,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.AudittailerClientSecretName,
-				CommonName:                  "audittailer",
-				DNSNames:                    []string{"audittailer"},
-				Organization:                []string{"audittailer-client"},
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.AudittailerServerSecretName,
-				CommonName:                  "audittailer",
-				DNSNames:                    []string{"audittailer"},
-				Organization:                []string{"audittailer-server"},
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
-		},
-	}
-}
-
-func (vp *valuesProvider) droptailerSecretConfigs() []extensionssecretsmanager.SecretConfigWithOptions {
-
-	const droptailerCAName = "ca-provider-metal-droptailer"
-	return []extensionssecretsmanager.SecretConfigWithOptions{
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:       droptailerCAName,
-				CommonName: droptailerCAName,
-				CertType:   secrets.CACert,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.DroptailerClientSecretName,
-				CommonName:                  "droptailer",
-				DNSNames:                    []string{"droptailer"},
-				Organization:                []string{"droptailer-client"},
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.DroptailerServerSecretName,
-				CommonName:                  "droptailer",
-				DNSNames:                    []string{"droptailer"},
-				Organization:                []string{"droptailer-server"},
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
-		},
-	}
-}
-
-func (vp *valuesProvider) deploySecretsToShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, secretConfigsFn func() []extensionssecretsmanager.SecretConfigWithOptions) error {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{})
-	if err != nil {
-		return fmt.Errorf("could not create shoot client %w", err)
-	}
-
-	c, err := client.New(shootConfig, client.Options{})
-	if err != nil {
-		return fmt.Errorf("could not create shoot kubernetes client %w", err)
-	}
-
-	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-		},
-	}
-	_, err = controllerutil.CreateOrUpdate(ctx, c, ns, func() error {
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("could not ensure namespace: %w", err)
-	}
-
-	manager, err := secretsmanager.New(ctx, vp.logger.WithName("shoot-secrets-manager"), secrets.Clock, c, namespace, metal.ManagerIdentity, secretsmanager.Config{
-		CASecretAutoRotation: false,
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create secrets manager: %w", err)
-	}
-
-	_, err = extensionssecretsmanager.GenerateAllSecrets(ctx, manager, secretConfigsFn())
-
-	return err
-}
-
-func (vp *valuesProvider) getSecretFromShoot(ctx context.Context, cluster *extensionscontroller.Cluster, namespace string, name string) (*corev1.Secret, error) {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), cluster.ObjectMeta.Name, client.Options{})
-	if err != nil {
-		return nil, fmt.Errorf("could not create shoot client %w", err)
-	}
-
-	c, err := client.New(shootConfig, client.Options{})
-	if err != nil {
-		return nil, fmt.Errorf("could not create shoot kubernetes client %w", err)
-	}
-
-	return helper.GetLatestSecret(ctx, c, namespace, name)
-}
-
 // getSecret returns the secret with the given namespace/secretName
 func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
 	key := kutil.Key(namespace, secretName)
@@ -981,7 +948,7 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
-func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, _ *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	cp, err := helper.ControlPlaneConfigFromControlPlane(controlPlane)
 	if err != nil {
 		return nil, err
@@ -993,6 +960,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 	}
 
 	values := map[string]interface{}{
+		"pspDisabled":           gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"isDefaultStorageClass": isDefaultSC,
 	}
 
@@ -1084,7 +1052,7 @@ func getCCMChartValues(
 	}
 
 	values := map[string]interface{}{
-		"kubernetesVersion": cluster.Shoot.Spec.Kubernetes.Version,
+		"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"cloudControllerManager": map[string]interface{}{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"projectID":              projectID,
@@ -1225,6 +1193,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	values := map[string]any{
+		"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"duros": map[string]any{
 			"enabled":        storageConfig.Duros.Enabled,
 			"replicas":       extensionscontroller.GetReplicas(cluster, 1),
@@ -1260,16 +1229,37 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 			Namespace: "garden",
 		},
 	}
+	isConfigMapConfigured := false
 	err := vp.Client().Get(ctx, client.ObjectKeyFromObject(cm), cm)
 	if err == nil {
 		url, ok := cm.Data["url"]
 		if ok {
 			seedApiURL = url
+			isConfigMapConfigured = true
 		}
 	}
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, err
 	}
+
+	// We generally expect to get a DNS name for the seed api url.
+	// This is alway true for gardener managed clusters, because the mutating webhook
+	// of the api-server-proxy sets the KUBERNETES_SERVICE_HOST env variable.
+	// But for Managed Seeds where the control plane resides at GKE, this is always a IP
+	// in this case we set the seedAPI URL in a configmap.
+	if !isConfigMapConfigured {
+		u, err := url.Parse(seedApiURL)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = netip.ParseAddr(u.Hostname())
+		if err == nil {
+			// If hostname is a parsable ipaddress we error out because we need a dnsname.
+			panic(fmt.Sprintf("seedApiUrl:%q is not a dns entry, exiting", seedApiURL))
+		}
+	}
+
 	serverSecret, found := secretsReader.Get(metal.FirewallControllerManagerDeploymentName)
 	if !found {
 		return nil, fmt.Errorf("secret %q not found", metal.FirewallControllerManagerDeploymentName)
@@ -1329,16 +1319,22 @@ func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
 	return map[string]interface{}{}, nil
 }
 
-func firewallLessFunc(a, b *models.V1FirewallResponse) bool {
+func firewallCompareFunc(a, b *models.V1FirewallResponse) int {
 	if b.Allocation == nil || b.Allocation.Created == nil {
-		return true
+		return 1
 	}
 	if a.Allocation == nil || a.Allocation.Created == nil {
-		return false
+		return -1
 	}
 
 	atime := time.Time(*a.Allocation.Created)
 	btime := time.Time(*b.Allocation.Created)
 
-	return atime.Before(btime)
+	if atime.Before(btime) {
+		return -1
+	} else if atime.After(btime) {
+		return 1
+	} else {
+		return 0
+	}
 }

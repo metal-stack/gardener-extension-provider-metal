@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
+
+	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
@@ -15,8 +18,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/charts"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
-
-	"github.com/metal-stack/metal-lib/pkg/tag"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -43,7 +44,7 @@ func (w *workerDelegate) MachineClassList() client.ObjectList {
 // DeployMachineClasses generates and creates the metal specific machine classes.
 func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 	if w.machineClasses == nil {
-		if err := w.generateMachineConfig(); err != nil {
+		if err := w.generateMachineConfig(ctx); err != nil {
 			return err
 		}
 	}
@@ -54,28 +55,62 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 }
 
 // GenerateMachineDeployments generates the configuration for the desired machine deployments.
-func (w *workerDelegate) GenerateMachineDeployments(_ context.Context) (worker.MachineDeployments, error) {
+func (w *workerDelegate) GenerateMachineDeployments(ctx context.Context) (worker.MachineDeployments, error) {
 	if w.machineDeployments == nil {
-		if err := w.generateMachineConfig(); err != nil {
+		if err := w.generateMachineConfig(ctx); err != nil {
 			return nil, err
 		}
 	}
 	return w.machineDeployments, nil
 }
 
-func (w *workerDelegate) generateMachineConfig() error {
+func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	var (
 		machineDeployments = worker.MachineDeployments{}
 		machineClasses     []map[string]interface{}
 		machineImages      []apismetal.MachineImage
 	)
 
-	for _, pool := range w.worker.Spec.Pools {
-		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster)
-		if err != nil {
-			return err
+	infrastructureConfig := &apismetal.InfrastructureConfig{}
+	if _, _, err := w.decoder.Decode(w.cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+		return err
+	}
+
+	keepHash := func(deploymentName string) (string, bool, error) {
+		if _, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/keep-worker-hash"]; !ok {
+			return "", false, nil
 		}
 
+		classes := &machinev1alpha1.MachineClassList{}
+		err := w.client.List(ctx, classes, client.InNamespace(w.worker.Namespace))
+		if err != nil {
+			return "", false, err
+		}
+
+		var hash string
+		for _, class := range classes.Items {
+			class := class
+
+			_, h, ok := strings.Cut(class.Name, deploymentName+"-")
+			if !ok {
+				continue
+			}
+			if len(h) != 5 {
+				continue
+			}
+
+			hash = h
+		}
+
+		if hash == "" {
+			w.logger.Info("no machine classes found, allow creation of a new one", "name", deploymentName)
+			return "", false, nil
+		}
+
+		return hash, true, nil
+	}
+
+	for _, pool := range w.worker.Spec.Pools {
 		machineImage, err := w.findMachineImage(pool.MachineImage.Name, pool.MachineImage.Version)
 		if err != nil {
 			return err
@@ -131,9 +166,27 @@ func (w *workerDelegate) generateMachineConfig() error {
 			},
 		}
 
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster)
+		if err != nil {
+			return err
+		}
+
 		var (
 			deploymentName = fmt.Sprintf("%s-%s", w.worker.Namespace, pool.Name)
-			className      = fmt.Sprintf("%s-%s", deploymentName, workerPoolHash)
+		)
+
+		override, ok, err := keepHash(deploymentName)
+		if err != nil {
+			return err
+		}
+
+		if ok {
+			w.logger.Info("using existing worker hash", "value", override)
+			workerPoolHash = override
+		}
+
+		var (
+			className = fmt.Sprintf("%s-%s", deploymentName, workerPoolHash)
 		)
 
 		machineDeployments = append(machineDeployments, worker.MachineDeployment{

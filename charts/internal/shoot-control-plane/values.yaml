@@ -2,6 +2,7 @@
 kubernetesVersion: "1.16.0"
 apiserverIPs: []
 nodeCIDR:
+pspDisabled: false
 
 images:
     audittailer: image-repository:image-tag
@@ -30,6 +31,9 @@ duros:
 clusterAudit:
   enabled: false
 
+nodeInit:
+  enabled: true
+
 restrictEgress:
   enabled: false
   apiServerIngressDomain: api.kube-apiserver
@@ -40,7 +44,23 @@ restrictEgress:
       port: 443
 
 droptailer:
-  secretName: 'droptailer-server'
+  podAnnotations: {}
+  server:
+    ca: ""
+    cert: ""
+    key: ""
+  client:
+    ca: ""
+    cert: ""
+    key: ""
 
 audittailer:
-  secretName: 'audittailer-server'
+  podAnnotations: {}
+  server:
+    ca: ""
+    cert: ""
+    key: ""
+  client:
+    ca: ""
+    cert: ""
+    key: ""

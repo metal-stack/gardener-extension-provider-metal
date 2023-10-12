@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/go-logr/logr"
 
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 
@@ -26,7 +27,7 @@ type InfrastructureState struct {
 	Firewalls []string `json:"firewalls"`
 }
 
-func (a *actuator) updateState(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure) error {
+func (a *actuator) updateState(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) error {
 	patch := client.MergeFrom(infrastructure.DeepCopy())
 
 	var (
@@ -66,14 +67,14 @@ func (a *actuator) updateState(ctx context.Context, infrastructure *extensionsv1
 	return a.client.Status().Patch(ctx, infrastructure, patch)
 }
 
-func (a *actuator) restoreState(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure) error {
+func (a *actuator) restoreState(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) error {
 	infraState := &InfrastructureState{}
 	err := json.Unmarshal(infrastructure.Status.State.Raw, infraState)
 	if err != nil {
 		return fmt.Errorf("unable to decode infrastructure status: %w", err)
 	}
 
-	a.logger.Info("restoring firewalls", "firewalls", len(infraState.Firewalls))
+	log.Info("restoring firewalls", "firewalls", len(infraState.Firewalls))
 
 	for _, raw := range infraState.Firewalls {
 		raw := raw

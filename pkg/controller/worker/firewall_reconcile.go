@@ -6,6 +6,7 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/go-logr/logr"
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
@@ -19,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (a *actuator) firewallReconcile(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) firewallReconcile(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
 	if worker.DeletionTimestamp != nil {
 		return nil
 	}
@@ -52,12 +53,12 @@ func (a *actuator) firewallReconcile(ctx context.Context, worker *extensionsv1al
 		return fmt.Errorf("error getting additional data: %w", err)
 	}
 
-	err = a.ensureFirewallDeployment(ctx, d, cluster, string(sshSecret.Data["id_rsa.pub"]))
+	err = a.ensureFirewallDeployment(ctx, log, d, cluster, string(sshSecret.Data["id_rsa.pub"]))
 	if err != nil {
 		return err
 	}
 
-	err = a.updateState(ctx, d.infrastructure)
+	err = a.updateState(ctx, log, d.infrastructure)
 	if err != nil {
 		return fmt.Errorf("unable to update firewall state: %w", err)
 	}
@@ -65,7 +66,7 @@ func (a *actuator) firewallReconcile(ctx context.Context, worker *extensionsv1al
 	return nil
 }
 
-func (a *actuator) ensureFirewallDeployment(ctx context.Context, d *additionalData, cluster *extensionscontroller.Cluster, sshKey string) error {
+func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger, d *additionalData, cluster *extensionscontroller.Cluster, sshKey string) error {
 	var (
 		clusterID = string(cluster.Shoot.GetUID())
 		namespace = cluster.ObjectMeta.Name
@@ -131,7 +132,7 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, d *additionalDa
 		return fmt.Errorf("error creating firewall deployment: %w", err)
 	}
 
-	a.logger.Info("reconciled firewall deployment", "name", deploy.Name, "cluster-id", clusterID)
+	log.Info("reconciled firewall deployment", "name", deploy.Name, "cluster-id", clusterID)
 
 	return nil
 }

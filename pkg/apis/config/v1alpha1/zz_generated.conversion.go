@@ -12,8 +12,8 @@ package v1alpha1
 import (
 	unsafe "unsafe"
 
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
-	healthcheckconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config/v1alpha1"
+	apisconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
+	apisconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
 	config "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	conversion "k8s.io/apimachinery/pkg/conversion"
@@ -227,7 +227,7 @@ func autoConvert_v1alpha1_ControllerConfiguration_To_config_ControllerConfigurat
 	if err := Convert_v1alpha1_AuditToSplunk_To_config_AuditToSplunk(&in.AuditToSplunk, &out.AuditToSplunk, s); err != nil {
 		return err
 	}
-	out.HealthCheckConfig = (*healthcheckconfig.HealthCheckConfig)(unsafe.Pointer(in.HealthCheckConfig))
+	out.HealthCheckConfig = (*apisconfig.HealthCheckConfig)(unsafe.Pointer(in.HealthCheckConfig))
 	if err := Convert_v1alpha1_StorageConfiguration_To_config_StorageConfiguration(&in.Storage, &out.Storage, s); err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func autoConvert_config_ControllerConfiguration_To_v1alpha1_ControllerConfigurat
 	if err := Convert_config_AuditToSplunk_To_v1alpha1_AuditToSplunk(&in.AuditToSplunk, &out.AuditToSplunk, s); err != nil {
 		return err
 	}
-	out.HealthCheckConfig = (*healthcheckconfigv1alpha1.HealthCheckConfig)(unsafe.Pointer(in.HealthCheckConfig))
+	out.HealthCheckConfig = (*apisconfigv1alpha1.HealthCheckConfig)(unsafe.Pointer(in.HealthCheckConfig))
 	if err := Convert_config_StorageConfiguration_To_v1alpha1_StorageConfiguration(&in.Storage, &out.Storage, s); err != nil {
 		return err
 	}

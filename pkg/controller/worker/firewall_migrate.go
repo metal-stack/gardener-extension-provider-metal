@@ -6,6 +6,7 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/pkg/controllerutils"
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -16,7 +17,7 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
-func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) firewallMigrate(ctx context.Context, log logr.Logger, cluster *extensionscontroller.Cluster) error {
 	var (
 		namespace = cluster.ObjectMeta.Name
 
@@ -31,7 +32,7 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 	}
 
 	if len(firewalls.Items) == 0 {
-		a.logger.Info("firewalls already migrated")
+		log.Info("firewalls already migrated")
 		return nil
 	}
 
@@ -45,7 +46,7 @@ func (a *actuator) firewallMigrate(ctx context.Context, cluster *extensionscontr
 		return fmt.Errorf("error listing firewall deployments: %w", err)
 	}
 
-	a.logger.Info("shallow deleting firewall entities for shoot migration")
+	log.Info("shallow deleting firewall entities for shoot migration")
 
 	if err := shallowDeleteAllObjects(ctx, a.client, fwdeploys); err != nil {
 		return fmt.Errorf("error shallow deleting firewall deployments: %w", err)
@@ -81,5 +82,5 @@ func shallowDeleteObject(ctx context.Context, c client.Client, object client.Obj
 }
 
 func removeFinalizersObject(ctx context.Context, c client.Client, object client.Object) error {
-	return controllerutils.RemoveAllFinalizers(ctx, c, c, object)
+	return controllerutils.RemoveAllFinalizers(ctx, c, object)
 }
