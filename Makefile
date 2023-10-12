@@ -9,6 +9,7 @@ VERIFY                      := true
 LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
+GO_VERSION                  := 1.21
 
 GOLANGCI_LINT_VERSION := v1.48.0
 
@@ -82,7 +83,7 @@ generate: $(HELM)
 generate-in-docker: revendor $(HELM)
 	echo $(shell git describe --abbrev=0 --tags) > VERSION
 	docker run --rm -i$(DOCKER_TTY_ARG) \
-		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.21 \
+		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:$(GO_VERSION) \
 			sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 					&& make generate \
 					&& chown -R $(shell id -u):$(shell id -g) ."
@@ -100,7 +101,7 @@ test-in-docker: revendor
 	docker run --rm -i$(DOCKER_TTY_ARG) \
 		--user $$(id -u):$$(id -g) \
 		--mount type=tmpfs,destination=/.cache \
-		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:1.21 \
+		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:$(GO_VERSION) \
 			sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 					&& make install check test"
 
