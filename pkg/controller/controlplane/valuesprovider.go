@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"time"
 
@@ -27,7 +26,6 @@ import (
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
-	"github.com/gardener/gardener/pkg/utils"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -248,7 +246,6 @@ var cpShootChart = &chart.Chart{
 		// firewall controller
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:firewall-controller"},
-		{Type: &firewallv1.Firewall{}, Name: "firewall"},
 
 		// firewall controller manager
 		{Type: &corev1.ServiceAccount{}, Name: "firewall-controller-manager"},
@@ -660,16 +657,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		return nil, err
 	}
 
-	fwSpec, err := vp.getFirewallSpec(ctx, metalControlPlane, infrastructureConfig, cluster, nws, mclient)
-	if err != nil {
-		return nil, fmt.Errorf("could not assemble firewall values %w", err)
-	}
-
-	err = vp.signFirewallValues(ctx, namespace, fwSpec)
-	if err != nil {
-		return nil, fmt.Errorf("could not sign firewall values %w", err)
-	}
-
 	durosValues := map[string]interface{}{
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
@@ -734,7 +721,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"apiserverIPs":    apiserverIPs,
 		"nodeCIDR":        nodeCIDR,
-		"firewallSpec":    fwSpec,
 		"duros":           durosValues,
 		"clusterAudit":    clusterAuditValues,
 		"nodeInit":        nodeInitValues,
@@ -803,132 +789,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, m
 	}
 
 	return values, nil
-}
-
-// getFirewallSpec returns the firewall v1 specification to be deployed to the shoot cluster.
-// this is kept for backwards-compatibility to support firewall-controller v1.x, can be removed as soon as all firewall-controllers are migrated to v2.x
-func (vp *valuesProvider) getFirewallSpec(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, infrastructureConfig *apismetal.InfrastructureConfig, cluster *extensionscontroller.Cluster, nws networkMap, mclient metalgo.Client) (*firewallv1.FirewallSpec, error) {
-	rateLimits := []firewallv1.RateLimit{}
-	for _, rateLimit := range infrastructureConfig.Firewall.RateLimits {
-		rateLimits = append(rateLimits, firewallv1.RateLimit{
-			NetworkID: rateLimit.NetworkID,
-			Rate:      rateLimit.RateLimit,
-		})
-	}
-
-	egressRules := []firewallv1.EgressRuleSNAT{}
-	for _, egressRule := range infrastructureConfig.Firewall.EgressRules {
-		egressRules = append(egressRules, firewallv1.EgressRuleSNAT{
-			NetworkID: egressRule.NetworkID,
-			IPs:       egressRule.IPs,
-		})
-	}
-
-	spec := firewallv1.FirewallSpec{
-		Data: firewallv1.Data{
-			Interval:         "10s",
-			InternalPrefixes: vp.controllerConfig.FirewallInternalPrefixes,
-			RateLimits:       rateLimits,
-			EgressRules:      egressRules,
-		},
-		LogAcceptedConnections: infrastructureConfig.Firewall.LogAcceptedConnections,
-	}
-
-	fwcv, err := validation.ValidateFirewallControllerVersion(metalControlPlane.FirewallControllerVersions, infrastructureConfig.Firewall.ControllerVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	spec.ControllerVersion = fwcv.Version
-	spec.ControllerURL = fwcv.URL
-
-	var (
-		clusterID = string(cluster.Shoot.GetUID())
-		projectID = infrastructureConfig.ProjectID
-	)
-
-	firewalls, err := metalclient.FindClusterFirewalls(ctx, mclient, clusterTag(clusterID), projectID)
-	if err != nil {
-		return nil, fmt.Errorf("could not find firewall for cluster %w", err)
-	}
-
-	if len(firewalls) == 0 {
-		// cluster has no firewall yet, firewall-controller-manager will create a new one
-		return &spec, nil
-	}
-	if len(firewalls) > 1 {
-		// firewall-controller-manager supports rolling updates such that there can be more than 1 firewall
-		// during the update process.
-		//
-		// we have to use the networks of the latest firewall to write the firewall v1 spec as otherwise
-		// the firewall-controller that reads the firewall v1 spec will remove it's ip addresses from the
-		// network interfaces.
-		//
-		// older firewalls that still run firewall-controller 1.x will break. therefore, before doing a rolling upgrade
-		// we should update the firewall-controller to > 2.x.
-		vp.logger.Info("firewall currently has more than one firewall, rolling update in progress?", "amount", len(firewalls))
-	}
-
-	slices.SortFunc(firewalls, firewallCompareFunc)
-
-	latestFirewall := firewalls[0]
-
-	firewallNetworks := []firewallv1.FirewallNetwork{}
-	for _, n := range latestFirewall.Allocation.Networks {
-		if n.Networkid == nil {
-			continue
-		}
-		n := n
-
-		// prefixes in the firewall machine allocation are just a snapshot when the firewall was created.
-		// -> when changing prefixes in the referenced network the firewall does not know about any prefix changes.
-		//
-		// we replace the prefixes from the snapshot with the actual prefixes that are currently attached to the network.
-		// this allows dynamic prefix reconfiguration of the firewall.
-		prefixes := n.Prefixes
-		networkRef, ok := nws[*n.Networkid]
-		if !ok {
-			vp.logger.Info("network in firewall allocation does not exist anymore")
-		} else {
-			prefixes = networkRef.Prefixes
-		}
-
-		firewallNetworks = append(firewallNetworks, firewallv1.FirewallNetwork{
-			Asn:                 n.Asn,
-			Destinationprefixes: n.Destinationprefixes,
-			Ips:                 n.Ips,
-			Nat:                 n.Nat,
-			Networkid:           n.Networkid,
-			Networktype:         n.Networktype,
-			Prefixes:            prefixes,
-			Vrf:                 n.Vrf,
-		})
-	}
-
-	spec.FirewallNetworks = firewallNetworks
-
-	return &spec, nil
-}
-
-func (vp *valuesProvider) signFirewallValues(ctx context.Context, namespace string, spec *firewallv1.FirewallSpec) error {
-	secret, err := vp.getSecret(ctx, namespace, v1beta1constants.SecretNameCACluster)
-	if err != nil {
-		return fmt.Errorf("could not find ca secret for signing firewall values %w", err)
-	}
-
-	privateKey, err := utils.DecodePrivateKey(secret.Data[secrets.DataKeyPrivateKeyCA])
-	if err != nil {
-		return fmt.Errorf("could not decode private key from ca secret for signing firewall values %w", err)
-	}
-
-	vp.logger.Info("signing firewall", "data", spec.Data)
-	signature, err := spec.Data.Sign(privateKey)
-	if err != nil {
-		return fmt.Errorf("could not sign firewall values %w", err)
-	}
-
-	spec.Signature = signature
-	return nil
 }
 
 // getSecret returns the secret with the given namespace/secretName
