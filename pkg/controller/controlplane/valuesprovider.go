@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
-	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
+	firewallv1 "github.com/metal-stack/firewall-controller/v2/api/v1"
 
 	extensionsconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
