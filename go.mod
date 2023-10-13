@@ -18,7 +18,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/metal-stack/duros-controller v0.6.2
 	github.com/metal-stack/firewall-controller-manager v0.2.3
-	github.com/metal-stack/firewall-controller/v2 v2.0.9-0.20231012105318-111e73be21fc
+	github.com/metal-stack/firewall-controller/v2 v2.1.0
 	github.com/metal-stack/machine-controller-manager-provider-metal v0.1.14
 	github.com/metal-stack/metal-go v0.24.1
 	github.com/metal-stack/metal-lib v0.13.3
