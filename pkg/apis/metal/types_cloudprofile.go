@@ -1,6 +1,8 @@
 package metal
 
 import (
+	"net/url"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -66,4 +68,24 @@ const (
 type Partition struct {
 	// FirewallTypes is a list of available firewall machine types in this partition. When empty, allows all values.
 	FirewallTypes []string
+	Proxy         Proxy
+}
+
+type Proxy struct {
+	HTTPProxy          url.URL
+	HTTPSProxy         url.URL
+	DefaultHTTPNoProxy []string
+
+	RegistryMirror url.URL
+
+	DNSServers []DNSServer
+	NTPServers []NTPServer
+}
+
+type DNSServer struct {
+	Host string
+}
+
+type NTPServer struct {
+	Host string
 }
