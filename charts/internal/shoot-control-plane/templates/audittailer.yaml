@@ -7,6 +7,30 @@ metadata:
     k8s-app: audittailer
   name: audit
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: audittailer-server
+  namespace: audit
+type: Opaque
+data:
+  ca.crt: {{ .Values.audittailer.server.ca }}
+  tls.crt: {{ .Values.audittailer.server.cert }}
+  tls.key: {{ .Values.audittailer.server.key }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: audittailer-client
+  namespace: audit
+  labels:
+    name: audittailer-client
+type: Opaque
+data:
+  ca.crt: {{ .Values.audittailer.client.ca }}
+  tls.crt: {{ .Values.audittailer.client.cert }}
+  tls.key: {{ .Values.audittailer.client.key }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,6 +47,10 @@ spec:
       labels:
         k8s-app: audittailer
         app: audittailer
+{{- if .Values.audittailer.podAnnotations }}
+      annotations:
+{{ toYaml .Values.audittailer.podAnnotations | indent 8 }}
+{{- end }}
     spec:
       automountServiceAccountToken: false
       containers:
@@ -68,7 +96,7 @@ spec:
           name: audittailer-config
       - name: fluentd-certs
         secret:
-          secretName: {{ .Values.audittailer.secretName }}
+          secretName: audittailer-server
       - name: fluentbuffer
         emptyDir: {}
 ---

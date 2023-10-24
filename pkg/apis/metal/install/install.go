@@ -3,7 +3,7 @@ package install
 import (
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
-	firewallv1 "github.com/metal-stack/firewall-controller/api/v1"
+	firewallv1 "github.com/metal-stack/firewall-controller/v2/api/v1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
