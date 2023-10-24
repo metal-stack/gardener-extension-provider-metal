@@ -16,9 +16,12 @@ import (
 	"github.com/metal-stack/metal-go/api/models"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
 
-	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type networkDeleter struct {
@@ -68,6 +71,33 @@ func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructur
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
 		}
+	}
+
+	// the valuesprovider is unable to cleanup the mutating and validating webhooks
+	// because these are not namespaced and the names are determined at runtime
+	//
+	// so we clean it up here after control plane has terminated.
+
+	name := "firewall-controller-manager-" + cluster.ObjectMeta.Name
+
+	mwc := &admissionregistrationv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	err = a.client.Delete(ctx, mwc)
+	if client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("unable to cleanup firewall-controller-manager mutating webhook")
+	}
+
+	vwc := &admissionregistrationv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	err = a.client.Delete(ctx, vwc)
+	if client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("unable to cleanup firewall-controller-manager validating webhook")
 	}
 
 	return nil
