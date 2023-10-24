@@ -639,7 +639,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, metalControlPlane, cpConfig, cluster, nws, infrastructure, infrastructureConfig, mclient, secretsReader, checksums)
+	values, err := vp.getControlPlaneShootChartValues(ctx, cpConfig, cluster, nws, infrastructure, infrastructureConfig, secretsReader, checksums)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -649,7 +649,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, metalControlPlane *apismetal.MetalControlPlane, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, mclient metalgo.Client, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
