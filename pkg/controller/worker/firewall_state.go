@@ -64,7 +64,14 @@ func (a *actuator) updateState(ctx context.Context, log logr.Logger, infrastruct
 
 	infrastructure.Status.State = &runtime.RawExtension{Raw: infraStateBytes}
 
-	return a.client.Status().Patch(ctx, infrastructure, patch)
+	err = a.client.Status().Patch(ctx, infrastructure, patch)
+	if err != nil {
+		return err
+	}
+
+	log.Info("firewall state updated in infrastructure status", "firewalls", len(infraState.Firewalls))
+
+	return nil
 }
 
 func (a *actuator) restoreState(ctx context.Context, log logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure) error {
@@ -74,7 +81,7 @@ func (a *actuator) restoreState(ctx context.Context, log logr.Logger, infrastruc
 		return fmt.Errorf("unable to decode infrastructure status: %w", err)
 	}
 
-	log.Info("restoring firewalls", "firewalls", len(infraState.Firewalls))
+	log.Info("restoring firewalls from infrastructure status", "firewalls", len(infraState.Firewalls))
 
 	for _, raw := range infraState.Firewalls {
 		raw := raw
