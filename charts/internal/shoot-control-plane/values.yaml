@@ -11,7 +11,7 @@ images:
     metallb-controller: image-repository:image-tag
     fluentd-splunk-audit: image-repository:image-tag
     node-init: image-repository:image-tag
-    kubectl: image-repository:image-tag
+    metallb-health-sidecar: image-repository:image-tag
 
 imagePullPolicy: IfNotPresent
 

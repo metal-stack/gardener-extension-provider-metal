@@ -213,7 +213,7 @@ var controlPlaneChart = &chart.Chart{
 var cpShootChart = &chart.Chart{
 	Name:   "shoot-control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "shoot-control-plane"),
-	Images: []string{metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName, metal.NodeInitImageName, metal.KubectlImageName},
+	Images: []string{metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName, metal.NodeInitImageName, metal.MetallbHealthSidecarImageName},
 	Objects: []*chart.Object{
 		// metallb
 		{Type: &corev1.Namespace{}, Name: "metallb-system"},
