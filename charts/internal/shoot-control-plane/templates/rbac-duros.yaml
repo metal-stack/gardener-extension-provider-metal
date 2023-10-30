@@ -49,7 +49,7 @@ rules:
   - patch
   - update
   - watch
-{{- if semverCompare "< 1.25" .Capabilities.KubeVersion.GitVersion }}
+{{- if not .Values.pspDisabled }}
 - apiGroups:
   - "policy"
   resources:

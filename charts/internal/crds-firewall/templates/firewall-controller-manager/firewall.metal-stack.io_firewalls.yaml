@@ -255,7 +255,12 @@ spec:
                     type: string
                   lastRun:
                     description: Updated is a timestamp when the controller has last
-                      reconciled the firewall resource.
+                      reconciled the shoot cluster.
+                    format: date-time
+                    type: string
+                  lastRunAgainstSeed:
+                    description: SeedUpdated is a timestamp when the controller has
+                      last reconciled the firewall resource.
                     format: date-time
                     type: string
                 type: object

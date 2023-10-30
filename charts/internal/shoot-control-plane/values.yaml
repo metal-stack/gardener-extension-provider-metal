@@ -2,6 +2,7 @@
 kubernetesVersion: "1.16.0"
 apiserverIPs: []
 nodeCIDR:
+pspDisabled: false
 
 images:
     audittailer: image-repository:image-tag
@@ -13,15 +14,6 @@ images:
     kubectl: image-repository:image-tag
 
 imagePullPolicy: IfNotPresent
-
-firewallSpec:
-    interval: 10s
-    dryrun: false
-    logAcceptedConnections: false
-    rateLimits: []
-    internalprefixes: []
-    egressRules: []
-    firewallNetworks: []
 
 duros:
   enabled: false
@@ -43,7 +35,23 @@ restrictEgress:
       port: 443
 
 droptailer:
-  secretName: 'droptailer-server'
+  podAnnotations: {}
+  server:
+    ca: ""
+    cert: ""
+    key: ""
+  client:
+    ca: ""
+    cert: ""
+    key: ""
 
 audittailer:
-  secretName: 'audittailer-server'
+  podAnnotations: {}
+  server:
+    ca: ""
+    cert: ""
+    key: ""
+  client:
+    ca: ""
+    cert: ""
+    key: ""
