@@ -47,10 +47,10 @@ images:
   sourceRepository: https://github.com/metal-stack/node-init
   repository: ghcr.io/metal-stack/node-init
   tag: "v0.1.4"
-- name: kubectl
-  sourceRepository: https://github.com/bitnami/containers
-  repository: bitnami/kubectl
-  tag: "1.27.7"
+- name: metallb-health-sidecar
+  sourceRepository: https://github.com/metal-stack/metallb-health-sidecar
+  repository: ghcr.io/metal-stack/metallb-health-sidecar
+  tag: "latest"
 - name: firewall-controller-manager
   sourceRepository: https://github.com/metal-stack/firewall-controller-manager
   repository: ghcr.io/metal-stack/firewall-controller-manager
