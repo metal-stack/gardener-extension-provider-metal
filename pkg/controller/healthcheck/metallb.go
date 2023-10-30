@@ -3,6 +3,7 @@ package healthcheck
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -64,13 +65,19 @@ func (healthChecker *MetalLBHealthChecker) Check(ctx context.Context, request ty
 }
 
 func IsHealthy(health *v1.ConfigMap) (bool, error) {
-	isLoaded := health.Data["configLoaded"]
-	if isLoaded != "1" {
+	isLoaded, err := strconv.ParseBool(health.Data["configLoaded"])
+	if err != nil {
+		return false, fmt.Errorf("unable to parse value from metallb health configmap: %w", err)
+	}
+	if !isLoaded {
 		return false, fmt.Errorf("metallb configmap is not loaded")
 	}
 
-	isStale := health.Data["configStale"]
-	if isStale == "1" {
+	isStale, err := strconv.ParseBool(health.Data["configStale"])
+	if err != nil {
+		return false, fmt.Errorf("unable to parse value from metallb health configmap: %w", err)
+	}
+	if isStale {
 		return false, fmt.Errorf("metallb configmap is stale / erroneous, next speaker reload may interrupt workload traffic")
 	}
 

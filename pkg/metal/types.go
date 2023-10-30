@@ -30,8 +30,8 @@ const (
 	DurosResourceName = "shoot-default-storage"
 	// NodeInitImageName is the name of the node-init to deploy to the shoot.
 	NodeInitImageName = "node-init"
-	// KubectlImageName is the name of the kubectl image used for metallb health checking to deploy to the shoot.
-	KubectlImageName = "kubectl"
+	// MetallbHealthSidecarImageName is the name of the metallb health sidecar image used for metallb health checking to deploy to the shoot.
+	MetallbHealthSidecarImageName = "metallb-health-sidecar"
 
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"

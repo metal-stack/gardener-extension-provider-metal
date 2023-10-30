@@ -15,7 +15,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
-	metalv1alpha1 "github.com/metal-stack/machine-controller-manager-provider-metal/pkg/provider/migration/legacy-api/machine/v1alpha1"
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/cache"
@@ -96,10 +95,6 @@ func (a *actuator) InjectFunc(f inject.Func) error {
 }
 
 func (a *actuator) InjectScheme(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(metalv1alpha1.SchemeGroupVersion,
-		&metalv1alpha1.MetalMachineClass{},
-		&metalv1alpha1.MetalMachineClassList{},
-	)
 	a.scheme = scheme
 	a.decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
 	return nil
