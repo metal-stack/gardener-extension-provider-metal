@@ -43,6 +43,6 @@ type InfrastructureStatus struct {
 }
 
 type FirewallStatus struct {
-	MachineID string `json:"machineID"`
+	MachineID         string   `json:"machineID"`
 	ExternalEgressIPs []string `json:"externalEgressIPs"`
 }
