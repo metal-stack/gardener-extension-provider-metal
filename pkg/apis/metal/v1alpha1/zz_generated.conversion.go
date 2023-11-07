@@ -395,6 +395,7 @@ func Convert_metal_FirewallControllerVersion_To_v1alpha1_FirewallControllerVersi
 
 func autoConvert_v1alpha1_FirewallStatus_To_metal_FirewallStatus(in *FirewallStatus, out *metal.FirewallStatus, s conversion.Scope) error {
 	out.MachineID = in.MachineID
+	out.ExternalEgressIPs = *(*[]string)(unsafe.Pointer(&in.ExternalEgressIPs))
 	return nil
 }
 
@@ -405,6 +406,7 @@ func Convert_v1alpha1_FirewallStatus_To_metal_FirewallStatus(in *FirewallStatus,
 
 func autoConvert_metal_FirewallStatus_To_v1alpha1_FirewallStatus(in *metal.FirewallStatus, out *FirewallStatus, s conversion.Scope) error {
 	out.MachineID = in.MachineID
+	out.ExternalEgressIPs = *(*[]string)(unsafe.Pointer(&in.ExternalEgressIPs))
 	return nil
 }
 

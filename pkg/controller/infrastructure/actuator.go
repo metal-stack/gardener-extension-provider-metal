@@ -80,7 +80,7 @@ func decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, dec
 	return infrastructureConfig, infrastructureStatus, nil
 }
 
-func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string) error {
+func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *extensionsv1alpha1.Infrastructure, providerStatus *metalapi.InfrastructureStatus, nodeCIDR *string, externalEgressIPs *[]string) error {
 	patch := client.MergeFrom(infrastructure.DeepCopy())
 	infrastructure.Status.ProviderStatus = &runtime.RawExtension{Object: &metalv1alpha1.InfrastructureStatus{
 		TypeMeta: metav1.TypeMeta{
@@ -88,7 +88,8 @@ func updateProviderStatus(ctx context.Context, c client.Client, infrastructure *
 			Kind:       "InfrastructureStatus",
 		},
 		Firewall: metalv1alpha1.FirewallStatus{
-			MachineID: providerStatus.Firewall.MachineID,
+			MachineID:         providerStatus.Firewall.MachineID,
+			ExternalEgressIPs: *externalEgressIPs,
 		},
 	}}
 	infrastructure.Status.NodesCIDR = nodeCIDR
