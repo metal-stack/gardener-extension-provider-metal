@@ -87,6 +87,15 @@ func (d *defaulter) defaultInfrastructureConfig(shoot *gardenv1beta1.Shoot) erro
 }
 
 func (d *defaulter) defaultNetworking(shoot *gardenv1beta1.Shoot) error {
+	if len(shoot.Spec.Provider.Workers) == 0 {
+		// this is the workerless shoot case, don't default a network configuration
+		return nil
+	}
+
+	if shoot.Spec.Networking == nil {
+		shoot.Spec.Networking = &gardenv1beta1.Networking{}
+	}
+
 	if pointer.SafeDeref(shoot.Spec.Networking.Type) == "" {
 		shoot.Spec.Networking.Type = pointer.Pointer(d.c.networkType())
 	}

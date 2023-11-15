@@ -672,7 +672,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	nodeInitValues := map[string]any{
 		"enabled": true,
 	}
-	if pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type) == "cilium" {
+	if pointer.SafeDeref(pointer.SafeDeref(cluster.Shoot.Spec.Networking).Type) == "cilium" {
 		nodeInitValues["enabled"] = false
 	}
 

@@ -125,9 +125,6 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						Kubelet: &gardenv1beta1.KubeletConfig{
 							MaxPods: pointer.Pointer(int32(250)),
 						},
-						KubeProxy: &gardenv1beta1.KubeProxyConfig{
-							Enabled: pointer.Pointer(true),
-						},
 					},
 					Provider: gardenv1beta1.Provider{
 						InfrastructureConfig: &runtime.RawExtension{
@@ -135,22 +132,6 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 								Firewall: metalv1alpha1.Firewall{
 									Image: "firewall-2.0.20210207",
 									Size:  "n1-medium-x86",
-								},
-							},
-						},
-					},
-					Networking: &gardenv1beta1.Networking{
-						Type:     pointer.Pointer("calico"),
-						Pods:     pointer.Pointer("10.240.0.0/13"),
-						Services: pointer.Pointer("10.248.0.0/18"),
-						ProviderConfig: &runtime.RawExtension{
-							Object: &calicoextensionv1alpha1.NetworkConfig{
-								Backend: pointer.Pointer(calicoextensionv1alpha1.None),
-								IPv4: &calicoextensionv1alpha1.IPv4{
-									Mode: pointer.Pointer(calicoextensionv1alpha1.Never),
-								},
-								Typha: &calicoextensionv1alpha1.Typha{
-									Enabled: false,
 								},
 							},
 						},
@@ -257,6 +238,9 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 								},
 							},
 						},
+						Workers: []gardenv1beta1.Worker{
+							{},
+						},
 					},
 				},
 			},
@@ -283,6 +267,9 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 									Size:  "n1-medium-x86",
 								},
 							},
+						},
+						Workers: []gardenv1beta1.Worker{
+							{},
 						},
 					},
 					Networking: &gardenv1beta1.Networking{
@@ -327,6 +314,9 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 								},
 							},
 						},
+						Workers: []gardenv1beta1.Worker{
+							{},
+						},
 					},
 					Networking: &gardenv1beta1.Networking{
 						Type: pointer.Pointer("cilium"),
@@ -356,6 +346,9 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 									Size:  "n1-medium-x86",
 								},
 							},
+						},
+						Workers: []gardenv1beta1.Worker{
+							{},
 						},
 					},
 					Networking: &gardenv1beta1.Networking{
