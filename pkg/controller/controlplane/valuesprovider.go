@@ -14,6 +14,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -671,7 +672,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	nodeInitValues := map[string]any{
 		"enabled": true,
 	}
-	if cluster.Shoot.Spec.Networking.Type == "cilium" {
+	if pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type) == "cilium" {
 		nodeInitValues["enabled"] = false
 	}
 
