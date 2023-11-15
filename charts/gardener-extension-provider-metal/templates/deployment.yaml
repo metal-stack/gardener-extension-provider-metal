@@ -19,9 +19,10 @@ spec:
         {{- end }}
         checksum/configmap-{{ include "name" . }}-config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         {{- if and .Values.metrics.enableScraping }}
+        prometheus.io/name: "{{ .Release.Name }}"
         prometheus.io/scrape: "true"
         # default metrics endpoint in controller-runtime
-        prometheus.io/port: "8080"
+        prometheus.io/port: "{{ .Values.metricsPort }}"
         {{- end }}
       labels:
         networking.gardener.cloud/to-runtime-apiserver: allowed
@@ -49,6 +50,9 @@ spec:
         - --webhook-config-server-port={{ .Values.webhookConfig.serverPort }}
         - --disable-controllers={{ .Values.disableControllers | join "," }}
         - --disable-webhooks={{ .Values.disableWebhooks | join "," }}
+        {{- if .Values.metricsPort }}
+        - --metrics-bind-address=:{{ .Values.metricsPort }}
+        {{- end }}
         - --health-bind-address=:{{ .Values.healthPort }}
         - --gardener-version={{ .Values.gardener.version }}
         env:
