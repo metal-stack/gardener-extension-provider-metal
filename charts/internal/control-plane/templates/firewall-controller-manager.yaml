@@ -99,6 +99,11 @@ spec:
     metadata:
       labels:
         app: firewall-controller-manager
+        networking.gardener.cloud/from-prometheus: "allowed"
+        networking.gardener.cloud/to-dns: "allowed"
+        networking.gardener.cloud/to-public-networks: "allowed"
+        networking.gardener.cloud/to-shoot-apiserver: "allowed"
+        networking.gardener.cloud/to-runtime-apiserver: "allowed"
 {{- if .Values.podAnnotations }}
       annotations:
 {{ toYaml .Values.podAnnotations | indent 8 }}
