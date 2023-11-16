@@ -200,14 +200,6 @@ var controlPlaneChart = &chart.Chart{
 		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
-
-		// network policies
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-http"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-vpn"},
 	},
 }
 
@@ -229,13 +221,6 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.RoleBinding{}, Name: "config-watcher"},
 		{Type: &appsv1.DaemonSet{}, Name: "speaker"},
 		{Type: &appsv1.Deployment{}, Name: "controller"},
-
-		// network policies
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-http"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
 
 		// cluster wide network policies
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
