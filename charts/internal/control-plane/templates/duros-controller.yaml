@@ -38,7 +38,6 @@ rules:
   - update
   - patch
   - create
-
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -87,6 +86,10 @@ spec:
     metadata:
       labels:
         app: duros-controller
+        networking.gardener.cloud/from-prometheus: "allowed"
+        networking.gardener.cloud/to-dns: "allowed"
+        networking.gardener.cloud/to-shoot-apiserver: "allowed"
+        networking.gardener.cloud/to-runtime-apiserver: "allowed"
     spec:
       # required to be able to read the duros cr from the seed
       automountServiceAccountToken: true
