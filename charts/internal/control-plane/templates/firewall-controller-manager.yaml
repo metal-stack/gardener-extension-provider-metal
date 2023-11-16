@@ -167,6 +167,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: firewall-controller-manager
+  annotations:
+    networking.resources.gardener.cloud/from-all-webhook-targets-allowed-ports: '[{"protocol":"TCP","port":9443}]'
+    networking.resources.gardener.cloud/from-all-seed-scrape-targets-allowed-ports: '[{"protocol":"TCP","port":2112}]'
 spec:
   type: ClusterIP
   clusterIP: None
@@ -338,20 +341,3 @@ webhooks:
     resources:
     - firewalldeployments
   sideEffects: None
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  annotations:
-  name: allow-to-firewall-controller-manager-webhook
-  namespace: {{ .Release.Namespace }}
-spec:
-  ingress:
-  - ports:
-    - port: 9443
-      protocol: TCP
-  podSelector:
-    matchLabels:
-      app: firewall-controller-manager
-  policyTypes:
-  - Ingress
