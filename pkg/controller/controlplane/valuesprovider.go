@@ -1119,7 +1119,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
 			"clusterID":        string(cluster.Shoot.GetUID()),
 			"seedApiURL":       seedApiURL,
-			"shootApiURL":      "https://kube-apiserver",
+			"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
 			"sshKeySecretName": sshSecret.Name,
 			"metalapi": map[string]any{
 				"url": metalControlPlane.Endpoint,
