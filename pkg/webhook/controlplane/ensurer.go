@@ -114,6 +114,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		ensureVPNSeedEnvVars(c, nodeCIDR)
 	}
 	if makeAuditForwarder {
+		// required because auditforwarder uses kube-apiserver and not localhost
+		template.Labels["networking.resources.gardener.cloud/to-kube-apiserver-tcp-443"] = "allowed"
+
 		err := ensureAuditForwarder(ps, auditToSplunk)
 		if err != nil {
 			logger.Error(err, "could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
