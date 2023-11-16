@@ -120,6 +120,7 @@ spec:
           - -log-level=info
           - -seed-api-url={{ .Values.firewallControllerManager.seedApiURL }}
           - -shoot-api-url={{ .Values.firewallControllerManager.shootApiURL }}
+          - -internal-shoot-api-url=https://kube-apiserver
           - -cluster-id={{ .Values.firewallControllerManager.clusterID }}
           - -enable-leader-election
           - -metal-api-url={{ .Values.firewallControllerManager.metalapi.url }}
