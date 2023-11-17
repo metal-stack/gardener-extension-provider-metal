@@ -191,7 +191,7 @@ func clearIPTags(ctx context.Context, mclient metalgo.Client, ip string) error {
 }
 
 func ensureNodeNetwork(ctx context.Context, r *networkReconciler) (string, error) {
-	if r.cluster.Shoot.Spec.Networking.Nodes != nil {
+	if r.cluster.Shoot.Spec.Networking != nil && r.cluster.Shoot.Spec.Networking.Nodes != nil {
 		return *r.cluster.Shoot.Spec.Networking.Nodes, nil
 	}
 
