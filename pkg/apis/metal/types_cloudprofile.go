@@ -1,6 +1,7 @@
 package metal
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -66,4 +67,34 @@ const (
 type Partition struct {
 	// FirewallTypes is a list of available firewall machine types in this partition. When empty, allows all values.
 	FirewallTypes []string
+
+	// NetworkIsolation if given allows the creation of shoot clusters which have network restrictions activated.
+	// +optional
+	NetworkIsolation *NetworkIsolation
+}
+
+type NetworkIsolation struct {
+	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
+	AllowedNetworks []string
+	// DNSServers
+	DNSServers []NetworkServer
+	// NTPServers
+	NTPServers []NetworkServer
+	// The registry which serves the images required to create a shoot.
+	Registry NetworkServer
+}
+
+type NetworkServer struct {
+	// Name describes this server
+	Name string
+	// Hostname is typically the dns name of this server
+	Hostname string
+	// IP is the ipv4 or ipv6 address of this server
+	IP string
+	// IPFamily defines the family of the ip
+	IPFamily corev1.IPFamily
+	// Port at which port the service is reachable
+	Port int32
+	// Proto the network protocol to reach the service
+	Proto corev1.Protocol
 }

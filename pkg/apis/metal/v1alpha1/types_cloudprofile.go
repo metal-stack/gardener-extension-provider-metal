@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -72,4 +73,33 @@ const (
 type Partition struct {
 	// FirewallTypes is a list of available firewall machine types in this partition. When empty, allows all values.
 	FirewallTypes []string `json:"firewallTypes"`
+
+	// NetworkIsolation if given allows the creation of shoot clusters which have network restrictions activated.
+	NetworkIsolation *NetworkIsolation `json:"networkIsolation,omitempty"`
+}
+
+type NetworkIsolation struct {
+	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
+	AllowedNetworks []string `json:"allowedNetworks,omitempty"`
+	// DNSServers
+	DNSServers []NetworkServer `json:"dnsServers,omitempty"`
+	// NTPServers
+	NTPServers []NetworkServer `json:"ntpServers,omitempty"`
+	// The registry which serves the images required to create a shoot.
+	Registry NetworkServer `json:"registry,omitempty"`
+}
+
+type NetworkServer struct {
+	// Name describes this server
+	Name string `json:"name,omitempty"`
+	// Hostname is typically the dns name of this server
+	Hostname string `json:"hostname,omitempty"`
+	// IP is the ipv4 or ipv6 address of this server
+	IP string `json:"ip,omitempty"`
+	// IPFamily defines the family of the ip
+	IPFamily corev1.IPFamily `json:"ipfamily,omitempty"`
+	// Port at which port the service is reachable
+	Port int32 `json:"port,omitempty"`
+	// Proto the network protocol to reach the service
+	Proto corev1.Protocol `json:"proto,omitempty"`
 }
