@@ -93,9 +93,6 @@ spec:
         networking.gardener.cloud/to-public-networks: "allowed"
         networking.gardener.cloud/to-runtime-apiserver: "allowed"
         networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: "allowed"
-        networking.resources.gardener.cloud/to-duros-storage-tcp-443: allowed
-        networking.resources.gardener.cloud/to-duros-storage-tcp-4420: allowed
-        networking.resources.gardener.cloud/to-duros-storage-tcp-8009: allowed
     spec:
       # required to be able to read the duros cr from the seed
       automountServiceAccountToken: true
@@ -157,8 +154,6 @@ kind: Service
 metadata:
   name: duros-storage
   namespace: {{ .Release.Namespace }}
-  annotations:
-    networking.resources.gardener.cloud/from-duros-controllers-to-ports: '[{"protocol":"TCP","port":443},{"protocol":"TCP","port":4420},{"protocol":"TCP","port":8009}]'
 spec:
   ports:
     - port: 443
@@ -197,6 +192,32 @@ endpoints:
   - addresses:
     - {{ (split ":" $endpoint)._0 }}
 {{- end }}
+---
+# gardener does not create netpols for services without pod selectors, so we need this one here
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-duros-storage
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: duros-controller
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+{{- range $endpoint := .Values.duros.controller.endpoints }}
+    - ipBlock:
+        cidr: {{ (split ":" $endpoint)._0 }}/32
+{{- end }}
+    ports:
+    - port: 443
+      protocol: TCP
+    - port: 4420
+      protocol: TCP
+    - port: 8009
+      protocol: TCP
 ---
 apiVersion: storage.metal-stack.io/v1
 kind: Duros
