@@ -304,6 +304,7 @@ func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerCon
 			{Type: &appsv1.Deployment{}, Name: "duros-controller"},
 			{Type: &durosv1.Duros{}, Name: metal.DurosResourceName},
 			{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-storage"},
+			{Type: &networkingv1.NetworkPolicy{}, Name: "egress-from-duros-controller-to-storage"},
 		}...)
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 			{Type: &rbacv1.ClusterRole{}, Name: "system:duros-controller"},
