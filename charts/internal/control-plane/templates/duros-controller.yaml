@@ -148,7 +148,9 @@ spec:
                 name: shoot-access-duros-controller
                 optional: false
 ---
-# gardener cannot produce a network policy like this, so we need to define it explicitly
+# for shooted seeds we typically talk to a grpc-proxy deployed to a namespace where we do not use gardener annotations
+# so for this special use-case, we create a dedicated network policy that allows talking to the grpc-proxy from
+# inside the cluster and from through the internet
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
