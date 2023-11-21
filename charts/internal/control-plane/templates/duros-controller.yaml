@@ -152,7 +152,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: egress-allow-storage
+  name: egress-from-duros-controller-to-storage
   namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
