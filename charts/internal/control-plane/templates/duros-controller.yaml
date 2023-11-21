@@ -167,10 +167,9 @@ spec:
     ports:
     - protocol: TCP
       port: 443
+    # this is the duros-proxy that we typically deploy
     - protocol: TCP
-      port: 4420
-    - protocol: TCP
-      port: 8009
+      port: 25005
 ---
 apiVersion: storage.metal-stack.io/v1
 kind: Duros
