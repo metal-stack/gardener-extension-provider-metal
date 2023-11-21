@@ -191,8 +191,8 @@ ports:
     name: control
     protocol: TCP
 endpoints:
-  - addresses:
 {{- range $endpoint := .Values.duros.controller.endpoints }}
+  - addresses:
     - {{ (split ":" $endpoint)._0 }}
 {{- end }}
 ---
