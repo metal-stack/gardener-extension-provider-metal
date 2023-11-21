@@ -156,7 +156,8 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
-    app: duros-controller
+    matchLabels:
+      app: duros-controller
   policyTypes:
   - Egress
   egress:
