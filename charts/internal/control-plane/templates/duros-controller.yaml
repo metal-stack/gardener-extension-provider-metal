@@ -157,6 +157,8 @@ kind: Service
 metadata:
   name: duros-storage
   namespace: {{ .Release.Namespace }}
+  annotations:
+    networking.resources.gardener.cloud/from-duros-controllers-to-ports: '[{"protocol":"TCP","port":443},{"protocol":"TCP","port":4420},{"protocol":"TCP","port":8009}]'
 spec:
   ports:
     - port: 443
