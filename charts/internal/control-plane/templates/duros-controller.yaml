@@ -89,9 +89,13 @@ spec:
         networking.gardener.cloud/from-prometheus: "allowed"
         networking.gardener.cloud/to-dns: "allowed"
         networking.gardener.cloud/to-shoot-apiserver: "allowed"
+        networking.gardener.cloud/to-private-networks: "allowed"
         networking.gardener.cloud/to-public-networks: "allowed"
         networking.gardener.cloud/to-runtime-apiserver: "allowed"
         networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: "allowed"
+        networking.resources.gardener.cloud/to-duros-storage-tcp-443: allowed
+        networking.resources.gardener.cloud/to-duros-storage-tcp-4420: allowed
+        networking.resources.gardener.cloud/to-duros-storage-tcp-8009: allowed
     spec:
       # required to be able to read the duros cr from the seed
       automountServiceAccountToken: true
@@ -99,7 +103,7 @@ spec:
       containers:
       - name: duros-controller
         args:
-          - -endpoints={{ join "," .Values.duros.controller.endpoints }}
+          - -endpoints=duros-storage:443
           - -namespace={{ .Release.Namespace }}
           - -enable-leader-election
           - -admin-token=/duros/admin-token
@@ -147,6 +151,48 @@ spec:
                   path: token
                 name: shoot-access-duros-controller
                 optional: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: duros-storage
+spec:
+  ports:
+    - port: 443
+      name: api
+      protocol: TCP
+      targetPort: 443
+    - port: 4420
+      name: data
+      protocol: TCP
+      targetPort: 4420
+    - port: 8009
+      name: control
+      protocol: TCP
+      targetPort: 8009
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: duros-storage
+  labels:
+    kubernetes.io/service-name: duros-storage
+addressType: IPv4
+ports:
+  - port: 443
+    name: api
+    protocol: TCP
+  - port: 4420
+    name: data
+    protocol: TCP
+  - port: 8009
+    name: control
+    protocol: TCP
+endpoints:
+  - addresses:
+{{- range $endpoint := .Values.duros.controller.endpoints }}
+    - {{ (split ":" $endpoint)._0 }}
+{{- end }}
 ---
 apiVersion: storage.metal-stack.io/v1
 kind: Duros
