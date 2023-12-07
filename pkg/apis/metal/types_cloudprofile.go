@@ -77,9 +77,9 @@ type NetworkIsolation struct {
 	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
 	AllowedNetworks []string
 	// DNSServers
-	DNSServers []NetworkServer
+	DNSServers []string
 	// NTPServers
-	NTPServers []NetworkServer
+	NTPServers []string
 	// The registry which serves the images required to create a shoot.
 	Registry NetworkServer
 }

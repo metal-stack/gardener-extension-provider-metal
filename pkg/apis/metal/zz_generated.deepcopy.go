@@ -376,12 +376,12 @@ func (in *NetworkIsolation) DeepCopyInto(out *NetworkIsolation) {
 	}
 	if in.DNSServers != nil {
 		in, out := &in.DNSServers, &out.DNSServers
-		*out = make([]NetworkServer, len(*in))
+		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
 	if in.NTPServers != nil {
 		in, out := &in.NTPServers, &out.NTPServers
-		*out = make([]NetworkServer, len(*in))
+		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
 	out.Registry = in.Registry

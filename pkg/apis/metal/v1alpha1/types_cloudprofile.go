@@ -82,9 +82,9 @@ type NetworkIsolation struct {
 	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
 	AllowedNetworks []string `json:"allowedNetworks,omitempty"`
 	// DNSServers
-	DNSServers []NetworkServer `json:"dnsServers,omitempty"`
+	DNSServers []string `json:"dnsServers,omitempty"`
 	// NTPServers
-	NTPServers []NetworkServer `json:"ntpServers,omitempty"`
+	NTPServers []string `json:"ntpServers,omitempty"`
 	// The registry which serves the images required to create a shoot.
 	Registry NetworkServer `json:"registry,omitempty"`
 }

@@ -546,8 +546,8 @@ func Convert_metal_MetalControlPlane_To_v1alpha1_MetalControlPlane(in *metal.Met
 
 func autoConvert_v1alpha1_NetworkIsolation_To_metal_NetworkIsolation(in *NetworkIsolation, out *metal.NetworkIsolation, s conversion.Scope) error {
 	out.AllowedNetworks = *(*[]string)(unsafe.Pointer(&in.AllowedNetworks))
-	out.DNSServers = *(*[]metal.NetworkServer)(unsafe.Pointer(&in.DNSServers))
-	out.NTPServers = *(*[]metal.NetworkServer)(unsafe.Pointer(&in.NTPServers))
+	out.DNSServers = *(*[]string)(unsafe.Pointer(&in.DNSServers))
+	out.NTPServers = *(*[]string)(unsafe.Pointer(&in.NTPServers))
 	if err := Convert_v1alpha1_NetworkServer_To_metal_NetworkServer(&in.Registry, &out.Registry, s); err != nil {
 		return err
 	}
@@ -561,8 +561,8 @@ func Convert_v1alpha1_NetworkIsolation_To_metal_NetworkIsolation(in *NetworkIsol
 
 func autoConvert_metal_NetworkIsolation_To_v1alpha1_NetworkIsolation(in *metal.NetworkIsolation, out *NetworkIsolation, s conversion.Scope) error {
 	out.AllowedNetworks = *(*[]string)(unsafe.Pointer(&in.AllowedNetworks))
-	out.DNSServers = *(*[]NetworkServer)(unsafe.Pointer(&in.DNSServers))
-	out.NTPServers = *(*[]NetworkServer)(unsafe.Pointer(&in.NTPServers))
+	out.DNSServers = *(*[]string)(unsafe.Pointer(&in.DNSServers))
+	out.NTPServers = *(*[]string)(unsafe.Pointer(&in.NTPServers))
 	if err := Convert_metal_NetworkServer_To_v1alpha1_NetworkServer(&in.Registry, &out.Registry, s); err != nil {
 		return err
 	}
