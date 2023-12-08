@@ -28,6 +28,7 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	appsv1 "k8s.io/api/apps/v1"
@@ -567,18 +568,32 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 		return nil
 	}
 
+	controlPlaneConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+	if err != nil {
+		return err
+	}
+
 	if old != nil {
 		*new = *old
 	}
 
-	dnsFile := additionalDNSConfFile(partition.NetworkIsolation.DNSServers)
-	*new = append(*new, dnsFile)
-
-	ntpFile, err := additionalNTPConfFile(partition.NetworkIsolation.NTPServers)
-	if err != nil {
-		return nil
+	networkAccessType := metalapi.NetworkAccessBaseline
+	if controlPlaneConfig.NetworkAccessType != nil {
+		networkAccessType = *controlPlaneConfig.NetworkAccessType
 	}
-	*new = append(*new, ntpFile)
+
+	if networkAccessType == metalapi.NetworkAccessForbidden {
+		dnsFile := additionalDNSConfFile(partition.NetworkIsolation.DNSServers)
+		*new = append(*new, dnsFile)
+	}
+
+	if networkAccessType == metalapi.NetworkAccessForbidden {
+		ntpFile, err := additionalNTPConfFile(partition.NetworkIsolation.NTPServers)
+		if err != nil {
+			return nil
+		}
+		*new = append(*new, ntpFile)
+	}
 
 	return nil
 }

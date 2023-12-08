@@ -81,7 +81,7 @@ const (
 	// NetworkAccessBaseline allows the cluster to access external networks in a baseline manner
 	NetworkAccessBaseline = NetworkAccessType("baseline")
 	// NetworkAccessRestricted access to external networks is by default restricted to registries, dns and ntp to partition only destinations.
-	// Therefor registries, dns and ntp destinations must be specified in the cloud-profile accordingly-
+	// Therefore registries, dns and ntp destinations must be specified in the cloud-profile accordingly-
 	// If this is not the case, restricting the access must not be possible.
 	// Image overrides for all images which are required to create such a shoot, must be specified. No other images are provided in the given registry.
 	// customers can define own rules to access external networks as in the baseline.
@@ -91,5 +91,5 @@ const (
 	// which are outside of a given list of allowed networks. This is enforced by the firewall.
 	// Service type loadbalancers are also not possible to open a service ip which is not in the list of allowed networks.
 	// This is also enforced by the firewall.
-	NetworkAccessForbidden = NetworkAccessType("baseline")
+	NetworkAccessForbidden = NetworkAccessType("forbidden")
 )
