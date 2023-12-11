@@ -7,7 +7,9 @@ metadata:
 spec:
   egress:
   - to:
-    - cidr: 0.0.0.0/0
+    {{- range $dest := .Values.networkAccess.dnsCidrs }}
+    - cidr: {{ $dest }}
+    {{- end }}
     ports:
     - protocol: UDP
       port: 53
@@ -22,7 +24,9 @@ metadata:
 spec:
   egress:
   - to:
-    - cidr: 0.0.0.0/0
+    {{- range $dest := .Values.networkAccess.ntpCidrs }}
+    - cidr: {{ $dest }}
+    {{- end }}
     ports:
     - protocol: UDP
       port: 123

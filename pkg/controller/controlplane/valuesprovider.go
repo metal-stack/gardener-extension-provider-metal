@@ -595,7 +595,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	metalControlPlane, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
 	if err != nil {
 		return nil, err
 	}
@@ -625,7 +625,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, cpConfig, cluster, nws, infrastructure, infrastructureConfig, secretsReader, checksums)
+	values, err := vp.getControlPlaneShootChartValues(ctx, cpConfig, cluster, partition, nws, infrastructure, infrastructureConfig, secretsReader, checksums)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -635,7 +635,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, partition *apismetal.Partition, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
@@ -702,6 +702,33 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		})
 	}
 
+	networkAccessType := apismetal.NetworkAccessBaseline
+	if cpConfig.NetworkAccessType != nil {
+		networkAccessType = *cpConfig.NetworkAccessType
+	}
+
+	var dnsCidrs []string
+	if networkAccessType != apismetal.NetworkAccessBaseline {
+		dnsCidrs = make([]string, len(partition.NetworkIsolation.DNSServers))
+		for i, ip := range partition.NetworkIsolation.DNSServers {
+			dnsCidrs[i] = ip + "/32"
+		}
+	}
+	if len(dnsCidrs) == 0 {
+		dnsCidrs = []string{"0.0.0.0/0"}
+	}
+
+	var ntpCidrs []string
+	if networkAccessType != apismetal.NetworkAccessBaseline {
+		ntpCidrs = make([]string, len(partition.NetworkIsolation.NTPServers))
+		for i, ip := range partition.NetworkIsolation.NTPServers {
+			ntpCidrs[i] = ip + "/32"
+		}
+	}
+	if len(ntpCidrs) == 0 {
+		ntpCidrs = []string{"0.0.0.0/0"}
+	}
+
 	values := map[string]any{
 		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
 		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
@@ -714,6 +741,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
 			"destinations":           egressDestinations,
+		},
+		"networkAccess": map[string]any{
+			"dnsCidrs": dnsCidrs,
+			"ntpCidrs": ntpCidrs,
 		},
 	}
 
