@@ -604,7 +604,7 @@ Domain=~.
 `, resolveDNS)
 
 	return extensionsv1alpha1.File{
-		Path: "/etc/systemd/resolved.conf.d/dns_metal_network_isolation.conf",
+		Path: "/etc/systemd/resolved.conf.d/dns.conf",
 		Content: extensionsv1alpha1.FileContent{
 			Inline: &extensionsv1alpha1.FileContentInline{
 				Encoding: string(extensionsv1alpha1.B64FileCodecID),
