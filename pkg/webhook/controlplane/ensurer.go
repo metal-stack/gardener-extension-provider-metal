@@ -607,7 +607,7 @@ Domain=~.
 		Path: "/etc/systemd/resolved.conf.d/dns_metal_network_isolation.conf",
 		Content: extensionsv1alpha1.FileContent{
 			Inline: &extensionsv1alpha1.FileContentInline{
-				Encoding: "base64",
+				Encoding: string(extensionsv1alpha1.B64FileCodecID),
 				Data:     base64.StdEncoding.EncodeToString([]byte(renderedContent)),
 			},
 		},
@@ -626,7 +626,7 @@ NTP=%s
 		Path: "/etc/systemd/timesyncd.conf",
 		Content: extensionsv1alpha1.FileContent{
 			Inline: &extensionsv1alpha1.FileContentInline{
-				Encoding: "base64",
+				Encoding: string(extensionsv1alpha1.B64FileCodecID),
 				Data:     base64.StdEncoding.EncodeToString([]byte(renderedContent)),
 			},
 		},
