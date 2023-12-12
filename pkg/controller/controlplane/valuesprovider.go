@@ -76,6 +76,10 @@ const (
 	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
 	droptailerCAName   = "ca-" + metal.Name + "-droptailer"
 	auditTailerCAName  = "ca-" + metal.Name + "-audittailer"
+
+	ipv4HostMask = "/32"
+	ipv6HostMask = "/128"
+	ipv4Any      = "0.0.0.0/0"
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
@@ -713,31 +717,61 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	if restrictedOrForbidden && partition.NetworkIsolation != nil {
 		dnsCidrs = make([]string, len(partition.NetworkIsolation.DNSServers))
 		for i, ip := range partition.NetworkIsolation.DNSServers {
-			dnsCidrs[i] = ip + "/32"
+			parsedIP, err := netip.ParseAddr(ip)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse dns ip:%w", err)
+			}
+			if parsedIP.Is4() {
+				dnsCidrs[i] = ip + ipv4HostMask
+			}
+			if parsedIP.Is6() {
+				dnsCidrs[i] = ip + ipv6HostMask
+			}
 		}
 	}
 	if len(dnsCidrs) == 0 {
-		dnsCidrs = []string{"0.0.0.0/0"}
+		dnsCidrs = []string{ipv4Any}
 	}
 
 	var ntpCidrs []string
 	if restrictedOrForbidden && partition.NetworkIsolation != nil {
 		ntpCidrs = make([]string, len(partition.NetworkIsolation.NTPServers))
 		for i, ip := range partition.NetworkIsolation.NTPServers {
-			ntpCidrs[i] = ip + "/32"
+			parsedIP, err := netip.ParseAddr(ip)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse ntp ip:%w", err)
+			}
+			if parsedIP.Is4() {
+				ntpCidrs[i] = ip + ipv4HostMask
+			}
+			if parsedIP.Is6() {
+				ntpCidrs[i] = ip + ipv6HostMask
+			}
 		}
 	}
 	if len(ntpCidrs) == 0 {
-		ntpCidrs = []string{"0.0.0.0/0"}
+		ntpCidrs = []string{ipv4Any}
 	}
 
 	var networkAccessRegistry map[string]any
 	if restrictedOrForbidden && partition.NetworkIsolation != nil {
 		r := partition.NetworkIsolation.Registry
+		parsedIP, err := netip.ParseAddr(r.IP)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse registry ip:%w", err)
+		}
+		registryIP := parsedIP.String()
+		if parsedIP.Is4() {
+			registryIP = registryIP + ipv4HostMask
+		}
+		if parsedIP.Is6() {
+			registryIP = registryIP + ipv6HostMask
+		}
+
 		networkAccessRegistry = map[string]any{
 			"name":     r.Name,
 			"hostname": r.Hostname,
-			"cidr":     r.IP + "/32", // TODO: make ipfamily aware
+			"cidr":     registryIP,
 			"port":     r.Port,
 			"ipfamily": r.IPFamily,
 			"proto":    r.Proto,
