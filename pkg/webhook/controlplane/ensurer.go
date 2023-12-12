@@ -591,13 +591,17 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 
 func appendOrReplaceFile(new *[]extensionsv1alpha1.File, additionals ...extensionsv1alpha1.File) {
 	for _, additional := range additionals {
+		var hasReplaced bool
 		for i, f := range *new {
 			if f.Path == additional.Path {
 				(*new)[i] = additional
+				hasReplaced = true
 				break
 			}
 		}
-		*new = append(*new, additional)
+		if !hasReplaced {
+			*new = append(*new, additional)
+		}
 	}
 }
 
