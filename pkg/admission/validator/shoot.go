@@ -111,6 +111,10 @@ func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 		return errList.ToAggregate()
 	}
 
+	if errList := metalvalidation.ValidateControlPlaneConfigNetworkAccess(controlPlaneConfig, cloudProfileConfig, infraConfig.PartitionID, controlPlaneConfigFldPath); len(errList) != 0 {
+		return errList.ToAggregate()
+	}
+
 	// Shoot workers
 	if errList := metalvalidation.ValidateWorkers(shoot.Spec.Provider.Workers, cloudProfile, fldPath); len(errList) != 0 {
 		return errList.ToAggregate()

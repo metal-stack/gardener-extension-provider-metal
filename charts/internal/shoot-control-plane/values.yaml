@@ -41,7 +41,7 @@ networkAccess:
   registry:
     name: ""
     hostname: ""
-    ip: ""
+    cidr: "0.0.0.0/32"
     port: 443
     ipfamily: ""
     proto: ""
