@@ -40,7 +40,7 @@ metadata:
   namespace: firewall
 spec:
   egress:
-  - toFQDNs:
+  - to:
     - cidr: {{ quote .Values.networkAccess.registry.cidr }}
     ports:
     - protocol: {{ .Values.networkAccess.registry.proto }}
