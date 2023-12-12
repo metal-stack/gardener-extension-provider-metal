@@ -573,10 +573,6 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 		return err
 	}
 
-	if old != nil {
-		*new = *old
-	}
-
 	networkAccessType := metalapi.NetworkAccessBaseline
 	if controlPlaneConfig.NetworkAccessType != nil {
 		networkAccessType = *controlPlaneConfig.NetworkAccessType
@@ -584,13 +580,23 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 
 	if networkAccessType != metalapi.NetworkAccessBaseline {
 		dnsFile := additionalDNSConfFile(partition.NetworkIsolation.DNSServers)
-		*new = append(*new, dnsFile)
+		appendOrReplaceFile(new, dnsFile)
 
 		ntpFile := additionalNTPConfFile(partition.NetworkIsolation.NTPServers)
-		*new = append(*new, ntpFile)
+		appendOrReplaceFile(new, ntpFile)
 	}
 
 	return nil
+}
+
+func appendOrReplaceFile(new *[]extensionsv1alpha1.File, additional extensionsv1alpha1.File) {
+	for i, f := range *new {
+		if f.Path == additional.Path {
+			(*new)[i] = additional
+			return
+		}
+	}
+	*new = append(*new, additional)
 }
 
 func additionalDNSConfFile(dnsServers []string) extensionsv1alpha1.File {
