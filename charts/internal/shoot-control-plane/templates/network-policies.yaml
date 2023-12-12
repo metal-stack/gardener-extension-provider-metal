@@ -41,7 +41,7 @@ metadata:
 spec:
   egress:
   - toFQDNs:
-    - matchName: {{ quote .Values.networkAccess.registry.host }}
+    - cidr: {{ quote .Values.networkAccess.registry.cidr }}
     ports:
     - protocol: {{ .Values.networkAccess.registry.proto }}
       port: {{ .Values.networkAccess.registry.port }}

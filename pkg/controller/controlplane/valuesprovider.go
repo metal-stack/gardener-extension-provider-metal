@@ -737,7 +737,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		networkAccessRegistry = map[string]any{
 			"name":     r.Name,
 			"hostname": r.Hostname,
-			"ip":       r.IP,
+			"cidr":     r.IP + "/32", // TODO: make ipfamily aware
 			"port":     r.Port,
 			"ipfamily": r.IPFamily,
 			"proto":    r.Proto,
