@@ -31,6 +31,21 @@ spec:
     - protocol: UDP
       port: 123
 
+{{- if .Values.networkAccess.restrictedOrForbidden }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-registry
+  namespace: firewall
+spec:
+  egress:
+  - toFQDNs:
+    - matchName: {{ quote .Values.networkAccess.registry.host }}
+    ports:
+    - protocol: {{ .Values.networkAccess.registry.proto }}
+      port: {{ .Values.networkAccess.registry.port }}
+{{- end }}
 # FIXME remove and replace with appropriate cwnp based on networkAccessType
 {{- if .Values.restrictEgress.enabled }}
 ---
@@ -75,7 +90,7 @@ spec:
 {{- end }}
 
 {{- else }}
-
+{{- if not .Values.networkAccess.restrictedOrForbidden }}
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
@@ -102,6 +117,7 @@ spec:
     ports:
     - protocol: TCP
       port: 80
+{{- end }}
 {{- if gt (len .Values.apiserverIPs) 0 }}
 ---
 apiVersion: metal-stack.io/v1

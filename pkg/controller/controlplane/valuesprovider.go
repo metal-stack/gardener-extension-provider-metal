@@ -707,9 +707,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	if cpConfig.NetworkAccessType != nil {
 		networkAccessType = *cpConfig.NetworkAccessType
 	}
+	restrictedOrForbidden := networkAccessType != apismetal.NetworkAccessBaseline
 
 	var dnsCidrs []string
-	if networkAccessType != apismetal.NetworkAccessBaseline {
+	if restrictedOrForbidden && partition.NetworkIsolation != nil {
 		dnsCidrs = make([]string, len(partition.NetworkIsolation.DNSServers))
 		for i, ip := range partition.NetworkIsolation.DNSServers {
 			dnsCidrs[i] = ip + "/32"
@@ -720,7 +721,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	var ntpCidrs []string
-	if networkAccessType != apismetal.NetworkAccessBaseline {
+	if restrictedOrForbidden && partition.NetworkIsolation != nil {
 		ntpCidrs = make([]string, len(partition.NetworkIsolation.NTPServers))
 		for i, ip := range partition.NetworkIsolation.NTPServers {
 			ntpCidrs[i] = ip + "/32"
@@ -728,6 +729,19 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 	if len(ntpCidrs) == 0 {
 		ntpCidrs = []string{"0.0.0.0/0"}
+	}
+
+	var networkAccessRegistry map[string]any
+	if restrictedOrForbidden && partition.NetworkIsolation != nil {
+		r := partition.NetworkIsolation.Registry
+		networkAccessRegistry = map[string]any{
+			"name":     r.Name,
+			"hostname": r.Hostname,
+			"ip":       r.IP,
+			"port":     r.Port,
+			"ipfamily": r.IPFamily,
+			"proto":    r.Proto,
+		}
 	}
 
 	values := map[string]any{
@@ -744,8 +758,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			"destinations":           egressDestinations,
 		},
 		"networkAccess": map[string]any{
-			"dnsCidrs": dnsCidrs,
-			"ntpCidrs": ntpCidrs,
+			"restrictedOrForbidden": restrictedOrForbidden,
+			"dnsCidrs":              dnsCidrs,
+			"ntpCidrs":              ntpCidrs,
+			"registry":              networkAccessRegistry,
 		},
 	}
 

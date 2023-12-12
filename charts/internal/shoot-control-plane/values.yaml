@@ -35,8 +35,16 @@ restrictEgress:
       port: 443
 
 networkAccess:
+  restrictedOrForbidden: false
   dnsCidrs: ["0.0.0.0/0"]
   ntpCidrs: ["0.0.0.0/0"]
+  registry:
+    name: ""
+    hostname: ""
+    ip: ""
+    port: 443
+    ipfamily: ""
+    proto: ""
 
 droptailer:
   podAnnotations: {}
