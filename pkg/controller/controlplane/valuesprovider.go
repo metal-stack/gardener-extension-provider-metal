@@ -679,6 +679,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 	}
 
+	// FIXME remove this block an replace with networkAccessType
 	var egressDestinations []map[string]any
 	for _, dest := range vp.controllerConfig.EgressDestinations {
 		dest := dest
