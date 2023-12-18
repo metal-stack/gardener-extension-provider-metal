@@ -125,6 +125,8 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Spec.NftablesExporterURL = d.mcp.NftablesExporter.URL
 		deploy.Spec.Template.Spec.LogAcceptedConnections = d.infrastructureConfig.Firewall.LogAcceptedConnections
 		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
+		// FIXME implement
+		// deploy.Spec.Template.Spec.AllowedNetworks = d.mcp.
 
 		return nil
 	})
