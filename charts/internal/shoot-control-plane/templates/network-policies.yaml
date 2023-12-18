@@ -44,8 +44,8 @@ spec:
       protocol: UDP
     - port: 4314
       protocol: TCP
-    to:
-    - cidr: 0.0.0.0/0
+    toFQDNs:
+      - matchName: {{ quote .Values.restrictEgress.apiServerIngressDomain }}
 
 {{- if .Values.networkAccess.restrictedOrForbidden }}
 ---
