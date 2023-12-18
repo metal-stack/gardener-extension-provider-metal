@@ -31,6 +31,22 @@ spec:
     - protocol: UDP
       port: 123
 
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-vpn
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 4314
+      protocol: UDP
+    - port: 4314
+      protocol: TCP
+    to:
+    - cidr: 0.0.0.0/0
+
 {{- if .Values.networkAccess.restrictedOrForbidden }}
 ---
 apiVersion: metal-stack.io/v1
@@ -139,22 +155,6 @@ spec:
     - protocol: TCP
       port: 8132
 {{- end }}
----
-apiVersion: metal-stack.io/v1
-kind: ClusterwideNetworkPolicy
-metadata:
-  name: allow-to-vpn
-  namespace: firewall
-spec:
-  egress:
-  - ports:
-    - port: 4314
-      protocol: UDP
-    - port: 4314
-      protocol: TCP
-    to:
-    - cidr: 0.0.0.0/0
-
 {{- end }}
 
 {{- if .Values.duros.enabled }}
