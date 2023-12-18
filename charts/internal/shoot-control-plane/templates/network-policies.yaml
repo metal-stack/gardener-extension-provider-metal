@@ -43,8 +43,10 @@ spec:
       protocol: UDP
     - port: 4314
       protocol: TCP
-    toFQDNs:
-      - matchName: {{ quote .Values.restrictEgress.apiServerIngressDomain }}
+    to:
+  {{- range $i, $ip := .Values.apiserverIPs }}
+      - cidr: {{ $ip }}/32
+  {{- end }}
 {{- if .Values.networkAccess.restrictedOrForbidden }}
 ---
 apiVersion: metal-stack.io/v1
