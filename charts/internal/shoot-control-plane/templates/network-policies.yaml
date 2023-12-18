@@ -30,7 +30,6 @@ spec:
     ports:
     - protocol: UDP
       port: 123
-
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
@@ -46,7 +45,6 @@ spec:
       protocol: TCP
     toFQDNs:
       - matchName: {{ quote .Values.restrictEgress.apiServerIngressDomain }}
-
 {{- if .Values.networkAccess.restrictedOrForbidden }}
 ---
 apiVersion: metal-stack.io/v1
