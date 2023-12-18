@@ -13,7 +13,6 @@ import (
 	unsafe "unsafe"
 
 	metal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
-	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -578,9 +577,7 @@ func autoConvert_v1alpha1_NetworkServer_To_metal_NetworkServer(in *NetworkServer
 	out.Name = in.Name
 	out.Hostname = in.Hostname
 	out.IP = in.IP
-	out.IPFamily = v1.IPFamily(in.IPFamily)
 	out.Port = in.Port
-	out.Proto = v1.Protocol(in.Proto)
 	return nil
 }
 
@@ -593,9 +590,7 @@ func autoConvert_metal_NetworkServer_To_v1alpha1_NetworkServer(in *metal.Network
 	out.Name = in.Name
 	out.Hostname = in.Hostname
 	out.IP = in.IP
-	out.IPFamily = v1.IPFamily(in.IPFamily)
 	out.Port = in.Port
-	out.Proto = v1.Protocol(in.Proto)
 	return nil
 }
 

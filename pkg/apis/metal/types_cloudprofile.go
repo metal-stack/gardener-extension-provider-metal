@@ -1,7 +1,6 @@
 package metal
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -92,10 +91,6 @@ type NetworkServer struct {
 	Hostname string
 	// IP is the ipv4 or ipv6 address of this server
 	IP string
-	// IPFamily defines the family of the ip
-	IPFamily corev1.IPFamily
 	// Port at which port the service is reachable
 	Port int32
-	// Proto the network protocol to reach the service
-	Proto corev1.Protocol
 }

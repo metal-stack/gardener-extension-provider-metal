@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -96,10 +95,6 @@ type NetworkServer struct {
 	Hostname string `json:"hostname,omitempty"`
 	// IP is the ipv4 or ipv6 address of this server
 	IP string `json:"ip,omitempty"`
-	// IPFamily defines the family of the ip
-	IPFamily corev1.IPFamily `json:"ipfamily,omitempty"`
 	// Port at which port the service is reachable
 	Port int32 `json:"port,omitempty"`
-	// Proto the network protocol to reach the service
-	Proto corev1.Protocol `json:"proto,omitempty"`
 }

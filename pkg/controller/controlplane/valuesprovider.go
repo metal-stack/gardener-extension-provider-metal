@@ -776,8 +776,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			"hostname": r.Hostname,
 			"cidr":     registryIP,
 			"port":     r.Port,
-			"ipfamily": r.IPFamily,
-			"proto":    r.Proto,
 		}
 	}
 
