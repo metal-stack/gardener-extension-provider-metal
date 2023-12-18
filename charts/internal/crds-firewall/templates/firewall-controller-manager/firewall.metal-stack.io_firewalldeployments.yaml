@@ -99,6 +99,14 @@ spec:
                   spec:
                     description: Spec contains the firewall specification.
                     properties:
+                      allowedExternalNetworks:
+                        description: AllowedExternalNetworks defines which networks
+                          are allowed to connect to, and allow incoming traffic from.
+                          By default, defined by an empty slice, all external networks
+                          are allowed. The node network is always allowed.
+                        items:
+                          type: string
+                        type: array
                       controllerURL:
                         description: ControllerURL points to the downloadable binary
                           artifact of the firewall controller.
