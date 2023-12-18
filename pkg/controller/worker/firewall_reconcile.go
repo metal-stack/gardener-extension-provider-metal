@@ -92,6 +92,26 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		},
 	}
 
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return err
+	}
+
+	_, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, d.infrastructureConfig.PartitionID)
+	if err != nil {
+		return err
+	}
+
+	controlPlaneConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+	if err != nil {
+		return err
+	}
+
+	networkAccessType := apismetal.NetworkAccessBaseline
+	if controlPlaneConfig.NetworkAccessType != nil {
+		networkAccessType = *controlPlaneConfig.NetworkAccessType
+	}
+
 	_, err = controllerutil.CreateOrUpdate(ctx, a.client, deploy, func() error {
 		if deploy.Labels == nil {
 			deploy.Labels = map[string]string{}
@@ -125,8 +145,13 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Spec.NftablesExporterURL = d.mcp.NftablesExporter.URL
 		deploy.Spec.Template.Spec.LogAcceptedConnections = d.infrastructureConfig.Firewall.LogAcceptedConnections
 		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
-		// FIXME implement
-		// deploy.Spec.Template.Spec.AllowedNetworks = d.mcp.
+
+		if networkAccessType == apismetal.NetworkAccessForbidden {
+			if partition.NetworkIsolation == nil || len(partition.NetworkIsolation.AllowedNetworks) == 0 {
+				return fmt.Errorf("error creating firewall deployment: control plane with network access forbidden requires partition %q to have networkIsolation.allowedNetworks", d.infrastructureConfig.PartitionID)
+			}
+			deploy.Spec.Template.Spec.AllowedExternalNetworks = partition.NetworkIsolation.AllowedNetworks
+		}
 
 		return nil
 	})
