@@ -6,15 +6,16 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	mn "github.com/metal-stack/metal-lib/pkg/net"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalgo "github.com/metal-stack/metal-go"
-	"github.com/metal-stack/metal-go/api/client/ip"
 	metalip "github.com/metal-stack/metal-go/api/client/ip"
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
@@ -23,6 +24,7 @@ import (
 	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 )
 
 type networkReconciler struct {
@@ -79,7 +81,16 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastruc
 		}
 	}
 
-	err = updateProviderStatus(ctx, a.client, infrastructure, internalInfrastructureStatus, &nodeCIDR)
+	// get all egress ips from the firewall CRs and the infrastructure config and save them in the infrastructure status
+	externalEgressIPs, err := getFirewallEgressIPs(ctx, networkReconciler, a.client, cluster.Shoot.Status.TechnicalID, logger)
+	if err != nil {
+		return &reconciler.RequeueAfterError{
+			Cause:        err,
+			RequeueAfter: 30 * time.Second,
+		}
+	}
+
+	err = updateProviderStatus(ctx, a.client, infrastructure, internalInfrastructureStatus, &nodeCIDR, &externalEgressIPs)
 	if err != nil {
 		return err
 	}
@@ -105,7 +116,7 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastruc
 func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 	currentEgressIPs := sets.NewString()
 
-	resp, err := r.mclient.IP().FindIPs(ip.NewFindIPsParams().WithBody(&models.V1IPFindRequest{
+	resp, err := r.mclient.IP().FindIPs(metalip.NewFindIPsParams().WithBody(&models.V1IPFindRequest{
 		Projectid: r.infrastructureConfig.ProjectID,
 		Tags:      []string{r.egressTag},
 		Type:      models.V1IPBaseTypeStatic,
@@ -226,4 +237,31 @@ func ensureNodeNetwork(ctx context.Context, r *networkReconciler) (string, error
 	nodeCIDR := resp.Payload.Prefixes[0]
 
 	return nodeCIDR, nil
+}
+
+// getFirewallEgressIPs returns all egress ips from the firewall CRs and the infrastructure config
+func getFirewallEgressIPs(ctx context.Context, r *networkReconciler, c client.Client, namespace string, logger logr.Logger) ([]string, error) {
+	firewalls := &fcmv2.FirewallList{}
+	egressIPs := sets.NewString()
+
+	err := c.List(ctx, firewalls, client.InNamespace(namespace))
+	if err != nil {
+		return nil, fmt.Errorf("unable to list firewalls: %w", err)
+	}
+
+	for _, fw := range firewalls.Items {
+		fw := fw
+
+		for _, n := range fw.Status.FirewallNetworks {
+			if n.NetworkType != nil && *n.NetworkType == mn.External {
+				egressIPs.Insert(n.IPs...)
+			}
+		}
+	}
+
+	for _, egressRule := range r.infrastructureConfig.Firewall.EgressRules {
+		egressIPs.Insert(egressRule.IPs...)
+	}
+
+	return egressIPs.List(), nil
 }
