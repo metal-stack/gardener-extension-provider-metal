@@ -73,18 +73,25 @@ type Partition struct {
 	NetworkIsolation *NetworkIsolation
 }
 
+// TODO: NetworkIsolation has actually two purposes:
+// - transport the configuration for the gepm to create cwnps for clusters with networkisolation configured
+// - set worker.image.providerconfig to enable the os-metal-extension to create configurations of dns,ntp, docker and containerd regardless of requested networkisolation
+
 type NetworkIsolation struct {
+	// required to convert it to/from RawExtension
+	metav1.TypeMeta
 	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
+	// if empty all destinations are allowed.
 	AllowedNetworks []string
 	// DNSServers
 	DNSServers []string
 	// NTPServers
 	NTPServers []string
 	// The registry which serves the images required to create a shoot.
-	Registry NetworkServer
+	RegistryMirrors []RegistryMirror
 }
 
-type NetworkServer struct {
+type RegistryMirror struct {
 	// Name describes this server
 	Name string
 	// Hostname is typically the dns name of this server
@@ -93,4 +100,6 @@ type NetworkServer struct {
 	IP string
 	// Port at which port the service is reachable
 	Port int32
+	// This Registry Mirror mirrors the following registries
+	MirrorOf []string
 }
