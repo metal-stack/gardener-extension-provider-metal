@@ -77,6 +77,8 @@ type Partition struct {
 // - transport the configuration for the gepm to create cwnps for clusters with networkisolation configured
 // - set worker.image.providerconfig to enable the os-metal-extension to create configurations of dns,ntp, docker and containerd regardless of requested networkisolation
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type NetworkIsolation struct {
 	// required to convert it to/from RawExtension
 	metav1.TypeMeta

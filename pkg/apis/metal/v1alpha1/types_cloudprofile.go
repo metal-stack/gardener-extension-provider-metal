@@ -77,7 +77,10 @@ type Partition struct {
 	NetworkIsolation *NetworkIsolation `json:"networkIsolation,omitempty"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type NetworkIsolation struct {
+	metav1.TypeMeta `json:",inline"`
 	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
 	AllowedNetworks []string `json:"allowedNetworks,omitempty"`
 	// DNSServers
@@ -85,10 +88,10 @@ type NetworkIsolation struct {
 	// NTPServers
 	NTPServers []string `json:"ntpServers,omitempty"`
 	// The registry which serves the images required to create a shoot.
-	Registry NetworkServer `json:"registry,omitempty"`
+	RegistryMirrors []RegistryMirror `json:"registryMirrors,omitempty"`
 }
 
-type NetworkServer struct {
+type RegistryMirror struct {
 	// Name describes this server
 	Name string `json:"name,omitempty"`
 	// Hostname is typically the dns name of this server
@@ -97,4 +100,6 @@ type NetworkServer struct {
 	IP string `json:"ip,omitempty"`
 	// Port at which port the service is reachable
 	Port int32 `json:"port,omitempty"`
+	// This Registry Mirror mirrors the following registries
+	MirrorOf []string `json:"mirrorOf,omitempty"`
 }
