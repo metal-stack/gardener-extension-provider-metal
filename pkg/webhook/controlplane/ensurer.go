@@ -585,16 +585,7 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 		ntpFiles := additionalNTPConfFiles(partition.NetworkIsolation.NTPServers)
 		appendOrReplaceFile(new, ntpFiles...)
 
-		containerdFiles := additionalContainterdConfigFiles("https://r.metal-stack.dev",
-			[]string{
-				"docker.lightbitslabs.com",
-				"quay.io",
-				"eu.gcr.io",
-				"ghcr.io",
-				"registry.k8s.io",
-				"r.metal-stack.io",
-			},
-		)
+		containerdFiles := additionalContainterdConfigFiles(partition.NetworkIsolation.RegistryMirrors)
 		appendOrReplaceFile(new, containerdFiles...)
 	}
 
@@ -674,8 +665,8 @@ NTP=%s
 	}
 }
 
-func additionalContainterdConfigFiles(endpoint string, mirrors []string) []extensionsv1alpha1.File {
-	if endpoint == "" || len(mirrors) == 0 {
+func additionalContainterdConfigFiles(mirrors []metalapi.RegistryMirror) []extensionsv1alpha1.File {
+	if len(mirrors) == 0 {
 		return nil
 	}
 	// TODO: other parties might also want to write to the containerd config.toml.
@@ -688,9 +679,11 @@ version = 2
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
 `
 	for _, m := range mirrors {
-		renderedContent += fmt.Sprintf(`    [plugins."io.containerd.grpc.v1.cri".registry.mirrors.%q]
+		for _, of := range m.MirrorOf {
+			renderedContent += fmt.Sprintf(`    [plugins."io.containerd.grpc.v1.cri".registry.mirrors.%q]
       endpoint = [%q]
-`, m, endpoint)
+`, of, m.Hostname)
+		}
 	}
 
 	return []extensionsv1alpha1.File{
