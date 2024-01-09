@@ -756,26 +756,14 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		ntpCidrs = []string{ipv4Any}
 	}
 
-	var networkAccessRegistry map[string]any
+	var networkAccessMirrors []map[string]any
 	if restrictedOrForbidden && partition.NetworkIsolation != nil {
-		r := partition.NetworkIsolation.Registry
-		parsedIP, err := netip.ParseAddr(r.IP)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse registry ip:%w", err)
-		}
-		registryIP := parsedIP.String()
-		if parsedIP.Is4() {
-			registryIP = registryIP + ipv4HostMask
-		}
-		if parsedIP.Is6() {
-			registryIP = registryIP + ipv6HostMask
-		}
-
-		networkAccessRegistry = map[string]any{
-			"name":     r.Name,
-			"hostname": r.Hostname,
-			"cidr":     registryIP,
-			"port":     r.Port,
+		for _, r := range partition.NetworkIsolation.RegistryMirrors {
+			nam, err := registryMirrorToValueMap(r)
+			if err != nil {
+				return nil, err
+			}
+			networkAccessMirrors = append(networkAccessMirrors, nam)
 		}
 	}
 
@@ -796,7 +784,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			"restrictedOrForbidden": restrictedOrForbidden,
 			"dnsCidrs":              dnsCidrs,
 			"ntpCidrs":              ntpCidrs,
-			"registry":              networkAccessRegistry,
+			"registryMirrors":       networkAccessMirrors,
 		},
 	}
 
@@ -1266,4 +1254,25 @@ func firewallCompareFunc(a, b *models.V1FirewallResponse) int {
 	} else {
 		return 0
 	}
+}
+
+func registryMirrorToValueMap(r apismetal.RegistryMirror) (map[string]any, error) {
+	parsedIP, err := netip.ParseAddr(r.IP)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse registry ip:%w", err)
+	}
+	registryIP := parsedIP.String()
+	if parsedIP.Is4() {
+		registryIP = registryIP + ipv4HostMask
+	}
+	if parsedIP.Is6() {
+		registryIP = registryIP + ipv6HostMask
+	}
+
+	return map[string]any{
+		"name":     r.Name,
+		"hostname": r.Hostname,
+		"cidr":     registryIP,
+		"port":     r.Port,
+	}, nil
 }

@@ -38,13 +38,11 @@ networkAccess:
   restrictedOrForbidden: false
   dnsCidrs: ["0.0.0.0/0"]
   ntpCidrs: ["0.0.0.0/0"]
-  registry:
-    name: ""
-    hostname: ""
-    cidr: "0.0.0.0/32"
-    port: 443
-    ipfamily: ""
-    proto: ""
+  registryMirrors:
+    - name: ""
+      hostname: ""
+      cidr: "0.0.0.0/32"
+      port: 443
 
 droptailer:
   podAnnotations: {}
