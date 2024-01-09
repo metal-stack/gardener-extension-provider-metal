@@ -41,7 +41,7 @@ networkAccess:
   registryMirrors:
     - name: ""
       hostname: ""
-      cidr: "0.0.0.0"
+      cidr: "0.0.0.0/32"
       port: 443
 
 droptailer:
