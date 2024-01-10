@@ -682,7 +682,7 @@ version = 2
 		for _, of := range m.MirrorOf {
 			renderedContent += fmt.Sprintf(`    [plugins."io.containerd.grpc.v1.cri".registry.mirrors.%q]
       endpoint = [%q]
-`, of, m.Hostname)
+`, of, "https://"+m.Hostname)
 		}
 	}
 
