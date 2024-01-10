@@ -26,6 +26,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 		Types: []extensionswebhook.Type{
 			{Obj: &corev1.ConfigMap{}},
 			{Obj: &appsv1.Deployment{}},
+			{Obj: &corev1.Secret{}},
 		},
 		Mutator: NewMutator(),
 	})

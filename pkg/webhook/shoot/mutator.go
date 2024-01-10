@@ -3,8 +3,10 @@ package shoot
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	"github.com/gardener/gardener/pkg/utils"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -40,6 +42,25 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		case "vpn-shoot":
 			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
 			return m.mutateVPNShootDeployment(ctx, x)
+		}
+	case *corev1.Secret:
+		// TODO: remove this once gardener-node-agent is in use
+		// the purpose of this hack is to enable the cloud-config-downloader to pull the hyperkube image from
+		// a registry mirror in case this shoot cluster is configured with networkaccesstype restricted/forbidden
+		// FIXME only for isolated clusters
+		if x.Labels["gardener.cloud/role"] == "cloud-config" {
+			raw, ok := x.Data["script"]
+			if ok {
+				rawScript, err := utils.DecodeBase64(string(raw))
+				if err != nil {
+					return fmt.Errorf("unable to decode script %w", err)
+				}
+				script := string(rawScript)
+				// FIXME use registry from networkisolation.RegistryMirrors
+				newScript := strings.ReplaceAll(script, "eu.gcr.io/gardener-project/hyperkube", "r.metal-stack.dev/gardener-project/hyperkube")
+				x.StringData["script"] = newScript
+				x.Annotations["checksum/data-script"] = utils.ComputeChecksum(newScript)
+			}
 		}
 	}
 	return nil
