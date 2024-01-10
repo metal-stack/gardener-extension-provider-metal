@@ -1271,7 +1271,7 @@ func registryMirrorToValueMap(r apismetal.RegistryMirror) (map[string]any, error
 
 	return map[string]any{
 		"name":     r.Name,
-		"hostname": r.Hostname,
+		"endpoint": r.Endpoint,
 		"cidr":     registryIP,
 		"port":     r.Port,
 	}, nil

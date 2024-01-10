@@ -94,8 +94,8 @@ type NetworkIsolation struct {
 type RegistryMirror struct {
 	// Name describes this server
 	Name string `json:"name,omitempty"`
-	// Hostname is typically the dns name of this server
-	Hostname string `json:"hostname,omitempty"`
+	// Endpoint is typically the url of the registry in the form https://hostname
+	Endpoint string `json:"endpoint,omitempty"`
 	// IP is the ipv4 or ipv6 address of this server
 	IP string `json:"ip,omitempty"`
 	// Port at which port the service is reachable

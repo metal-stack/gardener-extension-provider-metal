@@ -637,7 +637,7 @@ func Convert_metal_RateLimit_To_v1alpha1_RateLimit(in *metal.RateLimit, out *Rat
 
 func autoConvert_v1alpha1_RegistryMirror_To_metal_RegistryMirror(in *RegistryMirror, out *metal.RegistryMirror, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Hostname = in.Hostname
+	out.Endpoint = in.Endpoint
 	out.IP = in.IP
 	out.Port = in.Port
 	out.MirrorOf = *(*[]string)(unsafe.Pointer(&in.MirrorOf))
@@ -651,7 +651,7 @@ func Convert_v1alpha1_RegistryMirror_To_metal_RegistryMirror(in *RegistryMirror,
 
 func autoConvert_metal_RegistryMirror_To_v1alpha1_RegistryMirror(in *metal.RegistryMirror, out *RegistryMirror, s conversion.Scope) error {
 	out.Name = in.Name
-	out.Hostname = in.Hostname
+	out.Endpoint = in.Endpoint
 	out.IP = in.IP
 	out.Port = in.Port
 	out.MirrorOf = *(*[]string)(unsafe.Pointer(&in.MirrorOf))

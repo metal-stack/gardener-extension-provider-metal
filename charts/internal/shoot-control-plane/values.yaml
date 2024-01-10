@@ -40,7 +40,7 @@ networkAccess:
   ntpCidrs: ["0.0.0.0/0"]
   registryMirrors:
     - name: ""
-      hostname: ""
+      endpoint: ""
       cidr: "0.0.0.0/32"
       port: 443
 

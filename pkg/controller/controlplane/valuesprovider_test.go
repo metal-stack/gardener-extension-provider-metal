@@ -87,7 +87,7 @@ func Test_registryMirrorToValueMap(t *testing.T) {
 			args: args{
 				r: apismetal.RegistryMirror{
 					Name:     "registry.example.com",
-					Hostname: "registry.example.host.com",
+					Endpoint: "https://registry.example.host.com",
 					IP:       "1.2.3.4",
 					Port:     443,
 					MirrorOf: []string{"test1", "test2"},
@@ -106,7 +106,7 @@ func Test_registryMirrorToValueMap(t *testing.T) {
 			args: args{
 				r: apismetal.RegistryMirror{
 					Name:     "registry.example.com",
-					Hostname: "registry.example.host.com",
+					Endpoint: "https://registry.example.host.com",
 					IP:       "1.2.3.4.5",
 					Port:     443,
 					MirrorOf: []string{"test1", "test2"},
