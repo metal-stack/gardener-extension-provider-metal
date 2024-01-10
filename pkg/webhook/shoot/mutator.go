@@ -49,12 +49,13 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		// a registry mirror in case this shoot cluster is configured with networkaccesstype restricted/forbidden
 		// FIXME only for isolated clusters
 		if x.Labels["gardener.cloud/role"] == "cloud-config" {
+			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
 			raw, ok := x.Data["script"]
 			if ok {
 				script := string(raw)
 				// FIXME use registry from networkisolation.RegistryMirrors
 				newScript := strings.ReplaceAll(script, "eu.gcr.io/gardener-project/hyperkube", "r.metal-stack.dev/gardener-project/hyperkube")
-				x.StringData["script"] = newScript
+				x.Data["script"] = []byte(newScript)
 				x.Annotations["checksum/data-script"] = utils.ComputeChecksum(newScript)
 			}
 		}
