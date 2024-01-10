@@ -53,7 +53,7 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 			if ok {
 				rawScript, err := utils.DecodeBase64(string(raw))
 				if err != nil {
-					return fmt.Errorf("unable to decode script %w", err)
+					return fmt.Errorf("unable to decode script:%q %w", string(raw), err)
 				}
 				script := string(rawScript)
 				// FIXME use registry from networkisolation.RegistryMirrors
