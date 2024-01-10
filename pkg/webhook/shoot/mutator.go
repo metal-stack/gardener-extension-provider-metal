@@ -51,11 +51,7 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		if x.Labels["gardener.cloud/role"] == "cloud-config" {
 			raw, ok := x.Data["script"]
 			if ok {
-				rawScript, err := utils.DecodeBase64(string(raw))
-				if err != nil {
-					return fmt.Errorf("unable to decode script:%q %w", string(raw), err)
-				}
-				script := string(rawScript)
+				script := string(raw)
 				// FIXME use registry from networkisolation.RegistryMirrors
 				newScript := strings.ReplaceAll(script, "eu.gcr.io/gardener-project/hyperkube", "r.metal-stack.dev/gardener-project/hyperkube")
 				x.StringData["script"] = newScript
