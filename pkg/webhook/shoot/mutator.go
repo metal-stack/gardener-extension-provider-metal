@@ -41,6 +41,7 @@ func NewMutator() extensionswebhook.MutatorWithShootClient {
 
 // InjectScheme injects the given scheme into the validator.
 func (s *mutator) InjectScheme(scheme *runtime.Scheme) error {
+	gardencorev1beta1.AddToScheme(scheme)
 	s.decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
 	return nil
 }
