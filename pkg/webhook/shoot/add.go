@@ -28,7 +28,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 			{Obj: &corev1.ConfigMap{}},
 			{Obj: &corev1.Secret{}},
 		},
-		Mutator: NewMutator(),
+		MutatorWithShootClient: NewMutator(),
 	})
 }
 

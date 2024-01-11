@@ -11,7 +11,6 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/gardener/gardener/pkg/component/extensions/operatingsystemconfig/downloader"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -34,7 +33,7 @@ type mutator struct {
 }
 
 // NewMutator creates a new Mutator that mutates resources in the shoot cluster.
-func NewMutator() extensionswebhook.Mutator {
+func NewMutator() extensionswebhook.MutatorWithShootClient {
 	return &mutator{
 		logger: log.Log.WithName("shoot-mutator"),
 	}
@@ -52,7 +51,7 @@ func (s *mutator) InjectClient(client client.Client) error {
 	return nil
 }
 
-func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
+func (m *mutator) Mutate(ctx context.Context, new, _ client.Object, shootClient client.Client) error {
 	acc, err := meta.Accessor(new)
 	if err != nil {
 		return fmt.Errorf("could not create accessor during webhook %w", err)
@@ -75,7 +74,7 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		// a registry mirror in case this shoot cluster is configured with networkaccesstype restricted/forbidden
 		// FIXME only for isolated clusters
 		extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-		err = m.mutateCloudConfigDownloaderHyperkubeImage(ctx, x)
+		err = m.mutateCloudConfigDownloaderHyperkubeImage(ctx, x, shootClient)
 		if err != nil {
 			// FIXME is this correct
 			m.logger.Error(err, "mutation did not work")
@@ -115,49 +114,50 @@ const (
 	hyperkubeImage   = "/gardener-project/hyperkube"
 )
 
-func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context, secret *corev1.Secret) error {
+func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context, secret *corev1.Secret, shootClient client.Client) error {
 	if secret.Labels["gardener.cloud/role"] != "cloud-config" {
 		return nil
 	}
 
-	remoteAddrValue := ctx.Value(remoteAddrContextKey)
-	if remoteAddrValue == nil {
-		return fmt.Errorf("didn't receive remote address")
-	}
+	// spew.Dump(ctx)
+	// remoteAddrValue := ctx.Value(http.LocalAddrContextKey)
+	// if remoteAddrValue == nil {
+	// 	return fmt.Errorf("didn't receive remote address")
+	// }
 
-	remoteAddr, ok := remoteAddrValue.(string)
-	if !ok {
-		return fmt.Errorf("remote address expected to be string, got %T", remoteAddrValue)
-	}
+	// remoteAddr, ok := remoteAddrValue.(string)
+	// if !ok {
+	// 	return fmt.Errorf("remote address expected to be string, got %T", remoteAddrValue)
+	// }
 
-	ip, _, found := strings.Cut(remoteAddr, ":")
-	if !found {
-		return fmt.Errorf("remote address not parseable: %s", remoteAddr)
-	}
+	// ip, _, found := strings.Cut(remoteAddr, ":")
+	// if !found {
+	// 	return fmt.Errorf("remote address not parseable: %s", remoteAddr)
+	// }
 
-	podList := &corev1.PodList{}
-	if err := m.client.List(ctx, podList, client.MatchingLabels{
-		v1beta1constants.LabelApp:  v1beta1constants.LabelKubernetes,
-		v1beta1constants.LabelRole: v1beta1constants.LabelAPIServer,
-	}); err != nil {
-		return fmt.Errorf("error while listing all pods: %w", err)
-	}
+	// podList := &corev1.PodList{}
+	// if err := m.client.List(ctx, podList, client.MatchingLabels{
+	// 	v1beta1constants.LabelApp:  v1beta1constants.LabelKubernetes,
+	// 	v1beta1constants.LabelRole: v1beta1constants.LabelAPIServer,
+	// }); err != nil {
+	// 	return fmt.Errorf("error while listing all pods: %w", err)
+	// }
 
-	var shootNamespace string
-	for _, pod := range podList.Items {
-		if pod.Status.PodIP == ip {
-			shootNamespace = pod.Namespace
-			break
-		}
-	}
+	// var shootNamespace string
+	// for _, pod := range podList.Items {
+	// 	if pod.Status.PodIP == ip {
+	// 		shootNamespace = pod.Namespace
+	// 		break
+	// 	}
+	// }
 
-	if len(shootNamespace) == 0 {
-		return fmt.Errorf("could not find shoot namespace for webhook request from remote address %s", remoteAddr)
-	}
+	// if len(shootNamespace) == 0 {
+	// 	return fmt.Errorf("could not find shoot namespace for webhook request from remote address %s", remoteAddr)
+	// }
 
 	shoot := &gardencorev1beta1.Shoot{}
 
-	if err := m.client.Get(ctx, client.ObjectKey{Namespace: shootNamespace}, shoot); err != nil {
+	if err := m.client.Get(ctx, client.ObjectKey{}, shoot); err != nil {
 		return err
 	}
 
