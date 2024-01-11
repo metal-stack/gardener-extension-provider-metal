@@ -74,6 +74,7 @@ type Partition struct {
 }
 
 // TODO: NetworkIsolation has actually two purposes:
+// - this is actually also put into shoot.spec.worker.machine.image.providerconfig, we should introduce a imageProviderConfig which includes the networkIsolation for example
 // - transport the configuration for the gepm to create cwnps for clusters with networkisolation configured
 // - set worker.image.providerconfig to enable the os-metal-extension to create configurations of dns,ntp, docker and containerd regardless of requested networkisolation
 
