@@ -75,7 +75,11 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		// a registry mirror in case this shoot cluster is configured with networkaccesstype restricted/forbidden
 		// FIXME only for isolated clusters
 		extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-		return m.mutateCloudConfigDownloaderHyperkubeImage(ctx, x)
+		err = m.mutateCloudConfigDownloaderHyperkubeImage(ctx, x)
+		if err != nil {
+			// FIXME is this correct
+			m.logger.Error(err, "mutation did not work")
+		}
 	}
 	return nil
 }
