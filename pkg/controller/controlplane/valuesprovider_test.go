@@ -95,7 +95,7 @@ func Test_registryMirrorToValueMap(t *testing.T) {
 			},
 			want: map[string]any{
 				"name":     "registry.example.com",
-				"hostname": "registry.example.host.com",
+				"endpoint": "https://registry.example.host.com",
 				"cidr":     "1.2.3.4/32",
 				"port":     int32(443),
 			},
