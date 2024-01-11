@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/utils"
 	"github.com/go-logr/logr"
@@ -50,6 +51,7 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		// FIXME only for isolated clusters
 		if x.Labels["gardener.cloud/role"] == "cloud-config" {
 			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
+			spew.Dump(ctx)
 			raw, ok := x.Data["script"]
 			if ok {
 				script := string(raw)
