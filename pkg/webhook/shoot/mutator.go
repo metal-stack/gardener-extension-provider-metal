@@ -108,7 +108,7 @@ func (m *mutator) mutateVPNShootDeployment(_ context.Context, deployment *appsv1
 	return nil
 }
 
-var remoteAddrContextKey = struct{}{}
+// var remoteAddrContextKey = struct{}{}
 
 const (
 	gardenerRegistry = "eu.gcr.io"
@@ -158,7 +158,7 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 
 	shoot := &gardencorev1beta1.Shoot{}
 
-	if err := m.client.Get(ctx, client.ObjectKey{}, shoot); err != nil {
+	if err := shootClient.Get(ctx, client.ObjectKey{}, shoot); err != nil {
 		return err
 	}
 
