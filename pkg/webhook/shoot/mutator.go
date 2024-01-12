@@ -11,10 +11,13 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/component/extensions/operatingsystemconfig/downloader"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/pkg/utils"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -120,7 +123,6 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 		return nil
 	}
 
-	// spew.Dump(ctx)
 	// remoteAddrValue := ctx.Value(http.LocalAddrContextKey)
 	// if remoteAddrValue == nil {
 	// 	return fmt.Errorf("didn't receive remote address")
@@ -156,10 +158,26 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 	// 	return fmt.Errorf("could not find shoot namespace for webhook request from remote address %s", remoteAddr)
 	// }
 
-	shoot := &gardencorev1beta1.Shoot{}
+	shootName := ""
 
-	if err := shootClient.Get(ctx, client.ObjectKey{}, shoot); err != nil {
+	for k, v := range secret.Annotations {
+		if k == "resources.gardener.cloud/origin" {
+			shootName = strings.Split(strings.Split(v, ":")[1], "/")[0]
+			break
+		}
+	}
+	if len(shootName) == 0 {
+		return fmt.Errorf("could not find shoot name for webhook request")
+	}
+
+	cluster := &extensionsv1alpha1.Cluster{}
+	if err := m.client.Get(ctx, kutil.Key(shootName), cluster); err != nil {
 		return err
+	}
+
+	shoot, err := extensionscontroller.ShootFromCluster(cluster)
+	if err != nil {
+		return fmt.Errorf("unable to decode cluster.Spec.Shoot.Raw %w", err)
 	}
 
 	if len(shoot.Spec.Provider.Workers) == 0 {
