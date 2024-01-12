@@ -147,7 +147,7 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 	}
 
 	if controlPlaneConfig.NetworkAccessType == nil || *controlPlaneConfig.NetworkAccessType == metal.NetworkAccessBaseline {
-		m.logger.Info("this shoot does not have networkaccesstype restricted or forbidden specified, nothing to do here", "shoot", shootName)
+		// this shoot does not have networkaccesstype restricted or forbidden specified, nothing to do here
 		return nil
 	}
 
