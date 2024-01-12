@@ -125,41 +125,6 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 		return nil
 	}
 
-	// remoteAddrValue := ctx.Value(http.LocalAddrContextKey)
-	// if remoteAddrValue == nil {
-	// 	return fmt.Errorf("didn't receive remote address")
-	// }
-
-	// remoteAddr, ok := remoteAddrValue.(string)
-	// if !ok {
-	// 	return fmt.Errorf("remote address expected to be string, got %T", remoteAddrValue)
-	// }
-
-	// ip, _, found := strings.Cut(remoteAddr, ":")
-	// if !found {
-	// 	return fmt.Errorf("remote address not parseable: %s", remoteAddr)
-	// }
-
-	// podList := &corev1.PodList{}
-	// if err := m.client.List(ctx, podList, client.MatchingLabels{
-	// 	v1beta1constants.LabelApp:  v1beta1constants.LabelKubernetes,
-	// 	v1beta1constants.LabelRole: v1beta1constants.LabelAPIServer,
-	// }); err != nil {
-	// 	return fmt.Errorf("error while listing all pods: %w", err)
-	// }
-
-	// var shootNamespace string
-	// for _, pod := range podList.Items {
-	// 	if pod.Status.PodIP == ip {
-	// 		shootNamespace = pod.Namespace
-	// 		break
-	// 	}
-	// }
-
-	// if len(shootNamespace) == 0 {
-	// 	return fmt.Errorf("could not find shoot namespace for webhook request from remote address %s", remoteAddr)
-	// }
-
 	shootName := ""
 
 	for k, v := range secret.Annotations {
