@@ -2,6 +2,7 @@ package shoot
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/pkg/utils"
@@ -197,11 +199,11 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 		return nil
 	}
 
-	networkIsolation := &metal.NetworkIsolation{}
+	networkIsolation := &metalv1alpha1.NetworkIsolation{}
 	for _, w := range shoot.Spec.Provider.Workers {
 		if w.Machine.Image != nil && w.Machine.Image.ProviderConfig != nil && len(w.Machine.Image.ProviderConfig.Raw) > 0 {
-			if err := util.Decode(m.decoder, w.Machine.Image.ProviderConfig.Raw, networkIsolation); err != nil {
-				return fmt.Errorf("unable to decode worker.machine.image.providerconfig to networkisolation %w", err)
+			if err := json.Unmarshal(w.Machine.Image.ProviderConfig.Raw, networkIsolation); err != nil {
+				return fmt.Errorf("unable to decode worker.machine.image.providerconfig to networkisolation %w (%s)", err, string(w.Machine.Image.ProviderConfig.Raw))
 			}
 			break
 		}
