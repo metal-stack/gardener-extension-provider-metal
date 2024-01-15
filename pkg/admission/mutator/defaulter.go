@@ -87,8 +87,17 @@ func (d *defaulter) defaultInfrastructureConfig(shoot *gardenv1beta1.Shoot) erro
 }
 
 func (d *defaulter) defaultNetworking(shoot *gardenv1beta1.Shoot) error {
-	if shoot.Spec.Networking.Type == "" {
-		shoot.Spec.Networking.Type = d.c.networkType()
+	if len(shoot.Spec.Provider.Workers) == 0 {
+		// this is the workerless shoot case, don't default a network configuration
+		return nil
+	}
+
+	if shoot.Spec.Networking == nil {
+		shoot.Spec.Networking = &gardenv1beta1.Networking{}
+	}
+
+	if pointer.SafeDeref(shoot.Spec.Networking.Type) == "" {
+		shoot.Spec.Networking.Type = pointer.Pointer(d.c.networkType())
 	}
 
 	if shoot.Spec.Networking.Pods == nil {
@@ -104,7 +113,7 @@ func (d *defaulter) defaultNetworking(shoot *gardenv1beta1.Shoot) error {
 		return nil
 	}
 
-	switch shoot.Spec.Networking.Type {
+	switch pointer.SafeDeref(shoot.Spec.Networking.Type) {
 	case "calico":
 		err := d.defaultCalicoConfig(shoot)
 		if err != nil {

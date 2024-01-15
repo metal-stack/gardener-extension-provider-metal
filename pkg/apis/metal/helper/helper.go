@@ -51,7 +51,7 @@ func ImagePullPolicyFromString(policy string) corev1.PullPolicy {
 func GetNodeCIDR(infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) (string, error) {
 	var nodeCIDR string
 
-	if cluster.Shoot.Spec.Networking.Nodes != nil {
+	if cluster.Shoot.Spec.Networking != nil && cluster.Shoot.Spec.Networking.Nodes != nil {
 		nodeCIDR = *cluster.Shoot.Spec.Networking.Nodes
 	} else if infrastructure != nil && infrastructure.Status.NodesCIDR != nil {
 		nodeCIDR = *infrastructure.Status.NodesCIDR

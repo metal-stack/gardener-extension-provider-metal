@@ -12,6 +12,7 @@ import (
 
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -160,14 +161,6 @@ var controlPlaneChart = &chart.Chart{
 		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
 		{Type: &appsv1.Deployment{}, Name: "cloud-controller-manager"},
-
-		// network policies
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-http"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-vpn"},
 	},
 }
 
@@ -190,13 +183,6 @@ var cpShootChart = &chart.Chart{
 		{Type: &appsv1.DaemonSet{}, Name: "speaker"},
 		{Type: &appsv1.Deployment{}, Name: "controller"},
 
-		// network policies
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-dns"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-any"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-http"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-https"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "egress-allow-ntp"},
-
 		// cluster wide network policies
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-https"},
@@ -216,7 +202,6 @@ var cpShootChart = &chart.Chart{
 		{Type: &corev1.Service{}, Name: "firewall-controller-manager"},
 		{Type: &admissionregistrationv1.MutatingWebhookConfiguration{}, Name: "firewall-controller-manager-namespace"},
 		{Type: &admissionregistrationv1.ValidatingWebhookConfiguration{}, Name: "firewall-controller-manager-namespace"},
-		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-firewall-controller-manager-webhook"},
 
 		// firewall policy controller TODO can be removed in a future version
 		{Type: &rbacv1.ClusterRole{}, Name: "system:firewall-policy-controller"},
@@ -280,6 +265,7 @@ func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerCon
 			{Type: &appsv1.Deployment{}, Name: "duros-controller"},
 			{Type: &durosv1.Duros{}, Name: metal.DurosResourceName},
 			{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-storage"},
+			{Type: &networkingv1.NetworkPolicy{}, Name: "egress-from-duros-controller-to-storage"},
 		}...)
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 			{Type: &rbacv1.ClusterRole{}, Name: "system:duros-controller"},
@@ -505,7 +491,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	nodeInitValues := map[string]any{
 		"enabled": true,
 	}
-	if cluster.Shoot.Spec.Networking.Type == "cilium" {
+	if pointer.SafeDeref(pointer.SafeDeref(cluster.Shoot.Spec.Networking).Type) == "cilium" {
 		nodeInitValues["enabled"] = false
 	}
 

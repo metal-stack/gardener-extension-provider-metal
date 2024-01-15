@@ -99,6 +99,12 @@ spec:
     metadata:
       labels:
         app: firewall-controller-manager
+        networking.gardener.cloud/from-prometheus: "allowed"
+        networking.gardener.cloud/to-dns: "allowed"
+        networking.gardener.cloud/to-public-networks: "allowed"
+        networking.gardener.cloud/to-shoot-apiserver: "allowed"
+        networking.gardener.cloud/to-runtime-apiserver: "allowed"
+        networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: "allowed"
 {{- if .Values.podAnnotations }}
       annotations:
 {{ toYaml .Values.podAnnotations | indent 8 }}
@@ -114,6 +120,7 @@ spec:
           - -log-level=info
           - -seed-api-url={{ .Values.firewallControllerManager.seedApiURL }}
           - -shoot-api-url={{ .Values.firewallControllerManager.shootApiURL }}
+          - -internal-shoot-api-url=https://kube-apiserver
           - -cluster-id={{ .Values.firewallControllerManager.clusterID }}
           - -enable-leader-election
           - -metal-api-url={{ .Values.firewallControllerManager.metalapi.url }}
@@ -167,6 +174,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: firewall-controller-manager
+  annotations:
+    networking.resources.gardener.cloud/from-world-to-ports: '[{"protocol":"TCP","port":9443}]'
+    networking.resources.gardener.cloud/from-all-webhook-targets-allowed-ports: '[{"protocol":"TCP","port":9443}]'
+    networking.resources.gardener.cloud/from-all-seed-scrape-targets-allowed-ports: '[{"protocol":"TCP","port":2112}]'
 spec:
   type: ClusterIP
   clusterIP: None
@@ -338,20 +349,3 @@ webhooks:
     resources:
     - firewalldeployments
   sideEffects: None
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  annotations:
-  name: allow-to-firewall-controller-manager-webhook
-  namespace: {{ .Release.Namespace }}
-spec:
-  ingress:
-  - ports:
-    - port: 9443
-      protocol: TCP
-  podSelector:
-    matchLabels:
-      app: firewall-controller-manager
-  policyTypes:
-  - Ingress

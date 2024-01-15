@@ -38,7 +38,6 @@ rules:
   - update
   - patch
   - create
-
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -87,6 +86,13 @@ spec:
     metadata:
       labels:
         app: duros-controller
+        networking.gardener.cloud/from-prometheus: "allowed"
+        networking.gardener.cloud/to-dns: "allowed"
+        networking.gardener.cloud/to-shoot-apiserver: "allowed"
+        networking.gardener.cloud/to-private-networks: "allowed"
+        networking.gardener.cloud/to-public-networks: "allowed"
+        networking.gardener.cloud/to-runtime-apiserver: "allowed"
+        networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: "allowed"
     spec:
       # required to be able to read the duros cr from the seed
       automountServiceAccountToken: true
@@ -142,6 +148,31 @@ spec:
                   path: token
                 name: shoot-access-duros-controller
                 optional: false
+---
+# for shooted seeds we typically talk to a grpc-proxy deployed to a namespace where we do not use gardener annotations
+# so for this special use-case, we create a dedicated network policy that allows talking to the grpc-proxy from
+# inside the cluster and through the internet such that communications works everywhere
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-from-duros-controller-to-storage
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: duros-controller
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
+    # this is the duros-proxy that we typically deploy
+    - protocol: TCP
+      port: 25005
 ---
 apiVersion: storage.metal-stack.io/v1
 kind: Duros

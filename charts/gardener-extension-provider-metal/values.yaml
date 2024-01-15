@@ -6,6 +6,7 @@ image:
 replicaCount: 1
 resources: {}
 
+metricsPort: 8080
 healthPort: 8081
 
 controllers:
