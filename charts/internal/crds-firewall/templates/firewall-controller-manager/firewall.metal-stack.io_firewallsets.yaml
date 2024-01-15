@@ -102,14 +102,24 @@ spec:
                   spec:
                     description: Spec contains the firewall specification.
                     properties:
-                      allowedExternalNetworks:
-                        description: AllowedExternalNetworks defines which networks
-                          are allowed to connect to, and allow incoming traffic from.
-                          By default, defined by an empty slice, all external networks
-                          are allowed. The node network is always allowed.
-                        items:
-                          type: string
-                        type: array
+                      allowedNetworks:
+                        description: AllowedNetworks defines which networks are allowed
+                          to connect to, and allow incoming traffic from. The node
+                          network is always allowed.
+                        properties:
+                          egress:
+                            description: Egress defines a list of networks which are
+                              allowed for outgoing traffic
+                            items:
+                              type: string
+                            type: array
+                          ingress:
+                            description: Ingress defines a list of networks which
+                              are allowed for incoming traffic like service type loadbalancer
+                            items:
+                              type: string
+                            type: array
+                        type: object
                       controllerURL:
                         description: ControllerURL points to the downloadable binary
                           artifact of the firewall controller.
@@ -176,6 +186,10 @@ spec:
                         description: LogAcceptedConnections if set to true, also log
                           accepted connections in the droptailer log.
                         type: boolean
+                      networkAccessType:
+                        description: NetworkAccessType defines how the cluster can
+                          reach external networks.
+                        type: string
                       networks:
                         description: Networks are the networks to which this firewall
                           is connected. An update on this field requires the recreation
