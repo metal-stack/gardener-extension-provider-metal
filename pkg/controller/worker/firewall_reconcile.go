@@ -151,6 +151,7 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 				// we need at least some egress rules to reach our own registry etcpp, so no single egress rule MUST be an error
 				return fmt.Errorf("error creating firewall deployment: control plane with network access forbidden requires partition %q to have networkIsolation.allowedNetworks", d.infrastructureConfig.PartitionID)
 			}
+			deploy.Spec.Template.Spec.NetworkAccessType = fcmv2.NetworkAccessType(networkAccessType)
 			deploy.Spec.Template.Spec.AllowedNetworks = fcmv2.AllowedNetworks{
 				Ingress: partition.NetworkIsolation.AllowedNetworks.Ingress,
 				Egress:  partition.NetworkIsolation.AllowedNetworks.Egress,
