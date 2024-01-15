@@ -147,10 +147,14 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
 
 		if networkAccessType == apismetal.NetworkAccessForbidden {
-			if partition.NetworkIsolation == nil || len(partition.NetworkIsolation.AllowedNetworks) == 0 {
+			if partition.NetworkIsolation == nil || len(partition.NetworkIsolation.AllowedNetworks.Egress) == 0 {
+				// we need at least some egress rules to reach our own registry etcpp, so no single egress rule MUST be an error
 				return fmt.Errorf("error creating firewall deployment: control plane with network access forbidden requires partition %q to have networkIsolation.allowedNetworks", d.infrastructureConfig.PartitionID)
 			}
-			deploy.Spec.Template.Spec.AllowedExternalNetworks = partition.NetworkIsolation.AllowedNetworks
+			deploy.Spec.Template.Spec.AllowedNetworks = fcmv2.AllowedNetworks{
+				Ingress: partition.NetworkIsolation.AllowedNetworks.Ingress,
+				Egress:  partition.NetworkIsolation.AllowedNetworks.Egress,
+			}
 		}
 
 		return nil
