@@ -82,13 +82,21 @@ type Partition struct {
 type NetworkIsolation struct {
 	metav1.TypeMeta `json:",inline"`
 	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
-	AllowedNetworks []string `json:"allowedNetworks,omitempty"`
+	AllowedNetworks AllowedNetworks `json:"allowedNetworks,omitempty"`
 	// DNSServers
 	DNSServers []string `json:"dnsServers,omitempty"`
 	// NTPServers
 	NTPServers []string `json:"ntpServers,omitempty"`
 	// The registry which serves the images required to create a shoot.
 	RegistryMirrors []RegistryMirror `json:"registryMirrors,omitempty"`
+}
+
+// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
+type AllowedNetworks struct {
+	// Ingress defines a list of networks which are allowed for incoming traffic like service type loadbalancer
+	Ingress []string `json:"ingress,omitempty"`
+	// Egress defines a list of networks which are allowed for outgoing traffic
+	Egress []string `json:"egress,omitempty"`
 }
 
 type RegistryMirror struct {

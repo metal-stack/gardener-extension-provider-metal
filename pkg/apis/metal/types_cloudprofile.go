@@ -85,13 +85,23 @@ type NetworkIsolation struct {
 	metav1.TypeMeta
 	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
 	// if empty all destinations are allowed.
-	AllowedNetworks []string
+	AllowedNetworks AllowedNetworks
 	// DNSServers
 	DNSServers []string
 	// NTPServers
 	NTPServers []string
 	// The registry which serves the images required to create a shoot.
 	RegistryMirrors []RegistryMirror
+}
+
+// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
+type AllowedNetworks struct {
+	// Ingress defines a list of networks which are allowed for incoming traffic like service type loadbalancer
+	// to allow all you must specify 0.0.0.0/0 or ::/0
+	Ingress []string
+	// Egress defines a list of networks which are allowed for outgoing traffic
+	// to allow all you must specify 0.0.0.0/0 or ::/0
+	Egress []string
 }
 
 type RegistryMirror struct {
