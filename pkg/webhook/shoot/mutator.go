@@ -12,7 +12,9 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
 	"github.com/gardener/gardener/pkg/component/extensions/operatingsystemconfig/downloader"
+
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -195,13 +197,20 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 }
 
 func extractShootNameFromSecret(secret *corev1.Secret) (string, error) {
-	v, ok := secret.Annotations["resources.gardener.cloud/origin"]
+	// resources.gardener.cloud/origin: shoot--test--fra-equ01-8fef639c-bbe4-4c6f-9656-617dc4a4efd8-gardener-soil-test:shoot--pjb9j2--forbidden/shoot-cloud-config-execution
+	origin, ok := secret.Annotations[resourcesv1alpha1.OriginAnnotation]
 	if !ok {
 		return "", fmt.Errorf("no matching annotation found to identify the shoot namespace")
 	}
 
+	// does not work
+	// shootName, _, err := resourcesv1alpha1helper.SplitOrigin(origin)
+	// if err != nil {
+	// 	return "", fmt.Errorf("no matching content found in origin annotation to get shoot namespace %w", err)
+	// }
+
 	// resources.gardener.cloud/origin: shoot--test--fra-equ01-8fef639c-bbe4-4c6f-9656-617dc4a4efd8-gardener-soil-test:shoot--pjb9j2--forbidden/shoot-cloud-config-execution
-	_, firstpart, found := strings.Cut(v, ":")
+	_, firstpart, found := strings.Cut(origin, ":")
 	if !found {
 		return "", fmt.Errorf("no matching content found in origin annotation to get shoot namespace")
 	}
