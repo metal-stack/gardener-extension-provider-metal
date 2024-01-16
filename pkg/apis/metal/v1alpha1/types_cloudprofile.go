@@ -79,8 +79,16 @@ type Partition struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-type NetworkIsolation struct {
+// ImageProviderConfig is stored in gardenv1beta1.Worker.Image.ProviderConfig as RawExtension
+// to configure metal specific worker configuration items
+type ImageProviderConfig struct {
+	// required to convert it to/from RawExtension
 	metav1.TypeMeta `json:",inline"`
+	// NetworkIsolation defines restricted/forbidden networkaccess for worker nodes
+	NetworkIsolation *NetworkIsolation `json:"networkIsolation,omitempty"`
+}
+
+type NetworkIsolation struct {
 	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
 	AllowedNetworks AllowedNetworks `json:"allowedNetworks,omitempty"`
 	// DNSServers
