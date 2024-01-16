@@ -536,6 +536,10 @@ func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gconte
 	return nil
 }
 
+// TODO:
+// - Write configuration also into shoot.spec.worker[n].image.providerconfig, but then the worker rolls ?
+// - calculate hash over containerd/config.toml and add to containerd.service Unit to trigger restart on changes
+
 // EnsureAdditionalFiles adds additional files to override DNS and NTP configurations from the NetworkIsolation.
 func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.GardenContext, new, old *[]extensionsv1alpha1.File) error {
 	cluster, err := gctx.GetCluster(ctx)
