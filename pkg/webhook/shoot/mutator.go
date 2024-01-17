@@ -153,21 +153,26 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 		return nil
 	}
 
-	networkIsolation := &metalv1alpha1.NetworkIsolation{}
+	imageProviderConfig := &metalv1alpha1.ImageProviderConfig{}
 	for _, w := range shoot.Spec.Provider.Workers {
 		if w.Machine.Image != nil && w.Machine.Image.ProviderConfig != nil && len(w.Machine.Image.ProviderConfig.Raw) > 0 {
-			if err := json.Unmarshal(w.Machine.Image.ProviderConfig.Raw, networkIsolation); err != nil {
-				return fmt.Errorf("unable to decode worker.machine.image.providerconfig to networkisolation %w (%s)", err, string(w.Machine.Image.ProviderConfig.Raw))
+			if err := json.Unmarshal(w.Machine.Image.ProviderConfig.Raw, imageProviderConfig); err != nil {
+				return fmt.Errorf("unable to decode worker.machine.image.providerconfig %w (%s)", err, string(w.Machine.Image.ProviderConfig.Raw))
 			}
 			break
 		}
 	}
-	if len(networkIsolation.RegistryMirrors) == 0 {
+
+	if imageProviderConfig.NetworkIsolation == nil || len(imageProviderConfig.NetworkIsolation.RegistryMirrors) == 0 {
 		m.logger.Info("no registry mirrors specified in this shoot, nothing to do here", "shoot", shootName)
 		return nil
 	}
 
-	var destinationRegistry string
+	var (
+		networkIsolation    = imageProviderConfig.NetworkIsolation
+		destinationRegistry string
+	)
+
 	for _, registry := range networkIsolation.RegistryMirrors {
 		if slices.Contains(registry.MirrorOf, gardenerRegistry) {
 			parsed, err := url.Parse(registry.Endpoint)
