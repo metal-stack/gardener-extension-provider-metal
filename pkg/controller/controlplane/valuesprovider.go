@@ -911,6 +911,7 @@ func getCCMChartValues(
 		return nil, err
 	}
 
+	// TODO @majst01: Refactor a bit
 	var defaultExternalNetwork string
 	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
 		defaultExternalNetwork = *cpConfig.CloudControllerManager.DefaultExternalNetwork
@@ -931,35 +932,39 @@ func getCCMChartValues(
 			return nil, fmt.Errorf("cannot declare underlay or private super networks as default external network")
 		}
 	} else {
-		var dmzNetwork string
-		for _, networkID := range infrastructureConfig.Firewall.Networks {
-			nw, ok := nws[networkID]
-			if !ok {
-				return nil, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
-			}
-			for k := range nw.Labels {
-				if k == tag.NetworkDefaultExternal {
-					if nw.Parentnetworkid != "" {
-						pn, ok := nws[nw.Parentnetworkid]
-						if !ok {
-							return nil, fmt.Errorf("network defined in firewall networks specified a parent network that does not exist in metal-api")
+		if pointer.SafeDeref(cpConfig.NetworkAccessType) == apismetal.NetworkAccessForbidden {
+			// set no default network!
+		} else {
+			var dmzNetwork string
+			for _, networkID := range infrastructureConfig.Firewall.Networks {
+				nw, ok := nws[networkID]
+				if !ok {
+					return nil, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
+				}
+				for k := range nw.Labels {
+					if k == tag.NetworkDefaultExternal {
+						if nw.Parentnetworkid != "" {
+							pn, ok := nws[nw.Parentnetworkid]
+							if !ok {
+								return nil, fmt.Errorf("network defined in firewall networks specified a parent network that does not exist in metal-api")
+							}
+							if *pn.Privatesuper {
+								dmzNetwork = networkID
+							}
+						} else {
+							defaultExternalNetwork = networkID
 						}
-						if *pn.Privatesuper {
-							dmzNetwork = networkID
-						}
-					} else {
-						defaultExternalNetwork = networkID
+						break
 					}
-					break
 				}
 			}
-		}
-		// fallback to a dmz network with the NetworkDefaultExternal tag
-		if defaultExternalNetwork == "" && dmzNetwork != "" {
-			defaultExternalNetwork = dmzNetwork
-		}
-		if defaultExternalNetwork == "" {
-			return nil, fmt.Errorf("unable to find a default external network for metal-ccm deployment")
+			// fallback to a dmz network with the NetworkDefaultExternal tag
+			if defaultExternalNetwork == "" && dmzNetwork != "" {
+				defaultExternalNetwork = dmzNetwork
+			}
+			if defaultExternalNetwork == "" {
+				return nil, fmt.Errorf("unable to find a default external network for metal-ccm deployment")
+			}
 		}
 	}
 
