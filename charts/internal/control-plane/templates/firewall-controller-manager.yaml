@@ -180,7 +180,6 @@ metadata:
     networking.resources.gardener.cloud/from-all-seed-scrape-targets-allowed-ports: '[{"protocol":"TCP","port":2112}]'
 spec:
   type: ClusterIP
-  clusterIP: None
   ports:
   - name: webhooks
     port: 9443
