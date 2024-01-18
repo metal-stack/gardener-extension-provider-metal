@@ -2,6 +2,8 @@ package validation
 
 import (
 	"fmt"
+	"net/netip"
+	"net/url"
 
 	"github.com/gardener/gardener/pkg/apis/core"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -39,9 +41,47 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 			allErrs = append(allErrs, field.Invalid(mcpField.Child("firewallcontrollerversions"), "version", "contains duplicate entries"))
 		}
 
-		for partitionName := range mcp.Partitions {
+		for partitionName, partition := range mcp.Partitions {
 			if !availableZones.Has(partitionName) {
 				allErrs = append(allErrs, field.Invalid(mcpField, partitionName, fmt.Sprintf("the control plane has a partition that is not a configured zone in any of the cloud profile regions: %v", availableZones.List())))
+			}
+
+			if partition.NetworkIsolation == nil {
+				continue
+			}
+
+			networkIsolationField := mcpField.Child(partitionName, "networkIsolation")
+			for mirrIndex, mirr := range partition.NetworkIsolation.RegistryMirrors {
+				mirrorField := networkIsolationField.Index(mirrIndex)
+				if mirr.Name == "" {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("name"), mirr.Name, "name of mirror may not be empty"))
+				}
+				endpointUrl, err := url.Parse(mirr.Endpoint)
+				if err != nil {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("endpoint"), mirr.Endpoint, "not a valid url"))
+				} else if endpointUrl.Scheme != "http" && endpointUrl.Scheme != "https" {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("endpoint"), mirr.Endpoint, "url must have the scheme http/s"))
+				}
+				if _, err := netip.ParseAddr(mirr.IP); err != nil {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("ip"), mirr.IP, "invalid ip address"))
+				}
+				if mirr.Port == 0 {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("port"), mirr.Port, "must be a vaid port"))
+				}
+				if len(mirr.MirrorOf) == 0 {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("mirrorOf"), mirr.MirrorOf, "registry mirror must replace existing registries"))
+				}
+
+				for regIndex, reg := range mirr.MirrorOf {
+					regField := mirrorField.Child("mirrorOf").Index(regIndex)
+					regUrl, err := url.Parse(reg)
+					if err != nil {
+						allErrs = append(allErrs, field.Invalid(regField, reg, "invalid registry"))
+					}
+					if regUrl.Host != reg {
+						allErrs = append(allErrs, field.Invalid(regField, reg, "missing registry host"))
+					}
+				}
 			}
 		}
 	}
