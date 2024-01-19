@@ -11,14 +11,6 @@ images:
   sourceRepository: https://github.com/metal-stack/machine-controller-manager-provider-metal
   repository: ghcr.io/metal-stack/machine-controller-manager-provider-metal
   tag: "v0.1.17"
-- name: auditforwarder
-  sourceRepository: https://github.com/metal-stack/audit-forwarder
-  repository: ghcr.io/metal-stack/audit-forwarder
-  tag: "v0.2.5"
-- name: audittailer
-  sourceRepository: https://github.com/fluent/fluentd
-  repository: fluent/fluentd
-  tag: "v1.12"
 - name: droptailer
   sourceRepository: github.com/metal-stack/droptailer
   repository: ghcr.io/metal-stack/droptailer

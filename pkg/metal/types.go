@@ -12,8 +12,6 @@ const (
 	MCMProviderMetalImageName = "machine-controller-manager-provider-metal"
 	// CCMImageName is the name of the cloud controller manager image.
 	CCMImageName = "metalccm"
-	// AudittailerImageName is the name of the Audittailer to deploy to the shoot.
-	AudittailerImageName = "audittailer"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
 	DroptailerImageName = "droptailer"
 	// MetallbSpeakerImageName is the name of the metallb speaker to deploy to the shoot.
@@ -45,18 +43,6 @@ const (
 
 	// ShootExtensionTypeTokenIssuer appears unused? CHECKME
 	ShootExtensionTypeTokenIssuer = "tokenissuer"
-	// AuditPolicyName is the name of the configmap containing the audit policy.
-	AuditPolicyName = "audit-policy-override"
-	// AudittailerNamespace is the namespace where the audit tailer will get deployed.
-	AudittailerNamespace = "audit"
-	// AudittailerClientSecretName is the name of the secret containing the certificates for the audittailer client.
-	AudittailerClientSecretName = "audittailer-client" // nolint:gosec
-	// AudittailerServerSecretName is the name of the secret containing the certificates for the audittailer server.
-	AudittailerServerSecretName = "audittailer-server" // nolint:gosec
-	// AuditForwarderSplunkConfigName is the name of the configmap containing the splunk configuration for the auditforwarder.
-	AuditForwarderSplunkConfigName = "audit-to-splunk-config"
-	// AuditForwarderSplunkSecretName is the name of the secret containing the splunk hec token and, if required, the ca certificate.
-	AuditForwarderSplunkSecretName = "audit-to-splunk-secret" // nolint:gosec
 	// DroptailerNamespace is the namespace where the firewall droptailer will get deployed.
 	DroptailerNamespace = "firewall"
 	// DroptailerClientSecretName is the name of the secret containing the certificates for the droptailer client.

@@ -63,16 +63,6 @@ config:
     backup:
       schedule:
       deltaSnapshotPeriod:
-  clusterAudit:
-    enabled: false
-  auditToSplunk:
-    enabled: false
-    hecToken:
-    index:
-    hecHost:
-    hecPort:
-    tlsEnabled:
-    hecCAFile:
   storage:
     duros:
       enabled: false
