@@ -116,7 +116,7 @@ const (
 	hyperkubeImage   = "/gardener-project/hyperkube"
 
 	// this should be the final destination
-	newGardenerRegistry = "europe-docker.pkg.dev/gardener-project/releases/hyperkube"
+	newGardenerRegistry = "europe-docker.pkg.dev"
 	newHyperkubeImage   = "/gardener-project/releases/hyperkube"
 )
 
@@ -199,7 +199,7 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 	if ok {
 		script := string(raw)
 		newScript := strings.ReplaceAll(script, gardenerRegistry+hyperkubeImage, destinationRegistry+hyperkubeImage)
-		newScript = strings.ReplaceAll(newScript, newGardenerRegistry+newHyperkubeImage, destinationRegistry+hyperkubeImage)
+		newScript = strings.ReplaceAll(newScript, newGardenerRegistry+newHyperkubeImage, destinationRegistry+newHyperkubeImage)
 		secret.Data[downloader.DataKeyScript] = []byte(newScript)
 		secret.Annotations[downloader.AnnotationKeyChecksum] = utils.ComputeChecksum(newScript)
 	}
