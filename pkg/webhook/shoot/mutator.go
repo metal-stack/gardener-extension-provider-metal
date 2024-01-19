@@ -114,6 +114,10 @@ func (m *mutator) mutateVPNShootDeployment(_ context.Context, deployment *appsv1
 const (
 	gardenerRegistry = "eu.gcr.io"
 	hyperkubeImage   = "/gardener-project/hyperkube"
+
+	// this should be the final destination
+	newGardenerRegistry = "europe-docker.pkg.dev/gardener-project/releases/hyperkube"
+	newHyperkubeImage   = "/gardener-project/releases/hyperkube"
 )
 
 func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context, secret *corev1.Secret) error {
@@ -195,6 +199,7 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 	if ok {
 		script := string(raw)
 		newScript := strings.ReplaceAll(script, gardenerRegistry+hyperkubeImage, destinationRegistry+hyperkubeImage)
+		newScript = strings.ReplaceAll(newScript, newGardenerRegistry+newHyperkubeImage, destinationRegistry+hyperkubeImage)
 		secret.Data[downloader.DataKeyScript] = []byte(newScript)
 		secret.Annotations[downloader.AnnotationKeyChecksum] = utils.ComputeChecksum(newScript)
 	}
