@@ -80,8 +80,7 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		// a registry mirror in case this shoot cluster is configured with networkaccesstype restricted/forbidden
 		err = m.mutateCloudConfigDownloaderHyperkubeImage(ctx, x)
 		if err != nil {
-			// FIXME is this correct
-			m.logger.Error(err, "mutation did not work")
+			return fmt.Errorf("mutating cloud config downlader secret failed %w", err)
 		}
 	}
 	return nil
