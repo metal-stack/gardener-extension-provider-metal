@@ -28,6 +28,8 @@ type (
 		mcp                  *apismetal.MetalControlPlane
 		credentials          *metal.Credentials
 		mclient              metalgo.Client
+		partition            *apismetal.Partition
+		cloudProfileConfig   *apismetal.CloudProfileConfig
 	}
 
 	key int
@@ -53,7 +55,7 @@ func (a *actuator) getAdditionalData(ctx context.Context, worker *extensionsv1al
 		return nil, err
 	}
 
-	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	metalControlPlane, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +105,8 @@ func (a *actuator) getAdditionalData(ctx context.Context, worker *extensionsv1al
 		privateNetworkID:     *nw.ID,
 		credentials:          credentials,
 		mclient:              mclient,
+		partition:            partition,
+		cloudProfileConfig:   cloudProfileConfig,
 	}, nil
 }
 

@@ -92,16 +92,6 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		},
 	}
 
-	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
-	if err != nil {
-		return err
-	}
-
-	_, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, d.infrastructureConfig.PartitionID)
-	if err != nil {
-		return err
-	}
-
 	controlPlaneConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
 	if err != nil {
 		return err
@@ -149,13 +139,13 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Spec.NetworkAccessType = fcmv2.NetworkAccessType(networkAccessType)
 
 		if networkAccessType == apismetal.NetworkAccessForbidden {
-			if partition.NetworkIsolation == nil || len(partition.NetworkIsolation.AllowedNetworks.Egress) == 0 {
+			if d.partition.NetworkIsolation == nil || len(d.partition.NetworkIsolation.AllowedNetworks.Egress) == 0 {
 				// we need at least some egress rules to reach our own registry etcpp, so no single egress rule MUST be an error
 				return fmt.Errorf("error creating firewall deployment: control plane with network access forbidden requires partition %q to have networkIsolation.allowedNetworks", d.infrastructureConfig.PartitionID)
 			}
 			deploy.Spec.Template.Spec.AllowedNetworks = fcmv2.AllowedNetworks{
-				Ingress: partition.NetworkIsolation.AllowedNetworks.Ingress,
-				Egress:  partition.NetworkIsolation.AllowedNetworks.Egress,
+				Ingress: d.partition.NetworkIsolation.AllowedNetworks.Ingress,
+				Egress:  d.partition.NetworkIsolation.AllowedNetworks.Egress,
 			}
 		}
 
