@@ -548,6 +548,20 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 		return err
 	}
 
+	controlPlaneConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+	if err != nil {
+		return err
+	}
+
+	networkAccessType := metalapi.NetworkAccessBaseline
+	if controlPlaneConfig.NetworkAccessType != nil {
+		networkAccessType = *controlPlaneConfig.NetworkAccessType
+	}
+
+	if networkAccessType == metalapi.NetworkAccessBaseline {
+		return nil
+	}
+
 	infra := &extensionsv1alpha1.Infrastructure{}
 	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infra); err != nil {
 		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
@@ -571,16 +585,6 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 
 	if partition.NetworkIsolation == nil {
 		return nil
-	}
-
-	controlPlaneConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
-	if err != nil {
-		return err
-	}
-
-	networkAccessType := metalapi.NetworkAccessBaseline
-	if controlPlaneConfig.NetworkAccessType != nil {
-		networkAccessType = *controlPlaneConfig.NetworkAccessType
 	}
 
 	if networkAccessType != metalapi.NetworkAccessBaseline {
