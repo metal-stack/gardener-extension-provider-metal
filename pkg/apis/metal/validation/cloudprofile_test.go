@@ -105,7 +105,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 								RegistryMirrors: []apismetal.RegistryMirror{
 									{
 										Name:     "metal-stack registry",
-										Endpoint: "https://r.metal-stack.dev",
+										Endpoint: "https://some.registry",
 										IP:       "1.2.3.4",
 										Port:     443,
 										MirrorOf: []string{
