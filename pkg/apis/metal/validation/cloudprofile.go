@@ -92,7 +92,7 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 					allErrs = append(allErrs, field.Invalid(mirrorField.Child("ip"), mirr.IP, "invalid ip address"))
 				}
 				if mirr.Port == 0 {
-					allErrs = append(allErrs, field.Invalid(mirrorField.Child("port"), mirr.Port, "must be a vaid port"))
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("port"), mirr.Port, "must be a valid port"))
 				}
 				if len(mirr.MirrorOf) == 0 {
 					allErrs = append(allErrs, field.Invalid(mirrorField.Child("mirrorOf"), mirr.MirrorOf, "registry mirror must replace existing registries"))
