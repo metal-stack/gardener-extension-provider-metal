@@ -90,7 +90,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 			}))))
 		})
 
-		It("should pass properly configured control plane partitions with netwock isolation", func() {
+		It("should pass properly configured control plane partitions with network isolation", func() {
 			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
 				"prod": {
 					Partitions: map[string]apismetal.Partition{
