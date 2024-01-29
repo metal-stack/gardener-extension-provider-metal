@@ -52,6 +52,10 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 
 			networkIsolationField := mcpField.Child(partitionName, "networkIsolation")
 
+			if len(partition.NetworkIsolation.DNSServers) > 3 {
+				dnsField := networkIsolationField.Child("dnsServers")
+				allErrs = append(allErrs, field.Invalid(dnsField, partition.NetworkIsolation.DNSServers, "only up to 3 dns servers are allowed"))
+			}
 			for index, ip := range partition.NetworkIsolation.DNSServers {
 				ipField := networkIsolationField.Child("dnsServers").Index(index)
 				if _, err := netip.ParseAddr(ip); err != nil {

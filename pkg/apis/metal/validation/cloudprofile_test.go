@@ -125,6 +125,83 @@ var _ = Describe("CloudProfileConfig validation", func() {
 			Expect(errorList).To(BeEmpty())
 		})
 
+		It("should allow up to 3 dns servers", func() {
+			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {
+							NetworkIsolation: &apismetal.NetworkIsolation{
+								AllowedNetworks: apismetal.AllowedNetworks{
+									Ingress: []string{"10.0.0.1/24"},
+									Egress:  []string{"100.0.0.1/24"},
+								},
+								DNSServers: []string{"1.1.1.1", "1.0.0.1", "8.8.8.8"},
+								NTPServers: []string{"134.60.1.27", "134.60.111.110"},
+								RegistryMirrors: []apismetal.RegistryMirror{
+									{
+										Name:     "metal-stack registry",
+										Endpoint: "https://some.registry",
+										IP:       "1.2.3.4",
+										Port:     443,
+										MirrorOf: []string{
+											"ghcr.io",
+											"quay.io",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile, path)
+
+			Expect(errorList).To(BeEmpty())
+		})
+
+		It("should prevent more than 3 dns servers", func() {
+			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {
+							NetworkIsolation: &apismetal.NetworkIsolation{
+								AllowedNetworks: apismetal.AllowedNetworks{
+									Ingress: []string{"10.0.0.1/24"},
+									Egress:  []string{"100.0.0.1/24"},
+								},
+								DNSServers: []string{"1.1.1.1", "1.0.0.1", "8.8.8.8", "8.8.4.4"},
+								NTPServers: []string{"134.60.1.27", "134.60.111.110"},
+								RegistryMirrors: []apismetal.RegistryMirror{
+									{
+										Name:     "metal-stack registry",
+										Endpoint: "https://some.registry",
+										IP:       "1.2.3.4",
+										Port:     443,
+										MirrorOf: []string{
+											"ghcr.io",
+											"quay.io",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile, path)
+
+			Expect(errorList).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":     Equal(field.ErrorTypeInvalid),
+					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.dnsServers"),
+					"BadValue": Equal([]string{"1.1.1.1", "1.0.0.1", "8.8.8.8", "8.8.4.4"}),
+					"Detail":   Equal("only up to 3 dns servers are allowed"),
+				})),
+			))
+		})
+
 		It("should prevent partitions with empty network isolation registry mirror", func() {
 			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
 				"prod": {
