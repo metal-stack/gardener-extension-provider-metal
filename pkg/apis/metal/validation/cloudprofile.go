@@ -117,3 +117,66 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 
 	return allErrs
 }
+
+func ValidateImmutableCloudProfileConfig(
+	newCloudProfileConfig *apismetal.CloudProfileConfig,
+	oldCloudProfileConfig *apismetal.CloudProfileConfig,
+	providerConfigPath *field.Path,
+) field.ErrorList {
+	if oldCloudProfileConfig == nil {
+		return nil
+	}
+	allErrs := field.ErrorList{}
+
+	controlPlanesPath := providerConfigPath.Child("metalControlPlanes")
+	for mcpName, mcp := range newCloudProfileConfig.MetalControlPlanes {
+		oldMcp, ok := oldCloudProfileConfig.MetalControlPlanes[mcpName]
+		if !ok {
+			continue
+		}
+		mcpField := controlPlanesPath.Child(mcpName)
+
+		for partitionName, partition := range mcp.Partitions {
+			oldPartition, ok := oldMcp.Partitions[partitionName]
+			if !ok {
+				continue
+			}
+
+			if partition.NetworkIsolation == nil && oldPartition.NetworkIsolation == nil {
+				continue
+			}
+
+			networkIsolationField := mcpField.Child(partitionName, "networkIsolation")
+
+			if oldPartition.NetworkIsolation != nil && partition.NetworkIsolation == nil {
+				allErrs = append(allErrs, field.Required(networkIsolationField, "cannot remove existing network isolations"))
+				continue
+			}
+
+			if len(partition.NetworkIsolation.DNSServers) != len(oldPartition.NetworkIsolation.DNSServers) {
+				dnsField := networkIsolationField.Child("dnsServers")
+				allErrs = append(allErrs, field.NotSupported(
+					dnsField,
+					partition.NetworkIsolation.DNSServers,
+					[]string{
+						fmt.Sprintf("%s", partition.NetworkIsolation.DNSServers),
+					},
+				))
+				continue
+			}
+			for index, ip := range partition.NetworkIsolation.DNSServers {
+				ipField := networkIsolationField.Child("dnsServers").Index(index)
+				oldIp := oldPartition.NetworkIsolation.DNSServers[index]
+				if ip != oldIp {
+					allErrs = append(allErrs, field.NotSupported(
+						ipField,
+						ip,
+						[]string{oldIp},
+					))
+				}
+			}
+		}
+	}
+
+	return allErrs
+}

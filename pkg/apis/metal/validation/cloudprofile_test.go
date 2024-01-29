@@ -264,6 +264,200 @@ var _ = Describe("CloudProfileConfig validation", func() {
 				})),
 			))
 		})
+	})
 
+	Describe("#ValidateImmutableCloudProfileConfig", func() {
+		var (
+			newCloudProfileConfig *apismetal.CloudProfileConfig
+			oldCloudProfileConfig *apismetal.CloudProfileConfig
+			path                  *field.Path
+		)
+
+		BeforeEach(func() {
+			newCloudProfileConfig = &apismetal.CloudProfileConfig{}
+			oldCloudProfileConfig = &apismetal.CloudProfileConfig{}
+			path = field.NewPath("test")
+		})
+
+		It("should pass empty configuration", func() {
+			errorList := ValidateImmutableCloudProfileConfig(newCloudProfileConfig, oldCloudProfileConfig, path)
+
+			Expect(errorList).To(BeEmpty())
+		})
+
+		It("should pass when not existing previously", func() {
+			newCloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {
+							NetworkIsolation: &apismetal.NetworkIsolation{
+								AllowedNetworks: apismetal.AllowedNetworks{
+									Ingress: []string{"10.0.0.1/24"},
+									Egress:  []string{"100.0.0.1/24"},
+								},
+								DNSServers: []string{"1.1.1.1", "1.0.0.1"},
+								NTPServers: []string{"134.60.1.27", "134.60.111.110"},
+								RegistryMirrors: []apismetal.RegistryMirror{
+									{
+										Name:     "metal-stack registry",
+										Endpoint: "https://some.registry",
+										IP:       "1.2.3.4",
+										Port:     443,
+										MirrorOf: []string{
+											"ghcr.io",
+											"quay.io",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			oldCloudProfileConfig = nil
+
+			errorList := ValidateImmutableCloudProfileConfig(newCloudProfileConfig, oldCloudProfileConfig, path)
+
+			Expect(errorList).To(BeEmpty())
+		})
+
+		It("should pass when changing anything except dns", func() {
+			newCloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {
+							NetworkIsolation: &apismetal.NetworkIsolation{
+								AllowedNetworks: apismetal.AllowedNetworks{
+									Ingress: []string{"10.0.0.1/24"},
+									Egress:  []string{"100.0.0.1/24"},
+								},
+								DNSServers: []string{"1.1.1.1", "1.0.0.1"},
+								NTPServers: []string{"134.60.1.27", "134.60.111.110"},
+								RegistryMirrors: []apismetal.RegistryMirror{
+									{
+										Name:     "metal-stack registry",
+										Endpoint: "https://some.registry",
+										IP:       "1.2.3.4",
+										Port:     443,
+										MirrorOf: []string{
+											"ghcr.io",
+											"quay.io",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			oldCloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {
+							NetworkIsolation: &apismetal.NetworkIsolation{
+								AllowedNetworks: apismetal.AllowedNetworks{
+									Ingress: []string{"192.0.0.1/24"},
+									Egress:  []string{"192.0.0.1/24"},
+								},
+								DNSServers: []string{"1.1.1.1", "1.0.0.1"},
+								NTPServers: []string{"134.0.0.1"},
+								RegistryMirrors: []apismetal.RegistryMirror{
+									{
+										Name:     "metal-stack registry2",
+										Endpoint: "https://some.other.registry",
+										IP:       "1.2.3.5",
+										Port:     8443,
+										MirrorOf: []string{
+											"ghcr.io",
+											"quay.io",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			errorList := ValidateImmutableCloudProfileConfig(newCloudProfileConfig, oldCloudProfileConfig, path)
+
+			Expect(errorList).To(BeEmpty())
+		})
+
+		It("should fail when changing dns", func() {
+			newCloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {
+							NetworkIsolation: &apismetal.NetworkIsolation{
+								AllowedNetworks: apismetal.AllowedNetworks{
+									Ingress: []string{"10.0.0.1/24"},
+									Egress:  []string{"100.0.0.1/24"},
+								},
+								DNSServers: []string{"1.1.1.1", "1.0.0.1"},
+								NTPServers: []string{"134.60.1.27", "134.60.111.110"},
+								RegistryMirrors: []apismetal.RegistryMirror{
+									{
+										Name:     "metal-stack registry",
+										Endpoint: "https://some.registry",
+										IP:       "1.2.3.4",
+										Port:     443,
+										MirrorOf: []string{
+											"ghcr.io",
+											"quay.io",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			oldCloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {
+							NetworkIsolation: &apismetal.NetworkIsolation{
+								AllowedNetworks: apismetal.AllowedNetworks{
+									Ingress: []string{"10.0.0.1/24"},
+									Egress:  []string{"100.0.0.1/24"},
+								},
+								DNSServers: []string{"8.8.8.8", "8.8.4.4"},
+								NTPServers: []string{"134.60.1.27", "134.60.111.110"},
+								RegistryMirrors: []apismetal.RegistryMirror{
+									{
+										Name:     "metal-stack registry",
+										Endpoint: "https://some.registry",
+										IP:       "1.2.3.4",
+										Port:     443,
+										MirrorOf: []string{
+											"ghcr.io",
+											"quay.io",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			errorList := ValidateImmutableCloudProfileConfig(newCloudProfileConfig, oldCloudProfileConfig, path)
+
+			Expect(errorList).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":     Equal(field.ErrorTypeNotSupported),
+					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.dnsServers[0]"),
+					"BadValue": Equal("1.1.1.1"),
+					"Detail":   Equal("supported values: \"8.8.8.8\""),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":     Equal(field.ErrorTypeNotSupported),
+					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.dnsServers[1]"),
+					"BadValue": Equal("1.0.0.1"),
+					"Detail":   Equal("supported values: \"8.8.4.4\""),
+				})),
+			))
+		})
 	})
 })
