@@ -177,7 +177,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 					"Type":     Equal(field.ErrorTypeInvalid),
 					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.registryMirrors[0].port"),
 					"BadValue": Equal(int32(0)),
-					"Detail":   Equal("must be a vaid port"),
+					"Detail":   Equal("must be a valid port"),
 				})),
 				PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":     Equal(field.ErrorTypeInvalid),
