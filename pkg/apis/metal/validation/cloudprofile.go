@@ -51,8 +51,34 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 			}
 
 			networkIsolationField := mcpField.Child(partitionName, "networkIsolation")
+
+			for index, ip := range partition.NetworkIsolation.DNSServers {
+				ipField := networkIsolationField.Child("dnsServers").Index(index)
+				if _, err := netip.ParseAddr(ip); err != nil {
+					allErrs = append(allErrs, field.Invalid(ipField, ip, "invalid ip address"))
+				}
+			}
+			for index, ip := range partition.NetworkIsolation.NTPServers {
+				ipField := networkIsolationField.Child("ntpServers").Index(index)
+				if _, err := netip.ParseAddr(ip); err != nil {
+					allErrs = append(allErrs, field.Invalid(ipField, ip, "invalid ip address"))
+				}
+			}
+			for index, cidr := range partition.NetworkIsolation.AllowedNetworks.Egress {
+				ipField := networkIsolationField.Child("allowedNetworks", "egress").Index(index)
+				if _, err := netip.ParsePrefix(cidr); err != nil {
+					allErrs = append(allErrs, field.Invalid(ipField, cidr, "invalid cidr"))
+				}
+			}
+			for index, cidr := range partition.NetworkIsolation.AllowedNetworks.Ingress {
+				ipField := networkIsolationField.Child("allowedNetworks", "ingress").Index(index)
+				if _, err := netip.ParsePrefix(cidr); err != nil {
+					allErrs = append(allErrs, field.Invalid(ipField, cidr, "invalid cidr"))
+				}
+			}
+
 			for mirrIndex, mirr := range partition.NetworkIsolation.RegistryMirrors {
-				mirrorField := networkIsolationField.Index(mirrIndex)
+				mirrorField := networkIsolationField.Child("registryMirrors").Index(mirrIndex)
 				if mirr.Name == "" {
 					allErrs = append(allErrs, field.Invalid(mirrorField.Child("name"), mirr.Name, "name of mirror may not be empty"))
 				}
@@ -74,12 +100,15 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 
 				for regIndex, reg := range mirr.MirrorOf {
 					regField := mirrorField.Child("mirrorOf").Index(regIndex)
-					regUrl, err := url.Parse(reg)
+					if reg == "" {
+						allErrs = append(allErrs, field.Invalid(regField, reg, "cannot be empty"))
+					}
+					regUrl, err := url.Parse("https://" + reg + "/")
 					if err != nil {
 						allErrs = append(allErrs, field.Invalid(regField, reg, "invalid registry"))
 					}
 					if regUrl.Host != reg {
-						allErrs = append(allErrs, field.Invalid(regField, reg, "missing registry host"))
+						allErrs = append(allErrs, field.Invalid(regField, reg, "not a valid registry host"))
 					}
 				}
 			}
