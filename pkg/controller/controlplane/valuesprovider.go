@@ -732,8 +732,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			}
 		}
 	}
-	if len(dnsCidrs) == 0 {
+	if !restrictedOrForbidden {
 		dnsCidrs = []string{ipv4Any}
+	}
+	if len(dnsCidrs) == 0 {
+		return nil, fmt.Errorf("no dns configured")
 	}
 
 	var ntpCidrs []string
@@ -752,8 +755,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			}
 		}
 	}
-	if len(ntpCidrs) == 0 {
+	if !restrictedOrForbidden {
 		ntpCidrs = []string{ipv4Any}
+	}
+	if len(ntpCidrs) == 0 {
+		return nil, fmt.Errorf("no ntp configured")
 	}
 
 	var networkAccessMirrors []map[string]any
