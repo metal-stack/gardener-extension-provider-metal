@@ -713,7 +713,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 	restrictedOrForbidden := networkAccessType != apismetal.NetworkAccessBaseline
 	if restrictedOrForbidden && partition.NetworkIsolation == nil {
-		return nil, fmt.Errorf("cluster %s/%s control plane config with network access type %q requires network access to be set on partition", cluster.ObjectMeta.Namespace, cluster.ObjectMeta.Name, networkAccessType)
+		return nil, fmt.Errorf("cluster-isolation is not supported in partition %q", infrastructureConfig.PartitionID)
 	}
 
 	var dnsCidrs []string
