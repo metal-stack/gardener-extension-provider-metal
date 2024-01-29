@@ -10,6 +10,7 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	"github.com/gardener/gardener/extensions/pkg/webhook"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 
@@ -584,32 +585,22 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 
 	if networkAccessType != metalapi.NetworkAccessBaseline {
 		dnsFiles := additionalDNSConfFiles(partition.NetworkIsolation.DNSServers)
-		appendOrReplaceFile(new, dnsFiles...)
+		for _, f := range dnsFiles {
+			*new = webhook.EnsureFileWithPath(*new, f)
+		}
 
 		ntpFiles := additionalNTPConfFiles(partition.NetworkIsolation.NTPServers)
-		appendOrReplaceFile(new, ntpFiles...)
+		for _, f := range ntpFiles {
+			*new = webhook.EnsureFileWithPath(*new, f)
+		}
 
 		containerdFiles := additionalContainterdConfigFiles(partition.NetworkIsolation.RegistryMirrors)
-		appendOrReplaceFile(new, containerdFiles...)
+		for _, f := range containerdFiles {
+			*new = webhook.EnsureFileWithPath(*new, f)
+		}
 	}
 
 	return nil
-}
-
-func appendOrReplaceFile(new *[]extensionsv1alpha1.File, additionals ...extensionsv1alpha1.File) {
-	for _, additional := range additionals {
-		var hasReplaced bool
-		for i, f := range *new {
-			if f.Path == additional.Path {
-				(*new)[i] = additional
-				hasReplaced = true
-				break
-			}
-		}
-		if !hasReplaced {
-			*new = append(*new, additional)
-		}
-	}
 }
 
 func additionalDNSConfFiles(dnsServers []string) []extensionsv1alpha1.File {
