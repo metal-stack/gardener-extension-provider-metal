@@ -136,8 +136,6 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Spec.LogAcceptedConnections = d.infrastructureConfig.Firewall.LogAcceptedConnections
 		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
 
-		deploy.Spec.Template.Spec.NetworkAccessType = fcmv2.NetworkAccessType(networkAccessType)
-
 		if networkAccessType == apismetal.NetworkAccessForbidden {
 			if d.partition.NetworkIsolation == nil || len(d.partition.NetworkIsolation.AllowedNetworks.Egress) == 0 {
 				// we need at least some egress rules to reach our own registry etcpp, so no single egress rule MUST be an error
