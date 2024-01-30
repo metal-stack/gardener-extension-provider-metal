@@ -2,6 +2,8 @@ package validation
 
 import (
 	"fmt"
+	"net/netip"
+	"net/url"
 
 	"github.com/gardener/gardener/pkg/apis/core"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -39,9 +41,143 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 			allErrs = append(allErrs, field.Invalid(mcpField.Child("firewallcontrollerversions"), "version", "contains duplicate entries"))
 		}
 
-		for partitionName := range mcp.Partitions {
+		for partitionName, partition := range mcp.Partitions {
 			if !availableZones.Has(partitionName) {
 				allErrs = append(allErrs, field.Invalid(mcpField, partitionName, fmt.Sprintf("the control plane has a partition that is not a configured zone in any of the cloud profile regions: %v", availableZones.List())))
+			}
+
+			if partition.NetworkIsolation == nil {
+				continue
+			}
+
+			networkIsolationField := mcpField.Child(partitionName, "networkIsolation")
+
+			if len(partition.NetworkIsolation.DNSServers) > 3 {
+				dnsField := networkIsolationField.Child("dnsServers")
+				allErrs = append(allErrs, field.Invalid(dnsField, partition.NetworkIsolation.DNSServers, "only up to 3 dns servers are allowed"))
+			}
+			for index, ip := range partition.NetworkIsolation.DNSServers {
+				ipField := networkIsolationField.Child("dnsServers").Index(index)
+				if _, err := netip.ParseAddr(ip); err != nil {
+					allErrs = append(allErrs, field.Invalid(ipField, ip, "invalid ip address"))
+				}
+			}
+			for index, ip := range partition.NetworkIsolation.NTPServers {
+				ipField := networkIsolationField.Child("ntpServers").Index(index)
+				if _, err := netip.ParseAddr(ip); err != nil {
+					allErrs = append(allErrs, field.Invalid(ipField, ip, "invalid ip address"))
+				}
+			}
+			for index, cidr := range partition.NetworkIsolation.AllowedNetworks.Egress {
+				ipField := networkIsolationField.Child("allowedNetworks", "egress").Index(index)
+				if _, err := netip.ParsePrefix(cidr); err != nil {
+					allErrs = append(allErrs, field.Invalid(ipField, cidr, "invalid cidr"))
+				}
+			}
+			for index, cidr := range partition.NetworkIsolation.AllowedNetworks.Ingress {
+				ipField := networkIsolationField.Child("allowedNetworks", "ingress").Index(index)
+				if _, err := netip.ParsePrefix(cidr); err != nil {
+					allErrs = append(allErrs, field.Invalid(ipField, cidr, "invalid cidr"))
+				}
+			}
+
+			for mirrIndex, mirr := range partition.NetworkIsolation.RegistryMirrors {
+				mirrorField := networkIsolationField.Child("registryMirrors").Index(mirrIndex)
+				if mirr.Name == "" {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("name"), mirr.Name, "name of mirror may not be empty"))
+				}
+				endpointUrl, err := url.Parse(mirr.Endpoint)
+				if err != nil {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("endpoint"), mirr.Endpoint, "not a valid url"))
+				} else if endpointUrl.Scheme != "http" && endpointUrl.Scheme != "https" {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("endpoint"), mirr.Endpoint, "url must have the scheme http/s"))
+				}
+				if _, err := netip.ParseAddr(mirr.IP); err != nil {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("ip"), mirr.IP, "invalid ip address"))
+				}
+				if mirr.Port == 0 {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("port"), mirr.Port, "must be a valid port"))
+				}
+				if len(mirr.MirrorOf) == 0 {
+					allErrs = append(allErrs, field.Invalid(mirrorField.Child("mirrorOf"), mirr.MirrorOf, "registry mirror must replace existing registries"))
+				}
+
+				for regIndex, reg := range mirr.MirrorOf {
+					regField := mirrorField.Child("mirrorOf").Index(regIndex)
+					if reg == "" {
+						allErrs = append(allErrs, field.Invalid(regField, reg, "cannot be empty"))
+					}
+					regUrl, err := url.Parse("https://" + reg + "/")
+					if err != nil {
+						allErrs = append(allErrs, field.Invalid(regField, reg, "invalid registry"))
+					}
+					if regUrl.Host != reg {
+						allErrs = append(allErrs, field.Invalid(regField, reg, "not a valid registry host"))
+					}
+				}
+			}
+		}
+	}
+
+	return allErrs
+}
+
+func ValidateImmutableCloudProfileConfig(
+	newCloudProfileConfig *apismetal.CloudProfileConfig,
+	oldCloudProfileConfig *apismetal.CloudProfileConfig,
+	providerConfigPath *field.Path,
+) field.ErrorList {
+	if oldCloudProfileConfig == nil {
+		return nil
+	}
+	allErrs := field.ErrorList{}
+
+	controlPlanesPath := providerConfigPath.Child("metalControlPlanes")
+	for mcpName, mcp := range newCloudProfileConfig.MetalControlPlanes {
+		oldMcp, ok := oldCloudProfileConfig.MetalControlPlanes[mcpName]
+		if !ok {
+			continue
+		}
+		mcpField := controlPlanesPath.Child(mcpName)
+
+		for partitionName, partition := range mcp.Partitions {
+			oldPartition, ok := oldMcp.Partitions[partitionName]
+			if !ok {
+				continue
+			}
+
+			if partition.NetworkIsolation == nil && oldPartition.NetworkIsolation == nil {
+				continue
+			}
+
+			networkIsolationField := mcpField.Child(partitionName, "networkIsolation")
+
+			if oldPartition.NetworkIsolation != nil && partition.NetworkIsolation == nil {
+				allErrs = append(allErrs, field.Required(networkIsolationField, "cannot remove existing network isolations"))
+				continue
+			}
+
+			if len(partition.NetworkIsolation.DNSServers) != len(oldPartition.NetworkIsolation.DNSServers) {
+				dnsField := networkIsolationField.Child("dnsServers")
+				allErrs = append(allErrs, field.NotSupported(
+					dnsField,
+					partition.NetworkIsolation.DNSServers,
+					[]string{
+						fmt.Sprintf("%s", partition.NetworkIsolation.DNSServers),
+					},
+				))
+				continue
+			}
+			for index, ip := range partition.NetworkIsolation.DNSServers {
+				ipField := networkIsolationField.Child("dnsServers").Index(index)
+				oldIp := oldPartition.NetworkIsolation.DNSServers[index]
+				if ip != oldIp {
+					allErrs = append(allErrs, field.NotSupported(
+						ipField,
+						ip,
+						[]string{oldIp},
+					))
+				}
 			}
 		}
 	}

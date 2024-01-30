@@ -66,4 +66,44 @@ const (
 type Partition struct {
 	// FirewallTypes is a list of available firewall machine types in this partition. When empty, allows all values.
 	FirewallTypes []string
+
+	// NetworkIsolation if given allows the creation of shoot clusters which have network restrictions activated.
+	// Will be taken into account if NetworkAccessRestricted or NetworkAccessForbidden is defined
+	NetworkIsolation *NetworkIsolation
+}
+
+// NetworkIsolation defines configuration for restricted or forbidden clusters.
+type NetworkIsolation struct {
+	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
+	// if empty all destinations are allowed.
+	AllowedNetworks AllowedNetworks
+	// DNSServers
+	DNSServers []string
+	// NTPServers
+	NTPServers []string
+	// The registry which serves the images required to create a shoot.
+	RegistryMirrors []RegistryMirror
+}
+
+// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
+type AllowedNetworks struct {
+	// Ingress defines a list of networks which are allowed for incoming traffic like service type loadbalancer
+	// to allow all you must specify 0.0.0.0/0 or ::/0
+	Ingress []string
+	// Egress defines a list of networks which are allowed for outgoing traffic
+	// to allow all you must specify 0.0.0.0/0 or ::/0
+	Egress []string
+}
+
+type RegistryMirror struct {
+	// Name describes this server
+	Name string
+	// Endpoint is typically the url of the registry in the form https://hostname
+	Endpoint string
+	// IP is the ipv4 or ipv6 address of this server
+	IP string
+	// Port at which port the service is reachable
+	Port int32
+	// This Registry Mirror mirrors the following registries
+	MirrorOf []string
 }

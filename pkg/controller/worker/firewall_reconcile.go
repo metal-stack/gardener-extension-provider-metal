@@ -92,6 +92,16 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		},
 	}
 
+	controlPlaneConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+	if err != nil {
+		return err
+	}
+
+	networkAccessType := apismetal.NetworkAccessBaseline
+	if controlPlaneConfig.NetworkAccessType != nil {
+		networkAccessType = *controlPlaneConfig.NetworkAccessType
+	}
+
 	_, err = controllerutil.CreateOrUpdate(ctx, a.client, deploy, func() error {
 		if deploy.Labels == nil {
 			deploy.Labels = map[string]string{}
@@ -125,6 +135,17 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Spec.NftablesExporterURL = d.mcp.NftablesExporter.URL
 		deploy.Spec.Template.Spec.LogAcceptedConnections = d.infrastructureConfig.Firewall.LogAcceptedConnections
 		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
+
+		if networkAccessType == apismetal.NetworkAccessForbidden {
+			if d.partition.NetworkIsolation == nil || len(d.partition.NetworkIsolation.AllowedNetworks.Egress) == 0 {
+				// we need at least some egress rules to reach our own registry etcpp, so no single egress rule MUST be an error
+				return fmt.Errorf("error creating firewall deployment: control plane with network access forbidden requires partition %q to have networkIsolation.allowedNetworks", d.infrastructureConfig.PartitionID)
+			}
+			deploy.Spec.Template.Spec.AllowedNetworks = fcmv2.AllowedNetworks{
+				Ingress: d.partition.NetworkIsolation.AllowedNetworks.Ingress,
+				Egress:  d.partition.NetworkIsolation.AllowedNetworks.Egress,
+			}
+		}
 
 		return nil
 	})

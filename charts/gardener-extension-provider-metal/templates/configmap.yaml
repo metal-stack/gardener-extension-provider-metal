@@ -25,6 +25,7 @@ data:
     firewallInternalPrefixes:
 {{ toYaml .Values.config.firewallInternalPrefixes | indent 4 }}
 {{- end }}
+    # FIXME remove
 {{- if .Values.config.egressDestinations }}
     egressDestinations:
 {{ toYaml .Values.config.egressDestinations | indent 4 }}

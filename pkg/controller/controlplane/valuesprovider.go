@@ -76,6 +76,10 @@ const (
 	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
 	droptailerCAName   = "ca-" + metal.Name + "-droptailer"
 	auditTailerCAName  = "ca-" + metal.Name + "-audittailer"
+
+	ipv4HostMask = "/32"
+	ipv6HostMask = "/128"
+	ipv4Any      = "0.0.0.0/0"
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
@@ -595,7 +599,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	metalControlPlane, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
 	if err != nil {
 		return nil, err
 	}
@@ -625,7 +629,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, cpConfig, cluster, nws, infrastructure, infrastructureConfig, secretsReader, checksums)
+	values, err := vp.getControlPlaneShootChartValues(ctx, cpConfig, cluster, partition, nws, infrastructure, infrastructureConfig, secretsReader, checksums)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -635,7 +639,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, partition *apismetal.Partition, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
@@ -679,6 +683,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 	}
 
+	// FIXME remove this block an replace with networkAccessType
 	var egressDestinations []map[string]any
 	for _, dest := range vp.controllerConfig.EgressDestinations {
 		dest := dest
@@ -702,6 +707,72 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		})
 	}
 
+	networkAccessType := apismetal.NetworkAccessBaseline
+	if cpConfig.NetworkAccessType != nil {
+		networkAccessType = *cpConfig.NetworkAccessType
+	}
+	restrictedOrForbidden := networkAccessType != apismetal.NetworkAccessBaseline
+	if restrictedOrForbidden && partition.NetworkIsolation == nil {
+		return nil, fmt.Errorf("cluster-isolation is not supported in partition %q", infrastructureConfig.PartitionID)
+	}
+
+	var dnsCidrs []string
+	if restrictedOrForbidden && partition.NetworkIsolation != nil {
+		dnsCidrs = make([]string, len(partition.NetworkIsolation.DNSServers))
+		for i, ip := range partition.NetworkIsolation.DNSServers {
+			parsedIP, err := netip.ParseAddr(ip)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse dns ip:%w", err)
+			}
+			if parsedIP.Is4() {
+				dnsCidrs[i] = ip + ipv4HostMask
+			}
+			if parsedIP.Is6() {
+				dnsCidrs[i] = ip + ipv6HostMask
+			}
+		}
+	}
+	if !restrictedOrForbidden {
+		dnsCidrs = []string{ipv4Any}
+	}
+	if len(dnsCidrs) == 0 {
+		return nil, fmt.Errorf("no dns configured")
+	}
+
+	var ntpCidrs []string
+	if restrictedOrForbidden && partition.NetworkIsolation != nil {
+		ntpCidrs = make([]string, len(partition.NetworkIsolation.NTPServers))
+		for i, ip := range partition.NetworkIsolation.NTPServers {
+			parsedIP, err := netip.ParseAddr(ip)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse ntp ip:%w", err)
+			}
+			if parsedIP.Is4() {
+				ntpCidrs[i] = ip + ipv4HostMask
+			}
+			if parsedIP.Is6() {
+				ntpCidrs[i] = ip + ipv6HostMask
+			}
+		}
+	}
+	if !restrictedOrForbidden {
+		ntpCidrs = []string{ipv4Any}
+	}
+	if len(ntpCidrs) == 0 {
+		return nil, fmt.Errorf("no ntp configured")
+	}
+
+	var networkAccessMirrors []map[string]any
+	if restrictedOrForbidden && partition.NetworkIsolation != nil {
+		for _, r := range partition.NetworkIsolation.RegistryMirrors {
+			nam, err := registryMirrorToValueMap(r)
+			if err != nil {
+				return nil, err
+			}
+			networkAccessMirrors = append(networkAccessMirrors, nam)
+		}
+	}
+
 	values := map[string]any{
 		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
 		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
@@ -710,10 +781,16 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"duros":           durosValues,
 		"clusterAudit":    clusterAuditValues,
 		"nodeInit":        nodeInitValues,
-		"restrictEgress": map[string]any{
+		"restrictEgress": map[string]any{ // FIXME remove
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
 			"destinations":           egressDestinations,
+		},
+		"networkAccess": map[string]any{
+			"restrictedOrForbidden": restrictedOrForbidden,
+			"dnsCidrs":              dnsCidrs,
+			"ntpCidrs":              ntpCidrs,
+			"registryMirrors":       networkAccessMirrors,
 		},
 	}
 
@@ -840,6 +917,7 @@ func getCCMChartValues(
 		return nil, err
 	}
 
+	// TODO @majst01: Refactor a bit
 	var defaultExternalNetwork string
 	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
 		defaultExternalNetwork = *cpConfig.CloudControllerManager.DefaultExternalNetwork
@@ -860,35 +938,39 @@ func getCCMChartValues(
 			return nil, fmt.Errorf("cannot declare underlay or private super networks as default external network")
 		}
 	} else {
-		var dmzNetwork string
-		for _, networkID := range infrastructureConfig.Firewall.Networks {
-			nw, ok := nws[networkID]
-			if !ok {
-				return nil, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
-			}
-			for k := range nw.Labels {
-				if k == tag.NetworkDefaultExternal {
-					if nw.Parentnetworkid != "" {
-						pn, ok := nws[nw.Parentnetworkid]
-						if !ok {
-							return nil, fmt.Errorf("network defined in firewall networks specified a parent network that does not exist in metal-api")
+		if pointer.SafeDeref(cpConfig.NetworkAccessType) == apismetal.NetworkAccessForbidden {
+			// set no default network!
+		} else {
+			var dmzNetwork string
+			for _, networkID := range infrastructureConfig.Firewall.Networks {
+				nw, ok := nws[networkID]
+				if !ok {
+					return nil, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
+				}
+				for k := range nw.Labels {
+					if k == tag.NetworkDefaultExternal {
+						if nw.Parentnetworkid != "" {
+							pn, ok := nws[nw.Parentnetworkid]
+							if !ok {
+								return nil, fmt.Errorf("network defined in firewall networks specified a parent network that does not exist in metal-api")
+							}
+							if *pn.Privatesuper {
+								dmzNetwork = networkID
+							}
+						} else {
+							defaultExternalNetwork = networkID
 						}
-						if *pn.Privatesuper {
-							dmzNetwork = networkID
-						}
-					} else {
-						defaultExternalNetwork = networkID
+						break
 					}
-					break
 				}
 			}
-		}
-		// fallback to a dmz network with the NetworkDefaultExternal tag
-		if defaultExternalNetwork == "" && dmzNetwork != "" {
-			defaultExternalNetwork = dmzNetwork
-		}
-		if defaultExternalNetwork == "" {
-			return nil, fmt.Errorf("unable to find a default external network for metal-ccm deployment")
+			// fallback to a dmz network with the NetworkDefaultExternal tag
+			if defaultExternalNetwork == "" && dmzNetwork != "" {
+				defaultExternalNetwork = dmzNetwork
+			}
+			if defaultExternalNetwork == "" {
+				return nil, fmt.Errorf("unable to find a default external network for metal-ccm deployment")
+			}
 		}
 	}
 
@@ -1183,4 +1265,25 @@ func firewallCompareFunc(a, b *models.V1FirewallResponse) int {
 	} else {
 		return 0
 	}
+}
+
+func registryMirrorToValueMap(r apismetal.RegistryMirror) (map[string]any, error) {
+	parsedIP, err := netip.ParseAddr(r.IP)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse registry ip:%w", err)
+	}
+	registryIP := parsedIP.String()
+	if parsedIP.Is4() {
+		registryIP = registryIP + ipv4HostMask
+	}
+	if parsedIP.Is6() {
+		registryIP = registryIP + ipv6HostMask
+	}
+
+	return map[string]any{
+		"name":     r.Name,
+		"endpoint": r.Endpoint,
+		"cidr":     registryIP,
+		"port":     r.Port,
+	}, nil
 }
