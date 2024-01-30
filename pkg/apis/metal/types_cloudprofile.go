@@ -69,7 +69,6 @@ type Partition struct {
 
 	// NetworkIsolation if given allows the creation of shoot clusters which have network restrictions activated.
 	// Will be taken into account if NetworkAccessRestricted or NetworkAccessForbidden is defined
-	// +optional
 	NetworkIsolation *NetworkIsolation
 }
 

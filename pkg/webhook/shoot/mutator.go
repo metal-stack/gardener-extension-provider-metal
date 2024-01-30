@@ -2,22 +2,21 @@ package shoot
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
 	"slices"
 	"strings"
 
-	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
 	"github.com/gardener/gardener/pkg/component/extensions/operatingsystemconfig/downloader"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -144,35 +143,46 @@ func (m *mutator) mutateCloudConfigDownloaderHyperkubeImage(ctx context.Context,
 		return nil
 	}
 
-	controlPlaneConfig := &metal.ControlPlaneConfig{}
-	if shoot.Spec.Provider.ControlPlaneConfig != nil && len(shoot.Spec.Provider.ControlPlaneConfig.Raw) > 0 {
-		if err := util.Decode(m.decoder, shoot.Spec.Provider.ControlPlaneConfig.Raw, controlPlaneConfig); err != nil {
-			return fmt.Errorf("unable to decode shoot.spec.provider.controlplaneconfig %w", err)
-		}
+	cloudProfile := &gardencorev1beta1.CloudProfile{}
+	err = helper.DecodeRawExtension(&cluster.Spec.CloudProfile, cloudProfile, m.decoder)
+	if err != nil {
+		return err
 	}
 
-	if controlPlaneConfig.NetworkAccessType == nil || *controlPlaneConfig.NetworkAccessType == metal.NetworkAccessBaseline {
+	cloudProfileConfig, err := helper.DecodeCloudProfileConfig(cloudProfile)
+	if err != nil {
+		return err
+	}
+
+	infrastructureConfig := &metalv1alpha1.InfrastructureConfig{}
+	err = helper.DecodeRawExtension(shoot.Spec.Provider.InfrastructureConfig, infrastructureConfig, m.decoder)
+	if err != nil {
+		return err
+	}
+
+	_, p, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	if err != nil {
+		return err
+	}
+
+	controlPlaneConfig := &metalv1alpha1.ControlPlaneConfig{}
+	err = helper.DecodeRawExtension(shoot.Spec.Provider.ControlPlaneConfig, controlPlaneConfig, m.decoder)
+	if err != nil {
+		return err
+	}
+
+	if controlPlaneConfig.NetworkAccessType == nil || *controlPlaneConfig.NetworkAccessType == metalv1alpha1.NetworkAccessBaseline {
 		// this shoot does not have networkaccesstype restricted or forbidden specified, nothing to do here
 		return nil
 	}
 
-	imageProviderConfig := &metalv1alpha1.ImageProviderConfig{}
-	for _, w := range shoot.Spec.Provider.Workers {
-		if w.Machine.Image != nil && w.Machine.Image.ProviderConfig != nil && len(w.Machine.Image.ProviderConfig.Raw) > 0 {
-			if err := json.Unmarshal(w.Machine.Image.ProviderConfig.Raw, imageProviderConfig); err != nil {
-				return fmt.Errorf("unable to decode worker.machine.image.providerconfig %w (%s)", err, string(w.Machine.Image.ProviderConfig.Raw))
-			}
-			break
-		}
-	}
-
-	if imageProviderConfig.NetworkIsolation == nil || len(imageProviderConfig.NetworkIsolation.RegistryMirrors) == 0 {
+	if p.NetworkIsolation == nil || len(p.NetworkIsolation.RegistryMirrors) == 0 {
 		m.logger.Info("no registry mirrors specified in this shoot, nothing to do here", "shoot", shootName)
 		return nil
 	}
 
 	var (
-		networkIsolation    = imageProviderConfig.NetworkIsolation
+		networkIsolation    = p.NetworkIsolation
 		destinationRegistry string
 	)
 
