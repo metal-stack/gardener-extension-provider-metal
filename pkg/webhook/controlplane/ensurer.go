@@ -10,7 +10,6 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"github.com/gardener/gardener/extensions/pkg/webhook"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 
@@ -590,17 +589,17 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 	if networkAccessType != metalapi.NetworkAccessBaseline {
 		dnsFiles := additionalDNSConfFiles(partition.NetworkIsolation.DNSServers)
 		for _, f := range dnsFiles {
-			*new = webhook.EnsureFileWithPath(*new, f)
+			*new = extensionswebhook.EnsureFileWithPath(*new, f)
 		}
 
 		ntpFiles := additionalNTPConfFiles(partition.NetworkIsolation.NTPServers)
 		for _, f := range ntpFiles {
-			*new = webhook.EnsureFileWithPath(*new, f)
+			*new = extensionswebhook.EnsureFileWithPath(*new, f)
 		}
 
 		containerdFiles := additionalContainterdConfigFiles(partition.NetworkIsolation.RegistryMirrors)
 		for _, f := range containerdFiles {
-			*new = webhook.EnsureFileWithPath(*new, f)
+			*new = extensionswebhook.EnsureFileWithPath(*new, f)
 		}
 	}
 

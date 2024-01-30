@@ -20,6 +20,7 @@ import (
 	oscutils "github.com/gardener/gardener/pkg/component/extensions/operatingsystemconfig/utils"
 
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -86,20 +87,21 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 
 	switch x := new.(type) {
 	case *extensionsv1alpha1.OperatingSystemConfig:
-		if x.Spec.Purpose == extensionsv1alpha1.OperatingSystemConfigPurposeReconcile {
-			var oldOSC *extensionsv1alpha1.OperatingSystemConfig
-			if old != nil {
-				var ok bool
-				oldOSC, ok = old.(*extensionsv1alpha1.OperatingSystemConfig)
-				if !ok {
-					return errors.New("could not cast old object to extensionsv1alpha1.OperatingSystemConfig")
-				}
+		var oldOSC *extensionsv1alpha1.OperatingSystemConfig
+		if old != nil {
+			var ok bool
+			oldOSC, ok = old.(*extensionsv1alpha1.OperatingSystemConfig)
+			if !ok {
+				return errors.New("could not cast old object to extensionsv1alpha1.OperatingSystemConfig")
 			}
-
-			extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
-			return m.mutateOperatingSystemConfig(ctx, gctx, x, oldOSC)
 		}
-		return nil
+
+		extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
+
+		err := m.mutateOperatingSystemConfig(ctx, gctx, x, oldOSC)
+		if err != nil {
+			return err
+		}
 	}
 
 	return m.gardenerMutator.Mutate(ctx, new, old)
@@ -156,6 +158,10 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 	}
 
 	encoded, err := helper.EncodeRawExtension(&metalv1alpha1.ImageProviderConfig{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "ImageProviderConfig",
+			APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
+		},
 		NetworkIsolation: &metalv1alpha1.NetworkIsolation{
 			AllowedNetworks: metalv1alpha1.AllowedNetworks{
 				Ingress: p.NetworkIsolation.AllowedNetworks.Ingress,
