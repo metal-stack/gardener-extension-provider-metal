@@ -73,8 +73,14 @@ func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 	// InfrastructureConfig
 	infraConfigFldPath := fldPath.Child("infrastructureConfig")
 
+	// ControlPlaneConfig
+	controlPlaneConfigFldPath := fldPath.Child("controlPlaneConfig")
+
 	if shoot.Spec.Provider.InfrastructureConfig == nil {
 		return field.Required(infraConfigFldPath, "InfrastructureConfig must be set for metal shoots")
+	}
+	if shoot.Spec.Provider.ControlPlaneConfig == nil {
+		return field.Required(controlPlaneConfigFldPath, "ControlPlaneConfig must be set for metal shoots")
 	}
 
 	infraConfig, err := decodeInfrastructureConfig(s.decoder, shoot.Spec.Provider.InfrastructureConfig, infraConfigFldPath)
@@ -99,8 +105,6 @@ func (s *shoot) validateShoot(ctx context.Context, shoot *core.Shoot) error {
 	if errList := metalvalidation.ValidateInfrastructureConfigAgainstCloudProfile(infraConfig, shoot, cloudProfile, cloudProfileConfig, infraConfigFldPath); len(errList) != 0 {
 		return errList.ToAggregate()
 	}
-
-	controlPlaneConfigFldPath := fldPath.Child("controlPlaneConfig")
 
 	controlPlaneConfig, err := decodeControlPlaneConfig(s.decoder, shoot.Spec.Provider.ControlPlaneConfig, fldPath.Child("controlPlaneConfig"))
 	if err != nil {
