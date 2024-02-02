@@ -146,7 +146,7 @@ func ValidateImmutableCloudProfileConfig(
 				continue
 			}
 
-			if partition.NetworkIsolation == nil && oldPartition.NetworkIsolation == nil {
+			if oldPartition.NetworkIsolation == nil {
 				continue
 			}
 
