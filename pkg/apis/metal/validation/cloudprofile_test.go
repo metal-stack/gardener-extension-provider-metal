@@ -398,6 +398,50 @@ var _ = Describe("CloudProfileConfig validation", func() {
 			Expect(errorList).To(BeEmpty())
 		})
 
+		It("should pass when isolation not existing previously", func() {
+			newCloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {
+							NetworkIsolation: &apismetal.NetworkIsolation{
+								AllowedNetworks: apismetal.AllowedNetworks{
+									Ingress: []string{"10.0.0.1/24"},
+									Egress:  []string{"100.0.0.1/24"},
+								},
+								DNSServers: []string{"1.1.1.1", "1.0.0.1"},
+								NTPServers: []string{"134.60.1.27", "134.60.111.110"},
+								RegistryMirrors: []apismetal.RegistryMirror{
+									{
+										Name:     "metal-stack registry",
+										Endpoint: "https://some.registry",
+										IP:       "1.2.3.4",
+										Port:     443,
+										MirrorOf: []string{
+											"ghcr.io",
+											"quay.io",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			oldCloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {
+							NetworkIsolation: nil,
+						},
+					},
+				},
+			}
+
+			errorList := ValidateImmutableCloudProfileConfig(newCloudProfileConfig, oldCloudProfileConfig, path)
+
+			Expect(errorList).To(BeEmpty())
+		})
+
 		It("should pass when changing anything except dns", func() {
 			newCloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
 				"prod": {
