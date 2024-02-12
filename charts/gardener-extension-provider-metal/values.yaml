@@ -85,3 +85,12 @@ config:
 gardener:
   seed:
     provider: metal
+
+networkPolicies:
+  enabled: false
+  toMetalApi:
+    namespace: metal-control-plane
+    podSelector:
+      app: metal-api
+    ingressController:
+      namespace: ingress-nginx

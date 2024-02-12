@@ -30,7 +30,10 @@ spec:
         networking.gardener.cloud/to-public-networks: allowed
         networking.gardener.cloud/to-private-networks: allowed
         networking.resources.gardener.cloud/to-all-shoots-kube-apiserver-tcp-443: allowed
-{{ include "labels" . | indent 8 }}
+        {{- if .Values.networkPolicies.enabled }}
+        networking.resources.gardener.cloud/to-metal-api: allowed
+        {{- end }}
+  {{ include "labels" . | indent 8 }}
     spec:
       containers:
       - name: {{ include "name" . }}
