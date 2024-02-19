@@ -917,61 +917,9 @@ func getCCMChartValues(
 		return nil, err
 	}
 
-	// TODO @majst01: Refactor a bit
-	var defaultExternalNetwork string
-	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
-		defaultExternalNetwork = *cpConfig.CloudControllerManager.DefaultExternalNetwork
-		resp, err := mclient.Network().FindNetwork(network.NewFindNetworkParams().WithID(defaultExternalNetwork).WithContext(ctx), nil)
-		if err != nil {
-			return nil, fmt.Errorf("could not retrieve user-given default external network: %s %w", defaultExternalNetwork, err)
-		}
-
-		if resp.Payload.Shared && resp.Payload.Partitionid != infrastructureConfig.PartitionID {
-			return nil, fmt.Errorf("shared external network must be in same partition as shoot")
-		}
-
-		if resp.Payload.Projectid != "" && resp.Payload.Projectid != infrastructureConfig.ProjectID && !resp.Payload.Shared {
-			return nil, fmt.Errorf("cannot define default external unshared network of another project")
-		}
-
-		if (resp.Payload.Underlay != nil && *resp.Payload.Underlay) || (resp.Payload.Privatesuper != nil && *resp.Payload.Privatesuper) {
-			return nil, fmt.Errorf("cannot declare underlay or private super networks as default external network")
-		}
-	} else {
-		if pointer.SafeDeref(cpConfig.NetworkAccessType) == apismetal.NetworkAccessForbidden {
-			// set no default network!
-		} else {
-			var dmzNetwork string
-			for _, networkID := range infrastructureConfig.Firewall.Networks {
-				nw, ok := nws[networkID]
-				if !ok {
-					return nil, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
-				}
-				for k := range nw.Labels {
-					if k == tag.NetworkDefaultExternal {
-						if nw.Parentnetworkid != "" {
-							pn, ok := nws[nw.Parentnetworkid]
-							if !ok {
-								return nil, fmt.Errorf("network defined in firewall networks specified a parent network that does not exist in metal-api")
-							}
-							if *pn.Privatesuper {
-								dmzNetwork = networkID
-							}
-						} else {
-							defaultExternalNetwork = networkID
-						}
-						break
-					}
-				}
-			}
-			// fallback to a dmz network with the NetworkDefaultExternal tag
-			if defaultExternalNetwork == "" && dmzNetwork != "" {
-				defaultExternalNetwork = dmzNetwork
-			}
-			if defaultExternalNetwork == "" {
-				return nil, fmt.Errorf("unable to find a default external network for metal-ccm deployment")
-			}
-		}
+	defaultExternalNetwork, err := getDefaultNetwork(nws, cpConfig, infrastructureConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	serverSecret, found := secretsReader.Get(metal.CloudControllerManagerServerName)
@@ -1286,4 +1234,80 @@ func registryMirrorToValueMap(r apismetal.RegistryMirror) (map[string]any, error
 		"cidr":     registryIP,
 		"port":     r.Port,
 	}, nil
+}
+
+func getDefaultNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneConfig, infrastructureConfig *apismetal.InfrastructureConfig) (string, error) {
+	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
+		// user has set a specific default external network, check if it's valid
+
+		nw, ok := nws[*cpConfig.CloudControllerManager.DefaultExternalNetwork]
+		if !ok {
+			return "", fmt.Errorf("given default external network defined in cloud-controller-manager control plane config does not exist in metal-api")
+		}
+
+		if nw.Shared && nw.Partitionid != infrastructureConfig.PartitionID {
+			return "", fmt.Errorf("shared external network must be in same partition as shoot")
+		}
+
+		if nw.Projectid != "" && nw.Projectid != infrastructureConfig.ProjectID && !nw.Shared {
+			return "", fmt.Errorf("cannot define default external unshared network of another project")
+		}
+
+		if (nw.Underlay != nil && *nw.Underlay) || (nw.Privatesuper != nil && *nw.Privatesuper) {
+			return "", fmt.Errorf("cannot declare underlay or private super networks as default external network")
+		}
+
+		return *cpConfig.CloudControllerManager.DefaultExternalNetwork, nil
+	}
+
+	if pointer.SafeDeref(cpConfig.NetworkAccessType) == apismetal.NetworkAccessForbidden {
+		// for isolated clusters with forbidden access type it makes no sense to define a default external network because connections will not be allowed automatically anyway
+		return "", nil
+	}
+
+	var (
+		externalNetworks []string
+		// dmzNetworks are deprecated, this can be removed after all users had enough time to migrate to isolated clusters
+		dmzNetworks []string
+	)
+
+	for _, networkID := range infrastructureConfig.Firewall.Networks {
+		nw, ok := nws[networkID]
+		if !ok {
+			return "", fmt.Errorf("network defined in firewall networks does not exist in metal-api")
+		}
+
+		_, ok = nw.Labels[tag.NetworkDefaultExternal]
+		if !ok {
+			continue
+		}
+
+		if nw.Parentnetworkid == "" {
+			externalNetworks = append(externalNetworks, networkID)
+			continue
+		}
+
+		pn, ok := nws[nw.Parentnetworkid]
+		if !ok {
+			return "", fmt.Errorf("network defined in firewall networks specified a parent network that does not exist in metal-api")
+		}
+
+		if *pn.Privatesuper {
+			dmzNetworks = append(dmzNetworks, networkID)
+			continue
+		}
+	}
+
+	if len(externalNetworks) != 0 {
+		// if there is an external network we prefer this over DMZ networks
+		// if there are multiple external networks it's impossible to distinguish which one to choose, so we use the first one defined in the list
+		return externalNetworks[0], nil
+	}
+
+	if len(dmzNetworks) != 0 {
+		// if there are multiple dmz networks it's impossible to distinguish which one to choose, so we use the first one defined in the list
+		return dmzNetworks[0], nil
+	}
+
+	return "", nil
 }
