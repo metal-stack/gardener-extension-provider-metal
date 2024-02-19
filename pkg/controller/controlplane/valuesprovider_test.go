@@ -138,8 +138,9 @@ func Test_getDefaultNetwork(t *testing.T) {
 			ProjectID:   "own-project",
 			Firewall: apismetal.Firewall{
 				Networks: []string{
-					"internet",
+					"mpls-network",
 					"own-external-network",
+					"internet",
 				},
 			},
 		}
@@ -167,6 +168,14 @@ func Test_getDefaultNetwork(t *testing.T) {
 			},
 			"internet": &models.V1NetworkResponse{
 				ID:              pointer.Pointer("internet"),
+				Parentnetworkid: "",
+				Labels: map[string]string{
+					tag.NetworkDefaultExternal: "",
+					tag.NetworkDefault:         "",
+				},
+			},
+			"mpls-network": &models.V1NetworkResponse{
+				ID:              pointer.Pointer("mpls-network"),
 				Parentnetworkid: "",
 				Labels: map[string]string{
 					tag.NetworkDefaultExternal: "",
@@ -220,7 +229,7 @@ func Test_getDefaultNetwork(t *testing.T) {
 			wantErr: fmt.Errorf("given default external network not contained in firewall networks"),
 		},
 		{
-			name:                 "use first external network",
+			name:                 "use internet as default external network",
 			nws:                  nws,
 			infrastructureConfig: internetFirewall,
 			cpConfig:             &apismetal.ControlPlaneConfig{},

@@ -1261,9 +1261,9 @@ func getDefaultNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneConfig, i
 	}
 
 	var (
-		externalNetworks []string
+		externalNetworks []*models.V1NetworkResponse
 		// dmzNetworks are deprecated, this can be removed after all users had enough time to migrate to isolated clusters
-		dmzNetworks []string
+		dmzNetworks []*models.V1NetworkResponse
 	)
 
 	for _, networkID := range infrastructureConfig.Firewall.Networks {
@@ -1278,7 +1278,7 @@ func getDefaultNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneConfig, i
 		}
 
 		if nw.Parentnetworkid == "" {
-			externalNetworks = append(externalNetworks, networkID)
+			externalNetworks = append(externalNetworks, nw)
 			continue
 		}
 
@@ -1288,20 +1288,27 @@ func getDefaultNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneConfig, i
 		}
 
 		if *pn.Privatesuper {
-			dmzNetworks = append(dmzNetworks, networkID)
+			dmzNetworks = append(dmzNetworks, nw)
 			continue
 		}
 	}
 
+	// if there is an external network we prefer this over DMZ networks
+	// from the external network we prefer the one that is the default
+	// if there are multiple external networks it's impossible to distinguish which one to choose, so we use the first one defined in the list
 	if len(externalNetworks) != 0 {
-		// if there is an external network we prefer this over DMZ networks
-		// if there are multiple external networks it's impossible to distinguish which one to choose, so we use the first one defined in the list
-		return externalNetworks[0], nil
+		for _, nw := range externalNetworks {
+			if _, ok := nw.Labels[tag.NetworkDefault]; ok {
+				return *nw.ID, nil
+			}
+		}
+
+		return *externalNetworks[0].ID, nil
 	}
 
 	if len(dmzNetworks) != 0 {
 		// if there are multiple dmz networks it's impossible to distinguish which one to choose, so we use the first one defined in the list
-		return dmzNetworks[0], nil
+		return *dmzNetworks[0].ID, nil
 	}
 
 	return "", nil
