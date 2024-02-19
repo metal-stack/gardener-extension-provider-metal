@@ -44,6 +44,7 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/strings/slices"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -1240,24 +1241,18 @@ func getDefaultNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneConfig, i
 	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
 		// user has set a specific default external network, check if it's valid
 
-		nw, ok := nws[*cpConfig.CloudControllerManager.DefaultExternalNetwork]
+		networkID := *cpConfig.CloudControllerManager.DefaultExternalNetwork
+
+		_, ok := nws[networkID]
 		if !ok {
 			return "", fmt.Errorf("given default external network defined in cloud-controller-manager control plane config does not exist in metal-api")
 		}
 
-		if nw.Shared && nw.Partitionid != infrastructureConfig.PartitionID {
-			return "", fmt.Errorf("shared external network must be in same partition as shoot")
+		if !slices.Contains(infrastructureConfig.Firewall.Networks, networkID) {
+			return "", fmt.Errorf("given default external network not contained in firewall networks")
 		}
 
-		if nw.Projectid != "" && nw.Projectid != infrastructureConfig.ProjectID && !nw.Shared {
-			return "", fmt.Errorf("cannot define default external unshared network of another project")
-		}
-
-		if (nw.Underlay != nil && *nw.Underlay) || (nw.Privatesuper != nil && *nw.Privatesuper) {
-			return "", fmt.Errorf("cannot declare underlay or private super networks as default external network")
-		}
-
-		return *cpConfig.CloudControllerManager.DefaultExternalNetwork, nil
+		return networkID, nil
 	}
 
 	if pointer.SafeDeref(cpConfig.NetworkAccessType) == apismetal.NetworkAccessForbidden {
