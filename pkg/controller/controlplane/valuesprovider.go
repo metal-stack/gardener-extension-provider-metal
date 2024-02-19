@@ -1257,8 +1257,7 @@ func getDefaultExternalNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneC
 
 	var (
 		externalNetworks []*models.V1NetworkResponse
-		// dmzNetworks are deprecated, this can be removed after all users had enough time to migrate to isolated clusters
-		dmzNetworks []*models.V1NetworkResponse
+		dmzNetworks      []*models.V1NetworkResponse // dmzNetworks are deprecated, this can be removed after all users had enough time to migrate to isolated clusters
 	)
 
 	for _, networkID := range infrastructureConfig.Firewall.Networks {
