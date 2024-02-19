@@ -131,7 +131,7 @@ func Test_registryMirrorToValueMap(t *testing.T) {
 	}
 }
 
-func Test_getDefaultNetwork(t *testing.T) {
+func Test_getDefaultExternalNetwork(t *testing.T) {
 	var (
 		internetFirewall = &apismetal.InfrastructureConfig{
 			PartitionID: "a",
@@ -245,7 +245,7 @@ func Test_getDefaultNetwork(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getDefaultNetwork(tt.nws, tt.cpConfig, tt.infrastructureConfig)
+			got, err := getDefaultExternalNetwork(tt.nws, tt.cpConfig, tt.infrastructureConfig)
 			if diff := cmp.Diff(tt.wantErr, err, testcommon.ErrorStringComparer()); diff != "" {
 				t.Errorf("error diff (+got -want):\n %s", diff)
 			}

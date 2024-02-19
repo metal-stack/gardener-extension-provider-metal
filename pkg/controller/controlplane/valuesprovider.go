@@ -918,7 +918,7 @@ func getCCMChartValues(
 		return nil, err
 	}
 
-	defaultExternalNetwork, err := getDefaultNetwork(nws, cpConfig, infrastructureConfig)
+	defaultExternalNetwork, err := getDefaultExternalNetwork(nws, cpConfig, infrastructureConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -1237,7 +1237,7 @@ func registryMirrorToValueMap(r apismetal.RegistryMirror) (map[string]any, error
 	}, nil
 }
 
-func getDefaultNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneConfig, infrastructureConfig *apismetal.InfrastructureConfig) (string, error) {
+func getDefaultExternalNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneConfig, infrastructureConfig *apismetal.InfrastructureConfig) (string, error) {
 	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
 		// user has set a specific default external network, check if it's valid
 
