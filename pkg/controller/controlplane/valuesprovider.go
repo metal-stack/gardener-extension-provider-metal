@@ -1243,11 +1243,6 @@ func getDefaultExternalNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneC
 
 		networkID := *cpConfig.CloudControllerManager.DefaultExternalNetwork
 
-		_, ok := nws[networkID]
-		if !ok {
-			return "", fmt.Errorf("given default external network defined in cloud-controller-manager control plane config does not exist in metal-api")
-		}
-
 		if !slices.Contains(infrastructureConfig.Firewall.Networks, networkID) {
 			return "", fmt.Errorf("given default external network not contained in firewall networks")
 		}
