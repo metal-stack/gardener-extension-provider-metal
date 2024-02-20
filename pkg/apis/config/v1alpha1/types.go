@@ -19,6 +19,9 @@ type ControllerConfiguration struct {
 	// +optional
 	ClientConnection *componentbaseconfigv1alpha1.ClientConnectionConfiguration `json:"clientConnection,omitempty"`
 
+	// AdditionalPodLabels are additional labels attached to pods deployed by this extension controller.
+	AdditionalPodLabels map[string]string `json:"additionalPodLabels,omitempty"`
+
 	// MachineImages is the list of machine images that are understood by the controller. It maps
 	// logical names and versions to metal-specific identifiers, i.e. AMIs.
 	MachineImages []MachineImage `json:"machineImages,omitempty"`

@@ -106,6 +106,9 @@ spec:
         networking.gardener.cloud/to-shoot-apiserver: "allowed"
         networking.gardener.cloud/to-runtime-apiserver: "allowed"
         networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: "allowed"
+{{- if .Values.firewallControllerManager.podLabels }}
+{{ toYaml .Values.firewallControllerManager.podLabels | indent 8 }}
+{{- end }}
 {{- if .Values.podAnnotations }}
       annotations:
 {{ toYaml .Values.podAnnotations | indent 8 }}

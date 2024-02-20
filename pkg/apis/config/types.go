@@ -18,6 +18,9 @@ type ControllerConfiguration struct {
 	// settings for the proxy server to use when communicating with the apiserver.
 	ClientConnection *componentbaseconfig.ClientConnectionConfiguration
 
+	// AdditionalPodLabels are additional labels attached to pods deployed by this extension controller.
+	AdditionalPodLabels map[string]string
+
 	// MachineImages is the list of machine images that are understood by the controller. It maps
 	// logical names and versions to metal-specific identifiers, i.e. AMIs.
 	MachineImages []MachineImage

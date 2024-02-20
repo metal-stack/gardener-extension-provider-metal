@@ -48,6 +48,7 @@ func (w *workerDelegate) GetMachineControllerManagerChartValues(ctx context.Cont
 		"namespace": map[string]interface{}{
 			"uid": namespace.UID,
 		},
+		"podLabels": w.controllerConfig.AdditionalPodLabels,
 	}, nil
 }
 

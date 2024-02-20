@@ -6,6 +6,9 @@ image:
 replicaCount: 1
 resources: {}
 
+deployment:
+  labels: {}
+
 metricsPort: 8080
 healthPort: 8081
 
@@ -48,6 +51,7 @@ metrics:
   enableScraping: true
 
 config:
+  additionalPodLabels: {}
   clientConnection:
     acceptContentTypes: application/json
     contentType: application/json

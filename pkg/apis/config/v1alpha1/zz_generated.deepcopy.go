@@ -56,6 +56,13 @@ func (in *ControllerConfiguration) DeepCopyInto(out *ControllerConfiguration) {
 		*out = new(configv1alpha1.ClientConnectionConfiguration)
 		**out = **in
 	}
+	if in.AdditionalPodLabels != nil {
+		in, out := &in.AdditionalPodLabels, &out.AdditionalPodLabels
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.MachineImages != nil {
 		in, out := &in.MachineImages, &out.MachineImages
 		*out = make([]MachineImage, len(*in))

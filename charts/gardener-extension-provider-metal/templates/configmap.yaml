@@ -30,6 +30,10 @@ data:
     egressDestinations:
 {{ toYaml .Values.config.egressDestinations | indent 4 }}
 {{- end }}
+{{- if .Values.config.additionalPodLabels }}
+    additionalPodLabels:
+{{ toYaml .Values.config.additionalPodLabels | indent 4 }}
+{{- end }}
     etcd:
       storage:
         className: {{ .Values.config.etcd.storage.className }}

@@ -528,7 +528,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, fmt.Errorf("could not get ca from secret: %w", err)
 	}
 
-	ccmValues, err := getCCMChartValues(ctx, sshSecret, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws, secretsReader)
+	ccmValues, err := getCCMChartValues(ctx, vp.controllerConfig, sshSecret, cpConfig, infrastructureConfig, infrastructure, cluster, checksums, scaledDown, mclient, metalControlPlane, nws, secretsReader)
 	if err != nil {
 		return nil, err
 	}
@@ -893,6 +893,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 // getCCMChartValues collects and returns the CCM chart values.
 func getCCMChartValues(
 	ctx context.Context,
+	config config.ControllerConfiguration,
 	sshSecret *corev1.Secret,
 	cpConfig *apismetal.ControlPlaneConfig,
 	infrastructureConfig *apismetal.InfrastructureConfig,
@@ -1000,6 +1001,7 @@ func getCCMChartValues(
 				"checksum/secret-cloudprovider":                   checksums[v1beta1constants.SecretNameCloudProvider],
 				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
 			},
+			"podLabels": config.AdditionalPodLabels,
 			"secrets": map[string]any{
 				"server": serverSecret.Name,
 			},
@@ -1200,6 +1202,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 			// This will break the firewall-only case actually only used in our test env.
 			// TODO: deletion of the firewall is not yet implemented.
 			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
+			"podLabels":        vp.controllerConfig.AdditionalPodLabels,
 			"clusterID":        string(cluster.Shoot.GetUID()),
 			"seedApiURL":       seedApiURL,
 			"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
