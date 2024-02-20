@@ -32,7 +32,7 @@ data:
 {{- end }}
 {{- if .Values.config.additionalPodLabels }}
     additionalPodLabels:
-{{ toYaml .Values.config.additionalPodLabels | indent 4 }}
+{{ toYaml .Values.config.additionalPodLabels | indent 6 }}
 {{- end }}
     etcd:
       storage:
