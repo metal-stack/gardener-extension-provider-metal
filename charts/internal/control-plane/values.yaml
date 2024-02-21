@@ -12,6 +12,7 @@ imagePullSecret:
 imagePullPolicy: IfNotPresent
 
 firewallControllerManager:
+  podLabels: {}
   replicas: 1
   clusterID: cluster-id
   seedApiURL: address-to-the-seed-apiserver
@@ -29,6 +30,7 @@ firewallControllerManager:
 cloudControllerManager:
   additionalParameters: []
   podAnnotations: {}
+  podLabels: {}
   replicas: 1
   podNetwork: 192.168.0.0/16
   projectID: project-id

@@ -216,6 +216,7 @@ func Convert_config_ClusterAudit_To_v1alpha1_ClusterAudit(in *config.ClusterAudi
 
 func autoConvert_v1alpha1_ControllerConfiguration_To_config_ControllerConfiguration(in *ControllerConfiguration, out *config.ControllerConfiguration, s conversion.Scope) error {
 	out.ClientConnection = (*componentbaseconfig.ClientConnectionConfiguration)(unsafe.Pointer(in.ClientConnection))
+	out.AdditionalPodLabels = *(*map[string]string)(unsafe.Pointer(&in.AdditionalPodLabels))
 	out.MachineImages = *(*[]config.MachineImage)(unsafe.Pointer(&in.MachineImages))
 	out.FirewallInternalPrefixes = *(*[]string)(unsafe.Pointer(&in.FirewallInternalPrefixes))
 	if err := Convert_v1alpha1_ETCD_To_config_ETCD(&in.ETCD, &out.ETCD, s); err != nil {
@@ -244,6 +245,7 @@ func Convert_v1alpha1_ControllerConfiguration_To_config_ControllerConfiguration(
 
 func autoConvert_config_ControllerConfiguration_To_v1alpha1_ControllerConfiguration(in *config.ControllerConfiguration, out *ControllerConfiguration, s conversion.Scope) error {
 	out.ClientConnection = (*configv1alpha1.ClientConnectionConfiguration)(unsafe.Pointer(in.ClientConnection))
+	out.AdditionalPodLabels = *(*map[string]string)(unsafe.Pointer(&in.AdditionalPodLabels))
 	out.MachineImages = *(*[]MachineImage)(unsafe.Pointer(&in.MachineImages))
 	out.FirewallInternalPrefixes = *(*[]string)(unsafe.Pointer(&in.FirewallInternalPrefixes))
 	if err := Convert_config_ETCD_To_v1alpha1_ETCD(&in.ETCD, &out.ETCD, s); err != nil {
