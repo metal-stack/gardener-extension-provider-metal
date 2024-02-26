@@ -1057,16 +1057,18 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	controllerValues := map[string]any{
-		"endpoints":  partitionConfig.Endpoints,
-		"adminKey":   partitionConfig.AdminKey,
-		"adminToken": partitionConfig.AdminToken,
+		"endpoints":   partitionConfig.Endpoints,
+		"adminKey":    partitionConfig.AdminKey,
+		"adminToken":  partitionConfig.AdminToken,
+		"apiEndpoint": partitionConfig.APIEndpoint,
 	}
 
-	if partitionConfig.APIEndpoint != nil {
-		controllerValues["apiEndpoint"] = *partitionConfig.APIEndpoint
+	if partitionConfig.APICA != "" {
 		controllerValues["apiCA"] = partitionConfig.APICA
-		controllerValues["apiKey"] = partitionConfig.APIKey
+	}
+	if partitionConfig.APICert != "" && partitionConfig.APIKey != "" {
 		controllerValues["apiCert"] = partitionConfig.APICert
+		controllerValues["apiKey"] = partitionConfig.APIKey
 	}
 
 	values := map[string]any{
