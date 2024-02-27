@@ -38,7 +38,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 			{Obj: &appsv1.Deployment{}},
 			{Obj: &druidv1alpha1.Etcd{}},
 		},
-		Mutator: genericmutator.NewMutator(NewEnsurer(&opts.ETCD, logger), nil, nil, nil, logger),
+		Mutator: genericmutator.NewMutator(mgr, NewEnsurer(mgr, &opts.ETCD, logger), nil, nil, nil, logger),
 	})
 }
 

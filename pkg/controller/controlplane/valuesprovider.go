@@ -23,7 +23,6 @@ import (
 
 	extensionsconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -38,19 +37,7 @@ import (
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
-	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
-	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
@@ -65,11 +52,25 @@ import (
 
 	"github.com/go-logr/logr"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	storagev1 "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/client-go/kubernetes"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 const (
@@ -179,8 +180,8 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 	}
 }
 
-func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
-	return []*gutil.ShootAccessSecret{
+func shootAccessSecretsFunc(namespace string) []*gutil.AccessSecret {
+	return []*gutil.AccessSecret{
 		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
@@ -292,7 +293,7 @@ var storageClassChart = &chart.Chart{
 type networkMap map[string]*models.V1NetworkResponse
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
+func NewValuesProvider(mgr manager.Manager, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
 	cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 		{Type: &corev1.ConfigMap{}, Name: "shoot-info-node-cidr"},
 	}...)
@@ -338,15 +339,17 @@ func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerCon
 	}
 
 	return &valuesProvider{
-		logger:           logger.WithName("metal-values-provider"),
 		controllerConfig: controllerConfig,
+		client:           mgr.GetClient(),
+		decoder:          serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
 	}
 }
 
 // valuesProvider is a ValuesProvider that provides metal-specific values for the 2 charts applied by the generic actuator.
 type valuesProvider struct {
 	genericactuator.NoopValuesProvider
-	common.ClientContext
+	client           client.Client
+	decoder          runtime.Decoder
 	logger           logr.Logger
 	controllerConfig config.ControllerConfiguration
 }
@@ -416,7 +419,7 @@ func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *e
 }
 
 func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName string, auditToSplunkValues map[string]interface{}) (map[string]interface{}, error) {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.Client(), clusterName, client.Options{}, extensionsconfig.RESTOptions{})
+	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, clusterName, client.Options{}, extensionsconfig.RESTOptions{})
 	if err != nil {
 		return auditToSplunkValues, err
 	}
@@ -469,7 +472,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	scaledDown bool,
 ) (map[string]any, error) {
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
-	if _, _, err := vp.Decoder().Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of infrastructure %w", err)
 	}
 
@@ -488,7 +491,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	metalCredentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
+	metalCredentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
 	if err != nil {
 		return nil, err
 	}
@@ -514,16 +517,16 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := vp.Client().Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
+	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
 		return nil, err
 	}
 
-	sshSecret, err := helper.GetLatestSSHSecret(ctx, vp.Client(), cp.Namespace)
+	sshSecret, err := helper.GetLatestSSHSecret(ctx, vp.client, cp.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	caBundle, err := helper.GetLatestSecret(ctx, vp.Client(), cp.Namespace, metal.FirewallControllerManagerDeploymentName)
+	caBundle, err := helper.GetLatestSecret(ctx, vp.client, cp.Namespace, metal.FirewallControllerManagerDeploymentName)
 	if err != nil {
 		return nil, fmt.Errorf("could not get ca from secret: %w", err)
 	}
@@ -533,7 +536,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.Client(), vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
+	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.client, vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -585,7 +588,7 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
 func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
-	if _, _, err := vp.Decoder().Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of infrastructure %w", err)
 	}
 
@@ -604,7 +607,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	mclient, err := metalclient.NewClient(ctx, vp.Client(), metalControlPlane.Endpoint, &cp.Spec.SecretRef)
+	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
 	if err != nil {
 		return nil, err
 	}
@@ -625,7 +628,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := vp.Client().Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
+	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
 		return nil, err
 	}
 
@@ -672,7 +675,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		// We can then remove reading the dns entry resources entirely
 		// get apiserver ip adresses from external dns record
 		dnsRecord := &extensionsv1alpha1.DNSRecord{}
-		err := vp.Client().Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
+		err := vp.client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get dnsRecord %w", err)
 		}
@@ -858,7 +861,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
 	key := kutil.Key(namespace, secretName)
 	secret := &corev1.Secret{}
-	err := vp.Client().Get(ctx, key, secret)
+	err := vp.client.Get(ctx, key, secret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			vp.logger.Error(err, "error getting secret - not found")
@@ -1158,7 +1161,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 		},
 	}
 	isConfigMapConfigured := false
-	err := vp.Client().Get(ctx, client.ObjectKeyFromObject(cm), cm)
+	err := vp.client.Get(ctx, client.ObjectKeyFromObject(cm), cm)
 	if err == nil {
 		url, ok := cm.Data["url"]
 		if ok {
