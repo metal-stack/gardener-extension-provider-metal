@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type mutator struct {
@@ -38,22 +39,12 @@ type mutator struct {
 }
 
 // NewMutator creates a new Mutator that mutates resources in the shoot cluster.
-func NewMutator() extensionswebhook.Mutator {
+func NewMutator(mgr manager.Manager) extensionswebhook.Mutator {
 	return &mutator{
-		logger: log.Log.WithName("shoot-mutator"),
+		logger:  log.Log.WithName("shoot-mutator"),
+		client:  mgr.GetClient(),
+		decoder: serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
 	}
-}
-
-// InjectScheme injects the given scheme into the validator.
-func (s *mutator) InjectScheme(scheme *runtime.Scheme) error {
-	s.decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
-	return nil
-}
-
-// InjectClient injects the given client into the mutator.
-func (s *mutator) InjectClient(client client.Client) error {
-	s.client = client
-	return nil
 }
 
 func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {

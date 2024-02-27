@@ -13,32 +13,24 @@ import (
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // NewShootMutator returns a new instance of a shoot mutator.
-func NewShootMutator() extensionswebhook.Mutator {
-	return &mutator{}
+func NewShootMutator(mgr manager.Manager) extensionswebhook.Mutator {
+	return &mutator{
+		client:  mgr.GetClient(),
+		decoder: serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
+	}
 }
 
 type mutator struct {
 	client  client.Client
 	decoder runtime.Decoder
-}
-
-// InjectScheme injects the given scheme into the validator.
-func (m *mutator) InjectScheme(scheme *runtime.Scheme) error {
-	m.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
-	return nil
-}
-
-// InjectClient injects the given client into the mutator.
-func (s *mutator) InjectClient(client client.Client) error {
-	s.client = client
-	return nil
 }
 
 // Mutate mutates the given shoot object.

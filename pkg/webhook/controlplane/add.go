@@ -26,7 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 )
 
 var (
@@ -50,7 +49,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 			{Obj: &appsv1.Deployment{}},
 			{Obj: &extensionsv1alpha1.OperatingSystemConfig{}},
 		},
-		Mutator: newMutator(opts.ControllerConfig),
+		Mutator: newMutator(mgr, opts.ControllerConfig),
 	})
 }
 
@@ -66,15 +65,17 @@ type mutator struct {
 	gardenerMutator extensionswebhook.Mutator
 }
 
-func newMutator(c config.ControllerConfiguration) extensionswebhook.Mutator {
+func newMutator(mgr manager.Manager, c config.ControllerConfiguration) extensionswebhook.Mutator {
 	fciCodec := oscutils.NewFileContentInlineCodec()
 
-	gardenerMutator := genericmutator.NewMutator(NewEnsurer(logger, c), oscutils.NewUnitSerializer(),
+	gardenerMutator := genericmutator.NewMutator(mgr, NewEnsurer(mgr, logger, c), oscutils.NewUnitSerializer(),
 		kubelet.NewConfigCodec(fciCodec), fciCodec, logger)
 
 	return &mutator{
 		logger:          logger,
 		gardenerMutator: gardenerMutator,
+		client:          mgr.GetClient(),
+		decoder:         serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
 	}
 }
 
@@ -178,19 +179,5 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 
 	osc.Spec.ProviderConfig = encoded
 
-	return nil
-}
-
-func (m *mutator) InjectClient(client client.Client) error {
-	m.client = client
-	return nil
-}
-
-func (m *mutator) InjectFunc(f inject.Func) error {
-	return f(m.gardenerMutator)
-}
-
-func (m *mutator) InjectScheme(scheme *runtime.Scheme) error {
-	m.decoder = serializer.NewCodecFactory(scheme, serializer.EnableStrict).UniversalDecoder()
 	return nil
 }
