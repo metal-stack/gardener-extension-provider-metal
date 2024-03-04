@@ -44,12 +44,13 @@ type AddOptions struct {
 }
 
 // RegisterHealthChecks registers health checks for each extension resource
-func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
+func RegisterHealthChecks(ctx context.Context, mgr manager.Manager, opts AddOptions) error {
 	durosPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.Storage.Duros.Enabled
 	}
 
 	if err := healthcheck.DefaultRegistration(
+		ctx,
 		metal.Type,
 		extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.ControlPlaneResource),
 		func() client.ObjectList { return &extensionsv1alpha1.ControlPlaneList{} },
@@ -91,6 +92,7 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 	}
 
 	return healthcheck.DefaultRegistration(
+		ctx,
 		metal.Type,
 		extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.WorkerResource),
 		func() client.ObjectList { return &extensionsv1alpha1.WorkerList{} },
@@ -118,6 +120,6 @@ func RegisterHealthChecks(mgr manager.Manager, opts AddOptions) error {
 }
 
 // AddToManager adds a controller with the default Options.
-func AddToManager(mgr manager.Manager) error {
-	return RegisterHealthChecks(mgr, DefaultAddOptions)
+func AddToManager(ctx context.Context, mgr manager.Manager) error {
+	return RegisterHealthChecks(ctx, mgr, DefaultAddOptions)
 }

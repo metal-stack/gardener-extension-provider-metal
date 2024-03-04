@@ -5,11 +5,11 @@ metadata:
   name: machine-controller-manager
   namespace: {{ .Release.Namespace }}
   labels:
-    gardener.cloud/role: controlplane
     app: kubernetes
     role: machine-controller-manager
+    high-availability-config.resources.gardener.cloud/type: controller
 spec:
-  revisionHistoryLimit: 0
+  revisionHistoryLimit: 1
   replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
@@ -17,9 +17,8 @@ spec:
       role: machine-controller-manager
   template:
     metadata:
-      annotations:
-        scheduler.alpha.kubernetes.io/critical-pod: ''
 {{- if .Values.podAnnotations }}
+      annotations:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
       labels:
@@ -35,6 +34,7 @@ spec:
 {{ toYaml .Values.podLabels | indent 8 }}
 {{- end }}
     spec:
+      priorityClassName: gardener-system-300
       serviceAccountName: machine-controller-manager
       terminationGracePeriodSeconds: 5
       containers:
@@ -54,6 +54,8 @@ spec:
         - --namespace={{ .Release.Namespace }}
         - --port={{ .Values.metricsPort2 }}
         - --v=3
+        resources:
+{{ toYaml .Values.resources.mcmProviderMetal | indent 10 }}
         livenessProbe:
           failureThreshold: 3
           httpGet:
@@ -70,7 +72,7 @@ spec:
         - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           name: kubeconfig
           readOnly: true
-      - name: machine-controller-manager
+      - name: metal-machine-controller-manager
         image: {{ index .Values.images "machine-controller-manager" }}
         imagePullPolicy: IfNotPresent
         command:
@@ -100,12 +102,7 @@ spec:
           containerPort: {{ .Values.metricsPort }}
           protocol: TCP
         resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: "3"
-            memory: 3000Mi
+{{ toYaml .Values.resources.mcm | indent 10 }}
         volumeMounts:
         - mountPath: /var/run/secrets/gardener.cloud/shoot/generic-kubeconfig
           name: kubeconfig

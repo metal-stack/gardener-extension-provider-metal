@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
@@ -25,9 +26,10 @@ import (
 )
 
 // NewEnsurer creates a new controlplaneexposure ensurer.
-func NewEnsurer(etcdStorage *config.ETCD, logger logr.Logger) genericmutator.Ensurer {
+func NewEnsurer(mgr manager.Manager, etcdStorage *config.ETCD, logger logr.Logger) genericmutator.Ensurer {
 	return &ensurer{
 		c:      etcdStorage,
+		client: mgr.GetClient(),
 		logger: logger.WithName("metal-controlplaneexposure-ensurer"),
 	}
 }
@@ -37,12 +39,6 @@ type ensurer struct {
 	c      *config.ETCD
 	client client.Client
 	logger logr.Logger
-}
-
-// InjectClient injects the given client into the ensurer.
-func (e *ensurer) InjectClient(client client.Client) error {
-	e.client = client
-	return nil
 }
 
 // EnsureKubeAPIServerService ensures that the kube-apiserver service conforms to the provider requirements.
