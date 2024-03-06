@@ -556,7 +556,7 @@ spec:
         - name: METALLB_HOST
           valueFrom:
             fieldRef:
-              fieldPath: status.hostIP
+              fieldPath: status.podIP
         - name: METALLB_ML_BIND_ADDR
           valueFrom:
             fieldRef:
