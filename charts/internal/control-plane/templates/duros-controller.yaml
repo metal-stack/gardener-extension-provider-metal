@@ -39,7 +39,7 @@ rules:
   - patch
   - create
 - apiGroups:
-  - "apps"
+  - apps
   resources:
   - statefulsets
   verbs:
@@ -119,6 +119,7 @@ spec:
           - -shoot-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
           - -psp-disabled={{ .Values.pspDisabled }}
           - -lb-csi-ctrl-shoot-access-secret-name=shoot-access-lb-csi-controller
+          - -lb-csi-ctrl-generic-kubeconfig-secret-name={{ .Values.genericTokenKubeconfigSecretName }}
 {{- if .Values.duros.controller.apiEndpoint }}
           - -api-endpoint={{ .Values.duros.controller.apiEndpoint }}
           - -api-ca=/duros/api-ca
