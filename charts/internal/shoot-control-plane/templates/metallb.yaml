@@ -756,6 +756,9 @@ rules:
   resources:
   - configmaps
   verbs:
+  - get
+  - list
+  - watch
   - create
   - patch
   - update
