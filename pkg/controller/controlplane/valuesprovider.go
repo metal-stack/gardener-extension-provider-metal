@@ -112,8 +112,6 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 				CertType:                    secrets.ServerCert,
 				SkipPublishingCACertificate: false,
 			},
-			// use current CA for signing server cert to prevent mismatches when dropping the old CA from the webhook
-			// config in phase Completing
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(caNameControlPlane, secretsmanager.UseCurrentCA)},
 		},
 		// droptailer
@@ -186,6 +184,7 @@ func shootAccessSecretsFunc(namespace string) []*gutil.AccessSecret {
 		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
+		gutil.NewShootAccessSecret("lb-csi-controller", namespace),
 		gutil.NewShootAccessSecret(metal.MachineControllerManagerName, namespace),
 		gutil.NewShootAccessSecret(metal.AudittailerClientSecretName, namespace),
 	}
