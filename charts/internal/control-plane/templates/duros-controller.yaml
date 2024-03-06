@@ -30,6 +30,7 @@ rules:
   - coordination.k8s.io
   resources:
   - configmaps
+  - secrets
   - leases
   - events
   verbs:
