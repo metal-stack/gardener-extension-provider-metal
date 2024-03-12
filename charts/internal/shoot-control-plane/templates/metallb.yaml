@@ -641,6 +641,7 @@ metadata:
   labels:
     app: metallb
     component: controller
+    node.gardener.cloud/critical-component: "true"
   name: controller
   namespace: metallb-system
 spec:
@@ -658,6 +659,7 @@ spec:
         app: metallb
         component: controller
         projected-token-mount.resources.gardener.cloud/skip: "true"
+        node.gardener.cloud/critical-component: "true"
     spec:
       containers:
       - args:
@@ -691,7 +693,6 @@ spec:
           limits:
             cpu: 100m
             memory: 100Mi
-
         readinessProbe:
           failureThreshold: 3
           httpGet:
@@ -737,6 +738,13 @@ spec:
         fsGroup: 65534
       serviceAccountName: controller
       terminationGracePeriodSeconds: 0
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists
       volumes:
       - name: cert
         secret:
