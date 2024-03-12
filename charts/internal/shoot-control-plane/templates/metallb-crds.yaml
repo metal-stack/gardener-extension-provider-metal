@@ -323,6 +323,7 @@ metadata:
   creationTimestamp: null
   name: bgppeers.metallb.io
 spec:
+ ### ATTENTION: REMOVE CONVERSION WEBHOOKS WHEN UPDATING THIS CHART
   group: metallb.io
   names:
     kind: BGPPeer
