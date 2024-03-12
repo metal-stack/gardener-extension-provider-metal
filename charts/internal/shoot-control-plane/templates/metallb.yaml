@@ -523,7 +523,6 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
-    node.gardener.cloud/critical-component: "true"
     app: metallb
     component: speaker
   name: speaker
@@ -542,7 +541,6 @@ spec:
         app: metallb
         component: speaker
         projected-token-mount.resources.gardener.cloud/skip: "true"
-        node.gardener.cloud/critical-component: "true"
     spec:
       containers:
       - args:
@@ -641,7 +639,6 @@ metadata:
   labels:
     app: metallb
     component: controller
-    node.gardener.cloud/critical-component: "true"
   name: controller
   namespace: metallb-system
 spec:
@@ -659,7 +656,6 @@ spec:
         app: metallb
         component: controller
         projected-token-mount.resources.gardener.cloud/skip: "true"
-        node.gardener.cloud/critical-component: "true"
     spec:
       containers:
       - args:
