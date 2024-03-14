@@ -75,7 +75,6 @@ type Partition struct {
 // NetworkIsolation defines configuration for restricted or forbidden clusters.
 type NetworkIsolation struct {
 	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
-	// if empty all destinations are allowed.
 	AllowedNetworks AllowedNetworks
 	// DNSServers
 	DNSServers []string
