@@ -52,74 +52,127 @@ func ValidateCloudProfileConfig(cloudProfileConfig *apismetal.CloudProfileConfig
 
 			networkIsolationField := mcpField.Child(partitionName, "networkIsolation")
 
-			if len(partition.NetworkIsolation.DNSServers) > 3 {
-				dnsField := networkIsolationField.Child("dnsServers")
-				allErrs = append(allErrs, field.Invalid(dnsField, partition.NetworkIsolation.DNSServers, "only up to 3 dns servers are allowed"))
-			}
-			for index, ip := range partition.NetworkIsolation.DNSServers {
-				ipField := networkIsolationField.Child("dnsServers").Index(index)
-				if _, err := netip.ParseAddr(ip); err != nil {
-					allErrs = append(allErrs, field.Invalid(ipField, ip, "invalid ip address"))
-				}
-			}
-			for index, ip := range partition.NetworkIsolation.NTPServers {
-				ipField := networkIsolationField.Child("ntpServers").Index(index)
-				if _, err := netip.ParseAddr(ip); err != nil {
-					allErrs = append(allErrs, field.Invalid(ipField, ip, "invalid ip address"))
-				}
-			}
-			for index, cidr := range partition.NetworkIsolation.AllowedNetworks.Egress {
-				ipField := networkIsolationField.Child("allowedNetworks", "egress").Index(index)
-				if _, err := netip.ParsePrefix(cidr); err != nil {
-					allErrs = append(allErrs, field.Invalid(ipField, cidr, "invalid cidr"))
-				}
-			}
-			for index, cidr := range partition.NetworkIsolation.AllowedNetworks.Ingress {
-				ipField := networkIsolationField.Child("allowedNetworks", "ingress").Index(index)
-				if _, err := netip.ParsePrefix(cidr); err != nil {
-					allErrs = append(allErrs, field.Invalid(ipField, cidr, "invalid cidr"))
-				}
-			}
+			dnsServers := partition.NetworkIsolation.DNSServers
+			dnsServersField := networkIsolationField.Child("dnsServers")
+			allErrs = append(allErrs, validateDNSServers(dnsServers, dnsServersField)...)
 
-			for mirrIndex, mirr := range partition.NetworkIsolation.RegistryMirrors {
-				mirrorField := networkIsolationField.Child("registryMirrors").Index(mirrIndex)
-				if mirr.Name == "" {
-					allErrs = append(allErrs, field.Invalid(mirrorField.Child("name"), mirr.Name, "name of mirror may not be empty"))
-				}
-				endpointUrl, err := url.Parse(mirr.Endpoint)
-				if err != nil {
-					allErrs = append(allErrs, field.Invalid(mirrorField.Child("endpoint"), mirr.Endpoint, "not a valid url"))
-				} else if endpointUrl.Scheme != "http" && endpointUrl.Scheme != "https" {
-					allErrs = append(allErrs, field.Invalid(mirrorField.Child("endpoint"), mirr.Endpoint, "url must have the scheme http/s"))
-				}
-				if _, err := netip.ParseAddr(mirr.IP); err != nil {
-					allErrs = append(allErrs, field.Invalid(mirrorField.Child("ip"), mirr.IP, "invalid ip address"))
-				}
-				if mirr.Port == 0 {
-					allErrs = append(allErrs, field.Invalid(mirrorField.Child("port"), mirr.Port, "must be a valid port"))
-				}
-				if len(mirr.MirrorOf) == 0 {
-					allErrs = append(allErrs, field.Invalid(mirrorField.Child("mirrorOf"), mirr.MirrorOf, "registry mirror must replace existing registries"))
-				}
+			ntpServers := partition.NetworkIsolation.NTPServers
+			ntpServersField := networkIsolationField.Child("ntpServers")
+			allErrs = append(allErrs, validateNTPServers(ntpServers, ntpServersField)...)
 
-				for regIndex, reg := range mirr.MirrorOf {
-					regField := mirrorField.Child("mirrorOf").Index(regIndex)
-					if reg == "" {
-						allErrs = append(allErrs, field.Invalid(regField, reg, "cannot be empty"))
-					}
-					regUrl, err := url.Parse("https://" + reg + "/")
-					if err != nil {
-						allErrs = append(allErrs, field.Invalid(regField, reg, "invalid registry"))
-					}
-					if regUrl.Host != reg {
-						allErrs = append(allErrs, field.Invalid(regField, reg, "not a valid registry host"))
-					}
-				}
-			}
+			allowedNetworks := partition.NetworkIsolation.AllowedNetworks
+			allowedNetworksField := networkIsolationField.Child("allowedNetworks")
+			allErrs = append(allErrs, validateAllowedNetworks(allowedNetworksField, allowedNetworks)...)
+
+			registryMirrors := partition.NetworkIsolation.RegistryMirrors
+			registryMirrorsField := networkIsolationField.Child("registryMirrors")
+			allErrs = append(allErrs, validateRegistryMirrors(registryMirrors, registryMirrorsField)...)
 		}
 	}
 
 	return allErrs
+}
+
+func validateDNSServers(dnsServers []string, dnsField *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
+	if len(dnsServers) == 0 {
+		errs = append(errs, field.Invalid(dnsField, dnsServers, "may not be empty"))
+	}
+	if len(dnsServers) > 3 {
+		errs = append(errs, field.Invalid(dnsField, dnsServers, "only up to 3 dns servers are allowed"))
+	}
+	for index, ip := range dnsServers {
+		ipField := dnsField.Index(index)
+		if _, err := netip.ParseAddr(ip); err != nil {
+			errs = append(errs, field.Invalid(ipField, ip, "invalid ip address"))
+		}
+	}
+	return errs
+}
+
+func validateNTPServers(ntpServers []string, ntpField *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
+	if len(ntpServers) == 0 {
+		errs = append(errs, field.Invalid(ntpField, ntpServers, "may not be empty"))
+	}
+	for index, ip := range ntpServers {
+		ipField := ntpField.Index(index)
+		if _, err := netip.ParseAddr(ip); err != nil {
+			errs = append(errs, field.Invalid(ipField, ip, "invalid ip address"))
+		}
+	}
+	return errs
+}
+
+func validateAllowedNetworks(allowedNetworksField *field.Path, allowedNetworks apismetal.AllowedNetworks) field.ErrorList {
+	errs := field.ErrorList{}
+
+	egress := allowedNetworks.Egress
+	egressField := allowedNetworksField.Child("egress")
+	if len(egress) == 0 {
+		errs = append(errs, field.Invalid(egressField, egress, "may not be empty"))
+	}
+	for index, cidr := range egress {
+		ipField := egressField.Index(index)
+		if _, err := netip.ParsePrefix(cidr); err != nil {
+			errs = append(errs, field.Invalid(ipField, cidr, "invalid cidr"))
+		}
+	}
+	ingress := allowedNetworks.Ingress
+	ingressField := allowedNetworksField.Child("ingress")
+	if len(ingress) == 0 {
+		errs = append(errs, field.Invalid(ingressField, ingress, "may not be empty"))
+	}
+	for index, cidr := range ingress {
+		ipField := ingressField.Index(index)
+		if _, err := netip.ParsePrefix(cidr); err != nil {
+			errs = append(errs, field.Invalid(ipField, cidr, "invalid cidr"))
+		}
+	}
+	return errs
+}
+
+func validateRegistryMirrors(registryMirrors []apismetal.RegistryMirror, registryMirrorsField *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
+	if len(registryMirrors) == 0 {
+		errs = append(errs, field.Invalid(registryMirrorsField, registryMirrors, "may not be empty"))
+	}
+	for mirrIndex, mirr := range registryMirrors {
+		mirrorField := registryMirrorsField.Index(mirrIndex)
+		if mirr.Name == "" {
+			errs = append(errs, field.Invalid(mirrorField.Child("name"), mirr.Name, "name of mirror may not be empty"))
+		}
+		endpointUrl, err := url.Parse(mirr.Endpoint)
+		if err != nil {
+			errs = append(errs, field.Invalid(mirrorField.Child("endpoint"), mirr.Endpoint, "not a valid url"))
+		} else if endpointUrl.Scheme != "http" && endpointUrl.Scheme != "https" {
+			errs = append(errs, field.Invalid(mirrorField.Child("endpoint"), mirr.Endpoint, "url must have the scheme http/s"))
+		}
+		if _, err := netip.ParseAddr(mirr.IP); err != nil {
+			errs = append(errs, field.Invalid(mirrorField.Child("ip"), mirr.IP, "invalid ip address"))
+		}
+		if mirr.Port == 0 {
+			errs = append(errs, field.Invalid(mirrorField.Child("port"), mirr.Port, "must be a valid port"))
+		}
+		if len(mirr.MirrorOf) == 0 {
+			errs = append(errs, field.Invalid(mirrorField.Child("mirrorOf"), mirr.MirrorOf, "registry mirror must replace existing registries"))
+		}
+
+		for regIndex, reg := range mirr.MirrorOf {
+			regField := mirrorField.Child("mirrorOf").Index(regIndex)
+			if reg == "" {
+				errs = append(errs, field.Invalid(regField, reg, "cannot be empty"))
+			}
+			regUrl, err := url.Parse("https://" + reg + "/")
+			if err != nil {
+				errs = append(errs, field.Invalid(regField, reg, "invalid registry"))
+			}
+			if regUrl.Host != reg {
+				errs = append(errs, field.Invalid(regField, reg, "not a valid registry host"))
+			}
+		}
+	}
+	return errs
 }
 
 func ValidateImmutableCloudProfileConfig(
