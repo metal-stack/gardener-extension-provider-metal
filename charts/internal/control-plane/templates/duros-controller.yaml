@@ -64,8 +64,10 @@ type: Opaque
 data:
   admin-key: {{ required ".Values.duros.controller.adminKey is required" (b64enc .Values.duros.controller.adminKey) }}
   admin-token: {{ required ".Values.duros.controller.adminToken is required" (b64enc .Values.duros.controller.adminToken) }}
-{{- if .Values.duros.controller.apiEndpoint }}
+{{- if .Values.duros.controller.apiCA }}
   api-ca: {{ required ".Values.duros.controller.apiCA is required" (b64enc .Values.duros.controller.apiCA) }}
+{{- end }}
+{{- if and (.Values.duros.controller.apiCert) (.Values.duros.controller.apiKey) }}
   api-cert: {{ required ".Values.duros.controller.apiCert is required" (b64enc .Values.duros.controller.apiCert) }}
   api-key: {{ required ".Values.duros.controller.apiKey is required" (b64enc .Values.duros.controller.apiKey) }}
 {{- end }}
@@ -107,9 +109,11 @@ spec:
           - -admin-key=/duros/admin-key
           - -shoot-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
           - -psp-disabled={{ .Values.pspDisabled }}
-{{- if .Values.duros.controller.apiEndpoint }}
           - -api-endpoint={{ .Values.duros.controller.apiEndpoint }}
+{{- if .Values.duros.controller.apiCA }}
           - -api-ca=/duros/api-ca
+{{- end }}
+{{- if and (.Values.duros.controller.apiCert) (.Values.duros.controller.apiKey) }}
           - -api-cert=/duros/api-cert
           - -api-key=/duros/api-key
 {{- end }}

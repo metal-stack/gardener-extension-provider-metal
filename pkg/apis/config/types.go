@@ -135,19 +135,13 @@ type DurosPartitionConfiguration struct {
 	// StorageClasses contain information on the storage classes that the duros-controller creates in the shoot cluster
 	StorageClasses []DurosSeedStorageClass
 
-	// APIEndpoint is an optional endpoint used for control plane network communication.
-	//
-	// In certain scenarios the data plane network cannot be reached from the duros-controller in the seed
-	// (i.e. only the shoot is able to reach the storage network).
-	//
-	// In these cases, APIEndpoint can be utilized to point to a gRPC proxy such that the storage
-	// integration can be deployed anyway.
-	APIEndpoint *string
-	// APICA is the ca of the client cert to access the grpc-proxy
+	// APIEndpoint is the endpoint used for control plane network communication.
+	APIEndpoint string
+	// APICA is the ca of the client cert to access the api endpoint
 	APICA string
-	// APICert is the cert of the client cert to access the grpc-proxy
+	// APICert is the cert of the client cert to access the api endpoint
 	APICert string
-	// APIKey is the key of the client cert to access the grpc-proxy
+	// APIKey is the key of the client cert to access the api endpoint
 	APIKey string
 }
 
