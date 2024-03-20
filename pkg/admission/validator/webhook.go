@@ -28,8 +28,8 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		Path:       "/webhooks/validate",
 		Predicates: []predicate.Predicate{extensionspredicate.GardenCoreProviderType(metal.Type)},
 		Validators: map[extensionswebhook.Validator][]extensionswebhook.Type{
-			NewShootValidator():        {{Obj: &core.Shoot{}}},
-			NewCloudProfileValidator(): {{Obj: &core.CloudProfile{}}},
+			NewShootValidator(mgr):        {{Obj: &core.Shoot{}}},
+			NewCloudProfileValidator(mgr): {{Obj: &core.CloudProfile{}}},
 		},
 	})
 }

@@ -36,13 +36,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // NewEnsurer creates a new controlplane ensurer.
-func NewEnsurer(logger logr.Logger, controllerConfig config.ControllerConfiguration) genericmutator.Ensurer {
+func NewEnsurer(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericmutator.Ensurer {
 	return &ensurer{
 		logger:           logger.WithName("metal-controlplane-ensurer"),
 		controllerConfig: controllerConfig,
+		client:           mgr.GetClient(),
 	}
 }
 
@@ -51,12 +53,6 @@ type ensurer struct {
 	client           client.Client
 	logger           logr.Logger
 	controllerConfig config.ControllerConfiguration
-}
-
-// InjectClient injects the given client into the ensurer.
-func (e *ensurer) InjectClient(client client.Client) error {
-	e.client = client
-	return nil
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.

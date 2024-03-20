@@ -10,6 +10,7 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
+	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
@@ -31,7 +32,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type (
@@ -52,10 +53,10 @@ type (
 
 		networkCache *cache.Cache[*cacheKey, *models.V1NetworkResponse]
 
-		restConfig *rest.Config
 		client     client.Client
-		scheme     *runtime.Scheme
 		decoder    runtime.Decoder
+		restConfig *rest.Config
+		scheme     *runtime.Scheme
 	}
 
 	delegateFactory struct {
@@ -90,27 +91,7 @@ type (
 	}
 )
 
-func (a *actuator) InjectFunc(f inject.Func) error {
-	return f(a.workerActuator)
-}
-
-func (a *actuator) InjectScheme(scheme *runtime.Scheme) error {
-	a.scheme = scheme
-	a.decoder = serializer.NewCodecFactory(scheme).UniversalDecoder()
-	return nil
-}
-
-func (a *actuator) InjectClient(client client.Client) error {
-	a.client = client
-	return nil
-}
-
-func (a *actuator) InjectConfig(restConfig *rest.Config) error {
-	a.restConfig = restConfig
-	return nil
-}
-
-func NewActuator(machineImages []config.MachineImage, controllerConfig config.ControllerConfiguration) worker.Actuator {
+func NewActuator(mgr manager.Manager, machineImages []config.MachineImage, controllerConfig config.ControllerConfiguration) (worker.Actuator, error) {
 	a := &actuator{
 		controllerConfig: controllerConfig,
 		networkCache: cache.New(15*time.Minute, func(ctx context.Context, accessor *cacheKey) (*models.V1NetworkResponse, error) {
@@ -124,6 +105,10 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 			}
 			return privateNetwork, nil
 		}),
+		client:     mgr.GetClient(),
+		decoder:    serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
+		restConfig: mgr.GetConfig(),
+		scheme:     mgr.GetScheme(),
 	}
 
 	delegateFactory := &delegateFactory{
@@ -135,16 +120,21 @@ func NewActuator(machineImages []config.MachineImage, controllerConfig config.Co
 		machineImageMapping: machineImages,
 	}
 
-	a.workerActuator = genericactuator.NewActuator(
+	var err error
+	a.workerActuator, err = genericactuator.NewActuator(
+		mgr,
 		delegateFactory,
 		metal.MachineControllerManagerName,
 		mcmChart,
 		mcmShootChart,
 		imagevector.ImageVector(),
 		extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
+		func(err error) []gardencorev1beta1.ErrorCode {
+			return util.DetermineErrorCodes(err, map[gardencorev1beta1.ErrorCode]func(string) bool{}) // TODO: implement our error codes?
+		},
 	)
 
-	return a
+	return a, err
 }
 
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
