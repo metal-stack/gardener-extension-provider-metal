@@ -3,6 +3,8 @@ package worker
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -135,6 +137,20 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Spec.NftablesExporterURL = d.mcp.NftablesExporter.URL
 		deploy.Spec.Template.Spec.LogAcceptedConnections = d.infrastructureConfig.Firewall.LogAcceptedConnections
 		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
+
+		if d.partition.NetworkIsolation != nil && len(d.partition.NetworkIsolation.DNSServers) > 0 {
+			dnsAddr, portStr, ok := strings.Cut(d.partition.NetworkIsolation.DNSServers[0], ":")
+			deploy.Spec.Template.Spec.DNSServerAddress = dnsAddr
+
+			if ok {
+				p, err := strconv.ParseUint(portStr, 10, 64)
+				if err != nil {
+					return fmt.Errorf("invalid dns port:%q", portStr)
+				}
+				port := uint(p)
+				deploy.Spec.Template.Spec.DNSPort = &port
+			}
+		}
 
 		if networkAccessType == apismetal.NetworkAccessForbidden {
 			if d.partition.NetworkIsolation == nil || len(d.partition.NetworkIsolation.AllowedNetworks.Egress) == 0 {
