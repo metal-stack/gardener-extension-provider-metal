@@ -12,6 +12,8 @@ rm -f $GOPATH/bin/*-gen
 
 PROJECT_ROOT=$(dirname $0)/..
 
+git config --global --add safe.directory /go/src/github.com/metal-stack/gardener-extension-provider-metal
+
 bash "${PROJECT_ROOT}"/vendor/k8s.io/code-generator/generate-internal-groups.sh \
   deepcopy,defaulter \
   github.com/metal-stack/gardener-extension-provider-metal/pkg/client \
