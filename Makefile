@@ -76,7 +76,7 @@ check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM)
 
 .PHONY: generate
 generate: $(HELM) $(YQ)
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate-sequential.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: generate-in-docker
 generate-in-docker: revendor $(HELM)
