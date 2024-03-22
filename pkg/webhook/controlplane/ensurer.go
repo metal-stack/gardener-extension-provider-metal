@@ -2,17 +2,20 @@ package controlplane
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/Masterminds/semver"
 	"github.com/coreos/go-systemd/v22/unit"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
-	v1alpha1constants "github.com/gardener/gardener/pkg/apis/core/v1alpha1/constants"
+
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
@@ -25,6 +28,7 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	appsv1 "k8s.io/api/apps/v1"
@@ -32,13 +36,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // NewEnsurer creates a new controlplane ensurer.
-func NewEnsurer(logger logr.Logger, controllerConfig config.ControllerConfiguration) genericmutator.Ensurer {
+func NewEnsurer(mgr manager.Manager, logger logr.Logger, controllerConfig config.ControllerConfiguration) genericmutator.Ensurer {
 	return &ensurer{
 		logger:           logger.WithName("metal-controlplane-ensurer"),
 		controllerConfig: controllerConfig,
+		client:           mgr.GetClient(),
 	}
 }
 
@@ -47,12 +53,6 @@ type ensurer struct {
 	client           client.Client
 	logger           logr.Logger
 	controllerConfig config.ControllerConfiguration
-}
-
-// InjectClient injects the given client into the ensurer.
-func (e *ensurer) InjectClient(client client.Client) error {
-	e.client = client
-	return nil
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
@@ -74,8 +74,9 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
-	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
-		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return err
 	}
 
 	makeAuditForwarder := false
@@ -94,6 +95,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		}
 	}
 
+	genericTokenKubeconfigSecretName := extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster)
+
 	auditToSplunk := false
 	if validation.AuditToSplunkEnabled(&e.controllerConfig, cpConfig) {
 		auditToSplunk = true
@@ -104,12 +107,15 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c, makeAuditForwarder)
 		ensureVolumeMounts(c, makeAuditForwarder)
-		ensureVolumes(ps, makeAuditForwarder, auditToSplunk)
+		ensureVolumes(ps, genericTokenKubeconfigSecretName, makeAuditForwarder, auditToSplunk)
 	}
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
-		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
+		ensureVPNSeedEnvVars(c, nodeCIDR)
 	}
 	if makeAuditForwarder {
+		// required because auditforwarder uses kube-apiserver and not localhost
+		template.Labels["networking.resources.gardener.cloud/to-kube-apiserver-tcp-443"] = "allowed"
+
 		err := ensureAuditForwarder(ps, auditToSplunk)
 		if err != nil {
 			logger.Error(err, "could not ensure the audit forwarder", "Cluster name", cluster.ObjectMeta.Name)
@@ -201,64 +207,70 @@ var (
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		},
 	}
-	auditKubeconfig = corev1.Volume{
-		Name: "kubeconfig",
-		VolumeSource: corev1.VolumeSource{
-			Projected: &corev1.ProjectedVolumeSource{
-				DefaultMode: pointer.Pointer(int32(420)),
-				Sources: []corev1.VolumeProjection{
-					{
-						Secret: &corev1.SecretProjection{
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "kubeconfig",
-									Path: "kubeconfig",
+	auditKubeconfig = func(genericKubeconfigSecretName string) corev1.Volume {
+		return corev1.Volume{
+			Name: "kubeconfig",
+			VolumeSource: corev1.VolumeSource{
+				Projected: &corev1.ProjectedVolumeSource{
+					DefaultMode: pointer.Pointer(int32(420)),
+					Sources: []corev1.VolumeProjection{
+						{
+							Secret: &corev1.SecretProjection{
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "kubeconfig",
+										Path: "kubeconfig",
+									},
 								},
-							},
-							Optional: pointer.Pointer(false),
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: v1beta1constants.SecretNameGenericTokenKubeconfig,
+								Optional: pointer.Pointer(false),
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: genericKubeconfigSecretName,
+								},
 							},
 						},
-					},
-					{
-						Secret: &corev1.SecretProjection{
-							Items: []corev1.KeyToPath{
-								{
-									Key:  "token",
-									Path: "token",
+						{
+							Secret: &corev1.SecretProjection{
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "token",
+										Path: "token",
+									},
 								},
-							},
-							Optional: pointer.Pointer(false),
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: gutil.SecretNamePrefixShootAccess + metal.AudittailerClientSecretName,
+								Optional: pointer.Pointer(false),
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: gutil.SecretNamePrefixShootAccess + metal.AudittailerClientSecretName,
+								},
 							},
 						},
 					},
 				},
 			},
-		},
+		}
 	}
 	reversedVpnVolumeMounts = []corev1.VolumeMount{
 		{
-			Name:      "kube-apiserver-http-proxy",
+			Name:      "ca-vpn",
 			MountPath: "/proxy/ca",
 			ReadOnly:  true,
 		},
 		{
-			Name:      "kube-aggregator",
+			Name:      "http-proxy",
 			MountPath: "/proxy/client",
 			ReadOnly:  true,
 		},
 	}
 	kubeAggregatorClientTlsEnvVars = []corev1.EnvVar{
 		{
+			Name:  "AUDIT_PROXY_CA_FILE",
+			Value: "/proxy/ca/bundle.crt",
+		},
+		{
 			Name:  "AUDIT_PROXY_CLIENT_CRT_FILE",
-			Value: "/proxy/client/kube-aggregator.crt",
+			Value: "/proxy/client/tls.crt",
 		},
 		{
 			Name:  "AUDIT_PROXY_CLIENT_KEY_FILE",
-			Value: "/proxy/client/kube-aggregator.key",
+			Value: "/proxy/client/tls.key",
 		},
 	}
 	auditForwarderSidecarTemplate = corev1.Container{
@@ -331,9 +343,10 @@ func ensureVolumeMounts(c *corev1.Container, makeAuditForwarder bool) {
 	}
 }
 
-func ensureVolumes(ps *corev1.PodSpec, makeAuditForwarder, auditToSplunk bool) {
+func ensureVolumes(ps *corev1.PodSpec, genericKubeconfigSecretName string, makeAuditForwarder, auditToSplunk bool) {
 	if makeAuditForwarder {
-		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditKubeconfig)
+
+		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditKubeconfig(genericKubeconfigSecretName))
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditPolicyVolume)
 		ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, auditLogVolume)
 	}
@@ -379,7 +392,7 @@ func ensureAuditForwarder(ps *corev1.PodSpec, auditToSplunk bool) error {
 
 	for _, volume := range ps.Volumes {
 		switch volume.Name {
-		case "kube-apiserver-http-proxy":
+		case "egress-selection-config":
 			proxyHost = "vpn-seed-server"
 		}
 	}
@@ -460,7 +473,7 @@ func ensureKubeControllerManagerAnnotations(t *corev1.PodTemplateSpec) {
 }
 
 func (e *ensurer) ensureChecksumAnnotations(ctx context.Context, template *corev1.PodTemplateSpec, namespace string) error {
-	return controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, v1alpha1constants.SecretNameCloudProvider)
+	return controlplane.EnsureSecretChecksumAnnotation(ctx, template, e.client, namespace, v1beta1constants.SecretNameCloudProvider)
 }
 
 // EnsureKubeletServiceUnitOptions ensures that the kubelet.service unit options conform to the provider requirements.
@@ -504,16 +517,178 @@ func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
-	if infrastructure == nil || infrastructure.Status.NodesCIDR == nil {
-		return fmt.Errorf("nodeCIDR was not yet set by infrastructure controller")
+	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
+	if err != nil {
+		return err
 	}
 
 	template := &new.Spec.Template
 	ps := &template.Spec
 
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed-server"); c != nil {
-		ensureVPNSeedEnvVars(c, *infrastructure.Status.NodesCIDR)
+		ensureVPNSeedEnvVars(c, nodeCIDR)
 	}
 
 	return nil
+}
+
+// TODO:
+// - Write configuration also into shoot.spec.worker[n].image.providerconfig, but then the worker rolls ?
+// - calculate hash over containerd/config.toml and add to containerd.service Unit to trigger restart on changes
+
+// EnsureAdditionalFiles adds additional files to override DNS and NTP configurations from the NetworkIsolation.
+func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.GardenContext, new, old *[]extensionsv1alpha1.File) error {
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
+	controlPlaneConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+	if err != nil {
+		return err
+	}
+
+	networkAccessType := metalapi.NetworkAccessBaseline
+	if controlPlaneConfig.NetworkAccessType != nil {
+		networkAccessType = *controlPlaneConfig.NetworkAccessType
+	}
+
+	if networkAccessType == metalapi.NetworkAccessBaseline {
+		return nil
+	}
+
+	infra := &extensionsv1alpha1.Infrastructure{}
+	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infra); err != nil {
+		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
+		return err
+	}
+
+	infraConf, err := helper.InfrastructureConfigFromInfrastructure(infra)
+	if err != nil {
+		return err
+	}
+
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return err
+	}
+
+	_, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, infraConf.PartitionID)
+	if err != nil {
+		return err
+	}
+
+	if partition.NetworkIsolation == nil {
+		return nil
+	}
+
+	if networkAccessType != metalapi.NetworkAccessBaseline {
+		dnsFiles := additionalDNSConfFiles(partition.NetworkIsolation.DNSServers)
+		for _, f := range dnsFiles {
+			*new = extensionswebhook.EnsureFileWithPath(*new, f)
+		}
+
+		ntpFiles := additionalNTPConfFiles(partition.NetworkIsolation.NTPServers)
+		for _, f := range ntpFiles {
+			*new = extensionswebhook.EnsureFileWithPath(*new, f)
+		}
+
+		containerdFiles := additionalContainterdConfigFiles(partition.NetworkIsolation.RegistryMirrors)
+		for _, f := range containerdFiles {
+			*new = extensionswebhook.EnsureFileWithPath(*new, f)
+		}
+	}
+
+	return nil
+}
+
+func additionalDNSConfFiles(dnsServers []string) []extensionsv1alpha1.File {
+	resolveDNS := strings.Join(dnsServers, " ")
+	systemdResolvedConfd := fmt.Sprintf(`# Generated by gardener-extension-provider-metal
+
+[Resolve]
+DNS=%s
+Domain=~.
+
+`, resolveDNS)
+	resolvConf := "# Generated by gardener-extension-provider-metal\n"
+	for _, ip := range dnsServers {
+		resolvConf += fmt.Sprintf("nameserver %s\n", ip)
+	}
+
+	return []extensionsv1alpha1.File{
+		{
+			Path: "/etc/systemd/resolved.conf.d/dns.conf",
+			Content: extensionsv1alpha1.FileContent{
+				Inline: &extensionsv1alpha1.FileContentInline{
+					Encoding: string(extensionsv1alpha1.B64FileCodecID),
+					Data:     base64.StdEncoding.EncodeToString([]byte(systemdResolvedConfd)),
+				},
+			},
+		},
+		{
+			Path: "/etc/resolv.conf",
+			Content: extensionsv1alpha1.FileContent{
+				Inline: &extensionsv1alpha1.FileContentInline{
+					Encoding: string(extensionsv1alpha1.B64FileCodecID),
+					Data:     base64.StdEncoding.EncodeToString([]byte(resolvConf)),
+				},
+			},
+		},
+	}
+}
+
+func additionalNTPConfFiles(ntpServers []string) []extensionsv1alpha1.File {
+	ntps := strings.Join(ntpServers, " ")
+	renderedContent := fmt.Sprintf(`# Generated by gardener-extension-provider-metal
+
+[Time]
+NTP=%s
+`, ntps)
+
+	return []extensionsv1alpha1.File{
+		{
+			Path: "/etc/systemd/timesyncd.conf",
+			Content: extensionsv1alpha1.FileContent{
+				Inline: &extensionsv1alpha1.FileContentInline{
+					Encoding: string(extensionsv1alpha1.B64FileCodecID),
+					Data:     base64.StdEncoding.EncodeToString([]byte(renderedContent)),
+				},
+			},
+		},
+	}
+}
+
+func additionalContainterdConfigFiles(mirrors []metalapi.RegistryMirror) []extensionsv1alpha1.File {
+	if len(mirrors) == 0 {
+		return nil
+	}
+	// TODO: other parties might also want to write to the containerd config.toml.
+	// For this case we might want to unmarshal any existing new file to add and patch it with our changes.
+	renderedContent := `# Generated by gardener-extension-provider-metal
+imports = ["/etc/containerd/conf.d/*.toml"]
+version = 2
+
+[plugins."io.containerd.grpc.v1.cri".registry]
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+`
+	for _, m := range mirrors {
+		for _, of := range m.MirrorOf {
+			renderedContent += fmt.Sprintf(`    [plugins."io.containerd.grpc.v1.cri".registry.mirrors.%q]
+      endpoint = [%q]
+`, of, m.Endpoint)
+		}
+	}
+
+	return []extensionsv1alpha1.File{
+		{
+			Path: "/etc/containerd/config.toml",
+			Content: extensionsv1alpha1.FileContent{
+				Inline: &extensionsv1alpha1.FileContentInline{
+					Encoding: string(extensionsv1alpha1.B64FileCodecID),
+					Data:     base64.StdEncoding.EncodeToString([]byte(renderedContent)),
+				},
+			},
+		},
+	}
 }

@@ -6,11 +6,16 @@ image:
 replicaCount: 1
 resources: {}
 
+metricsPort: 8080
+healthPort: 8081
+
 controllers:
   controlplane:
     concurrentSyncs: 5
   infrastructure:
     concurrentSyncs: 5
+  heartbeat:
+    renewIntervalSeconds: 30
   worker:
     concurrentSyncs: 5
   ignoreOperationAnnotation: false
@@ -35,6 +40,13 @@ disableWebhooks: []
 webhookConfig:
   serverPort: 443
 
+## settings for metrics, e.g. scraping by seed-prometheus
+##
+metrics:
+  ## enable metrics scraping
+  ##
+  enableScraping: true
+
 config:
   clientConnection:
     acceptContentTypes: application/json
@@ -42,7 +54,9 @@ config:
     qps: 100
     burst: 130
   machineImages: []
+# FIXME remove
   egressDestinations: []
+  firewallInternalPrefixes: []
   etcd:
     storage:
       className:
@@ -50,17 +64,6 @@ config:
     backup:
       schedule:
       deltaSnapshotPeriod:
-  accountingExporter:
-    enabled: false
-    networkTraffic:
-      enabled: false
-      internalNetworks: []
-    clientConfig:
-      hostname:
-      port:
-      ca:
-      cert:
-      certkey:
   clusterAudit:
     enabled: false
   auditToSplunk:
@@ -75,6 +78,7 @@ config:
     duros:
       enabled: false
       partitionConfig: {}
+  imagePullPolicy: IfNotPresent
   imagePullSecret:
     encodedDockerConfigJSON:
 

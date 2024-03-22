@@ -102,6 +102,26 @@ spec:
                   spec:
                     description: Spec contains the firewall specification.
                     properties:
+                      allowedNetworks:
+                        description: AllowedNetworks defines dedicated networks for
+                          which the firewall allows in- and outgoing traffic. The
+                          firewall-controller only enforces this setting in combination
+                          with NetworkAccessType set to forbidden. The node network
+                          is always allowed.
+                        properties:
+                          egress:
+                            description: Egress defines a list of cidrs which are
+                              allowed for outgoing traffic.
+                            items:
+                              type: string
+                            type: array
+                          ingress:
+                            description: Ingress defines a list of cidrs which are
+                              allowed for incoming traffic like service type loadbalancer.
+                            items:
+                              type: string
+                            type: array
+                        type: object
                       controllerURL:
                         description: ControllerURL points to the downloadable binary
                           artifact of the firewall controller.

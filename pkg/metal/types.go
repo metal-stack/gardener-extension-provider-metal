@@ -12,8 +12,6 @@ const (
 	MCMProviderMetalImageName = "machine-controller-manager-provider-metal"
 	// CCMImageName is the name of the cloud controller manager image.
 	CCMImageName = "metalccm"
-	// AccountingExporterImageName is the name of the accounting exporter image
-	AccountingExporterImageName = "accounting-exporter"
 	// AudittailerImageName is the name of the Audittailer to deploy to the shoot.
 	AudittailerImageName = "audittailer"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
@@ -32,8 +30,8 @@ const (
 	DurosResourceName = "shoot-default-storage"
 	// NodeInitImageName is the name of the node-init to deploy to the shoot.
 	NodeInitImageName = "node-init"
-	// KubectlImageName is the name of the kubectl image used for metallb health checking to deploy to the shoot.
-	KubectlImageName = "kubectl"
+	// MetallbHealthSidecarImageName is the name of the metallb health sidecar image used for metallb health checking to deploy to the shoot.
+	MetallbHealthSidecarImageName = "metallb-health-sidecar"
 
 	// APIKey is a constant for the key in a cloud provider secret.
 	APIKey = "metalAPIKey"
@@ -69,8 +67,6 @@ const (
 	CloudControllerManagerDeploymentName = "cloud-controller-manager"
 	// CloudControllerManagerServerName is the name of the secret containing the certificates for the cloud controller manager server.
 	CloudControllerManagerServerName = "cloud-controller-manager-server"
-	// AccountingExporterName is the name of the deployment for the accounting exporter.
-	AccountingExporterName = "accounting-exporter"
 	// DurosControllerDeploymentName is the name of the deployment for the duros-controller.
 	DurosControllerDeploymentName = "duros-controller"
 	// FirewallControllerManagerDeploymentName is the name of the deployment for the firewall controller manager

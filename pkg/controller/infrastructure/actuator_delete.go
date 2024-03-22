@@ -16,21 +16,25 @@ import (
 	"github.com/metal-stack/metal-go/api/models"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
 
-	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type networkDeleter struct {
 	ctx                  context.Context
 	logger               logr.Logger
+	cluster              *extensionscontroller.Cluster
 	infrastructure       *extensionsv1alpha1.Infrastructure
 	infrastructureConfig *metalapi.InfrastructureConfig
 	mclient              metalgo.Client
 	clusterID            string
 }
 
-func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
 	internalInfrastructureConfig, _, err := decodeInfrastructure(infrastructure, a.decoder)
 	if err != nil {
 		return err
@@ -53,7 +57,8 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 
 	deleter := &networkDeleter{
 		ctx:                  ctx,
-		logger:               a.logger,
+		logger:               logger,
+		cluster:              cluster,
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
 		mclient:              mclient,
@@ -68,13 +73,40 @@ func (a *actuator) Delete(ctx context.Context, infrastructure *extensionsv1alpha
 		}
 	}
 
+	// the valuesprovider is unable to cleanup the mutating and validating webhooks
+	// because these are not namespaced and the names are determined at runtime
+	//
+	// so we clean it up here after control plane has terminated.
+
+	name := "firewall-controller-manager-" + cluster.ObjectMeta.Name
+
+	mwc := &admissionregistrationv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	err = a.client.Delete(ctx, mwc)
+	if client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("unable to cleanup firewall-controller-manager mutating webhook")
+	}
+
+	vwc := &admissionregistrationv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	err = a.client.Delete(ctx, vwc)
+	if client.IgnoreNotFound(err) != nil {
+		return fmt.Errorf("unable to cleanup firewall-controller-manager validating webhook")
+	}
+
 	return nil
 }
 
 func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 	ipsToFree, ipsToUpdate, err := metalclient.GetEphemeralIPsFromCluster(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, d.clusterID)
 	if err != nil {
-		a.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
+		d.logger.Error(err, "failed to query ephemeral cluster ips", "infrastructure", d.infrastructure.Name, "clusterID", d.clusterID)
 		return err
 	}
 
@@ -109,19 +141,22 @@ func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 		}
 	}
 
-	if d.infrastructure.Status.NodesCIDR != nil {
-		privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, *d.infrastructure.Status.NodesCIDR)
-		if err != nil {
-			d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", *d.infrastructure.Status.NodesCIDR)
-			return err
-		}
+	nodeCIDR, err := helper.GetNodeCIDR(d.infrastructure, d.cluster)
+	if err != nil {
+		return fmt.Errorf("unable to cleanup private networks as the node cidr is not defined: %w", err)
+	}
 
-		for _, pn := range privateNetworks {
-			_, err := d.mclient.Network().FreeNetwork(network.NewFreeNetworkParams().WithID(*pn.ID).WithContext(d.ctx), nil)
-			if err != nil {
-				d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID)
-				return err
-			}
+	privateNetworks, err := metalclient.GetPrivateNetworksFromNodeNetwork(d.ctx, d.mclient, d.infrastructureConfig.ProjectID, nodeCIDR)
+	if err != nil {
+		d.logger.Error(err, "failed to query private network", "infrastructure", d.infrastructure.Name, "nodeCIDR", nodeCIDR)
+		return err
+	}
+
+	for _, pn := range privateNetworks {
+		_, err := d.mclient.Network().FreeNetwork(network.NewFreeNetworkParams().WithID(*pn.ID).WithContext(d.ctx), nil)
+		if err != nil {
+			d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID)
+			return err
 		}
 	}
 

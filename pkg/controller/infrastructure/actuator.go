@@ -10,65 +10,30 @@ import (
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	gardenerkubernetes "github.com/gardener/gardener/pkg/client/kubernetes"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/go-logr/logr"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 type actuator struct {
-	logger logr.Logger
-
-	clientset         kubernetes.Interface
-	gardenerClientset gardenerkubernetes.Interface
-	restConfig        *rest.Config
-
-	client  client.Client
-	scheme  *runtime.Scheme
-	decoder runtime.Decoder
+	restConfig *rest.Config
+	client     client.Client
+	decoder    runtime.Decoder
 }
 
 // NewActuator creates a new Actuator that updates the status of the handled Infrastructure resources.
-func NewActuator() infrastructure.Actuator {
+func NewActuator(mgr manager.Manager) infrastructure.Actuator {
 	return &actuator{
-		logger: log.Log.WithName("infrastructure-actuator"),
+		client:     mgr.GetClient(),
+		decoder:    serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
+		restConfig: mgr.GetConfig(),
 	}
-}
-
-func (a *actuator) InjectScheme(scheme *runtime.Scheme) error {
-	a.scheme = scheme
-	a.decoder = serializer.NewCodecFactory(a.scheme).UniversalDecoder()
-	return nil
-}
-
-func (a *actuator) InjectClient(client client.Client) error {
-	a.client = client
-	return nil
-}
-
-func (a *actuator) InjectConfig(config *rest.Config) error {
-	var err error
-	a.clientset, err = kubernetes.NewForConfig(config)
-	if err != nil {
-		return fmt.Errorf("could not create Kubernetes client %w", err)
-	}
-
-	a.gardenerClientset, err = gardenerkubernetes.NewWithConfig(gardenerkubernetes.WithRESTConfig(config))
-	if err != nil {
-		return fmt.Errorf("could not create Gardener client %w", err)
-	}
-
-	a.restConfig = config
-	return nil
 }
 
 func decodeInfrastructure(infrastructure *extensionsv1alpha1.Infrastructure, decoder runtime.Decoder) (*metalapi.InfrastructureConfig, *metalapi.InfrastructureStatus, error) {

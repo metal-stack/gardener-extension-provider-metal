@@ -1,8 +1,10 @@
+{{- if .Values.nodeInit.enabled }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: node-init
   namespace: kube-system
+{{- if not .Values.pspDisabled }}
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -22,6 +24,7 @@ spec:
   volumes:
   - secret
   hostNetwork: true
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -36,6 +39,7 @@ rules:
   - watch
   - list
   - get
+{{- if not .Values.pspDisabled }}
 - apiGroups:
   - extensions
   resources:
@@ -44,6 +48,7 @@ rules:
   - node-init
   verbs:
   - use
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -100,3 +105,4 @@ spec:
         operator: Exists
       - effect: NoExecute
         operator: Exists
+{{- end }}

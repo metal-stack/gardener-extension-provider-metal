@@ -11,6 +11,28 @@ spec:
   policyTypes:
   - Egress
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: droptailer-server
+  namespace: firewall
+type: Opaque
+data:
+  ca.crt: {{ .Values.droptailer.server.ca }}
+  tls.crt: {{ .Values.droptailer.server.cert }}
+  tls.key: {{ .Values.droptailer.server.key }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: droptailer-client
+  namespace: firewall
+type: Opaque
+data:
+  ca.crt: {{ .Values.droptailer.client.ca }}
+  tls.crt: {{ .Values.droptailer.client.cert }}
+  tls.key: {{ .Values.droptailer.client.key }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,20 +50,18 @@ spec:
         k8s-app: droptailer
         app: droptailer
         networking.gardener.cloud/from-prometheus: allowed
+{{- if .Values.droptailer.podAnnotations }}
+      annotations:
+{{ toYaml .Values.droptailer.podAnnotations | indent 8 }}
+{{- end }}
     spec:
       containers:
       - image: {{ index .Values.images "droptailer" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         name: droptailer
         ports:
         - protocol: TCP
           containerPort: 50051
-        securityContext:
-          runAsUser: 65534
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
         env:
         - name: SERVER_CERTIFICATE
           value: /certificates/tls.crt
@@ -57,9 +77,20 @@ spec:
           limits:
             cpu: 50m
             memory: 200Mi
+        securityContext:
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+{{- if semverCompare ">= 1.19" .Capabilities.KubeVersion.GitVersion }}
+          seccompProfile:
+            type: RuntimeDefault
+{{- end }}
+          capabilities:
+            drop:
+            - ALL
       restartPolicy: Always
       automountServiceAccountToken: false
       volumes:
       - name: droptailer-server
         secret:
-          secretName: {{ .Values.droptailer.secretName }}
+          secretName: droptailer-server

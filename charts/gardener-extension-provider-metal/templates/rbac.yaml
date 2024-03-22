@@ -9,9 +9,17 @@ rules:
 - apiGroups:
   - extensions.gardener.cloud
   resources:
+  - backupbuckets
+  - backupbuckets/status
+  - backupentries
+  - backupentries/status
+  - bastions
+  - bastions/status
   - clusters
   - controlplanes
   - controlplanes/status
+  - dnsrecords
+  - dnsrecords/status
   - infrastructures
   - infrastructures/status
   - workers
@@ -34,15 +42,17 @@ rules:
   - leases
   verbs:
   - create
+  - list
+  - watch
 - apiGroups:
   - coordination.k8s.io
   resources:
   - leases
   resourceNames:
   - provider-metal-leader-election
+  - gardener-extension-heartbeat
   verbs:
   - get
-  - watch
   - update
 - apiGroups:
   - ""
@@ -60,6 +70,7 @@ rules:
   - configmaps
   - endpoints
   - deployments
+  - deployments/scale
   - services
   - serviceaccounts
   - clusterroles
@@ -79,12 +90,6 @@ rules:
   - machine.sapcloud.io
   resources:
   - "*"
-  verbs:
-  - "*"
-- apiGroups:
-  - autoscaling.k8s.io
-  resources:
-  - verticalpodautoscalers
   verbs:
   - "*"
 # metal-specific rules:
@@ -127,6 +132,24 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - autoscaling.k8s.io
+  resources:
+  - verticalpodautoscalers
+  verbs:
+  - "*"
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - patch
+  - update
+  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

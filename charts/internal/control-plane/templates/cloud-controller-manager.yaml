@@ -47,7 +47,9 @@ spec:
         networking.gardener.cloud/from-prometheus: allowed
         networking.gardener.cloud/to-dns: allowed
         networking.gardener.cloud/to-shoot-apiserver: allowed
+        networking.gardener.cloud/to-private-networks: "allowed"
         networking.gardener.cloud/to-public-networks: allowed
+        networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: "allowed"
     spec:
       tolerations:
       - effect: NoExecute
@@ -56,7 +58,7 @@ spec:
       containers:
       - name: cloud-controller-manager
         image: {{ index .Values.images "metalccm" }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
         command:
         - ./metal-cloud-controller-manager
         - --cluster-cidr={{ .Values.cloudControllerManager.podNetwork }}
@@ -96,6 +98,8 @@ spec:
             value: {{ .Values.cloudControllerManager.defaultExternalNetwork }}
           - name: METAL_ADDITIONAL_NETWORKS
             value: {{ .Values.cloudControllerManager.additionalNetworks }}
+          - name: METAL_SSH_PUBLICKEY
+            value: {{ .Values.cloudControllerManager.sshPublicKey | quote }}
         livenessProbe:
           httpGet:
             path: /healthz

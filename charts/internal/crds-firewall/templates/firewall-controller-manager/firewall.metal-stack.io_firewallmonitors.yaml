@@ -108,6 +108,9 @@ spec:
               lastRun:
                 format: date-time
                 type: string
+              lastRunAgainstSeed:
+                format: date-time
+                type: string
               message:
                 type: string
               nftablesExporterVersion:

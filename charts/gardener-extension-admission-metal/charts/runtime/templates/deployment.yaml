@@ -19,6 +19,9 @@ spec:
         checksum/gardener-extension-admission-metal-kubeconfig: {{ include (print $.Template.BasePath "/secret-kubeconfig.yaml") . | sha256sum }}
         {{- end }}
       labels:
+        networking.gardener.cloud/to-dns: allowed
+        networking.resources.gardener.cloud/to-virtual-garden-kube-apiserver-tcp-443: allowed
+        networking.gardener.cloud/to-runtime-apiserver: allowed
 {{ include "labels" . | indent 8 }}
     spec:
       {{- if .Values.global.kubeconfig }}
@@ -38,20 +41,31 @@ spec:
         {{- if .Values.global.kubeconfig }}
         - --kubeconfig=/etc/gardener-extension-admission-metal/kubeconfig/kubeconfig
         {{- end }}
+        - --health-bind-address=:{{ .Values.global.healthPort }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.global.healthPort }}
+            scheme: HTTP
+          initialDelaySeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: {{ .Values.global.healthPort }}
+            scheme: HTTP
+          initialDelaySeconds: 5
         ports:
         - name: webhook-server
           containerPort: {{ .Values.global.webhookConfig.serverPort }}
           protocol: TCP
-        # FIXME: This is somehow making trouble and leads to shutdown
-        # livenessProbe:
-        #   httpGet:
-        #     port: {{ .Values.global.webhookConfig.serverPort }}
-        #     scheme: HTTPS
-        #   initialDelaySeconds: 5
-        #   periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: {{ .Values.global.webhookConfig.serverPort }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
         env:
-{{- range $key, $value := .Values.defaulter }}
-{{- if $value }}
+{{- range $key, $value := .Values.global.defaulter }}
+{{- if ne nil $value }}
           - name: DEFAULTER_{{ upper $key }}
             value: {{ $value | quote }}
 {{- end }}

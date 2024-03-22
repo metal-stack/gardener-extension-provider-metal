@@ -7,7 +7,9 @@ metadata:
 spec:
   egress:
   - to:
-    - cidr: 0.0.0.0/0
+    {{- range $dest := .Values.networkAccess.dnsCidrs }}
+    - cidr: {{ $dest }}
+    {{- end }}
     ports:
     - protocol: UDP
       port: 53
@@ -22,11 +24,47 @@ metadata:
 spec:
   egress:
   - to:
-    - cidr: 0.0.0.0/0
+    {{- range $dest := .Values.networkAccess.ntpCidrs }}
+    - cidr: {{ $dest }}
+    {{- end }}
     ports:
     - protocol: UDP
       port: 123
-
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-vpn
+  namespace: firewall
+spec:
+  egress:
+  - ports:
+    - port: 4314
+      protocol: UDP
+    - port: 4314
+      protocol: TCP
+    to:
+  {{- range $i, $ip := .Values.apiserverIPs }}
+      - cidr: {{ $ip }}/32
+  {{- end }}
+{{- if .Values.networkAccess.restrictedOrForbidden }}
+---
+apiVersion: metal-stack.io/v1
+kind: ClusterwideNetworkPolicy
+metadata:
+  name: allow-to-registry
+  namespace: firewall
+spec:
+  egress:
+  {{- range $i, $reg := .Values.networkAccess.registryMirrors }}
+  - to:
+    - cidr: {{ quote $reg.cidr }}
+    ports:
+    - protocol: TCP
+      port: {{ $reg.port }}
+  {{- end }}
+{{- end }}
+# FIXME remove and replace with appropriate cwnp based on networkAccessType
 {{- if .Values.restrictEgress.enabled }}
 ---
 apiVersion: metal-stack.io/v1
@@ -70,7 +108,7 @@ spec:
 {{- end }}
 
 {{- else }}
-
+{{- if not .Values.networkAccess.restrictedOrForbidden }}
 ---
 apiVersion: metal-stack.io/v1
 kind: ClusterwideNetworkPolicy
@@ -97,6 +135,7 @@ spec:
     ports:
     - protocol: TCP
       port: 80
+{{- end }}
 {{- if gt (len .Values.apiserverIPs) 0 }}
 ---
 apiVersion: metal-stack.io/v1
@@ -118,22 +157,6 @@ spec:
     - protocol: TCP
       port: 8132
 {{- end }}
----
-apiVersion: metal-stack.io/v1
-kind: ClusterwideNetworkPolicy
-metadata:
-  name: allow-to-vpn
-  namespace: firewall
-spec:
-  egress:
-  - ports:
-    - port: 4314
-      protocol: UDP
-    - port: 4314
-      protocol: TCP
-    to:
-    - cidr: 0.0.0.0/0
-
 {{- end }}
 
 {{- if .Values.duros.enabled }}

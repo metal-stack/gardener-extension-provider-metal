@@ -12,7 +12,9 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
+	"github.com/metal-stack/metal-lib/pkg/k8s"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -25,7 +27,11 @@ type defaulter struct {
 }
 
 func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
-	if shoot.Spec.Kubernetes.AllowPrivilegedContainers == nil {
+	lessThan125, err := k8s.LessThan(shoot.Spec.Kubernetes.Version, k8s.KubernetesV125)
+	if err != nil {
+		return err
+	}
+	if shoot.Spec.Kubernetes.AllowPrivilegedContainers == nil && lessThan125 {
 		shoot.Spec.Kubernetes.AllowPrivilegedContainers = pointer.Pointer(d.c.allowedPrivilegedContainers())
 	}
 
@@ -45,7 +51,7 @@ func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
 		shoot.Spec.Kubernetes.Kubelet.MaxPods = pointer.Pointer(d.c.maxPods())
 	}
 
-	err := d.defaultInfrastructureConfig(shoot)
+	err = d.defaultInfrastructureConfig(shoot)
 	if err != nil {
 		return err
 	}
@@ -81,8 +87,17 @@ func (d *defaulter) defaultInfrastructureConfig(shoot *gardenv1beta1.Shoot) erro
 }
 
 func (d *defaulter) defaultNetworking(shoot *gardenv1beta1.Shoot) error {
-	if shoot.Spec.Networking.Type == "" {
-		shoot.Spec.Networking.Type = d.c.networkType()
+	if len(shoot.Spec.Provider.Workers) == 0 {
+		// this is the workerless shoot case, don't default a network configuration
+		return nil
+	}
+
+	if shoot.Spec.Networking == nil {
+		shoot.Spec.Networking = &gardenv1beta1.Networking{}
+	}
+
+	if pointer.SafeDeref(shoot.Spec.Networking.Type) == "" {
+		shoot.Spec.Networking.Type = pointer.Pointer(d.c.networkType())
 	}
 
 	if shoot.Spec.Networking.Pods == nil {
@@ -98,7 +113,7 @@ func (d *defaulter) defaultNetworking(shoot *gardenv1beta1.Shoot) error {
 		return nil
 	}
 
-	switch shoot.Spec.Networking.Type {
+	switch pointer.SafeDeref(shoot.Spec.Networking.Type) {
 	case "calico":
 		err := d.defaultCalicoConfig(shoot)
 		if err != nil {
