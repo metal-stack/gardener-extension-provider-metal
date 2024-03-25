@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: firewallmonitors.firewall.metal-stack.io
 spec:
   group: firewall.metal-stack.io
@@ -36,14 +35,16 @@ spec:
     name: v2
     schema:
       openAPIV3Schema:
-        description: FirewallMonitor is typically deployed into the shoot cluster
-          in comparison to the other resources of this controller which are deployed
-          into the seed cluster's shoot namespace.
+        description: |-
+          FirewallMonitor is typically deployed into the shoot cluster in comparison to the other resources of this controller
+          which are deployed into the seed cluster's shoot namespace.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           conditions:
             description: Conditions contain the latest available observations of a
@@ -89,19 +90,18 @@ spec:
               controllerVersion:
                 type: string
               distance:
-                description: FirewallDistance defines the as-path length of firewalls,
-                  influencing how strong they attract network traffic for routing
-                  traffic in and out of the cluster. This is of particular interest
-                  during rolling firewall updates, i.e. when there is more than a
-                  single firewall running in front of the cluster. During a rolling
-                  update, new firewalls start with a longer distance such that traffic
-                  is only attracted by the existing firewalls ("firewall staging").
-                  When the new firewall has connected successfully to the firewall
-                  monitor, the deployment controller throws away the old firewalls
-                  and the new firewall takes over the routing. The deployment controller
-                  will then shorten the distance of the new firewall. This approach
-                  reduces service interruption of the external user traffic of the
-                  cluster (for firewall-controller versions that support this feature).
+                description: |-
+                  FirewallDistance defines the as-path length of firewalls, influencing how strong they attract
+                  network traffic for routing traffic in and out of the cluster.
+                  This is of particular interest during rolling firewall updates, i.e. when there is
+                  more than a single firewall running in front of the cluster.
+                  During a rolling update, new firewalls start with a longer distance such that
+                  traffic is only attracted by the existing firewalls ("firewall staging").
+                  When the new firewall has connected successfully to the firewall monitor, the deployment
+                  controller throws away the old firewalls and the new firewall takes over the routing.
+                  The deployment controller will then shorten the distance of the new firewall.
+                  This approach reduces service interruption of the external user traffic of the cluster
+                  (for firewall-controller versions that support this feature).
                 type: integer
               distanceSupported:
                 type: boolean
@@ -209,9 +209,12 @@ spec:
             description: Image is the os image of the firewall.
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           logAcceptedConnections:
             description: LogAcceptedConnections if set to true, also log accepted
