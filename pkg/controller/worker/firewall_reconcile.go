@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -103,6 +104,11 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 	}
 
 	_, err = controllerutil.CreateOrUpdate(ctx, a.client, deploy, func() error {
+		if deploy.Annotations == nil {
+			deploy.Annotations = map[string]string{}
+		}
+		deploy.Annotations[fcmv2.ReconcileAnnotation] = strconv.FormatBool(true)
+
 		if deploy.Labels == nil {
 			deploy.Labels = map[string]string{}
 		}
