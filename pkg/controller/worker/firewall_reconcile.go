@@ -3,10 +3,8 @@ package worker
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
@@ -105,13 +103,6 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 	}
 
 	_, err = controllerutil.CreateOrUpdate(ctx, a.client, deploy, func() error {
-		if hasMaintainNowAnnotation(cluster) {
-			if deploy.Annotations == nil {
-				deploy.Annotations = map[string]string{}
-			}
-			deploy.Annotations[fcmv2.ReconcileAnnotation] = strconv.FormatBool(true)
-		}
-
 		if deploy.Labels == nil {
 			deploy.Labels = map[string]string{}
 		}
@@ -188,9 +179,4 @@ func mapEgressRules(egress []apismetal.EgressRule) []fcmv2.EgressRuleSNAT {
 		})
 	}
 	return result
-}
-
-func hasMaintainNowAnnotation(cluster *extensionscontroller.Cluster) bool {
-	operation, ok := cluster.Shoot.Annotations[constants.GardenerOperation]
-	return ok && operation == constants.ShootOperationMaintain
 }
