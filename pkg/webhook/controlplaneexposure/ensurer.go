@@ -81,11 +81,9 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 
 		if e.c.Storage.Capacity != nil {
 			new.Spec.StorageCapacity = e.c.Storage.Capacity
-			e.logger.Info("mutating capacity", "capacity", *e.c.Storage.Capacity)
 		}
 		if e.c.Storage.ClassName != nil {
 			new.Spec.StorageClass = e.c.Storage.ClassName
-			e.logger.Info("mutating storage class", "class", *e.c.Storage.ClassName)
 		}
 	}
 
@@ -96,8 +94,6 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 				return fmt.Errorf("unable to set delta snapshot period %w", err)
 			}
 			new.Spec.Backup.DeltaSnapshotPeriod = &v1.Duration{Duration: d}
-
-			e.logger.Info("mutating delta snapshot period", "period", d.String())
 		}
 
 		if e.c.Backup.Schedule != nil {
