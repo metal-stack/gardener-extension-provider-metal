@@ -70,7 +70,6 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 // EnsureETCD ensures that the etcd conform to the provider requirements.
 func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, new, old *druidv1alpha1.Etcd) error {
 	new.Spec.StorageCapacity = pointer.Pointer(resource.MustParse("16Gi"))
-	new.Spec.StorageClass = pointer.Pointer("")
 
 	if e.c == nil {
 		return nil
