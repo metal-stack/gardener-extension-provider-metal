@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.5.0
-	github.com/gardener/etcd-druid v0.18.4
+	github.com/gardener/etcd-druid v0.19.3
 	github.com/gardener/gardener v1.76.4
 	github.com/gardener/gardener-extension-networking-calico v1.27.2
 	github.com/gardener/gardener-extension-networking-cilium v1.19.0

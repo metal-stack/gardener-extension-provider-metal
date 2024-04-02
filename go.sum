@@ -720,8 +720,8 @@ github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=
 github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=
 github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=
-github.com/gardener/etcd-druid v0.18.4 h1:CyDQRRBPDXYSoNPaSnrs4lw3Ht+aD3LuQZQliJz+Gw0=
-github.com/gardener/etcd-druid v0.18.4/go.mod h1:NfBcP/xYSrbbtbPPFzEQ7CSQ73l+GtNQgx466Gv7FW0=
+github.com/gardener/etcd-druid v0.19.3 h1:5WmhGBnXWodUTwFwbXZomqTIwQfPlroEj5TB4SBMv0o=
+github.com/gardener/etcd-druid v0.19.3/go.mod h1:0Q9nKPiONDac/Gr0SZYFkVXHGt/Yt//rcRfDIUfftZo=
 github.com/gardener/gardener v1.76.4 h1:m47txbRFtg2sTgffoxoghFvVerc3PHbwBHj2ve+GUnc=
 github.com/gardener/gardener v1.76.4/go.mod h1:xqK/tGtxNF5wdCdtBtFqb2K6/u4s90gfW9gDPrmNLnM=
 github.com/gardener/gardener-extension-networking-calico v1.27.2 h1:9tOq6VtQ6gIkrYUZFQw1y8k9QNbS8kYqr5fqtq3FuMo=
