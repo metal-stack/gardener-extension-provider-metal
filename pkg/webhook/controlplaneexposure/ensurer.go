@@ -9,6 +9,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -68,13 +69,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 
 // EnsureETCD ensures that the etcd conform to the provider requirements.
 func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, new, old *druidv1alpha1.Etcd) error {
-	capacity := resource.MustParse("16Gi")
-	class := ""
-
-	defer func() {
-		new.Spec.StorageClass = &class
-		new.Spec.StorageCapacity = &capacity
-	}()
+	new.Spec.StorageCapacity = pointer.Pointer(resource.MustParse("16Gi"))
+	new.Spec.StorageClass = pointer.Pointer("")
 
 	if e.c == nil {
 		return nil
@@ -85,12 +81,12 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 		// after that the stateful set prevents the update.
 
 		if e.c.Storage.Capacity != nil {
-			capacity = *e.c.Storage.Capacity
-			e.logger.Info("mutating capacity", "capacity", capacity)
+			new.Spec.StorageCapacity = e.c.Storage.Capacity
+			e.logger.Info("mutating capacity", "capacity", *e.c.Storage.Capacity)
 		}
 		if e.c.Storage.ClassName != nil {
-			class = *e.c.Storage.ClassName
-			e.logger.Info("mutating storage class", "class", class)
+			new.Spec.StorageClass = e.c.Storage.ClassName
+			e.logger.Info("mutating storage class", "class", *e.c.Storage.ClassName)
 		}
 	}
 
