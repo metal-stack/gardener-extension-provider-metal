@@ -110,7 +110,7 @@ type AuditToSplunk struct {
 	HECCAFile  string
 }
 
-// StorageConfiguration contains the configuration for provider specfic storage solutions.
+// StorageConfiguration contains the configuration for provider specific storage solutions.
 type StorageConfiguration struct {
 	// Duros contains the configuration for duros cloud storage
 	Duros DurosConfiguration

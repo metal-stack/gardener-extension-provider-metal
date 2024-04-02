@@ -71,18 +71,28 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 	capacity := resource.MustParse("16Gi")
 	class := ""
 
-	if new.Name == v1beta1constants.ETCDMain && e.c != nil {
-		if old == nil {
-			// capacity and storage class can only be set on initial deployment
-			// after that the stateful set prevents the update.
+	defer func() {
+		new.Spec.StorageClass = &class
+		new.Spec.StorageCapacity = &capacity
+	}()
 
-			if e.c.Storage.Capacity != nil {
-				capacity = *e.c.Storage.Capacity
-			}
-			if e.c.Storage.ClassName != nil {
-				class = *e.c.Storage.ClassName
-			}
+	if e.c == nil {
+		return nil
+	}
+
+	if old == nil {
+		// capacity and storage class can only be set on initial deployment
+		// after that the stateful set prevents the update.
+
+		if e.c.Storage.Capacity != nil {
+			capacity = *e.c.Storage.Capacity
 		}
+		if e.c.Storage.ClassName != nil {
+			class = *e.c.Storage.ClassName
+		}
+	}
+
+	if new.Name == v1beta1constants.ETCDMain {
 
 		if e.c.Backup.DeltaSnapshotPeriod != nil {
 			d, err := time.ParseDuration(*e.c.Backup.DeltaSnapshotPeriod)
@@ -96,9 +106,6 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 			new.Spec.Backup.FullSnapshotSchedule = e.c.Backup.Schedule
 		}
 	}
-
-	new.Spec.StorageClass = &class
-	new.Spec.StorageCapacity = &capacity
 
 	return nil
 }
