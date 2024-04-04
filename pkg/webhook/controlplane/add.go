@@ -210,7 +210,9 @@ func (m *mutator) mutateResourceManagerConfigMap(_ context.Context, _ gcontext.G
 		return fmt.Errorf("unable to decode gardener-resource-manager configuration: %w", err)
 	}
 
-	config.TargetClientConnection.Namespaces = append(config.TargetClientConnection.Namespaces, "firewall", "metallb-system", "csi-lvm")
+	// TODO: audit is actually used by the gardener-extension-audit but it's not so easy:
+	// https://github.com/metal-stack/gardener-extension-audit/issues/24
+	config.TargetClientConnection.Namespaces = append(config.TargetClientConnection.Namespaces, "firewall", "metallb-system", "csi-lvm", "audit")
 
 	encoded, err := yaml.Marshal(config)
 	if err != nil {
