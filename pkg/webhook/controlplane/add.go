@@ -2,7 +2,6 @@ package controlplane
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -31,6 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -211,7 +212,7 @@ func (m *mutator) mutateResourceManagerConfigMap(_ context.Context, _ gcontext.G
 
 	config.TargetClientConnection.Namespaces = append(config.TargetClientConnection.Namespaces, "firewall", "metallb-system", "csi-lvm")
 
-	encoded, err := json.Marshal(config)
+	encoded, err := yaml.Marshal(config)
 	if err != nil {
 		return fmt.Errorf("unable to encode gardener-resource-manager configuration: %w", err)
 	}
