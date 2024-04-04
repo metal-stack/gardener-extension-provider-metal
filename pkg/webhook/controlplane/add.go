@@ -51,6 +51,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 		Kind:     controlplane.KindShoot,
 		Provider: metal.Type,
 		Types: []extensionswebhook.Type{
+			{Obj: &corev1.ConfigMap{}},
 			{Obj: &appsv1.Deployment{}},
 			{Obj: &extensionsv1alpha1.OperatingSystemConfig{}},
 		},
