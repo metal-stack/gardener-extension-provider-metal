@@ -109,6 +109,8 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 		}
 	case *corev1.ConfigMap:
 		if strings.HasPrefix(x.Name, "gardener-resource-manager-") {
+			// hopefully this whole mutation can be removed in a future version of Gardener where
+			// the namespaces are not hard-coded for the GRM
 			extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
 
 			err := m.mutateResourceManagerConfigMap(ctx, gctx, x)
@@ -210,10 +212,8 @@ func (m *mutator) mutateResourceManagerConfigMap(_ context.Context, _ gcontext.G
 		return fmt.Errorf("unable to decode gardener-resource-manager configuration: %w", err)
 	}
 
-	// TODO: audit is actually used by the gardener-extension-audit but it's not so easy:
-	// https://github.com/metal-stack/gardener-extension-audit/issues/24
-	// hopefully this whole mutation can be removed in a future version of Gardener where
-	// the namespaces are not hard-coded for the GRM
+	// TODO: audit is actually used by the gardener-extension-audit but this extension can be toggled on and off
+	// so actually need to resolve the problem differently: https://github.com/metal-stack/gardener-extension-audit/issues/24
 	config.TargetClientConnection.Namespaces = append(config.TargetClientConnection.Namespaces, "firewall", "metallb-system", "csi-lvm", "audit")
 
 	encoded, err := yaml.Marshal(config)
