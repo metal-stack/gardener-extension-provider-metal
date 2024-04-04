@@ -2,7 +2,9 @@ package controlplane
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
+	"fmt"
+	"strings"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	extensionscontextwebhook "github.com/gardener/gardener/extensions/pkg/webhook/context"
@@ -16,10 +18,13 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+
 	"github.com/gardener/gardener/pkg/component/extensions/operatingsystemconfig/original/components/kubelet"
 	oscutils "github.com/gardener/gardener/pkg/component/extensions/operatingsystemconfig/utils"
+	grmv1alpha1 "github.com/gardener/gardener/pkg/resourcemanager/apis/config/v1alpha1"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -88,27 +93,27 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 
 	switch x := new.(type) {
 	case *extensionsv1alpha1.OperatingSystemConfig:
-		var oldOSC *extensionsv1alpha1.OperatingSystemConfig
-		if old != nil {
-			var ok bool
-			oldOSC, ok = old.(*extensionsv1alpha1.OperatingSystemConfig)
-			if !ok {
-				return errors.New("could not cast old object to extensionsv1alpha1.OperatingSystemConfig")
-			}
-		}
-
 		extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
 
-		err := m.mutateOperatingSystemConfig(ctx, gctx, x, oldOSC)
+		err := m.mutateOperatingSystemConfig(ctx, gctx, x)
 		if err != nil {
 			return err
+		}
+	case *corev1.ConfigMap:
+		if strings.HasPrefix(x.Name, "gardener-resource-manager-") {
+			extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
+
+			err := m.mutateResourceManagerConfigMap(ctx, gctx, x)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return m.gardenerMutator.Mutate(ctx, new, old)
 }
 
-func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext.GardenContext, osc, _ *extensionsv1alpha1.OperatingSystemConfig) error {
+func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext.GardenContext, osc *extensionsv1alpha1.OperatingSystemConfig) error {
 	cluster, err := gctx.GetCluster(ctx)
 	if err != nil {
 		return err
@@ -178,6 +183,32 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 	}
 
 	osc.Spec.ProviderConfig = encoded
+
+	return nil
+}
+
+func (m *mutator) mutateResourceManagerConfigMap(_ context.Context, _ gcontext.GardenContext, cm *corev1.ConfigMap) error {
+	const configKey = "config.yaml"
+
+	raw, ok := cm.Data[configKey]
+	if !ok {
+		return fmt.Errorf("gardener-resource-manager config map does not contain config.yaml key")
+	}
+
+	var config grmv1alpha1.ResourceManagerConfiguration
+	err := json.Unmarshal([]byte(raw), &config)
+	if err != nil {
+		return fmt.Errorf("unable to decode gardener-resource-manager configuration: %w", err)
+	}
+
+	config.TargetClientConnection.Namespaces = append(config.TargetClientConnection.Namespaces, "firewall", "metallb-system", "csi-lvm")
+
+	encoded, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("unable to encode gardener-resource-manager configuration: %w", err)
+	}
+
+	cm.Data[configKey] = string(encoded)
 
 	return nil
 }
