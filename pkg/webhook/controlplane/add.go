@@ -77,11 +77,17 @@ func newMutator(mgr manager.Manager, c config.ControllerConfiguration) extension
 	gardenerMutator := genericmutator.NewMutator(mgr, NewEnsurer(mgr, logger, c), oscutils.NewUnitSerializer(),
 		kubelet.NewConfigCodec(fciCodec), fciCodec, logger)
 
+	scheme := mgr.GetScheme()
+	err := grmv1alpha1.AddToScheme(scheme)
+	if err != nil {
+		panic(err)
+	}
+
 	return &mutator{
 		logger:          logger,
 		gardenerMutator: gardenerMutator,
 		client:          mgr.GetClient(),
-		decoder:         serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
+		decoder:         serializer.NewCodecFactory(scheme).UniversalDecoder(),
 	}
 }
 
@@ -196,8 +202,9 @@ func (m *mutator) mutateResourceManagerConfigMap(_ context.Context, _ gcontext.G
 		return fmt.Errorf("gardener-resource-manager config map does not contain config.yaml key")
 	}
 
-	var config grmv1alpha1.ResourceManagerConfiguration
-	err := json.Unmarshal([]byte(raw), &config)
+	config := &grmv1alpha1.ResourceManagerConfiguration{}
+
+	_, _, err := m.decoder.Decode([]byte(raw), nil, config)
 	if err != nil {
 		return fmt.Errorf("unable to decode gardener-resource-manager configuration: %w", err)
 	}
