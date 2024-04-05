@@ -75,19 +75,24 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 		return nil
 	}
 
-	if old == nil {
-		// capacity and storage class can only be set on initial deployment
-		// after that the stateful set prevents the update.
-
-		if e.c.Storage.Capacity != nil {
-			new.Spec.StorageCapacity = e.c.Storage.Capacity
-		}
-		if e.c.Storage.ClassName != nil {
-			new.Spec.StorageClass = e.c.Storage.ClassName
-		}
-	}
-
 	if new.Name == v1beta1constants.ETCDMain {
+		if old == nil {
+			// capacity and storage class can only be set on initial deployment
+			// after that the stateful set prevents the update.
+
+			if e.c.Storage.Capacity != nil {
+				new.Spec.StorageCapacity = e.c.Storage.Capacity
+			}
+			if e.c.Storage.ClassName != nil {
+				new.Spec.StorageClass = e.c.Storage.ClassName
+			}
+		} else {
+			// ensure values stay as the were
+
+			new.Spec.StorageCapacity = old.Spec.StorageCapacity
+			new.Spec.StorageClass = old.Spec.StorageClass
+		}
+
 		if e.c.Backup.DeltaSnapshotPeriod != nil {
 			d, err := time.ParseDuration(*e.c.Backup.DeltaSnapshotPeriod)
 			if err != nil {
