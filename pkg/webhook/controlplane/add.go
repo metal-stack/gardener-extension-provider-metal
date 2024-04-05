@@ -2,7 +2,8 @@ package controlplane
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"strings"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	extensionscontextwebhook "github.com/gardener/gardener/extensions/pkg/webhook/context"
@@ -16,16 +17,21 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+
 	"github.com/gardener/gardener/pkg/component/extensions/operatingsystemconfig/original/components/kubelet"
 	oscutils "github.com/gardener/gardener/pkg/component/extensions/operatingsystemconfig/utils"
+	grmv1alpha1 "github.com/gardener/gardener/pkg/resourcemanager/apis/config/v1alpha1"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -46,6 +52,7 @@ func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionsw
 		Kind:     controlplane.KindShoot,
 		Provider: metal.Type,
 		Types: []extensionswebhook.Type{
+			{Obj: &corev1.ConfigMap{}},
 			{Obj: &appsv1.Deployment{}},
 			{Obj: &extensionsv1alpha1.OperatingSystemConfig{}},
 		},
@@ -71,11 +78,17 @@ func newMutator(mgr manager.Manager, c config.ControllerConfiguration) extension
 	gardenerMutator := genericmutator.NewMutator(mgr, NewEnsurer(mgr, logger, c), oscutils.NewUnitSerializer(),
 		kubelet.NewConfigCodec(fciCodec), fciCodec, logger)
 
+	scheme := mgr.GetScheme()
+	err := grmv1alpha1.AddToScheme(scheme)
+	if err != nil {
+		panic(err)
+	}
+
 	return &mutator{
 		logger:          logger,
 		gardenerMutator: gardenerMutator,
 		client:          mgr.GetClient(),
-		decoder:         serializer.NewCodecFactory(mgr.GetScheme()).UniversalDecoder(),
+		decoder:         serializer.NewCodecFactory(scheme).UniversalDecoder(),
 	}
 }
 
@@ -88,27 +101,29 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 
 	switch x := new.(type) {
 	case *extensionsv1alpha1.OperatingSystemConfig:
-		var oldOSC *extensionsv1alpha1.OperatingSystemConfig
-		if old != nil {
-			var ok bool
-			oldOSC, ok = old.(*extensionsv1alpha1.OperatingSystemConfig)
-			if !ok {
-				return errors.New("could not cast old object to extensionsv1alpha1.OperatingSystemConfig")
-			}
-		}
-
 		extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
 
-		err := m.mutateOperatingSystemConfig(ctx, gctx, x, oldOSC)
+		err := m.mutateOperatingSystemConfig(ctx, gctx, x)
 		if err != nil {
 			return err
+		}
+	case *corev1.ConfigMap:
+		if strings.HasPrefix(x.Name, "gardener-resource-manager-") {
+			// hopefully this whole mutation can be removed in a future version of Gardener where
+			// the namespaces are not hard-coded for the GRM
+			extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
+
+			err := m.mutateResourceManagerConfigMap(ctx, gctx, x)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return m.gardenerMutator.Mutate(ctx, new, old)
 }
 
-func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext.GardenContext, osc, _ *extensionsv1alpha1.OperatingSystemConfig) error {
+func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext.GardenContext, osc *extensionsv1alpha1.OperatingSystemConfig) error {
 	cluster, err := gctx.GetCluster(ctx)
 	if err != nil {
 		return err
@@ -178,6 +193,35 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 	}
 
 	osc.Spec.ProviderConfig = encoded
+
+	return nil
+}
+
+func (m *mutator) mutateResourceManagerConfigMap(_ context.Context, _ gcontext.GardenContext, cm *corev1.ConfigMap) error {
+	const configKey = "config.yaml"
+
+	raw, ok := cm.Data[configKey]
+	if !ok {
+		return fmt.Errorf("gardener-resource-manager config map does not contain config.yaml key")
+	}
+
+	config := &grmv1alpha1.ResourceManagerConfiguration{}
+
+	_, _, err := m.decoder.Decode([]byte(raw), nil, config)
+	if err != nil {
+		return fmt.Errorf("unable to decode gardener-resource-manager configuration: %w", err)
+	}
+
+	// TODO: audit is actually used by the gardener-extension-audit but this extension can be toggled on and off
+	// so actually need to resolve the problem differently: https://github.com/metal-stack/gardener-extension-audit/issues/24
+	config.TargetClientConnection.Namespaces = append(config.TargetClientConnection.Namespaces, "firewall", "metallb-system", "csi-lvm", "audit")
+
+	encoded, err := yaml.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("unable to encode gardener-resource-manager configuration: %w", err)
+	}
+
+	cm.Data[configKey] = string(encoded)
 
 	return nil
 }
