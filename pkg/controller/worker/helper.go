@@ -72,7 +72,7 @@ func (a *actuator) getAdditionalData(ctx context.Context, worker *extensionsv1al
 
 	// TODO: this is a workaround to speed things for the time being...
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
-	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
+	// it would need the start of another reconciliation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
 	if err := a.client.Get(ctx, kutil.Key(worker.Namespace, cluster.Shoot.Name), infrastructure); err != nil {
