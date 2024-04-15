@@ -522,7 +522,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	// TODO: this is a workaround to speed things for the time being...
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
-	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
+	// it would need the start of another reconciliation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
 	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
@@ -633,7 +633,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	// TODO: this is a workaround to speed things for the time being...
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
-	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
+	// it would need the start of another reconciliation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
 	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
@@ -678,10 +678,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	apiserverIPs := []string{}
 	if !extensionscontroller.IsHibernated(cluster) {
-		// get apiserver ip adresses from external dns entry
+		// get apiserver ip addresses from external dns entry
 		// DNSEntry was replaced by DNSRecord and will be dropped in a future gardener release
 		// We can then remove reading the dns entry resources entirely
-		// get apiserver ip adresses from external dns record
+		// get apiserver ip addresses from external dns record
 		dnsRecord := &extensionsv1alpha1.DNSRecord{}
 		err := vp.client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
 		if err != nil {
@@ -1102,7 +1102,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 
 	// for gardener-managed clusters the KUBERNETES_SERVICE_HOST env variable
 	// points to the kube-apiserver hosted in the seed's shoot namespace, which
-	// is publically reachable and works just fine.
+	// is publicly reachable and works just fine.
 	//
 	// for non-gardener-managed clusters (e.g. shoots running in GKE), the
 	// KUBERNETES_SERVICE_HOST environment variable may point to an internal
@@ -1130,7 +1130,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 	}
 
 	// We generally expect to get a DNS name for the seed api url.
-	// This is alway true for gardener managed clusters, because the mutating webhook
+	// This is always true for gardener managed clusters, because the mutating webhook
 	// of the api-server-proxy sets the KUBERNETES_SERVICE_HOST env variable.
 	// But for Managed Seeds where the control plane resides at GKE, this is always a IP
 	// in this case we set the seedAPI URL in a configmap.
