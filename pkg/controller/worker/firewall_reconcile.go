@@ -138,7 +138,9 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Spec.LogAcceptedConnections = d.infrastructureConfig.Firewall.LogAcceptedConnections
 		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
 
-		if d.partition.NetworkIsolation != nil && len(d.partition.NetworkIsolation.DNSServers) > 0 {
+		if d.partition.NetworkIsolation != nil &&
+			len(d.partition.NetworkIsolation.DNSServers) > 0 &&
+			networkAccessType != apismetal.NetworkAccessBaseline {
 			dnsAddr, portStr, ok := strings.Cut(d.partition.NetworkIsolation.DNSServers[0], ":")
 			deploy.Spec.Template.Spec.DNSServerAddress = dnsAddr
 
@@ -150,6 +152,8 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 				port := uint(p)
 				deploy.Spec.Template.Spec.DNSPort = &port
 			}
+		} else {
+			deploy.Spec.Template.Spec.DNSServerAddress = ""
 		}
 
 		if networkAccessType == apismetal.NetworkAccessForbidden {
