@@ -136,6 +136,9 @@ func (a *actuator) maintainFirewallDeployment(ctx context.Context, logger logr.L
 		return err
 	}
 
+	if deploy.Annotations == nil {
+		deploy.Annotations = map[string]string{}
+	}
 	deploy.Annotations[fcmv2.MaintenanceAnnotation] = strconv.FormatBool(true)
 
 	err = a.client.Update(ctx, deploy)
