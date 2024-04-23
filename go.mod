@@ -17,7 +17,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/metal-stack/duros-controller v0.8.2
-	github.com/metal-stack/firewall-controller-manager v0.3.5-0.20240416073112-40f985def75a
+	github.com/metal-stack/firewall-controller-manager v0.3.5-0.20240422085448-86efebfea20d
 	github.com/metal-stack/firewall-controller/v2 v2.3.1-0.20240416112058-844d33f66191
 	github.com/metal-stack/metal-go v0.28.4
 	github.com/metal-stack/metal-lib v0.16.2
@@ -30,9 +30,9 @@ require (
 	k8s.io/apiextensions-apiserver v0.29.3
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/code-generator v0.28.3
+	k8s.io/code-generator v0.29.3
 	k8s.io/component-base v0.29.3
-	k8s.io/kubelet v0.28.3
+	k8s.io/kubelet v0.29.3
 	sigs.k8s.io/controller-runtime v0.16.5
 	sigs.k8s.io/yaml v1.4.0
 )

@@ -1019,8 +1019,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5
 github.com/matttproud/golang_protobuf_extensions v1.0.4/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/metal-stack/duros-controller v0.8.2 h1:ysneRrP6xs+P0ffuDf3m4qQ8Nwp5E8T+tbQMJeI0tNA=
 github.com/metal-stack/duros-controller v0.8.2/go.mod h1:CMWgCwCH/K/SlmaSgYVqX1oqj3np4PsyLTjZdRpR28A=
-github.com/metal-stack/firewall-controller-manager v0.3.5-0.20240416073112-40f985def75a h1:ZkZAmMastKeFPcURDvllD6BM4WYqZCkFkvbhDHwpYu0=
-github.com/metal-stack/firewall-controller-manager v0.3.5-0.20240416073112-40f985def75a/go.mod h1:Cujqacsa473eLeWkehDgx7CdmZfZUqfcdRfNurZiqC0=
+github.com/metal-stack/firewall-controller-manager v0.3.5-0.20240422085448-86efebfea20d h1:wQ24J0xZNlPUhNK6UGpXBa6txTQNvd+pVjcKEqft27k=
+github.com/metal-stack/firewall-controller-manager v0.3.5-0.20240422085448-86efebfea20d/go.mod h1:tp/yt1nv3P1pmNnkW4r4LJqLTxjZhZ8IgANXQvx/HFg=
 github.com/metal-stack/firewall-controller/v2 v2.3.1-0.20240416112058-844d33f66191 h1:0wmTTZDwi6gwN7e9gZsNeI/jNTXsZMqK/XP/i53f9zI=
 github.com/metal-stack/firewall-controller/v2 v2.3.1-0.20240416112058-844d33f66191/go.mod h1:4r588jy+I7PoDbHsmt6G5gG0dUujVrIJIyr9pjbTzC0=
 github.com/metal-stack/metal-go v0.28.4 h1:cTI2jZqn59FNw0RkPAD7TYeK5YKJjj94YFJiuRl8eDo=
