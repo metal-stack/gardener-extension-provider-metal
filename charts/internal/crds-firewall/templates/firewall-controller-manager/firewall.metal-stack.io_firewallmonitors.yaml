@@ -232,6 +232,10 @@ spec:
                 description: CrashLoop can occur during provisioning of the firewall
                   causing the firewall not to get ready.
                 type: boolean
+              imageID:
+                description: ImageID contains the used os image id of the firewall
+                  (the fully qualified version, no shorthand version).
+                type: string
               lastEvent:
                 description: LastEvent contains the last provisioning event of the
                   machine.
