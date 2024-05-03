@@ -86,8 +86,8 @@ func DurosIsHealthy(duros *durosv1.Duros) (bool, error) {
 
 	if duros.Status.ReconcileStatus.LastReconcile == nil {
 		problems = append(problems, "controller does not reconcile duros resource")
-	} else if since := time.Since(duros.Status.ReconcileStatus.LastReconcile.Time); since > 10*time.Minute {
-		problems = append(problems, fmt.Sprintf("controller not reconcile successfully since %s", since.String()))
+	} else if since := time.Since(duros.Status.ReconcileStatus.LastReconcile.Time); since > 30*time.Minute {
+		problems = append(problems, fmt.Sprintf("controller has not reconciled for more than 30 minutes, stopped since %s", since.String()))
 	}
 
 	if duros.Status.ReconcileStatus.Error != nil {
