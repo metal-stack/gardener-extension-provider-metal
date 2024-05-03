@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -82,6 +83,13 @@ func DurosIsHealthy(duros *durosv1.Duros) (bool, error) {
 	}
 
 	var problems []string
+
+	if duros.Status.ReconcileStatus.LastReconcile == nil {
+		problems = append(problems, fmt.Sprintf("controller does not reconcile duros resource"))
+	} else if time.Since(duros.Status.ReconcileStatus.LastReconcile.Time) > 10*time.Minute {
+		since := time.Since(duros.Status.ReconcileStatus.LastReconcile.Time)
+		problems = append(problems, fmt.Sprintf("controller not reconcile successfully since %s", since.String()))
+	}
 
 	if duros.Status.ReconcileStatus.Error != nil {
 		problems = append(problems, fmt.Sprintf("reconcile error: %s (at %s)", *duros.Status.ReconcileStatus.Error, pointer.SafeDeref(duros.Status.ReconcileStatus.LastReconcile).String()))
