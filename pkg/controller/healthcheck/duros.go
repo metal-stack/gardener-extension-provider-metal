@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/go-logr/logr"
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -81,6 +83,17 @@ func DurosIsHealthy(duros *durosv1.Duros) (bool, error) {
 	}
 
 	var problems []string
+
+	if duros.Status.ReconcileStatus.LastReconcile == nil {
+		problems = append(problems, "controller does not reconcile duros resource")
+	} else if since := time.Since(duros.Status.ReconcileStatus.LastReconcile.Time); since > 30*time.Minute {
+		problems = append(problems, fmt.Sprintf("controller has not reconciled for more than 30 minutes, stopped since %s", since.String()))
+	}
+
+	if duros.Status.ReconcileStatus.Error != nil {
+		problems = append(problems, fmt.Sprintf("reconcile error: %s (at %s)", *duros.Status.ReconcileStatus.Error, pointer.SafeDeref(duros.Status.ReconcileStatus.LastReconcile).String()))
+	}
+
 	for _, r := range duros.Status.ManagedResourceStatuses {
 		if r.State == durosv1.HealthStateRunning {
 			continue
@@ -93,5 +106,6 @@ func DurosIsHealthy(duros *durosv1.Duros) (bool, error) {
 		err := fmt.Errorf("duros resource %s in namespace %s is unhealthy: %v", duros.Name, duros.Namespace, strings.Join(problems, ", "))
 		return false, err
 	}
+
 	return true, nil
 }
