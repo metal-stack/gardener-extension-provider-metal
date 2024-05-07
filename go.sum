@@ -1019,10 +1019,10 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5
 github.com/matttproud/golang_protobuf_extensions v1.0.4/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/metal-stack/duros-controller v0.9.0 h1:kD3UjkvGAAcFWCLcsAWan1ZTNx3/oFFBau3YKAiouAM=
 github.com/metal-stack/duros-controller v0.9.0/go.mod h1:m27bLB7Fpj8CLVs2oBKnUGNwLDf81HCmjZUGraoAHA0=
-github.com/metal-stack/firewall-controller-manager v0.3.5-0.20240422085448-86efebfea20d h1:wQ24J0xZNlPUhNK6UGpXBa6txTQNvd+pVjcKEqft27k=
-github.com/metal-stack/firewall-controller-manager v0.3.5-0.20240422085448-86efebfea20d/go.mod h1:tp/yt1nv3P1pmNnkW4r4LJqLTxjZhZ8IgANXQvx/HFg=
-github.com/metal-stack/firewall-controller/v2 v2.3.1-0.20240416112058-844d33f66191 h1:0wmTTZDwi6gwN7e9gZsNeI/jNTXsZMqK/XP/i53f9zI=
-github.com/metal-stack/firewall-controller/v2 v2.3.1-0.20240416112058-844d33f66191/go.mod h1:4r588jy+I7PoDbHsmt6G5gG0dUujVrIJIyr9pjbTzC0=
+github.com/metal-stack/firewall-controller-manager v0.3.5 h1:0HNWDCLH6xXOq3jRpqcU4O51LqYIGi2feiLGL4p83t4=
+github.com/metal-stack/firewall-controller-manager v0.3.5/go.mod h1:tp/yt1nv3P1pmNnkW4r4LJqLTxjZhZ8IgANXQvx/HFg=
+github.com/metal-stack/firewall-controller/v2 v2.3.2 h1:myDgCcEfW4wFkd9ez83VPbfxLdSAovDxHiNiLJldouk=
+github.com/metal-stack/firewall-controller/v2 v2.3.2/go.mod h1:Zo3HIlqqzWyvPGIpfWzsxkQjrIkmZHYtKgld71q24FE=
 github.com/metal-stack/metal-go v0.28.4 h1:cTI2jZqn59FNw0RkPAD7TYeK5YKJjj94YFJiuRl8eDo=
 github.com/metal-stack/metal-go v0.28.4/go.mod h1:gYLZX3umsoZLWZ5d4MJdVbnR8eFXUTlLTK7tyx638As=
 github.com/metal-stack/metal-lib v0.16.2 h1:RJls/Spai4h5xr3BEmQt9UdWNN4RB9+SOINoZcjYaA8=
@@ -1251,8 +1251,8 @@ go.uber.org/goleak v1.1.12/go.mod h1:cwTWslyiVhfpKIDGSZEM2HlOvcqm+tG4zioyIeLoqMQ
 go.uber.org/goleak v1.2.1/go.mod h1:qlT2yGI9QafXHhZZLxlSuNsMw3FFLxBr+tBRlmO1xH4=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
-go.uber.org/mock v0.2.0 h1:TaP3xedm7JaAgScZO7tlvlKrqT0p7I6OsdGB5YNSMDU=
-go.uber.org/mock v0.2.0/go.mod h1:J0y0rp9L3xiff1+ZBfKxlC1fz2+aO16tw0tsDOixfuM=
+go.uber.org/mock v0.4.0 h1:VcM4ZOtdbR4f6VXfiOpwpVJDL6lCReaZ6mw31wqh7KU=
+go.uber.org/mock v0.4.0/go.mod h1:a6FSlNadKUHUa9IP5Vyt1zh4fC7uAwxMutEAscFbkZc=
 go.uber.org/multierr v1.6.0/go.mod h1:cdWPpRnG4AhwMwsgIHip0KRBQjJy5kYEpYjJxpXp9iU=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=
 go.uber.org/multierr v1.11.0/go.mod h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN80Y=

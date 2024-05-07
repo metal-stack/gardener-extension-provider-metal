@@ -17,8 +17,8 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/metal-stack/duros-controller v0.9.0
-	github.com/metal-stack/firewall-controller-manager v0.3.5-0.20240422085448-86efebfea20d
-	github.com/metal-stack/firewall-controller/v2 v2.3.1-0.20240416112058-844d33f66191
+	github.com/metal-stack/firewall-controller-manager v0.3.5
+	github.com/metal-stack/firewall-controller/v2 v2.3.2
 	github.com/metal-stack/metal-go v0.28.4
 	github.com/metal-stack/metal-lib v0.16.2
 	github.com/onsi/ginkgo v1.16.5
@@ -127,7 +127,7 @@ require (
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
-	go.uber.org/mock v0.2.0 // indirect
+	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
