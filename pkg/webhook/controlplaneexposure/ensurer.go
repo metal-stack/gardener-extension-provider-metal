@@ -9,6 +9,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -68,16 +69,30 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 
 // EnsureETCD ensures that the etcd conform to the provider requirements.
 func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, new, old *druidv1alpha1.Etcd) error {
-	capacity := resource.MustParse("16Gi")
-	class := ""
+	new.Spec.StorageCapacity = pointer.Pointer(resource.MustParse("16Gi"))
 
-	if new.Name == v1beta1constants.ETCDMain && e.c != nil {
-		if e.c.Storage.Capacity != nil {
-			capacity = *e.c.Storage.Capacity
+	if e.c == nil {
+		return nil
+	}
+
+	if new.Name == v1beta1constants.ETCDMain {
+		if old == nil {
+			// capacity and storage class can only be set on initial deployment
+			// after that the stateful set prevents the update.
+
+			if e.c.Storage.Capacity != nil {
+				new.Spec.StorageCapacity = e.c.Storage.Capacity
+			}
+			if e.c.Storage.ClassName != nil {
+				new.Spec.StorageClass = e.c.Storage.ClassName
+			}
+		} else {
+			// ensure values stay as the were
+
+			new.Spec.StorageCapacity = old.Spec.StorageCapacity
+			new.Spec.StorageClass = old.Spec.StorageClass
 		}
-		if e.c.Storage.ClassName != nil {
-			class = *e.c.Storage.ClassName
-		}
+
 		if e.c.Backup.DeltaSnapshotPeriod != nil {
 			d, err := time.ParseDuration(*e.c.Backup.DeltaSnapshotPeriod)
 			if err != nil {
@@ -85,13 +100,11 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 			}
 			new.Spec.Backup.DeltaSnapshotPeriod = &v1.Duration{Duration: d}
 		}
+
 		if e.c.Backup.Schedule != nil {
 			new.Spec.Backup.FullSnapshotSchedule = e.c.Backup.Schedule
 		}
 	}
-
-	new.Spec.StorageClass = &class
-	new.Spec.StorageCapacity = &capacity
 
 	return nil
 }
