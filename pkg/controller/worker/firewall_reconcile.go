@@ -119,6 +119,7 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		_ = controllerutil.AddFinalizer(deploy, fcmv2.FinalizerName)
 
 		deploy.Spec.Replicas = 1
+		deploy.Spec.AutoUpdate.MachineImage = d.infrastructureConfig.Firewall.AutoUpdateMachineImage
 
 		// we explicitly set the selector as otherwise firewall migration does not match, which should be prevented
 		deploy.Spec.Selector = map[string]string{

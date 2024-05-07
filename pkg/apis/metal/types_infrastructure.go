@@ -22,6 +22,7 @@ type Firewall struct {
 	EgressRules            []EgressRule
 	LogAcceptedConnections bool
 	ControllerVersion      string
+	AutoUpdateMachineImage bool
 }
 
 type RateLimit struct {

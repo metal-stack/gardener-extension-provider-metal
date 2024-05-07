@@ -22,6 +22,7 @@ type Firewall struct {
 	EgressRules            []EgressRule `json:"egressRules"`
 	LogAcceptedConnections bool         `json:"logAcceptedConnections"`
 	ControllerVersion      string       `json:"controllerVersion"`
+	AutoUpdateMachineImage bool         `json:"autoUpdateMachineImage,omitempty"`
 }
 
 type RateLimit struct {
