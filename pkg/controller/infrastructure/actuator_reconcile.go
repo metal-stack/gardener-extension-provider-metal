@@ -116,7 +116,7 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastruc
 
 func (a *actuator) maintainFirewallDeployment(ctx context.Context, logger logr.Logger, cluster *extensionscontroller.Cluster, namespace string) error {
 	// we need to run the following code from the infrastructure controller because we know
-	// that the gardener-controller-manager reconciles the infrastructure resource only in maintenance mode.
+	// that the gardener-controller-manager reconciles the infrastructure resource only in maintenance mode or if the infrastructure resource changes.
 	// a controller has no possibility to find out by itself if a reconciliation was triggered from the maintenance controller
 	// so it cannot be put to the worker controller.
 
