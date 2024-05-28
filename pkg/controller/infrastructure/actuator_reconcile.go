@@ -26,6 +26,7 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
+	"github.com/gardener/gardener/pkg/utils/gardener"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -105,7 +106,7 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastruc
 		}
 	}
 
-	err = a.maintainFirewallDeployment(ctx, logger, infrastructure.Namespace)
+	err = a.maintainFirewallDeployment(ctx, logger, cluster, infrastructure.Namespace)
 	if err != nil {
 		return err
 	}
@@ -113,11 +114,16 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastruc
 	return nil
 }
 
-func (a *actuator) maintainFirewallDeployment(ctx context.Context, logger logr.Logger, namespace string) error {
+func (a *actuator) maintainFirewallDeployment(ctx context.Context, logger logr.Logger, cluster *extensionscontroller.Cluster, namespace string) error {
 	// we need to run the following code from the infrastructure controller because we know
 	// that the gardener-controller-manager reconciles the infrastructure resource only in maintenance mode.
 	// a controller has no possibility to find out by itself if a reconciliation was triggered from the maintenance controller
 	// so it cannot be put to the worker controller.
+
+	if !gardener.EffectiveShootMaintenanceTimeWindow(cluster.Shoot).Contains(time.Now()) {
+		logger.Info("not maintaining firewall deployment as shoot not in effective maintenance time window")
+		return nil
+	}
 
 	deploy := &fcmv2.FirewallDeployment{
 		ObjectMeta: metav1.ObjectMeta{
