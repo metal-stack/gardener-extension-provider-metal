@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -121,9 +120,9 @@ func (a *actuator) maintainFirewallDeployment(ctx context.Context, logger logr.L
 	// a controller has no possibility to find out by itself if a reconciliation was triggered from the maintenance controller
 	// so it cannot be put to the worker controller.
 
-	spew.Dump(cluster)
-
 	if !gardener.EffectiveShootMaintenanceTimeWindow(cluster.Shoot).Contains(time.Now()) {
+		// note that this prevents updating the firewall image even when annotating the shoot explicitly with the maintainenance annotation
+		// if a user wants to update the firewall immediately he needs to specify the new firewall image in the spec
 		logger.Info("not maintaining firewall deployment as shoot not in effective maintenance time window")
 		return nil
 	}
