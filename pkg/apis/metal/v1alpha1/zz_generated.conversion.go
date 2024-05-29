@@ -409,6 +409,7 @@ func autoConvert_v1alpha1_Firewall_To_metal_Firewall(in *Firewall, out *metal.Fi
 	out.EgressRules = *(*[]metal.EgressRule)(unsafe.Pointer(&in.EgressRules))
 	out.LogAcceptedConnections = in.LogAcceptedConnections
 	out.ControllerVersion = in.ControllerVersion
+	out.AutoUpdateMachineImage = in.AutoUpdateMachineImage
 	return nil
 }
 
@@ -425,6 +426,7 @@ func autoConvert_metal_Firewall_To_v1alpha1_Firewall(in *metal.Firewall, out *Fi
 	out.EgressRules = *(*[]EgressRule)(unsafe.Pointer(&in.EgressRules))
 	out.LogAcceptedConnections = in.LogAcceptedConnections
 	out.ControllerVersion = in.ControllerVersion
+	out.AutoUpdateMachineImage = in.AutoUpdateMachineImage
 	return nil
 }
 
