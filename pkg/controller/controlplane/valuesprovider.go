@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -20,7 +21,6 @@ import (
 	firewallv1 "github.com/metal-stack/firewall-controller/v2/api/v1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	"github.com/gardener/gardener/extensions/pkg/controller/common"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -29,30 +29,25 @@ import (
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
+	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
 
-	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
-
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
-	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
-
 	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
 	"github.com/gardener/gardener/pkg/utils/secrets"
@@ -60,15 +55,23 @@ import (
 
 	"github.com/go-logr/logr"
 
-	appsv1 "k8s.io/api/apps/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 const (
 	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
 	droptailerCAName   = "ca-" + metal.Name + "-droptailer"
+
+	ipv4HostMask = "/32"
+	ipv6HostMask = "/128"
+	ipv4Any      = "0.0.0.0/0"
 )
 
 func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfigWithOptions {
@@ -137,8 +140,8 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 	}
 }
 
-func shootAccessSecretsFunc(namespace string) []*gutil.ShootAccessSecret {
-	return []*gutil.ShootAccessSecret{
+func shootAccessSecretsFunc(namespace string) []*gutil.AccessSecret {
+	return []*gutil.AccessSecret{
 		gutil.NewShootAccessSecret(metal.FirewallControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
@@ -176,10 +179,17 @@ var cpShootChart = &chart.Chart{
 		{Type: &corev1.ServiceAccount{}, Name: "speaker"},
 		{Type: &rbacv1.ClusterRole{}, Name: "metallb-system:controller"},
 		{Type: &rbacv1.ClusterRole{}, Name: "metallb-system:speaker"},
-		{Type: &rbacv1.Role{}, Name: "config-watcher"},
+		{Type: &rbacv1.Role{}, Name: "pod-lister"},
+		{Type: &rbacv1.Role{}, Name: "controller"},
+		{Type: &rbacv1.Role{}, Name: "health-monitoring"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "metallb-system:controller"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "metallb-system:speaker"},
-		{Type: &rbacv1.RoleBinding{}, Name: "config-watcher"},
+		{Type: &rbacv1.RoleBinding{}, Name: "pod-lister"},
+		{Type: &rbacv1.RoleBinding{}, Name: "controller"},
+		{Type: &rbacv1.RoleBinding{}, Name: "health-monitoring"},
+		{Type: &corev1.ConfigMap{}, Name: "metallb-excludel2"},
+		{Type: &corev1.Secret{}, Name: "webhook-server-cert"},
+		{Type: &corev1.Service{}, Name: "webhook-service"},
 		{Type: &appsv1.DaemonSet{}, Name: "speaker"},
 		{Type: &appsv1.Deployment{}, Name: "controller"},
 
@@ -249,7 +259,7 @@ var storageClassChart = &chart.Chart{
 type networkMap map[string]*models.V1NetworkResponse
 
 // NewValuesProvider creates a new ValuesProvider for the generic actuator.
-func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
+func NewValuesProvider(mgr manager.Manager, controllerConfig config.ControllerConfiguration) genericactuator.ValuesProvider {
 	cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 		{Type: &corev1.ConfigMap{}, Name: "shoot-info-node-cidr"},
 	}...)
@@ -274,15 +284,17 @@ func NewValuesProvider(logger logr.Logger, controllerConfig config.ControllerCon
 	}
 
 	return &valuesProvider{
-		logger:           logger.WithName("metal-values-provider"),
 		controllerConfig: controllerConfig,
+		client:           mgr.GetClient(),
+		decoder:          serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder(),
 	}
 }
 
 // valuesProvider is a ValuesProvider that provides metal-specific values for the 2 charts applied by the generic actuator.
 type valuesProvider struct {
 	genericactuator.NoopValuesProvider
-	common.ClientContext
+	client           client.Client
+	decoder          runtime.Decoder
 	logger           logr.Logger
 	controllerConfig config.ControllerConfiguration
 }
@@ -306,7 +318,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	scaledDown bool,
 ) (map[string]any, error) {
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
-	if _, _, err := vp.Decoder().Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of infrastructure %w", err)
 	}
 
@@ -325,7 +337,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	metalCredentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, vp.Client(), &cp.Spec.SecretRef)
+	metalCredentials, err := metalclient.ReadCredentialsFromSecretRef(ctx, vp.client, &cp.Spec.SecretRef)
 	if err != nil {
 		return nil, err
 	}
@@ -348,19 +360,19 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	// TODO: this is a workaround to speed things for the time being...
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
-	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
+	// it would need the start of another reconciliation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := vp.Client().Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
+	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
 		return nil, err
 	}
 
-	sshSecret, err := helper.GetLatestSSHSecret(ctx, vp.Client(), cp.Namespace)
+	sshSecret, err := helper.GetLatestSSHSecret(ctx, vp.client, cp.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	caBundle, err := helper.GetLatestSecret(ctx, vp.Client(), cp.Namespace, metal.FirewallControllerManagerDeploymentName)
+	caBundle, err := helper.GetLatestSecret(ctx, vp.client, cp.Namespace, metal.FirewallControllerManagerDeploymentName)
 	if err != nil {
 		return nil, fmt.Errorf("could not get ca from secret: %w", err)
 	}
@@ -370,7 +382,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.Client(), vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
+	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.client, vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -422,7 +434,7 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
 func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
-	if _, _, err := vp.Decoder().Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
+	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of infrastructure %w", err)
 	}
 
@@ -436,12 +448,12 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	metalControlPlane, _, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	metalControlPlane, partition, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
 	if err != nil {
 		return nil, err
 	}
 
-	mclient, err := metalclient.NewClient(ctx, vp.Client(), metalControlPlane.Endpoint, &cp.Spec.SecretRef)
+	mclient, err := metalclient.NewClient(ctx, vp.client, metalControlPlane.Endpoint, &cp.Spec.SecretRef)
 	if err != nil {
 		return nil, err
 	}
@@ -459,14 +471,14 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	// TODO: this is a workaround to speed things for the time being...
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
-	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
+	// it would need the start of another reconciliation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := vp.Client().Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
+	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
 		return nil, err
 	}
 
-	values, err := vp.getControlPlaneShootChartValues(ctx, cpConfig, cluster, nws, infrastructure, infrastructureConfig, secretsReader, checksums)
+	values, err := vp.getControlPlaneShootChartValues(ctx, cpConfig, cluster, partition, nws, infrastructure, infrastructureConfig, secretsReader, checksums)
 	if err != nil {
 		vp.logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
@@ -476,7 +488,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, partition *apismetal.Partition, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
@@ -497,12 +509,12 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	apiserverIPs := []string{}
 	if !extensionscontroller.IsHibernated(cluster) {
-		// get apiserver ip adresses from external dns entry
+		// get apiserver ip addresses from external dns entry
 		// DNSEntry was replaced by DNSRecord and will be dropped in a future gardener release
 		// We can then remove reading the dns entry resources entirely
-		// get apiserver ip adresses from external dns record
+		// get apiserver ip addresses from external dns record
 		dnsRecord := &extensionsv1alpha1.DNSRecord{}
-		err := vp.Client().Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
+		err := vp.client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get dnsRecord %w", err)
 		}
@@ -513,6 +525,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 	}
 
+	// FIXME remove this block an replace with networkAccessType
 	var egressDestinations []map[string]any
 	for _, dest := range vp.controllerConfig.EgressDestinations {
 		dest := dest
@@ -536,6 +549,72 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		})
 	}
 
+	networkAccessType := apismetal.NetworkAccessBaseline
+	if cpConfig.NetworkAccessType != nil {
+		networkAccessType = *cpConfig.NetworkAccessType
+	}
+	restrictedOrForbidden := networkAccessType != apismetal.NetworkAccessBaseline
+	if restrictedOrForbidden && partition.NetworkIsolation == nil {
+		return nil, fmt.Errorf("cluster-isolation is not supported in partition %q", infrastructureConfig.PartitionID)
+	}
+
+	var dnsCidrs []string
+	if restrictedOrForbidden && partition.NetworkIsolation != nil {
+		dnsCidrs = make([]string, len(partition.NetworkIsolation.DNSServers))
+		for i, ip := range partition.NetworkIsolation.DNSServers {
+			parsedIP, err := netip.ParseAddr(ip)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse dns ip:%w", err)
+			}
+			if parsedIP.Is4() {
+				dnsCidrs[i] = ip + ipv4HostMask
+			}
+			if parsedIP.Is6() {
+				dnsCidrs[i] = ip + ipv6HostMask
+			}
+		}
+	}
+	if !restrictedOrForbidden {
+		dnsCidrs = []string{ipv4Any}
+	}
+	if len(dnsCidrs) == 0 {
+		return nil, fmt.Errorf("no dns configured")
+	}
+
+	var ntpCidrs []string
+	if restrictedOrForbidden && partition.NetworkIsolation != nil {
+		ntpCidrs = make([]string, len(partition.NetworkIsolation.NTPServers))
+		for i, ip := range partition.NetworkIsolation.NTPServers {
+			parsedIP, err := netip.ParseAddr(ip)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse ntp ip:%w", err)
+			}
+			if parsedIP.Is4() {
+				ntpCidrs[i] = ip + ipv4HostMask
+			}
+			if parsedIP.Is6() {
+				ntpCidrs[i] = ip + ipv6HostMask
+			}
+		}
+	}
+	if !restrictedOrForbidden {
+		ntpCidrs = []string{ipv4Any}
+	}
+	if len(ntpCidrs) == 0 {
+		return nil, fmt.Errorf("no ntp configured")
+	}
+
+	var networkAccessMirrors []map[string]any
+	if restrictedOrForbidden && partition.NetworkIsolation != nil {
+		for _, r := range partition.NetworkIsolation.RegistryMirrors {
+			nam, err := registryMirrorToValueMap(r)
+			if err != nil {
+				return nil, err
+			}
+			networkAccessMirrors = append(networkAccessMirrors, nam)
+		}
+	}
+
 	values := map[string]any{
 		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
 		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
@@ -543,10 +622,16 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"nodeCIDR":        nodeCIDR,
 		"duros":           durosValues,
 		"nodeInit":        nodeInitValues,
-		"restrictEgress": map[string]any{
+		"restrictEgress": map[string]any{ // FIXME remove
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
 			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
 			"destinations":           egressDestinations,
+		},
+		"networkAccess": map[string]any{
+			"restrictedOrForbidden": restrictedOrForbidden,
+			"dnsCidrs":              dnsCidrs,
+			"ntpCidrs":              ntpCidrs,
+			"registryMirrors":       networkAccessMirrors,
 		},
 	}
 
@@ -593,7 +678,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
 	key := kutil.Key(namespace, secretName)
 	secret := &corev1.Secret{}
-	err := vp.Client().Get(ctx, key, secret)
+	err := vp.client.Get(ctx, key, secret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			vp.logger.Error(err, "error getting secret - not found")
@@ -652,56 +737,9 @@ func getCCMChartValues(
 		return nil, err
 	}
 
-	var defaultExternalNetwork string
-	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
-		defaultExternalNetwork = *cpConfig.CloudControllerManager.DefaultExternalNetwork
-		resp, err := mclient.Network().FindNetwork(network.NewFindNetworkParams().WithID(defaultExternalNetwork).WithContext(ctx), nil)
-		if err != nil {
-			return nil, fmt.Errorf("could not retrieve user-given default external network: %s %w", defaultExternalNetwork, err)
-		}
-
-		if resp.Payload.Shared && resp.Payload.Partitionid != infrastructureConfig.PartitionID {
-			return nil, fmt.Errorf("shared external network must be in same partition as shoot")
-		}
-
-		if resp.Payload.Projectid != "" && resp.Payload.Projectid != infrastructureConfig.ProjectID && !resp.Payload.Shared {
-			return nil, fmt.Errorf("cannot define default external unshared network of another project")
-		}
-
-		if (resp.Payload.Underlay != nil && *resp.Payload.Underlay) || (resp.Payload.Privatesuper != nil && *resp.Payload.Privatesuper) {
-			return nil, fmt.Errorf("cannot declare underlay or private super networks as default external network")
-		}
-	} else {
-		var dmzNetwork string
-		for _, networkID := range infrastructureConfig.Firewall.Networks {
-			nw, ok := nws[networkID]
-			if !ok {
-				return nil, fmt.Errorf("network defined in firewall networks does not exist in metal-api")
-			}
-			for k := range nw.Labels {
-				if k == tag.NetworkDefaultExternal {
-					if nw.Parentnetworkid != "" {
-						pn, ok := nws[nw.Parentnetworkid]
-						if !ok {
-							return nil, fmt.Errorf("network defined in firewall networks specified a parent network that does not exist in metal-api")
-						}
-						if *pn.Privatesuper {
-							dmzNetwork = networkID
-						}
-					} else {
-						defaultExternalNetwork = networkID
-					}
-					break
-				}
-			}
-		}
-		// fallback to a dmz network with the NetworkDefaultExternal tag
-		if defaultExternalNetwork == "" && dmzNetwork != "" {
-			defaultExternalNetwork = dmzNetwork
-		}
-		if defaultExternalNetwork == "" {
-			return nil, fmt.Errorf("unable to find a default external network for metal-ccm deployment")
-		}
+	defaultExternalNetwork, err := getDefaultExternalNetwork(nws, cpConfig, infrastructureConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	serverSecret, found := secretsReader.Get(metal.CloudControllerManagerServerName)
@@ -873,7 +911,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 
 	// for gardener-managed clusters the KUBERNETES_SERVICE_HOST env variable
 	// points to the kube-apiserver hosted in the seed's shoot namespace, which
-	// is publically reachable and works just fine.
+	// is publicly reachable and works just fine.
 	//
 	// for non-gardener-managed clusters (e.g. shoots running in GKE), the
 	// KUBERNETES_SERVICE_HOST environment variable may point to an internal
@@ -888,7 +926,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 		},
 	}
 	isConfigMapConfigured := false
-	err := vp.Client().Get(ctx, client.ObjectKeyFromObject(cm), cm)
+	err := vp.client.Get(ctx, client.ObjectKeyFromObject(cm), cm)
 	if err == nil {
 		url, ok := cm.Data["url"]
 		if ok {
@@ -901,7 +939,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 	}
 
 	// We generally expect to get a DNS name for the seed api url.
-	// This is alway true for gardener managed clusters, because the mutating webhook
+	// This is always true for gardener managed clusters, because the mutating webhook
 	// of the api-server-proxy sets the KUBERNETES_SERVICE_HOST env variable.
 	// But for Managed Seeds where the control plane resides at GKE, this is always a IP
 	// in this case we set the seedAPI URL in a configmap.
@@ -995,4 +1033,96 @@ func firewallCompareFunc(a, b *models.V1FirewallResponse) int {
 	} else {
 		return 0
 	}
+}
+
+func registryMirrorToValueMap(r apismetal.RegistryMirror) (map[string]any, error) {
+	parsedIP, err := netip.ParseAddr(r.IP)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse registry ip:%w", err)
+	}
+	registryIP := parsedIP.String()
+	if parsedIP.Is4() {
+		registryIP = registryIP + ipv4HostMask
+	}
+	if parsedIP.Is6() {
+		registryIP = registryIP + ipv6HostMask
+	}
+
+	return map[string]any{
+		"name":     r.Name,
+		"endpoint": r.Endpoint,
+		"cidr":     registryIP,
+		"port":     r.Port,
+	}, nil
+}
+
+func getDefaultExternalNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneConfig, infrastructureConfig *apismetal.InfrastructureConfig) (string, error) {
+	if cpConfig.CloudControllerManager != nil && cpConfig.CloudControllerManager.DefaultExternalNetwork != nil {
+		// user has set a specific default external network, check if it's valid
+
+		networkID := *cpConfig.CloudControllerManager.DefaultExternalNetwork
+
+		if !slices.Contains(infrastructureConfig.Firewall.Networks, networkID) {
+			return "", fmt.Errorf("given default external network not contained in firewall networks")
+		}
+
+		return networkID, nil
+	}
+
+	if pointer.SafeDeref(cpConfig.NetworkAccessType) == apismetal.NetworkAccessForbidden {
+		// for isolated clusters with forbidden access type it makes no sense to define a default external network because connections will not be allowed automatically anyway
+		return "", nil
+	}
+
+	var (
+		externalNetworks []*models.V1NetworkResponse
+		dmzNetworks      []*models.V1NetworkResponse // dmzNetworks are deprecated, this can be removed after all users had enough time to migrate to isolated clusters
+	)
+
+	for _, networkID := range infrastructureConfig.Firewall.Networks {
+		nw, ok := nws[networkID]
+		if !ok {
+			return "", fmt.Errorf("network defined in firewall networks does not exist in metal-api")
+		}
+
+		_, ok = nw.Labels[tag.NetworkDefaultExternal]
+		if !ok {
+			continue
+		}
+
+		if nw.Parentnetworkid == "" {
+			externalNetworks = append(externalNetworks, nw)
+			continue
+		}
+
+		pn, ok := nws[nw.Parentnetworkid]
+		if !ok {
+			return "", fmt.Errorf("network defined in firewall networks specified a parent network that does not exist in metal-api")
+		}
+
+		if *pn.Privatesuper {
+			dmzNetworks = append(dmzNetworks, nw)
+			continue
+		}
+	}
+
+	// if there is an external network we prefer this over DMZ networks
+	// from the external network we prefer the one that is the default
+	// if there are multiple external networks it's impossible to distinguish which one to choose, so we use the first one defined in the list
+	if len(externalNetworks) != 0 {
+		for _, nw := range externalNetworks {
+			if _, ok := nw.Labels[tag.NetworkDefault]; ok {
+				return *nw.ID, nil
+			}
+		}
+
+		return *externalNetworks[0].ID, nil
+	}
+
+	if len(dmzNetworks) != 0 {
+		// if there are multiple dmz networks it's impossible to distinguish which one to choose, so we use the first one defined in the list
+		return *dmzNetworks[0].ID, nil
+	}
+
+	return "", nil
 }

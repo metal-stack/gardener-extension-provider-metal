@@ -130,6 +130,7 @@ rules:
     - update
     - create
     - patch
+    - delete
 - apiGroups:
     - coordination.k8s.io
   resources:
@@ -138,6 +139,43 @@ rules:
     - get
     - create
     - update
+- apiGroups:
+    - metallb.io
+  resources:
+    - bgppeers
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+  - metallb.io
+  resources:
+    - ipaddresspools
+  verbs:
+    - create
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - metallb.io
+  resources:
+    - bgpadvertisements
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

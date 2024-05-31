@@ -26,11 +26,11 @@ images:
 - name: metallb-speaker
   sourceRepository: https://github.com/metallb/metallb
   repository: quay.io/metallb/speaker
-  tag: "v0.10.3"
+  tag: "v0.14.3"
 - name: metallb-controller
   sourceRepository: https://github.com/metallb/metallb
   repository: quay.io/metallb/controller
-  tag: "v0.10.3"
+  tag: "v0.14.3"
 - name: duros-controller
   sourceRepository: https://github.com/metal-stack/duros-controller
   repository: ghcr.io/metal-stack/duros-controller

@@ -50,6 +50,7 @@ type ControllerConfiguration struct {
 	// and provides additional egress destinations to the kube-apiserver.
 	//
 	// It is intended to be configured at least with container registries for the cluster.
+	// Deprecated: Will be replaced by NetworkAccessRestricted.
 	EgressDestinations []EgressDest `json:"egressDestinations,omitempty"`
 }
 

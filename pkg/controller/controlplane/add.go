@@ -1,6 +1,8 @@
 package controlplane
 
 import (
+	"context"
+	"fmt"
 	"sync/atomic"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -13,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
@@ -37,22 +40,32 @@ type AddOptions struct {
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
-func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) error {
-	return controlplane.Add(mgr, controlplane.AddArgs{
+func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddOptions) error {
+	webhookServer := mgr.GetWebhookServer()
+	defaultServer, ok := webhookServer.(*webhook.DefaultServer)
+	if !ok {
+		return fmt.Errorf("expected *webhook.DefaultServer, got %T", webhookServer)
+	}
 
-		Actuator: genericactuator.NewActuator(metal.Name,
-			secretConfigsFunc, shootAccessSecretsFunc, nil, nil,
-			configChart, controlPlaneChart, cpShootChart, nil, storageClassChart, nil,
-			NewValuesProvider(logger, opts.ControllerConfig), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
-			imagevector.ImageVector(), "", opts.ShootWebhookConfig, opts.WebhookServerNamespace, mgr.GetWebhookServer().Port,
-		),
+	actuator, err := genericactuator.NewActuator(mgr, metal.Name,
+		secretConfigsFunc, shootAccessSecretsFunc, nil, nil,
+		configChart, controlPlaneChart, cpShootChart, nil, storageClassChart, nil,
+		NewValuesProvider(mgr, opts.ControllerConfig), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
+		imagevector.ImageVector(), "", opts.ShootWebhookConfig, opts.WebhookServerNamespace, defaultServer.Options.Port,
+	)
+	if err != nil {
+		return err
+	}
+
+	return controlplane.Add(ctx, mgr, controlplane.AddArgs{
+		Actuator:          actuator,
 		ControllerOptions: opts.Controller,
-		Predicates:        controlplane.DefaultPredicates(opts.IgnoreOperationAnnotation),
+		Predicates:        controlplane.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
 		Type:              metal.Type,
 	})
 }
 
 // AddToManager adds a controller with the default Options.
-func AddToManager(mgr manager.Manager) error {
-	return AddToManagerWithOptions(mgr, DefaultAddOptions)
+func AddToManager(ctx context.Context, mgr manager.Manager) error {
+	return AddToManagerWithOptions(ctx, mgr, DefaultAddOptions)
 }

@@ -102,6 +102,7 @@ spec:
         networking.gardener.cloud/from-prometheus: "allowed"
         networking.gardener.cloud/to-dns: "allowed"
         networking.gardener.cloud/to-public-networks: "allowed"
+        networking.gardener.cloud/to-private-networks: "allowed"
         networking.gardener.cloud/to-shoot-apiserver: "allowed"
         networking.gardener.cloud/to-runtime-apiserver: "allowed"
         networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: "allowed"
@@ -180,7 +181,6 @@ metadata:
     networking.resources.gardener.cloud/from-all-seed-scrape-targets-allowed-ports: '[{"protocol":"TCP","port":2112}]'
 spec:
   type: ClusterIP
-  clusterIP: None
   ports:
   - name: webhooks
     port: 9443

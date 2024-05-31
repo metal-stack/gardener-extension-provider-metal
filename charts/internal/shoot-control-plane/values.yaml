@@ -29,6 +29,16 @@ restrictEgress:
       protocol: TCP
       port: 443
 
+networkAccess:
+  restrictedOrForbidden: false
+  dnsCidrs: ["0.0.0.0/0"]
+  ntpCidrs: ["0.0.0.0/0"]
+  registryMirrors:
+    - name: ""
+      endpoint: ""
+      cidr: "0.0.0.0/32"
+      port: 443
+
 droptailer:
   podAnnotations: {}
   server:

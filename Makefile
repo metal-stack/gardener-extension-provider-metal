@@ -9,8 +9,8 @@ VERIFY                      := true
 LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
-GO_VERSION                  := 1.21
-GOLANGCI_LINT_VERSION       := v1.54.2
+GO_VERSION                  := 1.22
+GOLANGCI_LINT_VERSION       := v1.56.2
 
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
@@ -76,7 +76,7 @@ check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM)
 
 .PHONY: generate
 generate: $(HELM) $(YQ)
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate-sequential.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: generate-in-docker
 generate-in-docker: revendor $(HELM)

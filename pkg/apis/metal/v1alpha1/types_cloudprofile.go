@@ -72,4 +72,40 @@ const (
 type Partition struct {
 	// FirewallTypes is a list of available firewall machine types in this partition. When empty, allows all values.
 	FirewallTypes []string `json:"firewallTypes"`
+
+	// NetworkIsolation if given allows the creation of shoot clusters which have network restrictions activated.
+	NetworkIsolation *NetworkIsolation `json:"networkIsolation,omitempty"`
+}
+
+// NetworkIsolation defines configuration for restricted or forbidden clusters.
+type NetworkIsolation struct {
+	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
+	AllowedNetworks AllowedNetworks `json:"allowedNetworks,omitempty"`
+	// DNSServers
+	DNSServers []string `json:"dnsServers,omitempty"`
+	// NTPServers
+	NTPServers []string `json:"ntpServers,omitempty"`
+	// The registry which serves the images required to create a shoot.
+	RegistryMirrors []RegistryMirror `json:"registryMirrors,omitempty"`
+}
+
+// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
+type AllowedNetworks struct {
+	// Ingress defines a list of networks which are allowed for incoming traffic like service type loadbalancer
+	Ingress []string `json:"ingress,omitempty"`
+	// Egress defines a list of networks which are allowed for outgoing traffic
+	Egress []string `json:"egress,omitempty"`
+}
+
+type RegistryMirror struct {
+	// Name describes this server
+	Name string `json:"name,omitempty"`
+	// Endpoint is typically the url of the registry in the form https://hostname
+	Endpoint string `json:"endpoint,omitempty"`
+	// IP is the ipv4 or ipv6 address of this server
+	IP string `json:"ip,omitempty"`
+	// Port at which port the service is reachable
+	Port int32 `json:"port,omitempty"`
+	// This Registry Mirror mirrors the following registries
+	MirrorOf []string `json:"mirrorOf,omitempty"`
 }

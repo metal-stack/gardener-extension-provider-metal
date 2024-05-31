@@ -9,7 +9,6 @@ import (
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
 
 	gardenerhealthz "github.com/gardener/gardener/pkg/healthz"
 	"github.com/metal-stack/gardener-extension-provider-metal/charts"
@@ -29,7 +28,6 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
-	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
@@ -48,13 +46,12 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		generalOpts = &controllercmd.GeneralOptions{}
 		restOpts    = &controllercmd.RESTOptions{}
 		mgrOpts     = &controllercmd.ManagerOptions{
-			LeaderElection:             true,
-			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
-			LeaderElectionID:           controllercmd.LeaderElectionNameID(metal.Name),
-			LeaderElectionNamespace:    os.Getenv("LEADER_ELECTION_NAMESPACE"),
-			WebhookServerPort:          443,
-			WebhookCertDir:             "/tmp/gardener-extensions-cert",
-			HealthBindAddress:          ":8081",
+			LeaderElection:          true,
+			LeaderElectionID:        controllercmd.LeaderElectionNameID(metal.Name),
+			LeaderElectionNamespace: os.Getenv("LEADER_ELECTION_NAMESPACE"),
+			WebhookServerPort:       443,
+			WebhookCertDir:          "/tmp/gardener-extensions-cert",
+			HealthBindAddress:       ":8081",
 		}
 		configFileOpts = &metalcmd.ConfigOptions{}
 
@@ -85,10 +82,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 		workerCtrlOpts = &controllercmd.ControllerOptions{
 			MaxConcurrentReconciles: 5,
 		}
-		workerReconcileOpts = &worker.Options{
-			DeployCRDs: true,
-		}
-		workerCtrlOptsUnprefixed = controllercmd.NewOptionAggregator(workerCtrlOpts, workerReconcileOpts)
+		workerCtrlOptsUnprefixed = controllercmd.NewOptionAggregator(workerCtrlOpts)
 
 		controllerSwitches   = metalcmd.ControllerSwitchOptions()
 		webhookServerOptions = &webhookcmd.ServerOptions{
@@ -135,39 +129,37 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 			util.ApplyClientConnectionConfigurationToRESTConfig(configFileOpts.Completed().Config.ClientConnection, restOpts.Completed().Config)
 
-			if workerReconcileOpts.Completed().DeployCRDs {
-				ca, err := kubernetes.NewChartApplierForConfig(restOpts.Completed().Config)
-				if err != nil {
-					return fmt.Errorf("error creating chart renderer: %w", err)
-				}
+			ca, err := kubernetes.NewChartApplierForConfig(restOpts.Completed().Config)
+			if err != nil {
+				return fmt.Errorf("error creating chart renderer: %w", err)
+			}
 
-				err = ca.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "crds-firewall"), "", "crds-firewall")
-				if err != nil {
-					return fmt.Errorf("error applying crds-firewall chart: %w", err)
-				}
+			err = ca.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "crds-firewall"), "", "crds-firewall")
+			if err != nil {
+				return fmt.Errorf("error applying crds-firewall chart: %w", err)
+			}
 
-				err = ca.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "crds-storage"), "", "crds-storage")
-				if err != nil {
-					return fmt.Errorf("error applying crds-storage chart: %w", err)
-				}
+			err = ca.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "crds-storage"), "", "crds-storage")
+			if err != nil {
+				return fmt.Errorf("error applying crds-storage chart: %w", err)
+			}
 
-				c, err := client.New(restOpts.Completed().Config, client.Options{})
-				if err != nil {
-					return fmt.Errorf("error creating k8s client for firewall namespace deployment: %w", err)
-				}
+			c, err := client.New(restOpts.Completed().Config, client.Options{})
+			if err != nil {
+				return fmt.Errorf("error creating k8s client for firewall namespace deployment: %w", err)
+			}
 
-				// the firewall namespace needs to exist in order to be able to deploy the control plane chart properly
-				namespace := v1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "firewall",
-					},
-				}
+			// the firewall namespace needs to exist in order to be able to deploy the control plane chart properly
+			namespace := v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "firewall",
+				},
+			}
 
-				if _, err := controllerutil.CreateOrUpdate(ctx, c, &namespace, func() error {
-					return nil
-				}); err != nil {
-					return fmt.Errorf("error ensuring the firewall namespace: %w", err)
-				}
+			if _, err := controllerutil.CreateOrUpdate(ctx, c, &namespace, func() error {
+				return nil
+			}); err != nil {
+				return fmt.Errorf("error ensuring the firewall namespace: %w", err)
 			}
 
 			mgr, err := manager.New(restOpts.Completed().Config, mgrOpts.Completed().Options())
@@ -211,7 +203,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			metalcontrolplane.DefaultAddOptions.ShootWebhookConfig = atomicShootWebhookConfig
 			metalcontrolplane.DefaultAddOptions.WebhookServerNamespace = webhookOptions.Server.Namespace
 
-			if err := controllerSwitches.Completed().AddToManager(mgr); err != nil {
+			if err := controllerSwitches.Completed().AddToManager(ctx, mgr); err != nil {
 				return fmt.Errorf("could not add controllers to manager: %w", err)
 			}
 
