@@ -149,13 +149,6 @@ func shootAccessSecretsFunc(namespace string) []*gutil.AccessSecret {
 	}
 }
 
-var configChart = &chart.Chart{
-	Name:    "config",
-	Path:    filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
-	Images:  []string{},
-	Objects: []*chart.Object{},
-}
-
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
 	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
