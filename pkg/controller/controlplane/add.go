@@ -49,7 +49,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddO
 
 	actuator, err := genericactuator.NewActuator(mgr, metal.Name,
 		secretConfigsFunc, shootAccessSecretsFunc, nil, nil,
-		configChart, controlPlaneChart, cpShootChart, nil, storageClassChart, nil,
+		nil, controlPlaneChart, cpShootChart, nil, storageClassChart, nil,
 		NewValuesProvider(mgr, opts.ControllerConfig), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 		imagevector.ImageVector(), "", opts.ShootWebhookConfig, opts.WebhookServerNamespace, defaultServer.Options.Port,
 	)
