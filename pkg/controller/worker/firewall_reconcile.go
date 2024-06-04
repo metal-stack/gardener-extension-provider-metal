@@ -105,6 +105,11 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 	}
 
 	_, err = controllerutil.CreateOrUpdate(ctx, a.client, deploy, func() error {
+		if deploy.Annotations == nil {
+			deploy.Annotations = map[string]string{}
+		}
+		deploy.Annotations[fcmv2.ReconcileAnnotation] = strconv.FormatBool(true)
+
 		if deploy.Labels == nil {
 			deploy.Labels = map[string]string{}
 		}
@@ -114,6 +119,7 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		_ = controllerutil.AddFinalizer(deploy, fcmv2.FinalizerName)
 
 		deploy.Spec.Replicas = 1
+		deploy.Spec.AutoUpdate.MachineImage = d.infrastructureConfig.Firewall.AutoUpdateMachineImage
 
 		// we explicitly set the selector as otherwise firewall migration does not match, which should be prevented
 		deploy.Spec.Selector = map[string]string{

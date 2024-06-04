@@ -37,19 +37,6 @@ data:
       backup:
         schedule: {{ .Values.config.etcd.backup.schedule }}
         deltaSnapshotPeriod: {{ .Values.config.etcd.backup.deltaSnapshotPeriod }}
-    clusterAudit:
-      enabled: {{ .Values.config.clusterAudit.enabled }}
-    auditToSplunk:
-      enabled: {{ .Values.config.auditToSplunk.enabled }}
-{{- if .Values.config.auditToSplunk.enabled }}
-      hecToken: {{ .Values.config.auditToSplunk.hecToken }}
-      index: {{ .Values.config.auditToSplunk.index }}
-      hecHost: {{ .Values.config.auditToSplunk.hecHost }}
-      hecPort: {{ .Values.config.auditToSplunk.hecPort }}
-      tlsEnabled: {{ .Values.config.auditToSplunk.tlsEnabled }}
-      hecCAFile: |
-{{ .Values.config.auditToSplunk.hecCAFile | indent 8}}
-{{- end }}
     storage:
       duros:
         enabled: {{ .Values.config.storage.duros.enabled }}

@@ -59,6 +59,17 @@ spec:
           spec:
             description: Spec contains the firewall deployment specification.
             properties:
+              autoUpdate:
+                description: AutoUpdate defines the behavior for automatic updates.
+                properties:
+                  machineImage:
+                    description: |-
+                      MachineImage auto updates the os image of the firewall within the maintenance time window
+                      in case a newer version of the os is available.
+                    type: boolean
+                required:
+                - machineImage
+                type: object
               replicas:
                 description: |-
                   Replicas is the amount of firewall replicas targeted to be running.
@@ -258,6 +269,7 @@ spec:
                     type: object
                 type: object
             required:
+            - autoUpdate
             - template
             type: object
           status:

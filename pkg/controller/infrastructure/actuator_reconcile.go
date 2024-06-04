@@ -3,14 +3,19 @@ package infrastructure
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/metal-lib/pkg/tag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
+	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalgo "github.com/metal-stack/metal-go"
@@ -21,6 +26,8 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
+	"github.com/gardener/gardener/pkg/utils/gardener"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 )
@@ -97,6 +104,54 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastruc
 			Cause:        err,
 			RequeueAfter: 30 * time.Second,
 		}
+	}
+
+	err = a.maintainFirewallDeployment(ctx, logger, cluster, infrastructure.Namespace)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *actuator) maintainFirewallDeployment(ctx context.Context, logger logr.Logger, cluster *extensionscontroller.Cluster, namespace string) error {
+	// we need to run the following code from the infrastructure controller because we know
+	// that the gardener-controller-manager reconciles the infrastructure resource only in maintenance mode or if the infrastructure resource changes.
+	// a controller has no possibility to find out by itself if a reconciliation was triggered from the maintenance controller
+	// so it cannot be put to the worker controller.
+
+	if !gardener.EffectiveShootMaintenanceTimeWindow(cluster.Shoot).Contains(time.Now()) {
+		// note that this prevents updating the firewall image even when annotating the shoot explicitly with the maintainenance annotation
+		// if a user wants to update the firewall immediately he needs to specify the new firewall image in the spec
+		logger.Info("not maintaining firewall deployment as shoot not in effective maintenance time window")
+		return nil
+	}
+
+	deploy := &fcmv2.FirewallDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      metal.FirewallDeploymentName,
+			Namespace: namespace,
+		},
+	}
+
+	err := a.client.Get(ctx, client.ObjectKeyFromObject(deploy), deploy)
+	if err != nil && apierrors.IsNotFound(err) {
+		logger.Info("not maintaining firewall deployment as resource is unpresent")
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if deploy.Annotations == nil {
+		deploy.Annotations = map[string]string{}
+	}
+	deploy.Annotations[fcmv2.MaintenanceAnnotation] = strconv.FormatBool(true)
+
+	err = a.client.Update(ctx, deploy)
+	if err != nil {
+		return fmt.Errorf("unable to trigger firewall deployment maintenance reconciliation %w", err)
 	}
 
 	return nil

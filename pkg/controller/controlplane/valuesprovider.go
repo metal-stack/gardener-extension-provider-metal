@@ -2,7 +2,6 @@ package controlplane
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/netip"
 	"net/url"
@@ -12,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
@@ -22,7 +20,6 @@ import (
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/v2/api/v1"
 
-	extensionsconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 
@@ -32,26 +29,8 @@ import (
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
-	metalgo "github.com/metal-stack/metal-go"
-
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
-
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
-
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
-
-	gutil "github.com/gardener/gardener/pkg/utils/gardener"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
-
-	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
-
-	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
-	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/utils/chart"
-	"github.com/gardener/gardener/pkg/utils/secrets"
-	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
-
-	"github.com/go-logr/logr"
+	metalgo "github.com/metal-stack/metal-go"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -62,7 +41,19 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/client-go/kubernetes"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+
+	gutil "github.com/gardener/gardener/pkg/utils/gardener"
+	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
+
+	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	"github.com/gardener/gardener/pkg/utils/chart"
+	"github.com/gardener/gardener/pkg/utils/secrets"
+	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
+
+	"github.com/go-logr/logr"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -77,7 +68,6 @@ import (
 const (
 	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
 	droptailerCAName   = "ca-" + metal.Name + "-droptailer"
-	auditTailerCAName  = "ca-" + metal.Name + "-audittailer"
 
 	ipv4HostMask = "/32"
 	ipv6HostMask = "/128"
@@ -147,37 +137,6 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
 		},
-		// audit tailer
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:       auditTailerCAName,
-				CommonName: auditTailerCAName,
-				CertType:   secrets.CACert,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.AudittailerClientSecretName,
-				CommonName:                  "audittailer",
-				DNSNames:                    []string{"audittailer"},
-				Organization:                []string{"audittailer-client"},
-				CertType:                    secrets.ClientCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
-		},
-		{
-			Config: &secrets.CertificateSecretConfig{
-				Name:                        metal.AudittailerServerSecretName,
-				CommonName:                  "audittailer",
-				DNSNames:                    []string{"audittailer"},
-				Organization:                []string{"audittailer-server"},
-				CertType:                    secrets.ServerCert,
-				SkipPublishingCACertificate: false,
-			},
-			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(auditTailerCAName, secretsmanager.UseCurrentCA)},
-		},
 	}
 }
 
@@ -187,15 +146,7 @@ func shootAccessSecretsFunc(namespace string) []*gutil.AccessSecret {
 		gutil.NewShootAccessSecret(metal.CloudControllerManagerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.DurosControllerDeploymentName, namespace),
 		gutil.NewShootAccessSecret(metal.MachineControllerManagerName, namespace),
-		gutil.NewShootAccessSecret(metal.AudittailerClientSecretName, namespace),
 	}
-}
-
-var configChart = &chart.Chart{
-	Name:    "config",
-	Path:    filepath.Join(metal.InternalChartsPath, "cloud-provider-config"),
-	Images:  []string{},
-	Objects: []*chart.Object{},
 }
 
 var controlPlaneChart = &chart.Chart{
@@ -324,27 +275,6 @@ func NewValuesProvider(mgr manager.Manager, controllerConfig config.ControllerCo
 			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:duros-controller"},
 		}...)
 	}
-	if controllerConfig.ClusterAudit.Enabled {
-		configChart.Objects = append(configChart.Objects, []*chart.Object{
-			{Type: &corev1.ConfigMap{}, Name: "audit-policy-override"},
-		}...)
-		cpShootChart.Images = append(cpShootChart.Images, []string{metal.AudittailerImageName}...)
-		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
-			// audittailer
-			{Type: &corev1.Namespace{}, Name: "audit"},
-			{Type: &appsv1.Deployment{}, Name: "audittailer"},
-			{Type: &corev1.ConfigMap{}, Name: "audittailer-config"},
-			{Type: &corev1.Service{}, Name: "audittailer"},
-			{Type: &rbacv1.Role{}, Name: "audittailer"},
-			{Type: &rbacv1.RoleBinding{}, Name: "audittailer"},
-		}...)
-		if controllerConfig.AuditToSplunk.Enabled {
-			configChart.Objects = append(configChart.Objects, []*chart.Object{
-				{Type: &corev1.Secret{}, Name: "audit-to-splunk-secret"},
-				{Type: &corev1.ConfigMap{}, Name: "audit-to-splunk-config"},
-			}...)
-		}
-	}
 
 	return &valuesProvider{
 		controllerConfig: controllerConfig,
@@ -368,106 +298,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 ) (map[string]interface{}, error) {
-	clusterAuditValues, err := vp.getClusterAuditConfigValues(ctx, cp, cluster)
-	if err != nil {
-		return nil, err
-	}
-
-	return clusterAuditValues, nil
-}
-
-func (vp *valuesProvider) getClusterAuditConfigValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
-	cpConfig, err := helper.ControlPlaneConfigFromControlPlane(cp)
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		clusterAuditValues = map[string]interface{}{
-			"enabled": false,
-		}
-		auditToSplunkValues = map[string]interface{}{
-			"enabled": false,
-		}
-		values = map[string]interface{}{
-			"clusterAudit":  clusterAuditValues,
-			"auditToSplunk": auditToSplunkValues,
-		}
-	)
-
-	if !validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
-		return values, nil
-	}
-
-	clusterAuditValues["enabled"] = true
-
-	if !validation.AuditToSplunkEnabled(&vp.controllerConfig, cpConfig) {
-		return values, nil
-	}
-
-	auditToSplunkValues["enabled"] = true
-	auditToSplunkValues["hecToken"] = vp.controllerConfig.AuditToSplunk.HECToken
-	auditToSplunkValues["index"] = vp.controllerConfig.AuditToSplunk.Index
-	auditToSplunkValues["hecHost"] = vp.controllerConfig.AuditToSplunk.HECHost
-	auditToSplunkValues["hecPort"] = vp.controllerConfig.AuditToSplunk.HECPort
-	auditToSplunkValues["tlsEnabled"] = vp.controllerConfig.AuditToSplunk.TLSEnabled
-	auditToSplunkValues["hecCAFile"] = vp.controllerConfig.AuditToSplunk.HECCAFile
-	auditToSplunkValues["clusterName"] = cluster.ObjectMeta.Name
-
-	if !extensionscontroller.IsHibernated(cluster) {
-		customValues, err := vp.getCustomSplunkValues(ctx, cluster.ObjectMeta.Name, auditToSplunkValues)
-		if err != nil {
-			vp.logger.Error(err, "could not read custom splunk values")
-		} else {
-			values["auditToSplunk"] = customValues
-		}
-	}
-
-	return values, nil
-}
-
-func (vp *valuesProvider) getCustomSplunkValues(ctx context.Context, clusterName string, auditToSplunkValues map[string]interface{}) (map[string]interface{}, error) {
-	shootConfig, _, err := util.NewClientForShoot(ctx, vp.client, clusterName, client.Options{}, extensionsconfig.RESTOptions{})
-	if err != nil {
-		return auditToSplunkValues, err
-	}
-
-	cs, err := kubernetes.NewForConfig(shootConfig)
-	if err != nil {
-		return auditToSplunkValues, err
-	}
-
-	splunkConfigSecret, err := cs.CoreV1().Secrets("kube-system").Get(ctx, "splunk-config", metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return auditToSplunkValues, nil
-		}
-		return nil, err
-	}
-
-	if splunkConfigSecret.Data == nil {
-		vp.logger.Error(errors.New("secret is empty"), "custom splunk config secret contains no data")
-		return auditToSplunkValues, nil
-	}
-
-	for key, value := range splunkConfigSecret.Data {
-		switch key {
-		case "hecToken":
-			auditToSplunkValues[key] = string(value)
-		case "index":
-			auditToSplunkValues[key] = string(value)
-		case "hecHost":
-			auditToSplunkValues[key] = string(value)
-		case "hecPort":
-			auditToSplunkValues[key] = string(value)
-		case "tlsEnabled":
-			auditToSplunkValues[key] = string(value)
-		case "hecCAFile":
-			auditToSplunkValues[key] = string(value)
-		}
-	}
-
-	return auditToSplunkValues, nil
+	return nil, nil
 }
 
 // GetControlPlaneChartValues returns the values for the control plane chart applied by the generic actuator.
@@ -522,7 +353,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	// TODO: this is a workaround to speed things for the time being...
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
-	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
+	// it would need the start of another reconciliation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
 	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
@@ -633,7 +464,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	// TODO: this is a workaround to speed things for the time being...
 	// the infrastructure controller writes the nodes cidr back into the infrastructure status, but the cluster resource does not contain it immediately
-	// it would need the start of another reconcilation until the node cidr can be picked up from the cluster resource
+	// it would need the start of another reconciliation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
 	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
@@ -662,13 +493,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
-	clusterAuditValues := map[string]interface{}{
-		"enabled": false,
-	}
-	if validation.ClusterAuditEnabled(&vp.controllerConfig, cpConfig) {
-		clusterAuditValues["enabled"] = true
-	}
-
 	nodeInitValues := map[string]any{
 		"enabled": true,
 	}
@@ -678,10 +502,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	apiserverIPs := []string{}
 	if !extensionscontroller.IsHibernated(cluster) {
-		// get apiserver ip adresses from external dns entry
+		// get apiserver ip addresses from external dns entry
 		// DNSEntry was replaced by DNSRecord and will be dropped in a future gardener release
 		// We can then remove reading the dns entry resources entirely
-		// get apiserver ip adresses from external dns record
+		// get apiserver ip addresses from external dns record
 		dnsRecord := &extensionsv1alpha1.DNSRecord{}
 		err := vp.client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
 		if err != nil {
@@ -790,7 +614,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"apiserverIPs":    apiserverIPs,
 		"nodeCIDR":        nodeCIDR,
 		"duros":           durosValues,
-		"clusterAudit":    clusterAuditValues,
 		"nodeInit":        nodeInitValues,
 		"restrictEgress": map[string]any{ // FIXME remove
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
@@ -822,27 +645,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 				"ca":   droptailerClient.Data["ca.crt"],
 				"cert": droptailerClient.Data["tls.crt"],
 				"key":  droptailerClient.Data["tls.key"],
-			},
-		}
-	}
-
-	audittailerServer, serverOK := secretsReader.Get(metal.AudittailerServerSecretName)
-	audittailerClient, clientOK := secretsReader.Get(metal.AudittailerClientSecretName)
-	if serverOK && clientOK {
-		values["audittailer"] = map[string]any{
-			"podAnnotations": map[string]interface{}{
-				"checksum/secret-audittailer-server": checksums[metal.AudittailerServerSecretName],
-				"checksum/secret-audittailer-client": checksums[metal.AudittailerClientSecretName],
-			},
-			"server": map[string]any{
-				"ca":   audittailerServer.Data["ca.crt"],
-				"cert": audittailerServer.Data["tls.crt"],
-				"key":  audittailerServer.Data["tls.key"],
-			},
-			"client": map[string]any{
-				"ca":   audittailerClient.Data["ca.crt"],
-				"cert": audittailerClient.Data["tls.crt"],
-				"key":  audittailerClient.Data["tls.key"],
 			},
 		}
 	}
@@ -1104,7 +906,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 
 	// for gardener-managed clusters the KUBERNETES_SERVICE_HOST env variable
 	// points to the kube-apiserver hosted in the seed's shoot namespace, which
-	// is publically reachable and works just fine.
+	// is publicly reachable and works just fine.
 	//
 	// for non-gardener-managed clusters (e.g. shoots running in GKE), the
 	// KUBERNETES_SERVICE_HOST environment variable may point to an internal
@@ -1132,7 +934,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 	}
 
 	// We generally expect to get a DNS name for the seed api url.
-	// This is alway true for gardener managed clusters, because the mutating webhook
+	// This is always true for gardener managed clusters, because the mutating webhook
 	// of the api-server-proxy sets the KUBERNETES_SERVICE_HOST env variable.
 	// But for Managed Seeds where the control plane resides at GKE, this is always a IP
 	// in this case we set the seedAPI URL in a configmap.
