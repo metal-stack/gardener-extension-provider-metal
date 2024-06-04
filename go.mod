@@ -2,13 +2,15 @@ module github.com/metal-stack/gardener-extension-provider-metal
 
 go 1.22
 
+replace github.com/gardener/gardener-extension-networking-cilium => github.com/metal-stack/gardener-extension-networking-cilium v1.16.1-0.20240510132804-f1f2b0fdce23
+
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/gardener/etcd-druid v0.19.2
-	github.com/gardener/gardener v1.80.7
+	github.com/gardener/gardener v1.81.0
 	github.com/gardener/gardener-extension-networking-calico v1.36.1
 	github.com/gardener/gardener-extension-networking-cilium v1.26.0
 	github.com/gardener/machine-controller-manager v0.49.3
@@ -41,6 +43,7 @@ require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
+	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -122,7 +125,9 @@ require (
 	github.com/prometheus/procfs v0.13.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
+	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
+	github.com/spf13/cast v1.6.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	go.opentelemetry.io/otel v1.24.0 // indirect
