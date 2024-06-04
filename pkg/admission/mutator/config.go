@@ -7,9 +7,14 @@ import (
 
 	calicoextensionv1alpha1 "github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico/v1alpha1"
 	ciliumextensionv1alpha1 "github.com/gardener/gardener-extension-networking-cilium/pkg/apis/cilium/v1alpha1"
+	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 )
 
 type config struct{}
+
+func (c *config) ipFamilies() []string {
+	return c.slice("DEFAULTER_IPFAMILIES", []string{string(gardenv1beta1.IPFamilyIPv4)})
+}
 
 func (c *config) allowedPrivilegedContainers() bool {
 	return c.bool("DEFAULTER_ALLOWEDPRIVILEGEDCONTAINERS", true)
@@ -60,7 +65,7 @@ func (c *config) ciliumKubeProxyEnabled() bool {
 }
 
 func (c *config) ciliumPSPEnabled() bool {
-	return c.bool("DEFAULTER_CILIUMPSPENABLED", true)
+	return c.bool("DEFAULTER_CILIUMPSPENABLED", false)
 }
 
 func (c *config) ciliumTunnel() ciliumextensionv1alpha1.TunnelMode {
@@ -68,7 +73,15 @@ func (c *config) ciliumTunnel() ciliumextensionv1alpha1.TunnelMode {
 }
 
 func (c *config) ciliumDevices() []string {
-	return c.slice("DEFAULTER_CILIUMDEVICES", []string{"lan+"})
+	return c.slice("DEFAULTER_CILIUMDEVICES", []string{"lan+", "lo"})
+}
+
+func (c *config) ciliumDirectRoutingDevice() string {
+	return c.string("DEFAULTER_CILIUMDIRECTROUTINGDEVICE", "lo")
+}
+
+func (c *config) bgpControlPlaneEnabled() bool {
+	return c.bool("DEFAULTER_CILIUMBGPCONTROLPLANE", true)
 }
 
 func (c *config) ciliumIPv4NativeRoutingCIDREnabled() bool {
@@ -76,7 +89,7 @@ func (c *config) ciliumIPv4NativeRoutingCIDREnabled() bool {
 }
 
 func (c *config) ciliumLoadBalancingMode() ciliumextensionv1alpha1.LoadBalancingMode {
-	return ciliumextensionv1alpha1.LoadBalancingMode(c.string("DEFAULTER_CILIUMLOADBALANCINGMODE", string(ciliumextensionv1alpha1.DSR)))
+	return ciliumextensionv1alpha1.LoadBalancingMode(c.string("DEFAULTER_CILIUMLOADBALANCINGMODE", string(ciliumextensionv1alpha1.SNAT)))
 }
 
 func (c *config) ciliumMTU() int {

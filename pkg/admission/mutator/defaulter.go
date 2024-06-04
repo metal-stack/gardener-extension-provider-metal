@@ -96,6 +96,14 @@ func (d *defaulter) defaultNetworking(shoot *gardenv1beta1.Shoot) error {
 		shoot.Spec.Networking = &gardenv1beta1.Networking{}
 	}
 
+	if shoot.Spec.Networking.IPFamilies == nil || len(shoot.Spec.Networking.IPFamilies) == 0 {
+		ipFamiles := make([]gardenv1beta1.IPFamily, 0)
+		for _, f := range d.c.ipFamilies() {
+			ipFamiles = append(ipFamiles, gardenv1beta1.IPFamily(f))
+		}
+		shoot.Spec.Networking.IPFamilies = ipFamiles
+	}
+
 	if pointer.SafeDeref(shoot.Spec.Networking.Type) == "" {
 		shoot.Spec.Networking.Type = pointer.Pointer(d.c.networkType())
 	}
@@ -200,6 +208,16 @@ func (d *defaulter) defaultCiliumConfig(shoot *gardenv1beta1.Shoot) error {
 
 	if networkConfig.Devices == nil {
 		networkConfig.Devices = d.c.ciliumDevices()
+	}
+
+	if networkConfig.DirectRoutingDevice == nil {
+		networkConfig.DirectRoutingDevice = pointer.Pointer(d.c.ciliumDirectRoutingDevice())
+	}
+
+	if networkConfig.BGPControlPlane == nil {
+		networkConfig.BGPControlPlane = &ciliumextensionv1alpha1.BGPControlPlane{
+			Enabled: d.c.bgpControlPlaneEnabled(),
+		}
 	}
 
 	if networkConfig.IPv4NativeRoutingCIDREnabled == nil {
