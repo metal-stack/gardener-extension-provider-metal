@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/coreos/go-systemd/v22/unit"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
+	extensionscontextwebhook "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
@@ -137,7 +138,7 @@ func ensureKubeletCommandLineArgs(command []string) []string {
 }
 
 // EnsureKubeletConfiguration ensures that the kubelet configuration conforms to the provider requirements.
-func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.GardenContext, kubeletVersion *semver.Version, new, _ *kubeletconfigv1beta1.KubeletConfiguration) error {
+func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx extensionscontextwebhook.GardenContext, kubeletVersion *semver.Version, new, _ *kubeletconfigv1beta1.KubeletConfiguration) error {
 	// Make sure CSI-related feature gates are not enabled
 	// TODO Leaving these enabled shouldn't do any harm, perhaps remove this code when properly tested?
 	// FIXME Why ?

@@ -155,6 +155,11 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, worker *extensio
 	return a.firewallDelete(ctx, log, cluster)
 }
 
+func (a *actuator) ForceDelete(context.Context, logr.Logger, *extensionsv1alpha1.Worker, *extensionscontroller.Cluster) error {
+	// TODO: implement
+	return nil
+}
+
 func (a *actuator) Migrate(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
 	err := a.workerActuator.Migrate(ctx, log, worker, cluster)
 	if err != nil {
