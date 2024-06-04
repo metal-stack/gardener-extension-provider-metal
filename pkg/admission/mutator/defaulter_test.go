@@ -273,9 +273,10 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						},
 					},
 					Networking: &gardenv1beta1.Networking{
-						Type:     pointer.Pointer("calico"),
-						Pods:     pointer.Pointer("10.240.0.0/13"),
-						Services: pointer.Pointer("10.248.0.0/18"),
+						Type:       pointer.Pointer("calico"),
+						Pods:       pointer.Pointer("10.240.0.0/13"),
+						Services:   pointer.Pointer("10.248.0.0/18"),
+						IPFamilies: []gardenv1beta1.IPFamily{gardenv1beta1.IPFamilyIPv4},
 						ProviderConfig: &runtime.RawExtension{
 							Object: &calicoextensionv1alpha1.NetworkConfig{
 								Backend: pointer.Pointer(calicoextensionv1alpha1.None),
@@ -352,20 +353,23 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						},
 					},
 					Networking: &gardenv1beta1.Networking{
-						Type:     pointer.Pointer("cilium"),
-						Pods:     pointer.Pointer("10.240.0.0/13"),
-						Services: pointer.Pointer("10.248.0.0/18"),
+						Type:       pointer.Pointer("cilium"),
+						Pods:       pointer.Pointer("10.240.0.0/13"),
+						Services:   pointer.Pointer("10.248.0.0/18"),
+						IPFamilies: []gardenv1beta1.IPFamily{gardenv1beta1.IPFamilyIPv4},
 						ProviderConfig: &runtime.RawExtension{
 							Object: &ciliumextensionv1alpha1.NetworkConfig{
-								PSPEnabled: pointer.Pointer(true),
+								PSPEnabled: pointer.Pointer(false),
 								Hubble: &ciliumextensionv1alpha1.Hubble{
 									Enabled: true,
 								},
 								TunnelMode:                   pointer.Pointer(ciliumextensionv1alpha1.Disabled),
 								MTU:                          pointer.Pointer(1440),
-								Devices:                      []string{"lan+"},
-								LoadBalancingMode:            pointer.Pointer(ciliumextensionv1alpha1.DSR),
+								Devices:                      []string{"lan+", "lo"},
+								DirectRoutingDevice:          pointer.Pointer("lo"),
+								LoadBalancingMode:            pointer.Pointer(ciliumextensionv1alpha1.SNAT),
 								IPv4NativeRoutingCIDREnabled: pointer.Pointer(true),
+								BGPControlPlane:              &ciliumextensionv1alpha1.BGPControlPlane{Enabled: true},
 							},
 						},
 					},
