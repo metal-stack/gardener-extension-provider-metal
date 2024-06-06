@@ -108,11 +108,6 @@ func (in *DurosPartitionConfiguration) DeepCopyInto(out *DurosPartitionConfigura
 		*out = make([]DurosSeedStorageClass, len(*in))
 		copy(*out, *in)
 	}
-	if in.APIEndpoint != nil {
-		in, out := &in.APIEndpoint, &out.APIEndpoint
-		*out = new(string)
-		**out = **in
-	}
 	return
 }
 
