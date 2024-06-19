@@ -37,7 +37,7 @@ cloudControllerManager:
   clusterID: cluster-id
   defaultExternalNetwork: external-network-id
   additionalNetworks: internet,mpls
-  loadbalancer: metallb
+  loadBalancer: metallb
   sshPublicKey: publickey
   metal:
     endpoint: api-url

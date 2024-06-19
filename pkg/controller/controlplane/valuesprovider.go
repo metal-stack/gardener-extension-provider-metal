@@ -740,9 +740,9 @@ func getCCMChartValues(
 		return nil, fmt.Errorf("secret %q not found", metal.CloudControllerManagerServerName)
 	}
 
-	loadbalancer := "metallb"
+	loadBalancer := "metallb"
 	if pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type) == "cilium" {
-		loadbalancer = "cilium"
+		loadBalancer = "cilium"
 	}
 
 	values := map[string]interface{}{
@@ -756,7 +756,7 @@ func getCCMChartValues(
 			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
 			"defaultExternalNetwork": defaultExternalNetwork,
 			"additionalNetworks":     strings.Join(infrastructureConfig.Firewall.Networks, ","),
-			"loadbalancer":           loadbalancer,
+			"loadBalancer":           loadBalancer,
 			"sshPublicKey":           string(sshSecret.Data["id_rsa.pub"]),
 			"metal": map[string]interface{}{
 				"endpoint": mcp.Endpoint,
