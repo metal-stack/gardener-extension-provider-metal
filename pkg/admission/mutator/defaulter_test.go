@@ -367,7 +367,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 								MTU:                          pointer.Pointer(1440),
 								Devices:                      []string{"lan+", "lo"},
 								DirectRoutingDevice:          pointer.Pointer("lo"),
-								LoadBalancingMode:            pointer.Pointer(ciliumextensionv1alpha1.SNAT),
+								LoadBalancingMode:            pointer.Pointer(ciliumextensionv1alpha1.DSR),
 								IPv4NativeRoutingCIDREnabled: pointer.Pointer(true),
 								BGPControlPlane:              &ciliumextensionv1alpha1.BGPControlPlane{Enabled: true},
 							},
