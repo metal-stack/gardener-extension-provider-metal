@@ -493,10 +493,14 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
+	metallbValues := map[string]any{
+		"enabled": true,
+	}
 	nodeInitValues := map[string]any{
 		"enabled": true,
 	}
 	if pointer.SafeDeref(pointer.SafeDeref(cluster.Shoot.Spec.Networking).Type) == "cilium" {
+		metallbValues["enabled"] = false
 		nodeInitValues["enabled"] = false
 	}
 
@@ -614,6 +618,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"apiserverIPs":    apiserverIPs,
 		"nodeCIDR":        nodeCIDR,
 		"duros":           durosValues,
+		"metallb":         metallbValues,
 		"nodeInit":        nodeInitValues,
 		"restrictEgress": map[string]any{ // FIXME remove
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
