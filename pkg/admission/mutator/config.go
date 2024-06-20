@@ -89,7 +89,7 @@ func (c *config) ciliumIPv4NativeRoutingCIDREnabled() bool {
 }
 
 func (c *config) ciliumLoadBalancingMode() ciliumextensionv1alpha1.LoadBalancingMode {
-	return ciliumextensionv1alpha1.LoadBalancingMode(c.string("DEFAULTER_CILIUMLOADBALANCINGMODE", string(ciliumextensionv1alpha1.SNAT)))
+	return ciliumextensionv1alpha1.LoadBalancingMode(c.string("DEFAULTER_CILIUMLOADBALANCINGMODE", string(ciliumextensionv1alpha1.DSR)))
 }
 
 func (c *config) ciliumMTU() int {
