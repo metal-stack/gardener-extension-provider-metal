@@ -96,14 +96,6 @@ func (d *defaulter) defaultNetworking(shoot *gardenv1beta1.Shoot) error {
 		shoot.Spec.Networking = &gardenv1beta1.Networking{}
 	}
 
-	if shoot.Spec.Networking.IPFamilies == nil || len(shoot.Spec.Networking.IPFamilies) == 0 {
-		ipFamiles := make([]gardenv1beta1.IPFamily, 0)
-		for _, f := range d.c.ipFamilies() {
-			ipFamiles = append(ipFamiles, gardenv1beta1.IPFamily(f))
-		}
-		shoot.Spec.Networking.IPFamilies = ipFamiles
-	}
-
 	if pointer.SafeDeref(shoot.Spec.Networking.Type) == "" {
 		shoot.Spec.Networking.Type = pointer.Pointer(d.c.networkType())
 	}
