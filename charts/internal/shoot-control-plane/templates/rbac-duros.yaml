@@ -49,6 +49,12 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - storage.metal-stack.io
+  resources:
+  - duros
+  verbs:
+  - "*"
 {{- if not .Values.pspDisabled }}
 - apiGroups:
   - "policy"
