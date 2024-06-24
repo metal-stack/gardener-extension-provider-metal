@@ -7,14 +7,9 @@ import (
 
 	calicoextensionv1alpha1 "github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico/v1alpha1"
 	ciliumextensionv1alpha1 "github.com/gardener/gardener-extension-networking-cilium/pkg/apis/cilium/v1alpha1"
-	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 )
 
 type config struct{}
-
-func (c *config) ipFamilies() []string {
-	return c.slice("DEFAULTER_IPFAMILIES", []string{string(gardenv1beta1.IPFamilyIPv4)})
-}
 
 func (c *config) allowedPrivilegedContainers() bool {
 	return c.bool("DEFAULTER_ALLOWEDPRIVILEGEDCONTAINERS", true)
