@@ -357,15 +357,17 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						Services: pointer.Pointer("10.248.0.0/18"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &ciliumextensionv1alpha1.NetworkConfig{
-								PSPEnabled: pointer.Pointer(true),
+								PSPEnabled: pointer.Pointer(false),
 								Hubble: &ciliumextensionv1alpha1.Hubble{
 									Enabled: true,
 								},
 								TunnelMode:                   pointer.Pointer(ciliumextensionv1alpha1.Disabled),
 								MTU:                          pointer.Pointer(1440),
-								Devices:                      []string{"lan+"},
+								Devices:                      []string{"lan+", "lo"},
+								DirectRoutingDevice:          pointer.Pointer("lo"),
 								LoadBalancingMode:            pointer.Pointer(ciliumextensionv1alpha1.DSR),
 								IPv4NativeRoutingCIDREnabled: pointer.Pointer(true),
+								BGPControlPlane:              &ciliumextensionv1alpha1.BGPControlPlane{Enabled: true},
 							},
 						},
 					},

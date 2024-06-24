@@ -493,10 +493,14 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
+	metallbValues := map[string]any{
+		"enabled": true,
+	}
 	nodeInitValues := map[string]any{
 		"enabled": true,
 	}
 	if pointer.SafeDeref(pointer.SafeDeref(cluster.Shoot.Spec.Networking).Type) == "cilium" {
+		metallbValues["enabled"] = false
 		nodeInitValues["enabled"] = false
 	}
 
@@ -614,6 +618,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"apiserverIPs":    apiserverIPs,
 		"nodeCIDR":        nodeCIDR,
 		"duros":           durosValues,
+		"metallb":         metallbValues,
 		"nodeInit":        nodeInitValues,
 		"restrictEgress": map[string]any{ // FIXME remove
 			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
@@ -740,6 +745,11 @@ func getCCMChartValues(
 		return nil, fmt.Errorf("secret %q not found", metal.CloudControllerManagerServerName)
 	}
 
+	loadBalancer := "metallb"
+	if pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type) == "cilium" {
+		loadBalancer = "cilium"
+	}
+
 	values := map[string]interface{}{
 		"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"cloudControllerManager": map[string]interface{}{
@@ -751,6 +761,7 @@ func getCCMChartValues(
 			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
 			"defaultExternalNetwork": defaultExternalNetwork,
 			"additionalNetworks":     strings.Join(infrastructureConfig.Firewall.Networks, ","),
+			"loadBalancer":           loadBalancer,
 			"sshPublicKey":           string(sshSecret.Data["id_rsa.pub"]),
 			"metal": map[string]interface{}{
 				"endpoint": mcp.Endpoint,
