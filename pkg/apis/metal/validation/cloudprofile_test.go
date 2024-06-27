@@ -125,6 +125,67 @@ var _ = Describe("CloudProfileConfig validation", func() {
 			Expect(errorList).To(BeEmpty())
 		})
 
+		It("should pass with missing network isolation", func() {
+			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {},
+					},
+				},
+			}
+
+			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile, path)
+
+			Expect(errorList).To(BeEmpty())
+		})
+
+		It("should fail with network isolation with empty values", func() {
+			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
+				"prod": {
+					Partitions: map[string]apismetal.Partition{
+						"partition-b": {
+							NetworkIsolation: &apismetal.NetworkIsolation{},
+						},
+					},
+				},
+			}
+
+			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile, path)
+
+			Expect(errorList).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":     Equal(field.ErrorTypeInvalid),
+					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.dnsServers"),
+					"BadValue": HaveLen(0),
+					"Detail":   Equal("may not be empty"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":     Equal(field.ErrorTypeInvalid),
+					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.ntpServers"),
+					"BadValue": HaveLen(0),
+					"Detail":   Equal("may not be empty"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":     Equal(field.ErrorTypeInvalid),
+					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.registryMirrors"),
+					"BadValue": HaveLen(0),
+					"Detail":   Equal("may not be empty"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":     Equal(field.ErrorTypeInvalid),
+					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.allowedNetworks.egress"),
+					"BadValue": HaveLen(0),
+					"Detail":   Equal("may not be empty"),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Type":     Equal(field.ErrorTypeInvalid),
+					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.allowedNetworks.ingress"),
+					"BadValue": HaveLen(0),
+					"Detail":   Equal("may not be empty"),
+				})),
+			))
+		})
+
 		It("should allow up to 3 dns servers", func() {
 			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
 				"prod": {
@@ -166,24 +227,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 					Partitions: map[string]apismetal.Partition{
 						"partition-b": {
 							NetworkIsolation: &apismetal.NetworkIsolation{
-								AllowedNetworks: apismetal.AllowedNetworks{
-									Ingress: []string{"10.0.0.1/24"},
-									Egress:  []string{"100.0.0.1/24"},
-								},
 								DNSServers: []string{"1.1.1.1", "1.0.0.1", "8.8.8.8", "8.8.4.4"},
-								NTPServers: []string{"134.60.1.27", "134.60.111.110"},
-								RegistryMirrors: []apismetal.RegistryMirror{
-									{
-										Name:     "metal-stack registry",
-										Endpoint: "https://some.registry",
-										IP:       "1.2.3.4",
-										Port:     443,
-										MirrorOf: []string{
-											"ghcr.io",
-											"quay.io",
-										},
-									},
-								},
 							},
 						},
 					},
@@ -192,7 +236,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 
 			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile, path)
 
-			Expect(errorList).To(ConsistOf(
+			Expect(errorList).To(ContainElement(
 				PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":     Equal(field.ErrorTypeInvalid),
 					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.dnsServers"),
@@ -202,18 +246,12 @@ var _ = Describe("CloudProfileConfig validation", func() {
 			))
 		})
 
-		It("should prevent partitions with empty network isolation registry mirror", func() {
+		It("should prevent registry mirrors with empty values", func() {
 			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
 				"prod": {
 					Partitions: map[string]apismetal.Partition{
 						"partition-b": {
 							NetworkIsolation: &apismetal.NetworkIsolation{
-								AllowedNetworks: apismetal.AllowedNetworks{
-									Ingress: []string{"10.0.0.1/24"},
-									Egress:  []string{"100.0.0.1/24"},
-								},
-								DNSServers: []string{"1.1.1.1", "1.0.0.1"},
-								NTPServers: []string{"134.60.1.27", "134.60.111.110"},
 								RegistryMirrors: []apismetal.RegistryMirror{
 									{
 										Name:     "",
@@ -231,7 +269,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 
 			errorList := ValidateCloudProfileConfig(cloudProfileConfig, cloudProfile, path)
 
-			Expect(errorList).To(ConsistOf(
+			Expect(errorList).To(ContainElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
 					"Type":     Equal(field.ErrorTypeInvalid),
 					"Field":    Equal("test.metalControlPlanes.prod.partition-b.networkIsolation.registryMirrors[0].name"),
@@ -265,7 +303,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 			))
 		})
 
-		It("should prevent partitions with invalid network isolation", func() {
+		It("should prevent partition with invalid network isolation", func() {
 			cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
 				"prod": {
 					Partitions: map[string]apismetal.Partition{
