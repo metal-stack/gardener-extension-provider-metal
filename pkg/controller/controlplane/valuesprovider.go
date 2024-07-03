@@ -29,8 +29,9 @@ import (
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
-	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
+
+	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -493,6 +494,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 	}
 
+	ciliumValues := map[string]any{
+		"enabled": false,
+	}
 	metallbValues := map[string]any{
 		"enabled": true,
 	}
@@ -500,6 +504,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"enabled": true,
 	}
 	if pointer.SafeDeref(pointer.SafeDeref(cluster.Shoot.Spec.Networking).Type) == "cilium" {
+		ciliumValues["enabled"] = true
 		metallbValues["enabled"] = false
 		nodeInitValues["enabled"] = false
 	}
@@ -618,6 +623,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"apiserverIPs":    apiserverIPs,
 		"nodeCIDR":        nodeCIDR,
 		"duros":           durosValues,
+		"cilium":          ciliumValues,
 		"metallb":         metallbValues,
 		"nodeInit":        nodeInitValues,
 		"restrictEgress": map[string]any{ // FIXME remove
