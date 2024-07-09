@@ -25,6 +25,7 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 
+	"github.com/metal-stack/gardener-extension-provider-metal/charts"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
@@ -150,7 +151,7 @@ func shootAccessSecretsFunc(namespace string) []*gutil.AccessSecret {
 
 var controlPlaneChart = &chart.Chart{
 	Name:   "control-plane",
-	Path:   filepath.Join(metal.InternalChartsPath, "control-plane"),
+	Path:   filepath.Join(charts.InternalChartsPath, "control-plane"),
 	Images: []string{metal.CCMImageName, metal.FirewallControllerManagerDeploymentName},
 	Objects: []*chart.Object{
 		// cloud controller manager
@@ -161,7 +162,7 @@ var controlPlaneChart = &chart.Chart{
 
 var cpShootChart = &chart.Chart{
 	Name:   "shoot-control-plane",
-	Path:   filepath.Join(metal.InternalChartsPath, "shoot-control-plane"),
+	Path:   filepath.Join(charts.InternalChartsPath, "shoot-control-plane"),
 	Images: []string{metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName, metal.NodeInitImageName, metal.MetallbHealthSidecarImageName},
 	Objects: []*chart.Object{
 		// metallb
@@ -229,7 +230,7 @@ var cpShootChart = &chart.Chart{
 
 var storageClassChart = &chart.Chart{
 	Name:   "shoot-storageclasses",
-	Path:   filepath.Join(metal.InternalChartsPath, "shoot-storageclasses"),
+	Path:   filepath.Join(charts.InternalChartsPath, "shoot-storageclasses"),
 	Images: []string{metal.CSIControllerImageName, metal.CSIProvisionerImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Namespace{}, Name: "csi-lvm"},
@@ -599,11 +600,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	var networkAccessMirrors []map[string]any
 	if restrictedOrForbidden && partition.NetworkIsolation != nil {
 		for _, r := range partition.NetworkIsolation.RegistryMirrors {
-			nam, err := registryMirrorToValueMap(r)
+			name, err := registryMirrorToValueMap(r)
 			if err != nil {
 				return nil, err
 			}
-			networkAccessMirrors = append(networkAccessMirrors, nam)
+			networkAccessMirrors = append(networkAccessMirrors, name)
 		}
 	}
 
@@ -1089,12 +1090,12 @@ func getDefaultExternalNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneC
 			continue
 		}
 
-		pn, ok := nws[nw.Parentnetworkid]
+		parent, ok := nws[nw.Parentnetworkid]
 		if !ok {
 			return "", fmt.Errorf("network defined in firewall networks specified a parent network that does not exist in metal-api")
 		}
 
-		if *pn.Privatesuper {
+		if *parent.Privatesuper {
 			dmzNetworks = append(dmzNetworks, nw)
 			continue
 		}

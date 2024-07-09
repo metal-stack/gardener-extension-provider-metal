@@ -1,7 +1,5 @@
 package metal
 
-import "path/filepath"
-
 const (
 	// Name is the name of the Metal provider.
 	Name = "provider-metal"
@@ -57,13 +55,6 @@ const (
 	FirewallDeploymentName = "shoot-firewall"
 	// ManagerIdentity is put as a label to every secret managed by the gepm and secretsmanager to make searching easier
 	ManagerIdentity = "provider-" + Type + "-controlplane"
-)
-
-var (
-	// ChartsPath is the path to the charts
-	ChartsPath = filepath.Join("charts")
-	// InternalChartsPath is the path to the internal charts
-	InternalChartsPath = filepath.Join(ChartsPath, "internal")
 )
 
 // Credentials stores Metal credentials.

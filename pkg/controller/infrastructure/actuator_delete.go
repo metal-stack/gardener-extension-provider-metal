@@ -156,10 +156,10 @@ func (a *actuator) releaseNetworkResources(d *networkDeleter) error {
 		return err
 	}
 
-	for _, pn := range privateNetworks {
-		_, err := d.mclient.Network().FreeNetwork(network.NewFreeNetworkParams().WithID(*pn.ID).WithContext(d.ctx), nil)
+	for _, privateNetwork := range privateNetworks {
+		_, err := d.mclient.Network().FreeNetwork(network.NewFreeNetworkParams().WithID(*privateNetwork.ID).WithContext(d.ctx), nil)
 		if err != nil {
-			d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *pn.ID)
+			d.logger.Error(err, "failed to release private network", "infrastructure", d.infrastructure.Name, "networkID", *privateNetwork.ID)
 			return err
 		}
 	}
