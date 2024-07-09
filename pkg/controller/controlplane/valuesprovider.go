@@ -764,6 +764,7 @@ func getCCMChartValues(
 				"checksum/secret-cloudprovider":                   checksums[v1beta1constants.SecretNameCloudProvider],
 				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
 			},
+			"tlsCipherSuites": kutil.TLSCipherSuites,
 			"secrets": map[string]any{
 				"server": serverSecret.Name,
 			},
