@@ -150,9 +150,10 @@ func shootAccessSecretsFunc(namespace string) []*gutil.AccessSecret {
 }
 
 var controlPlaneChart = &chart.Chart{
-	Name:   "control-plane",
-	Path:   filepath.Join(charts.InternalChartsPath, "control-plane"),
-	Images: []string{metal.CCMImageName, metal.FirewallControllerManagerDeploymentName},
+	Name:       "control-plane",
+	EmbeddedFS: charts.InternalChart,
+	Path:       filepath.Join(charts.InternalChartsPath, "control-plane"),
+	Images:     []string{metal.CCMImageName, metal.FirewallControllerManagerDeploymentName},
 	Objects: []*chart.Object{
 		// cloud controller manager
 		{Type: &corev1.Service{}, Name: "cloud-controller-manager"},
@@ -161,9 +162,10 @@ var controlPlaneChart = &chart.Chart{
 }
 
 var cpShootChart = &chart.Chart{
-	Name:   "shoot-control-plane",
-	Path:   filepath.Join(charts.InternalChartsPath, "shoot-control-plane"),
-	Images: []string{metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName, metal.NodeInitImageName, metal.MetallbHealthSidecarImageName},
+	Name:       "shoot-control-plane",
+	EmbeddedFS: charts.InternalChart,
+	Path:       filepath.Join(charts.InternalChartsPath, "shoot-control-plane"),
+	Images:     []string{metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName, metal.NodeInitImageName, metal.MetallbHealthSidecarImageName},
 	Objects: []*chart.Object{
 		// metallb
 		{Type: &corev1.Namespace{}, Name: "metallb-system"},
@@ -229,9 +231,10 @@ var cpShootChart = &chart.Chart{
 }
 
 var storageClassChart = &chart.Chart{
-	Name:   "shoot-storageclasses",
-	Path:   filepath.Join(charts.InternalChartsPath, "shoot-storageclasses"),
-	Images: []string{metal.CSIControllerImageName, metal.CSIProvisionerImageName},
+	Name:       "shoot-storageclasses",
+	EmbeddedFS: charts.InternalChart,
+	Path:       filepath.Join(charts.InternalChartsPath, "shoot-storageclasses"),
+	Images:     []string{metal.CSIControllerImageName, metal.CSIProvisionerImageName},
 	Objects: []*chart.Object{
 		{Type: &corev1.Namespace{}, Name: "csi-lvm"},
 		{Type: &storagev1.StorageClass{}, Name: "csi-lvm"},
