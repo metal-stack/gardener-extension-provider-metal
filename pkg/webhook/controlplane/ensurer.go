@@ -351,16 +351,12 @@ func (e *ensurer) EnsureMachineControllerManagerDeployment(_ context.Context, _ 
 		return err
 	}
 
-	// TODO: Add back our settings
-	// - --machine-drain-timeout=2h
-	// - --machine-health-timeout=10080m
-	// - --machine-safety-apiserver-statuscheck-timeout=30s
-	// - --machine-safety-apiserver-statuscheck-period=1m
-	// - --machine-safety-orphan-vms-period=30m
+	c := machinecontrollermanager.ProviderSidecarContainer(newObj.Namespace, metal.Name, image.String())
+	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--machine-health-timeout=", "10080m")
 
 	newObj.Spec.Template.Spec.Containers = extensionswebhook.EnsureContainerWithName(
 		newObj.Spec.Template.Spec.Containers,
-		machinecontrollermanager.ProviderSidecarContainer(newObj.Namespace, metal.Name, image.String()),
+		c,
 	)
 	return nil
 }
