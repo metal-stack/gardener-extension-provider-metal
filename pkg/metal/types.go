@@ -6,8 +6,6 @@ const (
 	// Name is the name of the Metal provider.
 	Name = "provider-metal"
 
-	// MachineControllerManagerImageName is the name of the MachineControllerManager image.
-	MachineControllerManagerImageName = "machine-controller-manager"
 	// MCMProviderMetalImageName is the name of the metal provider plugin image.
 	MCMProviderMetalImageName = "machine-controller-manager-provider-metal"
 	// CCMImageName is the name of the cloud controller manager image.
@@ -38,8 +36,6 @@ const (
 
 	// CloudProviderConfigName is the name of the configmap containing the cloud provider config.
 	CloudProviderConfigName = "cloud-provider-config"
-	// MachineControllerManagerName is a constant for the name of the machine-controller-manager.
-	MachineControllerManagerName = "machine-controller-manager"
 
 	// ShootExtensionTypeTokenIssuer appears unused? CHECKME
 	ShootExtensionTypeTokenIssuer = "tokenissuer"

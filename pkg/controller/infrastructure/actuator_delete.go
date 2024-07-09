@@ -15,7 +15,7 @@ import (
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
 
-	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	"github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
 
@@ -27,14 +27,14 @@ import (
 type networkDeleter struct {
 	ctx                  context.Context
 	logger               logr.Logger
-	cluster              *extensionscontroller.Cluster
+	cluster              *controller.Cluster
 	infrastructure       *extensionsv1alpha1.Infrastructure
 	infrastructureConfig *metalapi.InfrastructureConfig
 	mclient              metalgo.Client
 	clusterID            string
 }
 
-func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *extensionscontroller.Cluster) error {
+func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructure *extensionsv1alpha1.Infrastructure, cluster *controller.Cluster) error {
 	internalInfrastructureConfig, _, err := decodeInfrastructure(infrastructure, a.decoder)
 	if err != nil {
 		return err
@@ -100,6 +100,10 @@ func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructur
 		return fmt.Errorf("unable to cleanup firewall-controller-manager validating webhook")
 	}
 
+	return nil
+}
+
+func (a *actuator) ForceDelete(_ context.Context, _ logr.Logger, _ *extensionsv1alpha1.Infrastructure, _ *controller.Cluster) error {
 	return nil
 }
 

@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Masterminds/semver"
+	"github.com/Masterminds/semver/v3"
 	"github.com/coreos/go-systemd/v22/unit"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
-
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
+	"github.com/gardener/gardener/pkg/component/machinecontrollermanager"
 
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -21,11 +21,15 @@ import (
 	"github.com/go-logr/logr"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	vpaautoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -138,6 +142,7 @@ func ensureKubeletCommandLineArgs(command []string) []string {
 
 // EnsureKubeletConfiguration ensures that the kubelet configuration conforms to the provider requirements.
 func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.GardenContext, kubeletVersion *semver.Version, new, _ *kubeletconfigv1beta1.KubeletConfiguration) error {
+
 	// Make sure CSI-related feature gates are not enabled
 	// TODO Leaving these enabled shouldn't do any harm, perhaps remove this code when properly tested?
 	// FIXME Why ?
@@ -334,4 +339,51 @@ version = 2
 			},
 		},
 	}
+}
+
+// ImageVector is exposed for testing.
+var ImageVector = imagevector.ImageVector()
+
+// EnsureMachineControllerManagerDeployment ensures that the machine-controller-manager deployment conforms to the provider requirements.
+func (e *ensurer) EnsureMachineControllerManagerDeployment(_ context.Context, _ gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
+	image, err := ImageVector.FindImage(metal.MCMProviderMetalImageName)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Add back our settings
+	// - --machine-drain-timeout=2h
+	// - --machine-health-timeout=10080m
+	// - --machine-safety-apiserver-statuscheck-timeout=30s
+	// - --machine-safety-apiserver-statuscheck-period=1m
+	// - --machine-safety-orphan-vms-period=30m
+
+	newObj.Spec.Template.Spec.Containers = extensionswebhook.EnsureContainerWithName(
+		newObj.Spec.Template.Spec.Containers,
+		machinecontrollermanager.ProviderSidecarContainer(newObj.Namespace, metal.Name, image.String()),
+	)
+	return nil
+}
+
+// EnsureMachineControllerManagerVPA ensures that the machine-controller-manager VPA conforms to the provider requirements.
+func (e *ensurer) EnsureMachineControllerManagerVPA(_ context.Context, _ gcontext.GardenContext, newObj, _ *vpaautoscalingv1.VerticalPodAutoscaler) error {
+	var (
+		minAllowed = corev1.ResourceList{
+			corev1.ResourceMemory: resource.MustParse("64Mi"),
+		}
+		maxAllowed = corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("2"),
+			corev1.ResourceMemory: resource.MustParse("5G"),
+		}
+	)
+
+	if newObj.Spec.ResourcePolicy == nil {
+		newObj.Spec.ResourcePolicy = &vpaautoscalingv1.PodResourcePolicy{}
+	}
+
+	newObj.Spec.ResourcePolicy.ContainerPolicies = extensionswebhook.EnsureVPAContainerResourcePolicyWithName(
+		newObj.Spec.ResourcePolicy.ContainerPolicies,
+		machinecontrollermanager.ProviderSidecarVPAContainerPolicy(metal.Name, minAllowed, maxAllowed),
+	)
+	return nil
 }

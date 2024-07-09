@@ -13,8 +13,6 @@ import (
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-go/api/models"
@@ -31,6 +29,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -91,7 +90,7 @@ type (
 	}
 )
 
-func NewActuator(mgr manager.Manager, machineImages []config.MachineImage, controllerConfig config.ControllerConfiguration) (worker.Actuator, error) {
+func NewActuator(mgr manager.Manager, gardenCluster cluster.Cluster, machineImages []config.MachineImage, controllerConfig config.ControllerConfiguration) worker.Actuator {
 	a := &actuator{
 		controllerConfig: controllerConfig,
 		networkCache: cache.New(15*time.Minute, func(ctx context.Context, accessor *cacheKey) (*models.V1NetworkResponse, error) {
@@ -120,21 +119,16 @@ func NewActuator(mgr manager.Manager, machineImages []config.MachineImage, contr
 		machineImageMapping: machineImages,
 	}
 
-	var err error
-	a.workerActuator, err = genericactuator.NewActuator(
+	a.workerActuator = genericactuator.NewActuator(
 		mgr,
+		gardenCluster,
 		delegateFactory,
-		metal.MachineControllerManagerName,
-		mcmChart,
-		mcmShootChart,
-		imagevector.ImageVector(),
-		extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 		func(err error) []gardencorev1beta1.ErrorCode {
 			return util.DetermineErrorCodes(err, map[gardencorev1beta1.ErrorCode]func(string) bool{}) // TODO: implement our error codes?
 		},
 	)
 
-	return a, err
+	return a.workerActuator
 }
 
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
