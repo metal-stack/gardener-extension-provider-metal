@@ -128,7 +128,7 @@ func NewActuator(mgr manager.Manager, gardenCluster cluster.Cluster, machineImag
 		},
 	)
 
-	return a.workerActuator
+	return a
 }
 
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
@@ -138,6 +138,10 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, worker *exten
 	}
 
 	return a.workerActuator.Reconcile(ctx, log, worker, cluster)
+}
+
+func (a *actuator) ForceDelete(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
+	return nil
 }
 
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
