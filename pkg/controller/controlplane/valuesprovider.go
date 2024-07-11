@@ -603,11 +603,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	var networkAccessMirrors []map[string]any
 	if restrictedOrForbidden && partition.NetworkIsolation != nil {
 		for _, r := range partition.NetworkIsolation.RegistryMirrors {
-			name, err := registryMirrorToValueMap(r)
+			mirror, err := registryMirrorToValueMap(r)
 			if err != nil {
 				return nil, err
 			}
-			networkAccessMirrors = append(networkAccessMirrors, name)
+			networkAccessMirrors = append(networkAccessMirrors, mirror)
 		}
 	}
 
