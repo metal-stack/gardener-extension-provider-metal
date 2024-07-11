@@ -13,7 +13,6 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck/general"
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck/worker"
-	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 
 	extensionspredicate "github.com/gardener/gardener/extensions/pkg/predicate"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
@@ -86,7 +85,7 @@ func RegisterHealthChecks(ctx context.Context, mgr manager.Manager, opts AddOpti
 			},
 		},
 		// TODO(acumino): Remove this condition in a future release.
-		sets.New[gardencorev1beta1.ConditionType](gardencorev1beta1.ShootSystemComponentsHealthy),
+		sets.New(gardencorev1beta1.ShootSystemComponentsHealthy),
 	); err != nil {
 		return err
 	}
@@ -102,20 +101,12 @@ func RegisterHealthChecks(ctx context.Context, mgr manager.Manager, opts AddOpti
 		nil,
 		[]healthcheck.ConditionTypeToHealthCheck{
 			{
-				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
-				HealthCheck:   general.CheckManagedResource(genericworkeractuator.McmShootResourceName),
-			},
-			{
-				ConditionType: string(gardencorev1beta1.ShootControlPlaneHealthy),
-				HealthCheck:   general.NewSeedDeploymentHealthChecker("machine-controller-manager"),
-			},
-			{
 				ConditionType: string(gardencorev1beta1.ShootEveryNodeReady),
 				HealthCheck:   worker.NewNodesChecker(),
 			},
 		},
 		// TODO(acumino): Remove this condition in a future release.
-		sets.New[gardencorev1beta1.ConditionType](gardencorev1beta1.ShootSystemComponentsHealthy),
+		sets.New(gardencorev1beta1.ShootSystemComponentsHealthy),
 	)
 }
 

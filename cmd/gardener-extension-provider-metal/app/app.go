@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	gardenerhealthz "github.com/gardener/gardener/pkg/healthz"
+	"github.com/go-logr/logr"
 	"github.com/metal-stack/gardener-extension-provider-metal/charts"
 	metalinstall "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/install"
 	metalcmd "github.com/metal-stack/gardener-extension-provider-metal/pkg/cmd"
@@ -21,6 +22,7 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	shootcontrolplanewebhook "github.com/metal-stack/gardener-extension-provider-metal/pkg/webhook/controlplane"
 	metalcontrolplaneexposure "github.com/metal-stack/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
+	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/heartbeat"
 	heartbeatcmd "github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd"
@@ -35,6 +37,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/component-base/version/verflag"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -171,14 +174,27 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			if err := controller.AddToScheme(scheme); err != nil {
 				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
-
 			if err := metalinstall.AddToScheme(scheme); err != nil {
 				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
-
 			if err := druidv1alpha1.AddToScheme(scheme); err != nil {
 				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
+			if err := autoscalingv1.AddToScheme(scheme); err != nil {
+				return fmt.Errorf("could not update manager scheme: %w", err)
+			}
+
+			log := mgr.GetLogger()
+			gardenCluster, err := getGardenCluster(log)
+			if err != nil {
+				return err
+			}
+			log.Info("Adding garden cluster to manager")
+			if err := mgr.Add(gardenCluster); err != nil {
+				return fmt.Errorf("failed adding garden cluster to manager: %w", err)
+			}
+
+			log.Info("Adding controllers to manager")
 
 			configFileOpts.Completed().ApplyETCD(&metalcontrolplaneexposure.DefaultAddOptions.ETCD)
 			configFileOpts.Completed().ApplyMachineImages(&metalworker.DefaultAddOptions.MachineImages)
@@ -195,6 +211,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			reconcileOpts.Completed().Apply(&metalcontrolplane.DefaultAddOptions.IgnoreOperationAnnotation)
 			reconcileOpts.Completed().Apply(&metalworker.DefaultAddOptions.IgnoreOperationAnnotation)
 			workerCtrlOpts.Completed().Apply(&metalworker.DefaultAddOptions.Controller)
+			metalworker.DefaultAddOptions.GardenCluster = gardenCluster
 
 			atomicShootWebhookConfig, err := webhookOptions.Completed().AddToManager(ctx, mgr)
 			if err != nil {
@@ -231,4 +248,22 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 	aggOption.AddFlags(cmd.Flags())
 
 	return cmd
+}
+
+func getGardenCluster(log logr.Logger) (cluster.Cluster, error) {
+	log.Info("Getting rest config for garden")
+	gardenRESTConfig, err := kubernetes.RESTConfigFromKubeconfigFile(os.Getenv("GARDEN_KUBECONFIG"), kubernetes.AuthTokenFile)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info("Setting up cluster object for garden")
+	gardenCluster, err := cluster.New(gardenRESTConfig, func(opts *cluster.Options) {
+		opts.Scheme = kubernetes.GardenScheme
+		opts.Logger = log
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed creating garden cluster object: %w", err)
+	}
+	return gardenCluster, nil
 }

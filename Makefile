@@ -48,6 +48,15 @@ docker-image:
 docker-push:
 	@docker push $(IMAGE_PREFIX)/gardener-extension-provider-metal:$(IMAGE_TAG)
 
+.PHONY: update-crds
+update-crds:
+	go mod tidy
+	cp -f $(shell go list -mod=mod -m -f '{{.Dir}}' all | grep metal-stack/duros-controller)/config/crd/bases/* charts/internal/crds-storage/templates
+	cp -f $(shell go list -mod=mod -m -f '{{.Dir}}' all | grep metal-stack/firewall-controller-manager)/config/crds/* charts/internal/crds-firewall/templates/firewall-controller-manager/
+	cp -f $(shell go list -mod=mod -m -f '{{.Dir}}' all | grep metal-stack/firewall-controller/v2)/config/crd/bases/* charts/internal/crds-firewall/templates/firewall-controller/
+	cp -f charts/internal/crds-firewall/templates/firewall-controller-manager/*monitors.yaml charts/internal/shoot-control-plane/templates/firewall-controller-manager-crds/
+	cp -f charts/internal/crds-firewall/templates/firewall-controller/* charts/internal/shoot-control-plane/templates/firewall-controller-crds/
+
 #####################################################################
 # Rules for verification, formatting, linting, testing and cleaning #
 #####################################################################
@@ -79,7 +88,7 @@ generate: $(HELM) $(YQ)
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate-sequential.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: generate-in-docker
-generate-in-docker: revendor $(HELM)
+generate-in-docker: revendor update-crds $(HELM)
 	echo $(shell git describe --abbrev=0 --tags) > VERSION
 	docker run --rm -i$(DOCKER_TTY_ARG) \
 		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:$(GO_VERSION) \
