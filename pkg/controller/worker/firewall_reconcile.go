@@ -2,10 +2,12 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
@@ -132,7 +134,17 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Labels[tag.ClusterID] = clusterID
 
 		deploy.Spec.Template.Spec.Size = d.infrastructureConfig.Firewall.Size
-		deploy.Spec.Template.Spec.Image = d.infrastructureConfig.Firewall.Image
+		if deploy.Spec.AutoUpdate.MachineImage && d.infrastructureConfig.Firewall.Image != "" {
+			isPatch, err := patchUpdate(deploy.Spec.Template.Spec.Image, d.infrastructureConfig.Firewall.Image)
+			if err != nil {
+				return err
+			}
+			if !isPatch {
+				deploy.Spec.Template.Spec.Image = d.infrastructureConfig.Firewall.Image
+			}
+		} else {
+			deploy.Spec.Template.Spec.Image = d.infrastructureConfig.Firewall.Image
+		}
 		deploy.Spec.Template.Spec.Networks = append(d.infrastructureConfig.Firewall.Networks, d.privateNetworkID)
 		deploy.Spec.Template.Spec.RateLimits = mapRateLimits(d.infrastructureConfig.Firewall.RateLimits)
 		deploy.Spec.Template.Spec.InternalPrefixes = a.controllerConfig.FirewallInternalPrefixes
@@ -205,4 +217,39 @@ func mapEgressRules(egress []apismetal.EgressRule) []fcmv2.EgressRuleSNAT {
 		})
 	}
 	return result
+}
+
+func patchUpdate(old, new string) (bool, error) {
+	oldKind, o, err := getOsAndSemverFromImage(old)
+	if err != nil {
+		return false, fmt.Errorf("unable to parse firewall image: %w", err)
+	}
+
+	newKind, n, err := getOsAndSemverFromImage(new)
+	if err != nil {
+		return false, fmt.Errorf("unable to parse firewall image: %w", err)
+	}
+
+	if oldKind == newKind && o.Major() == n.Major() && o.Minor() == n.Minor() && o.Patch() != n.Patch() {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// copied over from metal-api because this is only available in internal package
+func getOsAndSemverFromImage(id string) (string, *semver.Version, error) {
+	imageParts := strings.Split(id, "-")
+	if len(imageParts) < 2 {
+		return "", nil, errors.New("image does not contain a version")
+	}
+
+	parts := len(imageParts) - 1
+	os := strings.Join(imageParts[:parts], "-")
+	version := strings.Join(imageParts[parts:], "")
+	v, err := semver.NewVersion(version)
+	if err != nil {
+		return "", nil, err
+	}
+	return os, v, nil
 }
