@@ -2,12 +2,10 @@ package worker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
@@ -16,6 +14,7 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	metalcommon "github.com/metal-stack/metal-lib/pkg/metal"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -220,12 +219,12 @@ func mapEgressRules(egress []apismetal.EgressRule) []fcmv2.EgressRuleSNAT {
 }
 
 func patchUpdate(old, new string) (bool, error) {
-	oldKind, o, err := getOsAndSemverFromImage(old)
+	oldKind, o, err := metalcommon.GetOsAndSemverFromImage(old)
 	if err != nil {
 		return false, fmt.Errorf("unable to parse firewall image: %w", err)
 	}
 
-	newKind, n, err := getOsAndSemverFromImage(new)
+	newKind, n, err := metalcommon.GetOsAndSemverFromImage(new)
 	if err != nil {
 		return false, fmt.Errorf("unable to parse firewall image: %w", err)
 	}
@@ -235,21 +234,4 @@ func patchUpdate(old, new string) (bool, error) {
 	}
 
 	return false, nil
-}
-
-// copied over from metal-api because this is only available in internal package
-func getOsAndSemverFromImage(id string) (string, *semver.Version, error) {
-	imageParts := strings.Split(id, "-")
-	if len(imageParts) < 2 {
-		return "", nil, errors.New("image does not contain a version")
-	}
-
-	parts := len(imageParts) - 1
-	os := strings.Join(imageParts[:parts], "-")
-	version := strings.Join(imageParts[parts:], "")
-	v, err := semver.NewVersion(version)
-	if err != nil {
-		return "", nil, err
-	}
-	return os, v, nil
 }
