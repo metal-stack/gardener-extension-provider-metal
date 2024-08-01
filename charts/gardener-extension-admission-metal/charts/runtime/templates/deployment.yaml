@@ -37,11 +37,24 @@ spec:
         - /gardener-extension-metal-hyper
         - admission-metal
         - --webhook-config-server-port={{ .Values.global.webhookConfig.serverPort }}
-        - --webhook-config-cert-dir=/etc/gardener-extension-admission-metal/srv
+        {{- if .Values.global.virtualGarden.enabled }}
+        - --webhook-config-mode=url
+        - --webhook-config-url={{ printf "%s.%s" (include "name" .) (.Release.Namespace) }}
+        {{- else }}
+        - --webhook-config-mode=service
+        {{- end }}
+        - --webhook-config-namespace={{ .Release.Namespace }}
         {{- if .Values.global.kubeconfig }}
         - --kubeconfig=/etc/gardener-extension-admission-metal/kubeconfig/kubeconfig
         {{- end }}
+        {{- if .Values.global.projectedKubeconfig }}
+        - --kubeconfig={{ required ".Values.global.projectedKubeconfig.baseMountPath is required" .Values.global.projectedKubeconfig.baseMountPath }}/kubeconfig
+        {{- end }}
+        {{- if .Values.global.metricsPort }}
+        - --metrics-bind-address=:{{ .Values.global.metricsPort }}
+        {{- end }}
         - --health-bind-address=:{{ .Values.global.healthPort }}
+        - --leader-election-id={{ include "leaderelectionid" . }}
         livenessProbe:
           httpGet:
             path: /healthz
@@ -54,23 +67,25 @@ spec:
             port: {{ .Values.global.healthPort }}
             scheme: HTTP
           initialDelaySeconds: 5
-        ports:
-        - name: webhook-server
-          containerPort: {{ .Values.global.webhookConfig.serverPort }}
-          protocol: TCP
-        livenessProbe:
-          tcpSocket:
-            port: {{ .Values.global.webhookConfig.serverPort }}
-          initialDelaySeconds: 5
-          periodSeconds: 10
         env:
+        - name: LEADER_ELECTION_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
 {{- range $key, $value := .Values.global.defaulter }}
 {{- if ne nil $value }}
           - name: DEFAULTER_{{ upper $key }}
             value: {{ $value | quote }}
 {{- end }}
 {{- end }}
-
+        {{- if .Values.global.virtualGarden.enabled }}
+        - name: SOURCE_CLUSTER
+          value: enabled
+        {{- end }}
+        ports:
+        - name: webhook-server
+          containerPort: {{ .Values.global.webhookConfig.serverPort }}
+          protocol: TCP
 {{- if .Values.global.resources }}
         resources:
 {{ toYaml .Values.global.resources | nindent 10 }}
