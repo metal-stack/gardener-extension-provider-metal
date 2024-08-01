@@ -39,8 +39,13 @@ func NewAdmissionCommand(ctx context.Context) *cobra.Command {
 	var (
 		restOpts = &controllercmd.RESTOptions{}
 		mgrOpts  = &controllercmd.ManagerOptions{
-			WebhookServerPort: 443,
-			HealthBindAddress: ":8081",
+			LeaderElection:          true,
+			LeaderElectionID:        controllercmd.LeaderElectionNameID(AdmissionName),
+			LeaderElectionNamespace: os.Getenv("LEADER_ELECTION_NAMESPACE"),
+			WebhookServerPort:       443,
+			MetricsBindAddress:      ":8080",
+			HealthBindAddress:       ":8081",
+			WebhookCertDir:          "/tmp/admission-metal-cert",
 		}
 		// options for the webhook server
 		webhookServerOptions = &webhookcmd.ServerOptions{
@@ -103,7 +108,7 @@ func NewAdmissionCommand(ctx context.Context) *cobra.Command {
 				}
 			}
 
-			mgr, err := manager.New(restOpts.Completed().Config, mgrOpts.Completed().Options())
+			mgr, err := manager.New(restOpts.Completed().Config, managerOptions)
 			if err != nil {
 				return fmt.Errorf("could not instantiate manager: %w", err)
 			}
