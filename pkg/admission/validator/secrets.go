@@ -19,7 +19,7 @@ func NewSecretValidator() extensionswebhook.Validator {
 	return &secret{}
 }
 
-// Validate checks whether the given new secret contains valid AWS credentials.
+// Validate checks whether the given new secret contains valid metal-api credentials.
 func (s *secret) Validate(_ context.Context, newObj, oldObj client.Object) error {
 	secret, ok := newObj.(*corev1.Secret)
 	if !ok {

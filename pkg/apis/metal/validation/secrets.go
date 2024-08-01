@@ -8,7 +8,7 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 )
 
-// ValidateCloudProviderSecret checks whether the given secret contains a valid AWS access keys.
+// ValidateCloudProviderSecret checks whether the given secret contains a valid metal-api credentials.
 func ValidateCloudProviderSecret(secret *corev1.Secret) error {
 	creds, err := metal.ReadCredentialsSecret(secret)
 	if err != nil {

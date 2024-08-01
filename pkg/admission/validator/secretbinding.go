@@ -25,7 +25,7 @@ func NewSecretBindingValidator(mgr manager.Manager) extensionswebhook.Validator 
 	}
 }
 
-// Validate checks whether the given SecretBinding refers to a Secret with valid AWS credentials.
+// Validate checks whether the given SecretBinding refers to a Secret with valid metal-api credentials.
 func (sb *secretBinding) Validate(ctx context.Context, newObj, oldObj client.Object) error {
 	secretBinding, ok := newObj.(*core.SecretBinding)
 	if !ok {
