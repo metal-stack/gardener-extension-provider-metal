@@ -74,8 +74,8 @@ spec:
               fieldPath: metadata.namespace
 {{- range $key, $value := .Values.global.defaulter }}
 {{- if ne nil $value }}
-          - name: DEFAULTER_{{ upper $key }}
-            value: {{ $value | quote }}
+        - name: DEFAULTER_{{ upper $key }}
+          value: {{ $value | quote }}
 {{- end }}
 {{- end }}
         {{- if .Values.global.virtualGarden.enabled }}
