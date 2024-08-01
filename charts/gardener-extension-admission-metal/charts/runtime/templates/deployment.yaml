@@ -78,11 +78,6 @@ spec:
           value: {{ $value | quote }}
 {{- end }}
 {{- end }}
-        # for some reason this does not work:
-        # {{- if .Values.global.virtualGarden.enabled }}
-        # - name: SOURCE_CLUSTER
-        #   value: enabled
-        # {{- end }}
         ports:
         - name: webhook-server
           containerPort: {{ .Values.global.webhookConfig.serverPort }}
