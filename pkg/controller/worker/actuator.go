@@ -11,14 +11,13 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	"github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
-	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
-	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 	metalgo "github.com/metal-stack/metal-go"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/cache"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	metalclient "github.com/metal-stack/gardener-extension-provider-metal/pkg/metal/client"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	gardener "github.com/gardener/gardener/pkg/client/kubernetes"
@@ -31,6 +30,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -91,7 +91,7 @@ type (
 	}
 )
 
-func NewActuator(mgr manager.Manager, machineImages []config.MachineImage, controllerConfig config.ControllerConfiguration) (worker.Actuator, error) {
+func NewActuator(mgr manager.Manager, gardenCluster cluster.Cluster, machineImages []config.MachineImage, controllerConfig config.ControllerConfiguration) worker.Actuator {
 	a := &actuator{
 		controllerConfig: controllerConfig,
 		networkCache: cache.New(15*time.Minute, func(ctx context.Context, accessor *cacheKey) (*models.V1NetworkResponse, error) {
@@ -120,21 +120,16 @@ func NewActuator(mgr manager.Manager, machineImages []config.MachineImage, contr
 		machineImageMapping: machineImages,
 	}
 
-	var err error
-	a.workerActuator, err = genericactuator.NewActuator(
+	a.workerActuator = genericactuator.NewActuator(
 		mgr,
+		gardenCluster,
 		delegateFactory,
-		metal.MachineControllerManagerName,
-		mcmChart,
-		mcmShootChart,
-		imagevector.ImageVector(),
-		extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
 		func(err error) []gardencorev1beta1.ErrorCode {
 			return util.DetermineErrorCodes(err, map[gardencorev1beta1.ErrorCode]func(string) bool{}) // TODO: implement our error codes?
 		},
 	)
 
-	return a, err
+	return a
 }
 
 func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
@@ -146,6 +141,10 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, worker *exten
 	return a.workerActuator.Reconcile(ctx, log, worker, cluster)
 }
 
+func (a *actuator) ForceDelete(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
+	return nil
+}
+
 func (a *actuator) Delete(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {
 	err := a.workerActuator.Delete(ctx, log, worker, cluster)
 	if err != nil {
@@ -153,11 +152,6 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, worker *extensio
 	}
 
 	return a.firewallDelete(ctx, log, cluster)
-}
-
-func (a *actuator) ForceDelete(context.Context, logr.Logger, *extensionsv1alpha1.Worker, *extensionscontroller.Cluster) error {
-	// TODO: implement
-	return nil
 }
 
 func (a *actuator) Migrate(ctx context.Context, log logr.Logger, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) error {

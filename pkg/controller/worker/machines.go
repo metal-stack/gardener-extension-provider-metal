@@ -204,7 +204,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		machineClassSpec["name"] = className
 		machineClassSpec["labels"] = map[string]string{
-			v1beta1constants.GardenerPurpose: genericworkeractuator.GardenPurposeMachineClass,
+			v1beta1constants.GardenerPurpose: v1beta1constants.GardenPurposeMachineClass,
 		}
 
 		// if we'd move the endpoint out of this secret into the deployment spec (which would be the way to go)

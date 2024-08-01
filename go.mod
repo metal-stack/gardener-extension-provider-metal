@@ -8,11 +8,11 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.5.0
-	github.com/gardener/etcd-druid v0.19.2
-	github.com/gardener/gardener v1.81.0
+	github.com/gardener/etcd-druid v0.20.1
+	github.com/gardener/gardener v1.82.3
 	github.com/gardener/gardener-extension-networking-calico v1.36.1
 	github.com/gardener/gardener-extension-networking-cilium v1.26.0
-	github.com/gardener/machine-controller-manager v0.49.3
+	github.com/gardener/machine-controller-manager v0.50.1
 	github.com/go-logr/logr v1.4.1
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/golang/mock v1.6.0
@@ -21,7 +21,7 @@ require (
 	github.com/metal-stack/firewall-controller-manager v0.4.0
 	github.com/metal-stack/firewall-controller/v2 v2.3.3
 	github.com/metal-stack/metal-go v0.31.1
-	github.com/metal-stack/metal-lib v0.16.3
+	github.com/metal-stack/metal-lib v0.16.2
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.33.1
 	github.com/spf13/cobra v1.8.0
@@ -30,6 +30,7 @@ require (
 	k8s.io/api v0.29.3
 	k8s.io/apiextensions-apiserver v0.29.3
 	k8s.io/apimachinery v0.29.3
+	k8s.io/autoscaler/vertical-pod-autoscaler v0.14.0
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.29.3
 	k8s.io/component-base v0.29.3
@@ -157,10 +158,9 @@ require (
 	istio.io/api v0.0.0-20230217221049-9d422bf48675 // indirect
 	istio.io/client-go v1.17.1 // indirect
 	k8s.io/apiserver v0.28.3 // indirect
-	k8s.io/autoscaler/vertical-pod-autoscaler v0.14.0 // indirect
 	k8s.io/cluster-bootstrap v0.28.3 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
-	k8s.io/helm v2.16.1+incompatible // indirect
+	k8s.io/helm v2.17.0+incompatible // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 	k8s.io/kube-aggregator v0.28.3 // indirect
