@@ -37,6 +37,10 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 			NewCloudProfileValidator(mgr):  {{Obj: &core.CloudProfile{}}},
 			NewSecretBindingValidator(mgr): {{Obj: &core.SecretBinding{}}},
 		},
+		Target: extensionswebhook.TargetSeed,
+		ObjectSelector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{"provider.shoot.gardener.cloud/metal": "true"},
+		},
 	})
 }
 
