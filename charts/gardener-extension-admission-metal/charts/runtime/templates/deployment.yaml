@@ -14,7 +14,6 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret-gardener-extension-admission-metal-cert: {{ include (print $.Template.BasePath "/secret-cert.yaml") . | sha256sum }}
         {{- if .Values.global.kubeconfig }}
         checksum/gardener-extension-admission-metal-kubeconfig: {{ include (print $.Template.BasePath "/secret-kubeconfig.yaml") . | sha256sum }}
         {{- end }}
