@@ -92,19 +92,12 @@ spec:
 {{ toYaml .Values.global.resources | nindent 10 }}
 {{- end }}
         volumeMounts:
-        - name: gardener-extension-admission-metal-cert
-          mountPath: /etc/gardener-extension-admission-metal/srv
-          readOnly: true
         {{- if .Values.global.kubeconfig }}
         - name: gardener-extension-admission-metal-kubeconfig
           mountPath: /etc/gardener-extension-admission-metal/kubeconfig
           readOnly: true
         {{- end }}
       volumes:
-      - name: gardener-extension-admission-metal-cert
-        secret:
-          secretName: gardener-extension-admission-metal-cert
-          defaultMode: 420
       {{- if .Values.global.kubeconfig }}
       - name: gardener-extension-admission-metal-kubeconfig
         secret:
