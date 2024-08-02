@@ -32,7 +32,7 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		},
 		Target: extensionswebhook.TargetSeed,
 		ObjectSelector: &metav1.LabelSelector{
-			MatchLabels: map[string]string{"provider.shoot.gardener.cloud/metal": "true"},
+			MatchLabels: map[string]string{"provider.extensions.gardener.cloud/metal": "true"},
 		},
 	})
 }
