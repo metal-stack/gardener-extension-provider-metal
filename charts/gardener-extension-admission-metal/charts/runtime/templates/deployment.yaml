@@ -78,10 +78,11 @@ spec:
           value: {{ $value | quote }}
 {{- end }}
 {{- end }}
-        {{- if .Values.global.virtualGarden.enabled }}
-        - name: SOURCE_CLUSTER
-          value: enabled
-        {{- end }}
+        # TODO: This is not yet working, maybe with Gardener Operator?
+        # {{- if .Values.global.virtualGarden.enabled }}
+        # - name: SOURCE_CLUSTER
+        #   value: enabled
+        # {{- end }}
         ports:
         - name: webhook-server
           containerPort: {{ .Values.global.webhookConfig.serverPort }}
