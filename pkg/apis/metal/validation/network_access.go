@@ -32,46 +32,9 @@ func validateNetworkAccessFields(controlPlaneConfig *apismetal.ControlPlaneConfi
 
 	if partition.NetworkIsolation == nil {
 		allErrs = append(allErrs,
-			field.Invalid(natPath, controlPlaneConfig.NetworkAccessType, "network access type requires partition's networkAccess to be set"),
+			field.Invalid(natPath, controlPlaneConfig.NetworkAccessType, "network access type requires partition's networkIsolation to be set"),
 			field.Required(partNiPath, "network isolation required if control plane config networkAccess is not baseline"),
 		)
-		return allErrs
-	}
-
-	if len(partition.NetworkIsolation.DNSServers) == 0 {
-		allErrs = append(allErrs, field.Invalid(
-			partNiPath.Child("dnsServers"),
-			partition.NetworkIsolation.DNSServers,
-			"may not be empty",
-		))
-	}
-	if len(partition.NetworkIsolation.NTPServers) == 0 {
-		allErrs = append(allErrs, field.Invalid(
-			partNiPath.Child("ntpServers"),
-			partition.NetworkIsolation.NTPServers,
-			"may not be empty",
-		))
-	}
-	if len(partition.NetworkIsolation.RegistryMirrors) == 0 {
-		allErrs = append(allErrs, field.Invalid(
-			partNiPath.Child("registryMirrors"),
-			partition.NetworkIsolation.RegistryMirrors,
-			"may not be empty",
-		))
-	}
-	if len(partition.NetworkIsolation.AllowedNetworks.Egress) == 0 {
-		allErrs = append(allErrs, field.Invalid(
-			partNiPath.Child("allowedNetworks", "egress"),
-			partition.NetworkIsolation.AllowedNetworks.Egress,
-			"may not be empty",
-		))
-	}
-	if len(partition.NetworkIsolation.AllowedNetworks.Ingress) == 0 {
-		allErrs = append(allErrs, field.Invalid(
-			partNiPath.Child("allowedNetworks", "ingress"),
-			partition.NetworkIsolation.AllowedNetworks.Ingress,
-			"may not be empty",
-		))
 	}
 
 	return allErrs
