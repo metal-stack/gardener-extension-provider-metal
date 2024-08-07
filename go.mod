@@ -21,7 +21,7 @@ require (
 	github.com/metal-stack/firewall-controller-manager v0.4.0
 	github.com/metal-stack/firewall-controller/v2 v2.3.3
 	github.com/metal-stack/metal-go v0.31.1
-	github.com/metal-stack/metal-lib v0.16.2
+	github.com/metal-stack/metal-lib v0.17.2
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.33.1
 	github.com/spf13/cobra v1.8.0
