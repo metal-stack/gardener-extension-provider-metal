@@ -80,7 +80,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 						"Type":     Equal(field.ErrorTypeInvalid),
 						"Field":    Equal("test.networkAccessType"),
 						"BadValue": PointTo(Equal(apismetal.NetworkAccessForbidden)),
-						"Detail":   Equal("network access type requires partition's networkAccess to be set"),
+						"Detail":   Equal("network access type requires partition's networkIsolation to be set"),
 					})),
 					PointTo(MatchFields(IgnoreExtras, Fields{
 						"Type":     Equal(field.ErrorTypeRequired),
@@ -124,53 +124,6 @@ var _ = Describe("CloudProfileConfig validation", func() {
 				errorList := ValidateControlPlaneConfigNetworkAccess(controlPlaneConfig, cloudProfileConfig, partitionName, path)
 
 				Expect(errorList).To(BeEmpty())
-			})
-
-			It("should fail with empty network isolation", func() {
-				cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
-					"prod": {
-						Partitions: map[string]apismetal.Partition{
-							"partition-b": {
-								NetworkIsolation: &apismetal.NetworkIsolation{},
-							},
-						},
-					},
-				}
-
-				errorList := ValidateControlPlaneConfigNetworkAccess(controlPlaneConfig, cloudProfileConfig, partitionName, path)
-
-				Expect(errorList).To(ConsistOf(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":     Equal(field.ErrorTypeInvalid),
-						"Field":    Equal("test.metalControlPlanes[prod].partitions[partition-b].networkIsolation.dnsServers"),
-						"BadValue": HaveLen(0),
-						"Detail":   Equal("may not be empty"),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":     Equal(field.ErrorTypeInvalid),
-						"Field":    Equal("test.metalControlPlanes[prod].partitions[partition-b].networkIsolation.ntpServers"),
-						"BadValue": HaveLen(0),
-						"Detail":   Equal("may not be empty"),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":     Equal(field.ErrorTypeInvalid),
-						"Field":    Equal("test.metalControlPlanes[prod].partitions[partition-b].networkIsolation.registryMirrors"),
-						"BadValue": HaveLen(0),
-						"Detail":   Equal("may not be empty"),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":     Equal(field.ErrorTypeInvalid),
-						"Field":    Equal("test.metalControlPlanes[prod].partitions[partition-b].networkIsolation.allowedNetworks.egress"),
-						"BadValue": HaveLen(0),
-						"Detail":   Equal("may not be empty"),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":     Equal(field.ErrorTypeInvalid),
-						"Field":    Equal("test.metalControlPlanes[prod].partitions[partition-b].networkIsolation.allowedNetworks.ingress"),
-						"BadValue": HaveLen(0),
-						"Detail":   Equal("may not be empty"),
-					})),
-				))
 			})
 		})
 
@@ -195,7 +148,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 						"Type":     Equal(field.ErrorTypeInvalid),
 						"Field":    Equal("test.networkAccessType"),
 						"BadValue": PointTo(Equal(apismetal.NetworkAccessRestricted)),
-						"Detail":   Equal("network access type requires partition's networkAccess to be set"),
+						"Detail":   Equal("network access type requires partition's networkIsolation to be set"),
 					})),
 					PointTo(MatchFields(IgnoreExtras, Fields{
 						"Type":     Equal(field.ErrorTypeRequired),
@@ -239,53 +192,6 @@ var _ = Describe("CloudProfileConfig validation", func() {
 				errorList := ValidateControlPlaneConfigNetworkAccess(controlPlaneConfig, cloudProfileConfig, partitionName, path)
 
 				Expect(errorList).To(BeEmpty())
-			})
-
-			It("should fail with empty network isolation", func() {
-				cloudProfileConfig.MetalControlPlanes = map[string]apismetal.MetalControlPlane{
-					"prod": {
-						Partitions: map[string]apismetal.Partition{
-							"partition-b": {
-								NetworkIsolation: &apismetal.NetworkIsolation{},
-							},
-						},
-					},
-				}
-
-				errorList := ValidateControlPlaneConfigNetworkAccess(controlPlaneConfig, cloudProfileConfig, partitionName, path)
-
-				Expect(errorList).To(ConsistOf(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":     Equal(field.ErrorTypeInvalid),
-						"Field":    Equal("test.metalControlPlanes[prod].partitions[partition-b].networkIsolation.dnsServers"),
-						"BadValue": HaveLen(0),
-						"Detail":   Equal("may not be empty"),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":     Equal(field.ErrorTypeInvalid),
-						"Field":    Equal("test.metalControlPlanes[prod].partitions[partition-b].networkIsolation.ntpServers"),
-						"BadValue": HaveLen(0),
-						"Detail":   Equal("may not be empty"),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":     Equal(field.ErrorTypeInvalid),
-						"Field":    Equal("test.metalControlPlanes[prod].partitions[partition-b].networkIsolation.registryMirrors"),
-						"BadValue": HaveLen(0),
-						"Detail":   Equal("may not be empty"),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":     Equal(field.ErrorTypeInvalid),
-						"Field":    Equal("test.metalControlPlanes[prod].partitions[partition-b].networkIsolation.allowedNetworks.egress"),
-						"BadValue": HaveLen(0),
-						"Detail":   Equal("may not be empty"),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Type":     Equal(field.ErrorTypeInvalid),
-						"Field":    Equal("test.metalControlPlanes[prod].partitions[partition-b].networkIsolation.allowedNetworks.ingress"),
-						"BadValue": HaveLen(0),
-						"Detail":   Equal("may not be empty"),
-					})),
-				))
 			})
 		})
 	})

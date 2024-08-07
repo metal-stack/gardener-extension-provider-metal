@@ -14,7 +14,6 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret-gardener-extension-admission-metal-cert: {{ include (print $.Template.BasePath "/secret-cert.yaml") . | sha256sum }}
         {{- if .Values.global.kubeconfig }}
         checksum/gardener-extension-admission-metal-kubeconfig: {{ include (print $.Template.BasePath "/secret-kubeconfig.yaml") . | sha256sum }}
         {{- end }}
@@ -37,11 +36,24 @@ spec:
         - /gardener-extension-metal-hyper
         - admission-metal
         - --webhook-config-server-port={{ .Values.global.webhookConfig.serverPort }}
-        - --webhook-config-cert-dir=/etc/gardener-extension-admission-metal/srv
+        {{- if .Values.global.virtualGarden.enabled }}
+        - --webhook-config-mode=url
+        - --webhook-config-url={{ printf "%s.%s" (include "name" .) (.Release.Namespace) }}
+        {{- else }}
+        - --webhook-config-mode=service
+        {{- end }}
+        - --webhook-config-namespace={{ .Release.Namespace }}
         {{- if .Values.global.kubeconfig }}
         - --kubeconfig=/etc/gardener-extension-admission-metal/kubeconfig/kubeconfig
         {{- end }}
+        {{- if .Values.global.projectedKubeconfig }}
+        - --kubeconfig={{ required ".Values.global.projectedKubeconfig.baseMountPath is required" .Values.global.projectedKubeconfig.baseMountPath }}/kubeconfig
+        {{- end }}
+        {{- if .Values.global.metricsPort }}
+        - --metrics-bind-address=:{{ .Values.global.metricsPort }}
+        {{- end }}
         - --health-bind-address=:{{ .Values.global.healthPort }}
+        - --leader-election-id={{ include "leaderelectionid" . }}
         livenessProbe:
           httpGet:
             path: /healthz
@@ -54,41 +66,37 @@ spec:
             port: {{ .Values.global.healthPort }}
             scheme: HTTP
           initialDelaySeconds: 5
+        env:
+        - name: LEADER_ELECTION_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+{{- range $key, $value := .Values.global.defaulter }}
+{{- if ne nil $value }}
+        - name: DEFAULTER_{{ upper $key }}
+          value: {{ $value | quote }}
+{{- end }}
+{{- end }}
+        # TODO: This is not yet working, maybe with Gardener Operator?
+        # {{- if .Values.global.virtualGarden.enabled }}
+        # - name: SOURCE_CLUSTER
+        #   value: enabled
+        # {{- end }}
         ports:
         - name: webhook-server
           containerPort: {{ .Values.global.webhookConfig.serverPort }}
           protocol: TCP
-        livenessProbe:
-          tcpSocket:
-            port: {{ .Values.global.webhookConfig.serverPort }}
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        env:
-{{- range $key, $value := .Values.global.defaulter }}
-{{- if ne nil $value }}
-          - name: DEFAULTER_{{ upper $key }}
-            value: {{ $value | quote }}
-{{- end }}
-{{- end }}
-
 {{- if .Values.global.resources }}
         resources:
 {{ toYaml .Values.global.resources | nindent 10 }}
 {{- end }}
         volumeMounts:
-        - name: gardener-extension-admission-metal-cert
-          mountPath: /etc/gardener-extension-admission-metal/srv
-          readOnly: true
         {{- if .Values.global.kubeconfig }}
         - name: gardener-extension-admission-metal-kubeconfig
           mountPath: /etc/gardener-extension-admission-metal/kubeconfig
           readOnly: true
         {{- end }}
       volumes:
-      - name: gardener-extension-admission-metal-cert
-        secret:
-          secretName: gardener-extension-admission-metal-cert
-          defaultMode: 420
       {{- if .Values.global.kubeconfig }}
       - name: gardener-extension-admission-metal-kubeconfig
         secret:

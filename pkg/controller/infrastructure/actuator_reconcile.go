@@ -121,7 +121,7 @@ func (a *actuator) maintainFirewallDeployment(ctx context.Context, logger logr.L
 	// so it cannot be put to the worker controller.
 
 	if !gardener.EffectiveShootMaintenanceTimeWindow(cluster.Shoot).Contains(time.Now()) {
-		// note that this prevents updating the firewall image even when annotating the shoot explicitly with the maintainenance annotation
+		// note that this prevents updating the firewall image even when annotating the shoot explicitly with the maintenance annotation
 		// if a user wants to update the firewall immediately he needs to specify the new firewall image in the spec
 		logger.Info("not maintaining firewall deployment as shoot not in effective maintenance time window")
 		return nil

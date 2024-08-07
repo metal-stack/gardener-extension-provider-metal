@@ -14,6 +14,7 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	metalcommon "github.com/metal-stack/metal-lib/pkg/metal"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -132,7 +133,17 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Labels[tag.ClusterID] = clusterID
 
 		deploy.Spec.Template.Spec.Size = d.infrastructureConfig.Firewall.Size
-		deploy.Spec.Template.Spec.Image = d.infrastructureConfig.Firewall.Image
+		if deploy.Spec.AutoUpdate.MachineImage && d.infrastructureConfig.Firewall.Image != "" {
+			isPatch, err := patchUpdate(deploy.Spec.Template.Spec.Image, d.infrastructureConfig.Firewall.Image)
+			if err != nil {
+				return err
+			}
+			if !isPatch {
+				deploy.Spec.Template.Spec.Image = d.infrastructureConfig.Firewall.Image
+			}
+		} else {
+			deploy.Spec.Template.Spec.Image = d.infrastructureConfig.Firewall.Image
+		}
 		deploy.Spec.Template.Spec.Networks = append(d.infrastructureConfig.Firewall.Networks, d.privateNetworkID)
 		deploy.Spec.Template.Spec.RateLimits = mapRateLimits(d.infrastructureConfig.Firewall.RateLimits)
 		deploy.Spec.Template.Spec.InternalPrefixes = a.controllerConfig.FirewallInternalPrefixes
@@ -205,4 +216,22 @@ func mapEgressRules(egress []apismetal.EgressRule) []fcmv2.EgressRuleSNAT {
 		})
 	}
 	return result
+}
+
+func patchUpdate(old, new string) (bool, error) {
+	oldKind, o, err := metalcommon.GetOsAndSemverFromImage(old)
+	if err != nil {
+		return false, fmt.Errorf("unable to parse firewall image: %w", err)
+	}
+
+	newKind, n, err := metalcommon.GetOsAndSemverFromImage(new)
+	if err != nil {
+		return false, fmt.Errorf("unable to parse firewall image: %w", err)
+	}
+
+	if oldKind == newKind && o.Major() == n.Major() && o.Minor() == n.Minor() && o.Patch() != n.Patch() {
+		return true, nil
+	}
+
+	return false, nil
 }
