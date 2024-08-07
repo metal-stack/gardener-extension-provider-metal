@@ -17,6 +17,12 @@ duros:
   enabled: false
   endpoints: []
 
+cilium:
+  enabled: false
+
+metallb:
+  enabled: true
+
 nodeInit:
   enabled: true
 
