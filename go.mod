@@ -9,7 +9,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/gardener/etcd-druid v0.20.1
-	github.com/gardener/gardener v1.82.3
+	github.com/gardener/gardener v1.83.3
 	github.com/gardener/gardener-extension-networking-calico v1.36.1
 	github.com/gardener/gardener-extension-networking-cilium v1.26.0
 	github.com/gardener/machine-controller-manager v0.50.1
