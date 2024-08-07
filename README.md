@@ -7,5 +7,3 @@ This is the implementation of the Gardener extension provider of metal-stack. It
 Additionally, the project contains a validator for all metal-specific provider configs and mutating webhooks.
 
 For more detailed documentation, please refer to the [Gardener docs](https://github.com/gardener/gardener/blob/v1.0.0/docs/extensions/extension.md).
-
-Test
