@@ -2,6 +2,8 @@ module github.com/metal-stack/gardener-extension-provider-metal
 
 go 1.22
 
+replace github.com/gardener/gardener => github.com/metal-stack/gardener v1.84.4-0.20240827094404-9462a7a14ef6
+
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
@@ -90,6 +92,7 @@ require (
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/ironcore-dev/vgopath v0.1.3 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0 // indirect
