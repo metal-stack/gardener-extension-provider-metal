@@ -2,8 +2,6 @@ module github.com/metal-stack/gardener-extension-provider-metal
 
 go 1.22.0
 
-toolchain go1.23.0
-
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
