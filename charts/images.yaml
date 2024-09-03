@@ -38,7 +38,7 @@ images:
 - name: metallb-health-sidecar
   sourceRepository: https://github.com/metal-stack/metallb-health-sidecar
   repository: ghcr.io/metal-stack/metallb-health-sidecar
-  tag: "v0.1.1"
+  tag: "refresh"
 - name: firewall-controller-manager
   sourceRepository: https://github.com/metal-stack/firewall-controller-manager
   repository: ghcr.io/metal-stack/firewall-controller-manager
