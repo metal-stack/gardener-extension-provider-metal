@@ -117,8 +117,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			want: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
-						Version:                   "1.24.0",
-						AllowPrivilegedContainers: pointer.Pointer(true),
+						Version: "1.24.0",
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
 							NodeCIDRMaskSize: pointer.Pointer(int32(23)),
 						},
