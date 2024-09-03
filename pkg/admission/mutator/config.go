@@ -126,5 +126,5 @@ func (c *config) int32(key string, fallback int32) int32 {
 		return fallback
 	}
 
-	return int32(parsed)
+	return int32(parsed) // nolint:gosec
 }
