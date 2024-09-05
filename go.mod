@@ -2,14 +2,14 @@ module github.com/metal-stack/gardener-extension-provider-metal
 
 go 1.22
 
-replace github.com/gardener/gardener-extension-networking-cilium => github.com/metal-stack/gardener-extension-networking-cilium v1.16.1-0.20240510132804-f1f2b0fdce23
+replace github.com/gardener/gardener-extension-networking-cilium => github.com/metal-stack/gardener-extension-networking-cilium v1.16.1-0.20240905135331-af877fc185c9
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.5.0
-	github.com/gardener/etcd-druid v0.20.1
-	github.com/gardener/gardener v1.83.3
+	github.com/gardener/etcd-druid v0.21.0
+	github.com/gardener/gardener v1.86.0
 	github.com/gardener/gardener-extension-networking-calico v1.36.1
 	github.com/gardener/gardener-extension-networking-cilium v1.26.0
 	github.com/gardener/machine-controller-manager v0.50.1
@@ -30,7 +30,7 @@ require (
 	k8s.io/api v0.29.3
 	k8s.io/apiextensions-apiserver v0.29.3
 	k8s.io/apimachinery v0.29.3
-	k8s.io/autoscaler/vertical-pod-autoscaler v0.14.0
+	k8s.io/autoscaler/vertical-pod-autoscaler v1.0.0
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.29.3
 	k8s.io/component-base v0.29.3
@@ -92,6 +92,7 @@ require (
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/ironcore-dev/vgopath v0.1.3 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kubernetes-csi/external-snapshotter/client/v4 v4.2.0 // indirect
@@ -155,8 +156,8 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	istio.io/api v0.0.0-20230217221049-9d422bf48675 // indirect
-	istio.io/client-go v1.17.1 // indirect
+	istio.io/api v1.19.2-0.20231011000955-f3015ebb5bd4 // indirect
+	istio.io/client-go v1.19.3 // indirect
 	k8s.io/apiserver v0.28.3 // indirect
 	k8s.io/cluster-bootstrap v0.28.3 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
