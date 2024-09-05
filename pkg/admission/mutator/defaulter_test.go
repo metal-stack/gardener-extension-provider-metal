@@ -8,14 +8,13 @@ import (
 	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/install"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
+	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
@@ -364,7 +363,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 								},
 								TunnelMode:                   pointer.Pointer(ciliumextensionv1alpha1.Disabled),
 								MTU:                          pointer.Pointer(1440),
-								Devices:                      []string{"lan+"},
+								Devices:                      []string{"lan+", "lo"},
 								DirectRoutingDevice:          pointer.Pointer("lo"),
 								LoadBalancingMode:            pointer.Pointer(ciliumextensionv1alpha1.DSR),
 								IPv4NativeRoutingCIDREnabled: pointer.Pointer(true),

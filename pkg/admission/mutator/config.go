@@ -68,7 +68,7 @@ func (c *config) ciliumTunnel() ciliumextensionv1alpha1.TunnelMode {
 }
 
 func (c *config) ciliumDevices() []string {
-	return c.slice("DEFAULTER_CILIUMDEVICES", []string{"lan+"})
+	return c.slice("DEFAULTER_CILIUMDEVICES", []string{"lan+", "lo"})
 }
 
 func (c *config) ciliumDirectRoutingDevice() string {
