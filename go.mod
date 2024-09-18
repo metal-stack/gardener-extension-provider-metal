@@ -1,6 +1,6 @@
 module github.com/metal-stack/gardener-extension-provider-metal
 
-go 1.22
+go 1.22.0
 
 replace github.com/gardener/gardener-extension-networking-cilium => github.com/metal-stack/gardener-extension-networking-cilium v1.16.1-0.20240905135331-af877fc185c9
 
@@ -9,7 +9,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/gardener/etcd-druid v0.22.0
-	github.com/gardener/gardener v1.87.4
+	github.com/gardener/gardener v1.89.4
 	github.com/gardener/gardener-extension-networking-calico v1.36.1
 	github.com/gardener/gardener-extension-networking-cilium v1.26.0
 	github.com/gardener/machine-controller-manager v0.50.1
@@ -32,7 +32,7 @@ require (
 	k8s.io/apimachinery v0.29.3
 	k8s.io/autoscaler/vertical-pod-autoscaler v1.0.0
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/code-generator v0.28.3
+	k8s.io/code-generator v0.28.4
 	k8s.io/component-base v0.29.3
 	k8s.io/kubelet v0.28.3
 	sigs.k8s.io/controller-runtime v0.16.6
@@ -46,7 +46,6 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/bronze1man/yaml2json v0.0.0-20211227013850-8972abeaea25 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-oidc/v3 v3.10.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
@@ -118,6 +117,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.71.0 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.54.0 // indirect
@@ -159,7 +159,7 @@ require (
 	helm.sh/helm/v3 v3.11.1 // indirect
 	istio.io/api v1.19.2-0.20231011000955-f3015ebb5bd4 // indirect
 	istio.io/client-go v1.19.3 // indirect
-	k8s.io/apiserver v0.28.9 // indirect
+	k8s.io/apiserver v0.29.2 // indirect
 	k8s.io/cluster-bootstrap v0.28.3 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
 	k8s.io/helm v2.17.0+incompatible // indirect

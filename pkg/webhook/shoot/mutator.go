@@ -13,10 +13,10 @@ import (
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
 	"github.com/gardener/gardener/pkg/component/extensions/operatingsystemconfig/downloader"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
