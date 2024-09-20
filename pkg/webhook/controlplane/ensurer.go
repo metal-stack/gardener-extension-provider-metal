@@ -239,23 +239,3 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 
 	return nil
 }
-
-func (e *ensurer) EnsureAdditionalProvisionFiles(ctx context.Context, gctx gcontext.GardenContext, new, old *[]extensionsv1alpha1.File) error {
-	if new == nil {
-		return nil
-	}
-
-	var files []extensionsv1alpha1.File
-	for _, f := range *new {
-		if f.Path == "/var/lib/kubelet/config/kubelet" {
-			// for cis benchmark this needs to be 600
-			f.Permissions = pointer.Pointer(int32(0600))
-		}
-
-		files = append(files, f)
-	}
-
-	*new = files
-
-	return nil
-}
