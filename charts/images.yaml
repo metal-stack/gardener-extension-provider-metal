@@ -22,11 +22,11 @@ images:
 - name: metallb-speaker
   sourceRepository: https://github.com/metallb/metallb
   repository: quay.io/metallb/speaker
-  tag: "v0.14.3"
+  tag: "v0.14.8"
 - name: metallb-controller
   sourceRepository: https://github.com/metallb/metallb
   repository: quay.io/metallb/controller
-  tag: "v0.14.3"
+  tag: "v0.14.8"
 - name: duros-controller
   sourceRepository: https://github.com/metal-stack/duros-controller
   repository: ghcr.io/metal-stack/duros-controller
@@ -38,7 +38,7 @@ images:
 - name: metallb-health-sidecar
   sourceRepository: https://github.com/metal-stack/metallb-health-sidecar
   repository: ghcr.io/metal-stack/metallb-health-sidecar
-  tag: "v0.1.1"
+  tag: "v0.1.2"
 - name: firewall-controller-manager
   sourceRepository: https://github.com/metal-stack/firewall-controller-manager
   repository: ghcr.io/metal-stack/firewall-controller-manager

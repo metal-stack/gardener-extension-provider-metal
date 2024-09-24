@@ -11,10 +11,6 @@ import (
 
 type config struct{}
 
-func (c *config) allowedPrivilegedContainers() bool {
-	return c.bool("DEFAULTER_ALLOWEDPRIVILEGEDCONTAINERS", true)
-}
-
 func (c *config) maxPods() int32 {
 	return c.int32("DEFAULTER_MAXPODS", 250)
 }
@@ -134,5 +130,5 @@ func (c *config) int32(key string, fallback int32) int32 {
 		return fallback
 	}
 
-	return int32(parsed)
+	return int32(parsed) // nolint:gosec
 }
