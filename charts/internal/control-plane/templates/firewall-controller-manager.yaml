@@ -68,6 +68,25 @@ rules:
   - update
   - patch
   - create
+- apiGroups:
+  - extensions.gardener.cloud
+  resources:
+  - infrastructures
+  - extensions
+  verbs:
+  - get
+- apiGroups:
+  - extensions.gardener.cloud
+  resources:
+  - infrastructures/status
+  verbs:
+  - patch
+- apiGroups:
+  - extensions.gardener.cloud
+  resources:
+  - extensions
+  verbs:
+  - update
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
