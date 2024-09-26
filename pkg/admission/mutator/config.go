@@ -55,10 +55,6 @@ func (c *config) ciliumKubeProxyEnabled() bool {
 	return c.bool("DEFAULTER_CILIUMKUBEPROXYENABLED", false)
 }
 
-func (c *config) ciliumPSPEnabled() bool {
-	return c.bool("DEFAULTER_CILIUMPSPENABLED", true)
-}
-
 func (c *config) ciliumTunnel() ciliumextensionv1alpha1.TunnelMode {
 	return ciliumextensionv1alpha1.TunnelMode(c.string("DEFAULTER_CILIUMTUNNEL", string(ciliumextensionv1alpha1.Disabled)))
 }

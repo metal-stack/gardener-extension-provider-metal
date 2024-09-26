@@ -8,13 +8,14 @@ import (
 	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/install"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
-	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
@@ -57,8 +58,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			},
 		}
 		completeCiliumSpec = &ciliumextensionv1alpha1.NetworkConfig{
-			Debug:      pointer.Pointer(true),
-			PSPEnabled: pointer.Pointer(true),
+			Debug: pointer.Pointer(true),
 			KubeProxy: &ciliumextensionv1alpha1.KubeProxy{
 				ServiceHost: pointer.Pointer("service-host"),
 				ServicePort: pointer.Pointer(int32(1)),
@@ -75,8 +75,6 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 		completeShootSpec = &gardenv1beta1.Shoot{
 			Spec: gardenv1beta1.ShootSpec{
 				Kubernetes: gardenv1beta1.Kubernetes{
-					Version:                   "1.24.0",
-					AllowPrivilegedContainers: pointer.Pointer(false),
 					KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
 						NodeCIDRMaskSize: pointer.Pointer(int32(24)),
 					},
@@ -108,16 +106,11 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 		{
 			name: "empty spec",
 			shoot: &gardenv1beta1.Shoot{
-				Spec: gardenv1beta1.ShootSpec{
-					Kubernetes: gardenv1beta1.Kubernetes{
-						Version: "1.24.0",
-					},
-				},
+				Spec: gardenv1beta1.ShootSpec{},
 			},
 			want: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
-						Version: "1.24.0",
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
 							NodeCIDRMaskSize: pointer.Pointer(int32(23)),
 						},
@@ -148,8 +141,6 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			shoot: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
-						Version:                   "1.24.0",
-						AllowPrivilegedContainers: pointer.Pointer(false),
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
 							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
 						},
@@ -182,8 +173,6 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			want: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
-						Version:                   "1.24.0",
-						AllowPrivilegedContainers: pointer.Pointer(false),
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
 							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
 						},
@@ -219,8 +208,6 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			shoot: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
-						Version:                   "1.24.0",
-						AllowPrivilegedContainers: pointer.Pointer(false),
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
 							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
 						},
@@ -246,8 +233,6 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			want: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
-						Version:                   "1.24.0",
-						AllowPrivilegedContainers: pointer.Pointer(false),
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
 							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
 						},
@@ -295,8 +280,6 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			shoot: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
-						Version:                   "1.24.0",
-						AllowPrivilegedContainers: pointer.Pointer(false),
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
 							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
 						},
@@ -325,8 +308,6 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			want: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
-						Version:                   "1.24.0",
-						AllowPrivilegedContainers: pointer.Pointer(false),
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
 							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
 						},
@@ -356,7 +337,6 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						Services: pointer.Pointer("10.248.0.0/18"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &ciliumextensionv1alpha1.NetworkConfig{
-								PSPEnabled: pointer.Pointer(true),
 								Hubble: &ciliumextensionv1alpha1.Hubble{
 									Enabled: true,
 								},
