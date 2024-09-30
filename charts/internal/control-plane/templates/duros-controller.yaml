@@ -108,7 +108,6 @@ spec:
           - -admin-token=/duros/admin-token
           - -admin-key=/duros/admin-key
           - -shoot-kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
-          - -psp-disabled={{ .Values.pspDisabled }}
           - -api-endpoint={{ .Values.duros.controller.apiEndpoint }}
 {{- if .Values.duros.controller.apiCA }}
           - -api-ca=/duros/api-ca

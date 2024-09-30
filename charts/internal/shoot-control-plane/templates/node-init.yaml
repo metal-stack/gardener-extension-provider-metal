@@ -4,27 +4,6 @@ kind: ServiceAccount
 metadata:
   name: node-init
   namespace: kube-system
-{{- if not .Values.pspDisabled }}
----
-apiVersion: policy/v1beta1
-kind: PodSecurityPolicy
-metadata:
-  name: node-init
-spec:
-  allowedCapabilities:
-  - NET_ADMIN
-  fsGroup:
-    rule: RunAsAny
-  runAsUser:
-    rule: RunAsAny
-  seLinux:
-    rule: RunAsAny
-  supplementalGroups:
-    rule: RunAsAny
-  volumes:
-  - secret
-  hostNetwork: true
-{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -39,16 +18,6 @@ rules:
   - watch
   - list
   - get
-{{- if not .Values.pspDisabled }}
-- apiGroups:
-  - extensions
-  resources:
-  - podsecuritypolicies
-  resourceNames:
-  - node-init
-  verbs:
-  - use
-{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

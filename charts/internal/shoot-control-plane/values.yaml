@@ -2,7 +2,6 @@
 kubernetesVersion: "1.16.0"
 apiserverIPs: []
 nodeCIDR:
-pspDisabled: false
 
 images:
     droptailer: image-repository:image-tag
