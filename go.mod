@@ -30,7 +30,7 @@ require (
 	k8s.io/apimachinery v0.29.3
 	k8s.io/autoscaler/vertical-pod-autoscaler v1.0.0
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/code-generator v0.28.3
+	k8s.io/code-generator v0.28.4
 	k8s.io/component-base v0.29.3
 	k8s.io/kubelet v0.28.3
 	sigs.k8s.io/controller-runtime v0.16.6
@@ -116,6 +116,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.71.0 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.54.0 // indirect
@@ -174,6 +175,7 @@ require (
 )
 
 replace (
+	github.com/gardener/gardener => github.com/metal-stack/gardener v1.88.4-0.20240930084246-da37eabad9c5
 	k8s.io/api => k8s.io/api v0.28.3
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.28.3
 	k8s.io/apimachinery => k8s.io/apimachinery v0.28.3
