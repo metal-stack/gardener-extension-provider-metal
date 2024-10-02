@@ -44,5 +44,6 @@ type InfrastructureStatus struct {
 }
 
 type FirewallStatus struct {
-	MachineID string
+	MachineID         string
+	ExternalEgressIPs []string
 }
