@@ -7,6 +7,7 @@ import (
 	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	genericcontrolplaneactuator "github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
@@ -47,6 +48,9 @@ func RegisterHealthChecks(ctx context.Context, mgr manager.Manager, opts AddOpti
 	durosPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
 		return opts.ControllerConfig.Storage.Duros.Enabled
 	}
+	metallbPreCheck := func(_ context.Context, _ client.Client, _ client.Object, cluster *extensionscontroller.Cluster) bool {
+		return pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type) == "calico"
+	}
 
 	if err := healthcheck.DefaultRegistration(
 		ctx,
@@ -82,6 +86,7 @@ func RegisterHealthChecks(ctx context.Context, mgr manager.Manager, opts AddOpti
 			{
 				ConditionType: string(gardencorev1beta1.ShootSystemComponentsHealthy),
 				HealthCheck:   CheckMetalLB(),
+				PreCheckFunc:  metallbPreCheck,
 			},
 		},
 		// TODO(acumino): Remove this condition in a future release.

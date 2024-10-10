@@ -2,6 +2,8 @@ module github.com/metal-stack/gardener-extension-provider-metal
 
 go 1.22.2
 
+replace github.com/gardener/gardener-extension-networking-cilium => github.com/metal-stack/gardener-extension-networking-cilium v1.16.1-0.20241010063608-cadb628ce245
+
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
