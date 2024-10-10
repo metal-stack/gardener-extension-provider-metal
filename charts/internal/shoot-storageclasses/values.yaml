@@ -4,4 +4,3 @@ images:
     csi-lvm-provisioner: image-repository:image-tag
 
 isDefaultStorageClass: true
-pspDisabled: false

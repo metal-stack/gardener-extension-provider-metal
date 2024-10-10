@@ -9,7 +9,7 @@ import (
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
-	"github.com/gardener/gardener/pkg/component/machinecontrollermanager"
+	"github.com/gardener/gardener/pkg/component/nodemanagement/machinecontrollermanager"
 
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -20,8 +20,8 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -29,6 +29,8 @@ import (
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 )
 
 // NewEnsurer creates a new controlplane ensurer.
@@ -216,5 +218,25 @@ func (e *ensurer) EnsureMachineControllerManagerVPA(_ context.Context, _ gcontex
 		newObj.Spec.ResourcePolicy.ContainerPolicies,
 		machinecontrollermanager.ProviderSidecarVPAContainerPolicy(metal.Name, minAllowed, maxAllowed),
 	)
+	return nil
+}
+
+func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.GardenContext, new, old *[]extensionsv1alpha1.File) error {
+	if new == nil {
+		return nil
+	}
+
+	var files []extensionsv1alpha1.File
+	for _, f := range *new {
+		if f.Path == "/var/lib/kubelet/config/kubelet" {
+			// for cis benchmark this needs to be 600
+			f.Permissions = pointer.Pointer(int32(0600))
+		}
+
+		files = append(files, f)
+	}
+
+	*new = files
+
 	return nil
 }

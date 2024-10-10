@@ -11,18 +11,17 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	durosv1 "github.com/metal-stack/duros-controller/api/v1"
 	firewallv1 "github.com/metal-stack/firewall-controller/v2/api/v1"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
-	gardencorev1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
-
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/charts"
@@ -38,7 +37,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -170,7 +168,6 @@ var cpShootChart = &chart.Chart{
 	Objects: []*chart.Object{
 		// metallb
 		{Type: &corev1.Namespace{}, Name: "metallb-system"},
-		{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "speaker"},
 		{Type: &corev1.ServiceAccount{}, Name: "controller"},
 		{Type: &corev1.ServiceAccount{}, Name: "speaker"},
 		{Type: &rbacv1.ClusterRole{}, Name: "metallb-system:controller"},
@@ -224,7 +221,6 @@ var cpShootChart = &chart.Chart{
 
 		// node-init
 		{Type: &corev1.ServiceAccount{}, Name: "node-init"},
-		{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "node-init"},
 		{Type: &rbacv1.ClusterRole{}, Name: "kube-system:node-init"},
 		{Type: &rbacv1.ClusterRoleBinding{}, Name: "kube-system:node-init"},
 		{Type: &appsv1.DaemonSet{}, Name: "node-init"},
@@ -246,9 +242,6 @@ var storageClassChart = &chart.Chart{
 		{Type: &corev1.ServiceAccount{}, Name: "csi-lvm-reviver"},
 		{Type: &rbacv1.Role{}, Name: "csi-lvm-reviver"},
 		{Type: &rbacv1.RoleBinding{}, Name: "csi-lvm-reviver"},
-		{Type: &policyv1beta1.PodSecurityPolicy{}, Name: "csi-lvm-reviver-psp"},
-		{Type: &rbacv1.Role{}, Name: "csi-lvm-reviver-psp"},
-		{Type: &rbacv1.RoleBinding{}, Name: "csi-lvm-reviver-psp"},
 		{Type: &appsv1.DaemonSet{}, Name: "csi-lvm-reviver"},
 	},
 }
@@ -391,7 +384,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	values := map[string]any{
 		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
-		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"podAnnotations": map[string]interface{}{
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
 			"checksum/secret-cloudprovider":                                    checksums[v1beta1constants.SecretNameCloudProvider],
@@ -622,7 +614,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	values := map[string]any{
 		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
-		"pspDisabled":     gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"apiserverIPs":    apiserverIPs,
 		"nodeCIDR":        nodeCIDR,
 		"duros":           durosValues,
@@ -710,7 +701,6 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 	}
 
 	values := map[string]interface{}{
-		"pspDisabled":           gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"isDefaultStorageClass": isDefaultSC,
 	}
 
@@ -760,7 +750,6 @@ func getCCMChartValues(
 	}
 
 	values := map[string]interface{}{
-		"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"cloudControllerManager": map[string]interface{}{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"projectID":              projectID,
@@ -905,7 +894,6 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	values := map[string]any{
-		"pspDisabled": gardencorev1beta1helper.IsPSPDisabled(cluster.Shoot),
 		"duros": map[string]any{
 			"enabled":        storageConfig.Duros.Enabled,
 			"replicas":       extensionscontroller.GetReplicas(cluster, 1),

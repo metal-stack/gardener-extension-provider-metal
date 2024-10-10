@@ -36,7 +36,6 @@ global:
     ciliumDevices:
     ciliumHubbleEnabled:
     ciliumKubeProxyEnabled:
-    ciliumPSPEnabled:
     ciliumTunnel:
     ciliumIPv4NativeRoutingCIDREnabled:
     ciliumLoadBalancingMode:

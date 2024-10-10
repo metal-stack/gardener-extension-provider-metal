@@ -9,6 +9,7 @@ import (
 	calicoextensionv1alpha1 "github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico/v1alpha1"
 	ciliumextensionv1alpha1 "github.com/gardener/gardener-extension-networking-cilium/pkg/apis/cilium/v1alpha1"
 	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
@@ -179,10 +180,6 @@ func (d *defaulter) defaultCiliumConfig(shoot *gardenv1beta1.Shoot) error {
 		networkConfig.Hubble = &ciliumextensionv1alpha1.Hubble{
 			Enabled: d.c.ciliumHubbleEnabled(),
 		}
-	}
-
-	if networkConfig.PSPEnabled == nil {
-		networkConfig.PSPEnabled = pointer.Pointer(d.c.ciliumPSPEnabled())
 	}
 
 	if networkConfig.TunnelMode == nil {

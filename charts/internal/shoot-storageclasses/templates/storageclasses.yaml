@@ -140,43 +140,6 @@ kind: ServiceAccount
 metadata:
   name: csi-lvm-reviver
   namespace: csi-lvm
-{{- if not .Values.pspDisabled }}
----
-apiVersion: policy/v1beta1
-kind: PodSecurityPolicy
-metadata:
-  name: csi-lvm-reviver-psp
-  namespace: csi-lvm
-spec:
-  allowPrivilegeEscalation: true
-  privileged: true
-  fsGroup:
-    rule: RunAsAny
-  privileged: true
-  runAsUser:
-    rule: RunAsAny
-  seLinux:
-    rule: RunAsAny
-  supplementalGroups:
-    rule: RunAsAny
-  volumes:
-  - '*'
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: csi-lvm-reviver-psp
-  namespace: csi-lvm
-rules:
-- apiGroups:
-  - extensions
-  resources:
-  - podsecuritypolicies
-  resourceNames:
-  - csi-lvm-reviver-psp
-  verbs:
-  - use
-{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -197,21 +160,6 @@ rules:
   verbs:
   - create
   - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: csi-lvm-reviver-psp
-  namespace: csi-lvm
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: csi-lvm-reviver-psp
-subjects:
-- apiGroup: ""
-  kind: ServiceAccount
-  name: csi-lvm-reviver
-  namespace: csi-lvm
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
