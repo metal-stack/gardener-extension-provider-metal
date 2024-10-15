@@ -3,13 +3,10 @@ package shoot
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strconv"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
-	extensionscontextwebhook "github.com/gardener/gardener/extensions/pkg/webhook/context"
-	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
-
-	calicoextensionv1alpha1 "github.com/gardener/gardener-extension-networking-calico/pkg/apis/calico/v1alpha1"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -47,8 +44,6 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		return nil
 	}
 
-	gctx := extensionscontextwebhook.NewGardenContext(m.client, new)
-
 	switch x := new.(type) {
 	case *appsv1.Deployment:
 		switch x.Name {
@@ -61,7 +56,7 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 		switch x.Name {
 		case "calico-node":
 			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			return m.mutateCalicoNode(ctx, gctx, x)
+			return m.mutateCalicoNode(ctx, x)
 		}
 	}
 	return nil
@@ -91,23 +86,22 @@ func (m *mutator) mutateVPNShootDeployment(_ context.Context, deployment *appsv1
 	return nil
 }
 
-func (m *mutator) mutateCalicoNode(ctx context.Context, gctx gcontext.GardenContext, ds *appsv1.DaemonSet) error {
-	cluster, err := gctx.GetCluster(ctx)
-	if err != nil {
-		return fmt.Errorf("unable to extract cluster from ctx: %w", err)
-	}
-
-	networkConfig := &calicoextensionv1alpha1.NetworkConfig{}
-	err = helper.DecodeRawExtension(cluster.Shoot.Spec.Networking.ProviderConfig, networkConfig, m.decoder)
-	if err != nil {
-		return err
-	}
-
-	if networkConfig.EbpfDataplane == nil || !networkConfig.EbpfDataplane.Enabled {
-		return nil
-	}
-
+func (m *mutator) mutateCalicoNode(_ context.Context, ds *appsv1.DaemonSet) error {
 	if c := extensionswebhook.ContainerWithName(ds.Spec.Template.Spec.Containers, "calico-node"); c != nil {
+		ebpfEnabled := slices.ContainsFunc(c.Env, func(e corev1.EnvVar) bool {
+			if e.Name != "FELIX_BPFENABLED" {
+				return false
+			}
+
+			enabled, _ := strconv.ParseBool(e.Value)
+
+			return enabled
+		})
+
+		if !ebpfEnabled {
+			return nil
+		}
+
 		m.logger.Info("patching calico-node daemon set due to ebpf dataplane being enabled")
 
 		c.Env = extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
