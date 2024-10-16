@@ -2,8 +2,6 @@ module github.com/metal-stack/gardener-extension-provider-metal
 
 go 1.22.2
 
-replace github.com/gardener/gardener-extension-networking-cilium => github.com/metal-stack/gardener-extension-networking-cilium v1.16.1-0.20241010063608-cadb628ce245
-
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
@@ -11,7 +9,7 @@ require (
 	github.com/gardener/etcd-druid v0.22.0
 	github.com/gardener/gardener v1.95.6
 	github.com/gardener/gardener-extension-networking-calico v1.39.1
-	github.com/gardener/gardener-extension-networking-cilium v1.34.0
+	github.com/gardener/gardener-extension-networking-cilium v1.35.0
 	github.com/gardener/machine-controller-manager v0.53.0
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/strfmt v0.23.0
@@ -27,13 +25,13 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
-	k8s.io/api v0.29.4
+	k8s.io/api v0.29.5
 	k8s.io/apiextensions-apiserver v0.29.4
-	k8s.io/apimachinery v0.29.4
+	k8s.io/apimachinery v0.29.5
 	k8s.io/autoscaler/vertical-pod-autoscaler v1.1.1
-	k8s.io/client-go v0.29.4
-	k8s.io/code-generator v0.29.4
-	k8s.io/component-base v0.29.4
+	k8s.io/client-go v0.29.5
+	k8s.io/code-generator v0.29.5
+	k8s.io/component-base v0.29.5
 	k8s.io/kubelet v0.29.4
 	sigs.k8s.io/controller-runtime v0.17.5
 	sigs.k8s.io/yaml v1.4.0
