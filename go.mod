@@ -9,7 +9,7 @@ require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/gardener/etcd-druid v0.22.0
-	github.com/gardener/gardener v1.94.1
+	github.com/gardener/gardener v1.95.6
 	github.com/gardener/gardener-extension-networking-calico v1.39.1
 	github.com/gardener/gardener-extension-networking-cilium v1.34.0
 	github.com/gardener/machine-controller-manager v0.53.0
@@ -35,7 +35,7 @@ require (
 	k8s.io/code-generator v0.29.4
 	k8s.io/component-base v0.29.4
 	k8s.io/kubelet v0.29.4
-	sigs.k8s.io/controller-runtime v0.17.3
+	sigs.k8s.io/controller-runtime v0.17.5
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -168,7 +168,7 @@ require (
 	k8s.io/kube-aggregator v0.29.4 // indirect
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
 	k8s.io/metrics v0.29.4 // indirect
-	k8s.io/utils v0.0.0-20240423183400-0849a56e8f22 // indirect
+	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0 // indirect
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20231015215740-bf15e44028f9 // indirect
 	sigs.k8s.io/controller-tools v0.14.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
