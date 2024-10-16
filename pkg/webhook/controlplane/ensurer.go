@@ -228,7 +228,7 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 
 	var files []extensionsv1alpha1.File
 	for _, f := range *new {
-		if f.Path == "/var/lib/kubelet/config/kubelet" {
+		if f.Path == v1beta1constants.OperatingSystemConfigFilePathKubeletConfig {
 			// for cis benchmark this needs to be 600
 			f.Permissions = pointer.Pointer(int32(0600))
 		}
