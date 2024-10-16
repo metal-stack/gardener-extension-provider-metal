@@ -190,6 +190,16 @@ func (d *defaulter) defaultCiliumConfig(shoot *gardenv1beta1.Shoot) error {
 		networkConfig.Devices = d.c.ciliumDevices()
 	}
 
+	if networkConfig.DirectRoutingDevice == nil {
+		networkConfig.DirectRoutingDevice = pointer.Pointer(d.c.ciliumDirectRoutingDevice())
+	}
+
+	if networkConfig.BGPControlPlane == nil {
+		networkConfig.BGPControlPlane = &ciliumextensionv1alpha1.BGPControlPlane{
+			Enabled: d.c.bgpControlPlaneEnabled(),
+		}
+	}
+
 	if networkConfig.IPv4NativeRoutingCIDREnabled == nil {
 		networkConfig.IPv4NativeRoutingCIDREnabled = pointer.Pointer(d.c.ciliumIPv4NativeRoutingCIDREnabled())
 	}
