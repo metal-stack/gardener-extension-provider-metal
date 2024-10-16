@@ -1,7 +1,15 @@
 ---
 name: Docker Build Action
 on:
+  pull_request:
+    branches:
+      - master
+  release:
+    types:
+      - published
   push:
+    branches:
+      - master
 
 env:
   REGISTRY: ghcr.io
@@ -25,9 +33,15 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
 
+    - name: Make tag
+      run: |
+        [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && echo "tag=${GITHUB_HEAD_REF##*/}" >> $GITHUB_ENV || true
+        [ "${GITHUB_EVENT_NAME}" == 'release' ] && echo "tag=${GITHUB_REF##*/}" >> $GITHUB_ENV || true
+        [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=latest" >> $GITHUB_ENV || true
+
     - name: Build and push image
       uses: docker/build-push-action@v6
       with:
         context: .
         push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:update-cilium-extension
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.tag }}
