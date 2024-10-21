@@ -14,10 +14,10 @@ const (
 	MetallbSpeakerImageName = "metallb-speaker"
 	// MetallbControllerImageName is the name of the metallb controller to deploy to the shoot.
 	MetallbControllerImageName = "metallb-controller"
-	// CSIControllerImageName is the name of the csi lvm controller to deploy to the seed's shoot namespace.
-	CSIControllerImageName = "csi-lvm-controller"
-	// CSIProvisionerImageName is the name of the csi lvm provisioner to deploy to the seed's shoot namespace.
-	CSIProvisionerImageName = "csi-lvm-provisioner"
+	// CSIPluginImageName is the name of the csi driver lvm plugin to deploy to the seed's shoot namespace.
+	CSIPluginImageName = "csi-drive-lvm-plugin"
+	// CSIProvisionerImageName is the name of the csi driver lvm provisioner to deploy to the seed's shoot namespace.
+	CSIProvisionerImageName = "csi-driver-lvm-provisioner"
 	// DurosControllerImageName is the name of the duros controller to deploy to the seed's shoot namespace.
 	DurosControllerImageName = "duros-controller"
 	// DurosResourceName is the name of the duros resource to deploy to the seed's shoot namespace.

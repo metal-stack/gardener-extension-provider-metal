@@ -11,14 +11,14 @@ images:
   sourceRepository: github.com/metal-stack/droptailer
   repository: ghcr.io/metal-stack/droptailer
   tag: "v0.2.12"
-- name: csi-lvm-controller
-  sourceRepository: github.com/metal-stack/csi-lvm-controller
-  repository: ghcr.io/metal-stack/csi-lvm-controller
-  tag: "v0.7.0"
-- name: csi-lvm-provisioner
-  sourceRepository: github.com/metal-stack/csi-lvm-provisioner
-  repository: ghcr.io/metal-stack/csi-lvm-provisioner
-  tag: "v0.7.0"
+- name: csi-driver-lvm-plugin
+  sourceRepository: https://github.com/metal-stack/csi-driver-lvm
+  repository:  ghcr.io/metal-stack/
+  tag: "v0.6.0"
+- name: csi-driver-lvm-provisioner
+  sourceRepository: https://github.com/metal-stack/csi-driver-lvm
+  repository:  ghcr.io/metal-stack/
+  tag: "v0.6.0"
 - name: metallb-speaker
   sourceRepository: https://github.com/metallb/metallb
   repository: quay.io/metallb/speaker

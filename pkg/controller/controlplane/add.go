@@ -4,12 +4,8 @@ import (
 	"context"
 	"sync/atomic"
 
-	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/controlplane"
-	"github.com/gardener/gardener/extensions/pkg/controller/controlplane/genericactuator"
-	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -39,12 +35,7 @@ type AddOptions struct {
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
 // The opts.Reconciler is being set with a newly instantiated actuator.
 func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddOptions) error {
-	actuator, err := genericactuator.NewActuator(mgr, metal.Name,
-		secretConfigsFunc, shootAccessSecretsFunc, nil, nil,
-		nil, controlPlaneChart, cpShootChart, nil, storageClassChart, nil,
-		NewValuesProvider(mgr, opts.ControllerConfig), extensionscontroller.ChartRendererFactoryFunc(util.NewChartRendererForShoot),
-		imagevector.ImageVector(), "", opts.ShootWebhookConfig, opts.WebhookServerNamespace,
-	)
+	actuator, err := NewActuator(mgr, opts)
 	if err != nil {
 		return err
 	}
