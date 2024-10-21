@@ -107,6 +107,7 @@ func (m *mutator) mutateCalicoNode(_ context.Context, ds *appsv1.DaemonSet) erro
 		c.Env = extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
 			Name: "FELIX_BPFDATAIFACEPATTERN",
 			// including "lan" interface name to default value
+			// (see https://github.com/projectcalico/calico/blob/3f7fe4d290541bbdd73c97bdc89a29a29855a48a/felix/config/config_params.go#L180)
 			Value: "^((en|wl|ww|sl|ib)[Popsx].*|(lan|eth|wlan|wwan).*|tunl0$|vxlan.calico$|wireguard.cali$|wg-v6.cali$)",
 		})
 
