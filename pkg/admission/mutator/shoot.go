@@ -11,7 +11,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
@@ -45,7 +44,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 			Name: shoot.Spec.CloudProfileName,
 		},
 	}
-	if err := m.client.Get(ctx, kutil.Key(shoot.Spec.CloudProfileName), profile); err != nil {
+	if err := m.client.Get(ctx, client.ObjectKey{Name: shoot.Spec.CloudProfileName}, profile); err != nil {
 		return err
 	}
 
