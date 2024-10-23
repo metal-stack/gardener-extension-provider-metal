@@ -188,7 +188,7 @@ func (e *ensurer) EnsureMachineControllerManagerDeployment(_ context.Context, _ 
 	}
 
 	c := machinecontrollermanager.ProviderSidecarContainer(newObj.Namespace, metal.Name, image.String())
-	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--machine-health-timeout=", "10080m")
+	c.Args = extensionswebhook.EnsureStringWithPrefix(c.Args, "--machine-health-timeout=", "10080m")
 
 	newObj.Spec.Template.Spec.Containers = extensionswebhook.EnsureContainerWithName(
 		newObj.Spec.Template.Spec.Containers,
