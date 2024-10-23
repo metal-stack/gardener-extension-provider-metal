@@ -100,7 +100,7 @@ format: $(GOIMPORTS)
 
 .PHONY: test
 test:
-	@SKIP_FETCH_TOOLS=1 $(GARDENER_HACK_DIR)/test.sh ./cmd/... ./pkg/...
+	@bash $(GARDENER_HACK_DIR)/test.sh ./cmd/... ./pkg/...
 
 .PHONY: test-in-docker
 test-in-docker: tidy
