@@ -14,7 +14,6 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	"github.com/go-logr/logr"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
@@ -57,7 +56,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	}
 
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
+	if err := e.client.Get(ctx, client.ObjectKey{Namespace: cluster.ObjectMeta.Name, Name: cluster.Shoot.Name}, infrastructure); err != nil {
 		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
 		return err
 	}
@@ -158,7 +157,7 @@ func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gconte
 	}
 
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := e.client.Get(ctx, kutil.Key(cluster.ObjectMeta.Name, cluster.Shoot.Name), infrastructure); err != nil {
+	if err := e.client.Get(ctx, client.ObjectKey{Namespace: cluster.ObjectMeta.Name, Name: cluster.Shoot.Name}, infrastructure); err != nil {
 		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
 		return err
 	}
@@ -189,7 +188,7 @@ func (e *ensurer) EnsureMachineControllerManagerDeployment(_ context.Context, _ 
 	}
 
 	c := machinecontrollermanager.ProviderSidecarContainer(newObj.Namespace, metal.Name, image.String())
-	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--machine-health-timeout=", "10080m")
+	c.Args = extensionswebhook.EnsureStringWithPrefix(c.Args, "--machine-health-timeout=", "10080m")
 
 	newObj.Spec.Template.Spec.Containers = extensionswebhook.EnsureContainerWithName(
 		newObj.Spec.Template.Spec.Containers,
