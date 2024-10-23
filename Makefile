@@ -1,3 +1,5 @@
+ENSURE_GARDENER_MOD         := $(shell go get github.com/gardener/gardener@$$(go list -m -f "{{.Version}}" github.com/gardener/gardener))
+GARDENER_HACK_DIR    		:= $(shell go list -m -f "{{.Dir}}" github.com/gardener/gardener)/hack
 IMAGE_TAG                   := $(or ${GITHUB_TAG_NAME}, latest)
 REGISTRY                    := ghcr.io/metal-stack
 IMAGE_PREFIX                := $(REGISTRY)
@@ -20,22 +22,21 @@ endif
 
 export GO111MODULE := on
 
-TOOLS_DIR := hack/tools
--include vendor/github.com/gardener/gardener/hack/tools.mk
-
+TOOLS_DIR := $(HACK_DIR)/tools
+include $(GARDENER_HACK_DIR)/tools.mk
 
 #################################################################
 # Rules related to binary build, Docker image build and release #
 #################################################################
 
+.PHONY: install
+install: tidy $(HELM)
+	@LD_FLAGS="-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(VERSION)" \
+	bash $(GARDENER_HACK_DIR)/install.sh ./...
+
 .PHONY: build
 build:
 	go build -ldflags $(LD_FLAGS) -tags netgo ./cmd/gardener-extension-provider-metal
-
-.PHONY: install
-install: revendor $(HELM)
-	@LD_FLAGS="-w -X github.com/gardener/$(EXTENSION_PREFIX)-$(NAME)/pkg/version.Version=$(VERSION)" \
-	$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/install.sh ./...
 
 .PHONY: docker-image
 docker-image:
@@ -61,34 +62,31 @@ update-crds:
 # Rules for verification, formatting, linting, testing and cleaning #
 #####################################################################
 
-.PHONY: revendor
-revendor:
-	@GO111MODULE=on go mod vendor
+.PHONY: tidy
+tidy:
 	@GO111MODULE=on go mod tidy
-	@chmod +x $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/*
-	@chmod +x $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/.ci/*
-	@$(REPO_ROOT)/hack/update-github-templates.sh
+	@mkdir -p $(REPO_ROOT)/.ci/hack && cp $(GARDENER_HACK_DIR)/.ci/* $(REPO_ROOT)/.ci/hack/ && chmod +xw $(REPO_ROOT)/.ci/hack/*
 
 .PHONY: clean
 clean:
 	@$(shell find ./example -type f -name "controller-registration.yaml" -exec rm '{}' \;)
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/clean.sh ./cmd/... ./pkg/...
+	@bash $(GARDENER_HACK_DIR)/clean.sh ./cmd/... ./pkg/...
 
 .PHONY: check-generate
 check-generate:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-generate.sh $(REPO_ROOT)
+	@bash $(GARDENER_HACK_DIR)/check-generate.sh $(REPO_ROOT)
 
 .PHONY: check
 check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM)
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/...
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-charts.sh ./charts
+	@REPO_ROOT=$(REPO_ROOT) bash $(GARDENER_HACK_DIR)/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/...
+	@REPO_ROOT=$(REPO_ROOT) bash $(GARDENER_HACK_DIR)/check-charts.sh ./charts
 
 .PHONY: generate
-generate: $(HELM) $(YQ)
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate-sequential.sh ./charts/... ./cmd/... ./pkg/...
+generate: $(VGOPATH) $(HELM) $(YQ)
+	@REPO_ROOT=$(REPO_ROOT) VGOPATH=$(VGOPATH) GARDENER_HACK_DIR=$(GARDENER_HACK_DIR) bash $(GARDENER_HACK_DIR)/generate-sequential.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: generate-in-docker
-generate-in-docker: revendor update-crds $(HELM)
+generate-in-docker: tidy update-crds $(HELM)
 	echo $(shell git describe --abbrev=0 --tags) > VERSION
 	docker run --rm -i$(DOCKER_TTY_ARG) \
 		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:$(GO_VERSION) \
@@ -98,14 +96,14 @@ generate-in-docker: revendor update-crds $(HELM)
 
 .PHONY: format
 format: $(GOIMPORTS)
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/format.sh ./cmd ./pkg
+	@bash $(GARDENER_HACK_DIR)/format.sh ./cmd ./pkg
 
 .PHONY: test
 test:
-	@SKIP_FETCH_TOOLS=1 $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test.sh ./cmd/... ./pkg/...
+	@SKIP_FETCH_TOOLS=1 $(GARDENER_HACK_DIR)/test.sh ./cmd/... ./pkg/...
 
 .PHONY: test-in-docker
-test-in-docker: revendor
+test-in-docker: tidy
 	docker run --rm -i$(DOCKER_TTY_ARG) \
 		--user $$(id -u):$$(id -g) \
 		--mount type=tmpfs,destination=/.cache \
@@ -115,11 +113,11 @@ test-in-docker: revendor
 
 .PHONY: test-cov
 test-cov:
-	@SKIP_FETCH_TOOLS=1 $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test-cover.sh -r ./cmd/... ./pkg/...
+	@SKIP_FETCH_TOOLS=1 $(GARDENER_HACK_DIR)/test-cover.sh -r ./cmd/... ./pkg/...
 
 .PHONY: test-clean
 test-clean:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test-cover-clean.sh
+	$(GARDENER_HACK_DIR)/test-cover-clean.sh
 
 .PHONY: verify
 verify: check format test
