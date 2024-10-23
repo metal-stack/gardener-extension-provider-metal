@@ -352,7 +352,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 	// it would need the start of another reconciliation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
+	if err := vp.client.Get(ctx, client.ObjectKey{Namespace: cp.Namespace, Name: cp.Name}, infrastructure); err != nil {
 		return nil, err
 	}
 
@@ -462,7 +462,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 	// it would need the start of another reconciliation until the node cidr can be picked up from the cluster resource
 	// therefore, we read it directly from the infrastructure status
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := vp.client.Get(ctx, kutil.Key(cp.Namespace, cp.Name), infrastructure); err != nil {
+	if err := vp.client.Get(ctx, client.ObjectKey{Namespace: cp.Namespace, Name: cp.Name}, infrastructure); err != nil {
 		return nil, err
 	}
 
@@ -663,7 +663,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 // getSecret returns the secret with the given namespace/secretName
 func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
-	key := kutil.Key(namespace, secretName)
+	key := client.ObjectKey{Namespace: namespace, Name: secretName}
 	secret := &corev1.Secret{}
 	err := vp.client.Get(ctx, key, secret)
 	if err != nil {
