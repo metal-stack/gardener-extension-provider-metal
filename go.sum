@@ -104,8 +104,8 @@ github.com/gardener/gardener v1.96.6 h1:SWiK4U8UdxIb9GvN9XcZa1GIQEP+Ul5wAlgl5st0
 github.com/gardener/gardener v1.96.6/go.mod h1:wXAk6DzltkuJzWvAmIvw1/GscfCn2Po3LWWCr4oCbiQ=
 github.com/gardener/gardener-extension-networking-calico v1.39.1 h1:x/PeBSXTasyeSHY6Q0czp9mhCsF0N1FHsH3j0/EEqMc=
 github.com/gardener/gardener-extension-networking-calico v1.39.1/go.mod h1:02QjW3PPk4gzGZAcKiEMBtUOfBw+6rPgYt4ZGRkbJbY=
-github.com/gardener/gardener-extension-networking-cilium v1.34.0 h1:GpTNR6Ra+J8jv77S9GCh+JnpA+MN2/42TbkcZWcOB7Y=
-github.com/gardener/gardener-extension-networking-cilium v1.34.0/go.mod h1:2b2ED5C7Nch4r772YKRDEpC/9Ak8SJB9gblDqBfysYM=
+github.com/gardener/gardener-extension-networking-cilium v1.35.0 h1:yKkiOcs1YybHEiExR2tOLD5lF3c96fS6RrNvit1xdM8=
+github.com/gardener/gardener-extension-networking-cilium v1.35.0/go.mod h1:zMsv8Hv+MSr3R/OQ0a+fJesygCXJNuIUPmcRol/R4W8=
 github.com/gardener/hvpa-controller/api v0.15.0 h1:igsalL5Z6kFMn1+Kv1Eq0cRjYW+4oBA1aEY/yDO2QtI=
 github.com/gardener/hvpa-controller/api v0.15.0/go.mod h1:fqb4wNrQLESDKpm7ppXyCM2Gvx96wRlLL35aH0ge07U=
 github.com/gardener/machine-controller-manager v0.53.0 h1:g2O0F7nEYZ9LjyPY6Gew8+q0n+rU88deexNq5k8CKks=

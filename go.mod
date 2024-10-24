@@ -11,7 +11,7 @@ require (
 	github.com/gardener/etcd-druid v0.22.0
 	github.com/gardener/gardener v1.96.6
 	github.com/gardener/gardener-extension-networking-calico v1.39.1
-	github.com/gardener/gardener-extension-networking-cilium v1.34.0
+	github.com/gardener/gardener-extension-networking-cilium v1.35.0
 	github.com/gardener/machine-controller-manager v0.53.0
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/strfmt v0.23.0

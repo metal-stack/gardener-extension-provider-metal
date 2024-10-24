@@ -139,6 +139,33 @@ rules:
     - get
     - create
     - update
+{{- if .Values.cilium.enabled }}
+- apiGroups:
+    - cilium.io
+  resources:
+    - ciliumbgppeeringpolicies
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiGroups:
+    - cilium.io
+  resources:
+    - ciliumloadbalancerippools
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+{{- end }}
+{{- if .Values.metallb.enabled }}
 - apiGroups:
     - metallb.io
   resources:
@@ -156,7 +183,6 @@ rules:
   resources:
     - ipaddresspools
   verbs:
-    - create
     - create
     - delete
     - get
@@ -176,6 +202,7 @@ rules:
     - patch
     - update
     - watch
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
