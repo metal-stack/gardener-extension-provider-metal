@@ -290,11 +290,7 @@ type valuesProvider struct {
 }
 
 // GetConfigChartValues returns the values for the config chart applied by the generic actuator.
-func (vp *valuesProvider) GetConfigChartValues(
-	ctx context.Context,
-	cp *extensionsv1alpha1.ControlPlane,
-	cluster *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetConfigChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	return nil, nil
 }
 
@@ -411,12 +407,7 @@ func merge(target map[string]interface{}, sources ...map[string]interface{}) {
 }
 
 // GetControlPlaneExposureChartValues returns the values for the control plane exposure chart applied by the generic actuator.
-func (vp *valuesProvider) GetControlPlaneExposureChartValues(
-	ctx context.Context,
-	cp *extensionsv1alpha1.ControlPlane,
-	cluster *extensionscontroller.Cluster,
-	secretsReader secretsmanager.Reader,
-	checksums map[string]string) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetControlPlaneExposureChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster, secretsmanager.Reader, map[string]string) (map[string]interface{}, error) {
 	return nil, nil
 }
 
@@ -689,7 +680,7 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
-func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, _ *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	cp, err := helper.ControlPlaneConfigFromControlPlane(controlPlane)
 	if err != nil {
 		return nil, err
@@ -824,9 +815,9 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 				})
 			}
 
-			port443 := intstr.FromInt(443)
-			port4420 := intstr.FromInt(4420)
-			port8009 := intstr.FromInt(8009)
+			port443 := intstr.FromInt32(443)
+			port4420 := intstr.FromInt32(4420)
+			port8009 := intstr.FromInt32(8009)
 			tcp := corev1.ProtocolTCP
 
 			cp.Spec.Egress = []firewallv1.EgressRule{
@@ -945,7 +936,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 	// We generally expect to get a DNS name for the seed api url.
 	// This is always true for gardener managed clusters, because the mutating webhook
 	// of the api-server-proxy sets the KUBERNETES_SERVICE_HOST env variable.
-	// But for Managed Seeds where the control plane resides at GKE, this is always a IP
+	// But for Managed Seeds where the control plane resides at GKE, this is always an IP
 	// in this case we set the seedAPI URL in a configmap.
 	if !isConfigMapConfigured {
 		u, err := url.Parse(seedApiURL)
@@ -987,10 +978,6 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 	}, nil
 }
 
-func clusterTag(clusterID string) string {
-	return fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)
-}
-
 func hasDurosStorageNetwork(infrastructure *apismetal.InfrastructureConfig, nws networkMap) (bool, error) {
 	for _, networkID := range infrastructure.Firewall.Networks {
 		nw, ok := nws[networkID]
@@ -1010,12 +997,8 @@ func hasDurosStorageNetwork(infrastructure *apismetal.InfrastructureConfig, nws 
 }
 
 // GetControlPlaneShootCRDsChartValues returns the values for the control plane shoot CRDs chart applied by the generic actuator.
-// Currently the provider extension does not specify a control plane shoot CRDs chart. That's why we simply return empty values.
-func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
-	_ context.Context,
-	_ *extensionsv1alpha1.ControlPlane,
-	_ *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
+// Currently, the provider extension does not specify a control plane shoot CRDs chart. That's why we simply return empty values.
+func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(context.Context, *extensionsv1alpha1.ControlPlane, *extensionscontroller.Cluster) (map[string]interface{}, error) {
 	return map[string]interface{}{}, nil
 }
 
