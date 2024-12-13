@@ -1,3 +1,4 @@
+{{ if not .Values.disableCsiLvm }}
 ---
 apiVersion: v1
 kind: Namespace
@@ -255,3 +256,4 @@ spec:
             path: /run/lock/lvm
             type: DirectoryOrCreate
           name: lvmlock
+{{ end }}

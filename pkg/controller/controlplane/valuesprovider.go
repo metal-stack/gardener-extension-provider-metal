@@ -700,8 +700,14 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 		isDefaultSC = false
 	}
 
+	disableCsiLvm := false
+	if cp.FeatureGates.DisableCsiLvm != nil {
+		disableCsiLvm = *cp.FeatureGates.DisableCsiLvm
+	}
+
 	values := map[string]interface{}{
 		"isDefaultStorageClass": isDefaultSC,
+		"disableCsiLvm":         disableCsiLvm,
 	}
 
 	return values, nil
