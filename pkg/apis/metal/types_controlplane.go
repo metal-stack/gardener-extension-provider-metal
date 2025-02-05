@@ -63,6 +63,11 @@ type ControlPlaneFeatures struct {
 	// Deprecated: This is not used anymore. The gardener-extension-audit handles cluster auditing.
 	// +optional
 	AuditToSplunk *bool
+
+	// DisableCsiLvm disables the deployment of the csi-lvm driver for the control plane.
+	// In order to deploy the new csi-driver-lvm, the feature gate must be enabled so the old driver is removed.
+	// +optional
+	DisableCsiLvm *bool `json:"disableCsiLvm,omitempty"`
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.

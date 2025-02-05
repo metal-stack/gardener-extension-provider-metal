@@ -1,6 +1,7 @@
 ---
 images:
-    csi-lvm-controller: image-repository:image-tag
-    csi-lvm-provisioner: image-repository:image-tag
+  csi-lvm-controller: image-repository:image-tag
+  csi-lvm-provisioner: image-repository:image-tag
 
 isDefaultStorageClass: true
+disableCsiLvm: false
