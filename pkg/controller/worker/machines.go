@@ -162,7 +162,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			"tags":      tags,
 			"sshkeys":   []string{string(w.worker.Spec.SSHPublicKey)},
 			"secret": map[string]interface{}{
-				"cloudConfig": userData,
+				"cloudConfig": string(userData),
 			},
 			"credentialsSecretRef": map[string]interface{}{
 				"name":      w.worker.Spec.SecretRef.Name,
