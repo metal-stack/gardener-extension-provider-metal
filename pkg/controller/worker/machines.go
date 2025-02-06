@@ -120,6 +120,11 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			Image:   machineImage,
 		})
 
+		userData, err := worker.FetchUserData(ctx, w.client, w.worker.Namespace, pool)
+		if err != nil {
+			return err
+		}
+
 		var (
 			metalClusterIDTag      = fmt.Sprintf("%s=%s", tag.ClusterID, w.cluster.Shoot.GetUID())
 			metalClusterNameTag    = fmt.Sprintf("%s=%s", tag.ClusterName, w.worker.Namespace)
@@ -157,7 +162,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			"tags":      tags,
 			"sshkeys":   []string{string(w.worker.Spec.SSHPublicKey)},
 			"secret": map[string]interface{}{
-				"cloudConfig": string(pool.UserData),
+				"cloudConfig": string(userData),
 			},
 			"credentialsSecretRef": map[string]interface{}{
 				"name":      w.worker.Spec.SecretRef.Name,
@@ -165,7 +170,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			},
 		}
 
-		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster)
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, nil, nil)
 		if err != nil {
 			return err
 		}

@@ -6,12 +6,12 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gardenv1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	"github.com/gardener/gardener/pkg/utils/gardener"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,17 +39,13 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 		return fmt.Errorf("wrong object type %T", new)
 	}
 
-	profile := &gardenv1beta1.CloudProfile{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: shoot.Spec.CloudProfileName,
-		},
-	}
-	if err := m.client.Get(ctx, client.ObjectKey{Name: shoot.Spec.CloudProfileName}, profile); err != nil {
+	profile, err := gardener.GetCloudProfile(ctx, m.client, shoot)
+	if err != nil {
 		return err
 	}
 
 	infrastructureConfig := &metalv1alpha1.InfrastructureConfig{}
-	err := helper.DecodeRawExtension(shoot.Spec.Provider.InfrastructureConfig, infrastructureConfig, m.decoder)
+	err = helper.DecodeRawExtension(shoot.Spec.Provider.InfrastructureConfig, infrastructureConfig, m.decoder)
 	if err != nil {
 		return err
 	}

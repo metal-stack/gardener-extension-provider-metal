@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
+	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
@@ -31,6 +32,8 @@ type AddOptions struct {
 	IgnoreOperationAnnotation bool
 	// GardenCluster is the garden cluster object.
 	GardenCluster cluster.Cluster
+	// ExtensionClass defines the extension class this extension is responsible for.
+	ExtensionClass extensionsv1alpha1.ExtensionClass
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
@@ -49,6 +52,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddO
 		ControllerOptions: opts.Controller,
 		Predicates:        worker.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
 		Type:              metal.Type,
+		ExtensionClass:    opts.ExtensionClass,
 	})
 }
 
