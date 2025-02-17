@@ -1171,11 +1171,7 @@ func setDurosDefaultStorageClass(scs []map[string]any, fg *apismetal.ControlPlan
 		)
 
 		if replicasI == replicasJ {
-			if encryptionI && !encryptionJ {
-				return false
-			}
-
-			return true
+			return !encryptionI && encryptionJ
 		}
 
 		return replicasI > replicasJ
