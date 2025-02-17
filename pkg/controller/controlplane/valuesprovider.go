@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -884,6 +885,8 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 		})
 	}
 
+	scs = setDurosDefaultStorageClass(scs, &cp.FeatureGates)
+
 	controllerValues := map[string]any{
 		"endpoints":   partitionConfig.Endpoints,
 		"adminKey":    partitionConfig.AdminKey,
@@ -1135,4 +1138,61 @@ func getDefaultExternalNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneC
 	}
 
 	return "", nil
+}
+
+func setDurosDefaultStorageClass(scs []map[string]any, fg *apismetal.ControlPlaneFeatures) []map[string]any {
+	if fg.DisableCsiLvm == nil || !*fg.DisableCsiLvm {
+		// csi-lvm is used as default storage class
+		return scs
+	}
+
+	var (
+		scsCopy    []map[string]any
+		scsForSort []map[string]any
+	)
+	for _, sc := range scs {
+		if isDefault, _ := sc["default"].(bool); isDefault {
+			return scs
+		}
+
+		scsCopy = append(scsCopy, sc)
+		scsForSort = append(scsForSort, sc)
+	}
+
+	// if no default storage class is set, we pick the one with the highest replicas that is not encrypted
+
+	sort.Slice(scsForSort, func(i, j int) bool {
+		var (
+			replicasI, _ = scsForSort[i]["replicas"].(int)
+			replicasJ, _ = scsForSort[j]["replicas"].(int)
+
+			encryptionI, _ = scsForSort[i]["encryption"].(bool)
+			encryptionJ, _ = scsForSort[j]["encryption"].(bool)
+		)
+
+		if replicasI == replicasJ {
+			if encryptionI && !encryptionJ {
+				return false
+			}
+
+			return true
+		}
+
+		return replicasI > replicasJ
+	})
+
+	if len(scsCopy) > 0 {
+		name, _ := scsForSort[0]["name"].(string)
+
+		idx := slices.IndexFunc(scsCopy, func(e map[string]any) bool {
+			n, _ := e["name"].(string)
+			return n == name
+		})
+
+		if idx >= 0 {
+			scsCopy[idx]["default"] = true
+		}
+	}
+
+	return scsCopy
 }

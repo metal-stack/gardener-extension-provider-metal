@@ -256,3 +256,117 @@ func Test_getDefaultExternalNetwork(t *testing.T) {
 		})
 	}
 }
+
+func Test_setDurosDefaultStorageClass(t *testing.T) {
+	tests := []struct {
+		name string
+		fg   *apismetal.ControlPlaneFeatures
+		scs  []map[string]any
+		want []map[string]any
+	}{
+		{
+			name: "csi-lvm is configured",
+			fg:   &apismetal.ControlPlaneFeatures{},
+		},
+		{
+			name: "csi-lvm is configured explicitly",
+			fg: &apismetal.ControlPlaneFeatures{
+				DisableCsiLvm: pointer.Pointer(false),
+			},
+		},
+		{
+			name: "no storage classes",
+			fg: &apismetal.ControlPlaneFeatures{
+				DisableCsiLvm: pointer.Pointer(true),
+			},
+		},
+		{
+			name: "highest replicas count becomes default",
+			fg: &apismetal.ControlPlaneFeatures{
+				DisableCsiLvm: pointer.Pointer(true),
+			},
+			scs: []map[string]any{
+				{
+					"name":       "partition-gold",
+					"replicas":   3,
+					"encryption": false,
+					"default":    false,
+				},
+				{
+					"name":       "partition-silver",
+					"replicas":   2,
+					"encryption": false,
+					"default":    false,
+				},
+			},
+			want: []map[string]any{
+				{
+					"name":       "partition-gold",
+					"replicas":   3,
+					"encryption": false,
+					"default":    true,
+				},
+				{
+					"name":       "partition-silver",
+					"replicas":   2,
+					"encryption": false,
+					"default":    false,
+				},
+			},
+		},
+		{
+			name: "highest replicas count with unencrypted becomes default",
+			fg: &apismetal.ControlPlaneFeatures{
+				DisableCsiLvm: pointer.Pointer(true),
+			},
+			scs: []map[string]any{
+				{
+					"name":       "partition-gold-encrypted",
+					"replicas":   3,
+					"encryption": true,
+					"default":    false,
+				},
+				{
+					"name":       "partition-gold",
+					"replicas":   3,
+					"encryption": false,
+					"default":    false,
+				},
+				{
+					"name":       "partition-silver",
+					"replicas":   2,
+					"encryption": false,
+					"default":    false,
+				},
+			},
+			want: []map[string]any{
+				{
+					"name":       "partition-gold-encrypted",
+					"replicas":   3,
+					"encryption": true,
+					"default":    false,
+				},
+				{
+					"name":       "partition-gold",
+					"replicas":   3,
+					"encryption": false,
+					"default":    true,
+				},
+				{
+					"name":       "partition-silver",
+					"replicas":   2,
+					"encryption": false,
+					"default":    false,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := setDurosDefaultStorageClass(tt.scs, tt.fg)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("diff (+got -want):\n %s", diff)
+			}
+		})
+	}
+}
