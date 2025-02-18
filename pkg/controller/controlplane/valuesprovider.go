@@ -885,7 +885,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 		})
 	}
 
-	scs = setDurosDefaultStorageClass(scs, &cp.FeatureGates)
+	scs = setDurosDefaultStorageClass(scs, cp)
 
 	controllerValues := map[string]any{
 		"endpoints":   partitionConfig.Endpoints,
@@ -1140,8 +1140,8 @@ func getDefaultExternalNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneC
 	return "", nil
 }
 
-func setDurosDefaultStorageClass(scs []map[string]any, fg *apismetal.ControlPlaneFeatures) []map[string]any {
-	if fg.DisableCsiLvm == nil || !*fg.DisableCsiLvm {
+func setDurosDefaultStorageClass(scs []map[string]any, cpConfig *apismetal.ControlPlaneConfig) []map[string]any {
+	if cpConfig == nil || cpConfig.FeatureGates.DisableCsiLvm == nil || !*cpConfig.FeatureGates.DisableCsiLvm {
 		// csi-lvm is used as default storage class
 		return scs
 	}
@@ -1182,6 +1182,11 @@ func setDurosDefaultStorageClass(scs []map[string]any, fg *apismetal.ControlPlan
 
 		idx := slices.IndexFunc(scsCopy, func(e map[string]any) bool {
 			n, _ := e["name"].(string)
+
+			if cpConfig.CustomDefaultStorageClass != nil && cpConfig.CustomDefaultStorageClass.ClassName != n {
+				return false
+			}
+
 			return n == name
 		})
 
