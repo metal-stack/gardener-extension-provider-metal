@@ -20,7 +20,7 @@ require (
 	github.com/metal-stack/duros-controller v0.11.4
 	github.com/metal-stack/firewall-controller-manager v0.5.1
 	github.com/metal-stack/firewall-controller/v2 v2.3.8
-	github.com/metal-stack/metal-go v0.39.9
+	github.com/metal-stack/metal-go v0.40.1
 	github.com/metal-stack/metal-lib v0.20.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.36.2
