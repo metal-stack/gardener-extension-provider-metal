@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"encoding/json"
+	"slices"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -246,21 +247,34 @@ func (e *ensurer) EnsureCRIConfig(ctx context.Context, gctx gcontext.GardenConte
 		new.Containerd = &extensionsv1alpha1.ContainerdConfig{}
 	}
 
-	config := map[string]string{
-		"runtime_type": "io.containerd.runc.v2",
-	}
+	var (
+		path   = []string{"io.containerd.grpc.v1.cri", "containerd", "runtimes", "runc"}
+		config = map[string]string{
+			"runtime_type": "io.containerd.runc.v2",
+		}
+	)
 
 	raw, err := json.Marshal(config)
 	if err != nil {
 		return err
 	}
 
-	new.Containerd.Plugins = append(new.Containerd.Plugins, extensionsv1alpha1.PluginConfig{
-		Path: []string{"io.containerd.grpc.v1.cri", "containerd", "runtimes", "runc"},
+	pluginConfig := extensionsv1alpha1.PluginConfig{
+		Path: path,
 		Values: &v1.JSON{
 			Raw: raw,
 		},
+	}
+
+	idx := slices.IndexFunc(new.Containerd.Plugins, func(e extensionsv1alpha1.PluginConfig) bool {
+		return slices.Equal(e.Path, path)
 	})
+
+	if idx < 0 {
+		new.Containerd.Plugins = append(new.Containerd.Plugins, pluginConfig)
+	} else {
+		new.Containerd.Plugins[idx] = pluginConfig
+	}
 
 	return nil
 }
