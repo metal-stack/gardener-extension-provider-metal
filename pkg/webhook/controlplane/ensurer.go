@@ -2,6 +2,7 @@ package controlplane
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -23,6 +24,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	vpaautoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -225,6 +227,40 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 	}
 
 	*new = files
+
+	return nil
+}
+
+// EnsureCRIConfig ensures the CRI config.
+// "old" might be "nil" and must always be checked.
+func (e *ensurer) EnsureCRIConfig(ctx context.Context, gctx gcontext.GardenContext, new, old *extensionsv1alpha1.CRIConfig) error {
+	if new == nil || new.Name != extensionsv1alpha1.CRINameContainerD {
+		return nil
+	}
+
+	if new.CgroupDriver == nil || *new.CgroupDriver != extensionsv1alpha1.CgroupDriverSystemd {
+		return nil
+	}
+
+	if new.Containerd == nil {
+		new.Containerd = &extensionsv1alpha1.ContainerdConfig{}
+	}
+
+	config := map[string]string{
+		"runtime_type": "io.containerd.runc.v2",
+	}
+
+	raw, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	new.Containerd.Plugins = append(new.Containerd.Plugins, extensionsv1alpha1.PluginConfig{
+		Path: []string{"io.containerd.grpc.v1.cri", "containerd", "runtimes", "runc"},
+		Values: &v1.JSON{
+			Raw: raw,
+		},
+	})
 
 	return nil
 }
