@@ -2,6 +2,8 @@ package controlplane
 
 import (
 	"context"
+	"encoding/json"
+	"slices"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -23,7 +25,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	vpaautoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -199,23 +201,13 @@ func (e *ensurer) EnsureMachineControllerManagerDeployment(_ context.Context, _ 
 
 // EnsureMachineControllerManagerVPA ensures that the machine-controller-manager VPA conforms to the provider requirements.
 func (e *ensurer) EnsureMachineControllerManagerVPA(_ context.Context, _ gcontext.GardenContext, newObj, _ *vpaautoscalingv1.VerticalPodAutoscaler) error {
-	var (
-		minAllowed = corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("64Mi"),
-		}
-		maxAllowed = corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("2"),
-			corev1.ResourceMemory: resource.MustParse("5G"),
-		}
-	)
-
 	if newObj.Spec.ResourcePolicy == nil {
 		newObj.Spec.ResourcePolicy = &vpaautoscalingv1.PodResourcePolicy{}
 	}
 
 	newObj.Spec.ResourcePolicy.ContainerPolicies = extensionswebhook.EnsureVPAContainerResourcePolicyWithName(
 		newObj.Spec.ResourcePolicy.ContainerPolicies,
-		machinecontrollermanager.ProviderSidecarVPAContainerPolicy(metal.Name, minAllowed, maxAllowed),
+		machinecontrollermanager.ProviderSidecarVPAContainerPolicy(metal.Name),
 	)
 	return nil
 }
@@ -236,6 +228,53 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 	}
 
 	*new = files
+
+	return nil
+}
+
+// EnsureCRIConfig ensures the CRI config.
+// "old" might be "nil" and must always be checked.
+func (e *ensurer) EnsureCRIConfig(ctx context.Context, gctx gcontext.GardenContext, new, old *extensionsv1alpha1.CRIConfig) error {
+	if new == nil || new.Name != extensionsv1alpha1.CRINameContainerD {
+		return nil
+	}
+
+	if new.CgroupDriver == nil || *new.CgroupDriver != extensionsv1alpha1.CgroupDriverSystemd {
+		return nil
+	}
+
+	if new.Containerd == nil {
+		new.Containerd = &extensionsv1alpha1.ContainerdConfig{}
+	}
+
+	var (
+		path   = []string{"io.containerd.grpc.v1.cri", "containerd", "runtimes", "runc"}
+		config = map[string]string{
+			"runtime_type": "io.containerd.runc.v2",
+		}
+	)
+
+	raw, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	pluginConfig := extensionsv1alpha1.PluginConfig{
+		Path: path,
+		Values: &v1.JSON{
+			Raw: raw,
+		},
+	}
+
+	idx := slices.IndexFunc(new.Containerd.Plugins, func(e extensionsv1alpha1.PluginConfig) bool {
+		return slices.Equal(e.Path, path)
+	})
+
+	if idx < 0 {
+		new.Containerd.Plugins = append(new.Containerd.Plugins, pluginConfig)
+	} else {
+		new.Containerd.Plugins[idx] = pluginConfig
+	}
 
 	return nil
 }
