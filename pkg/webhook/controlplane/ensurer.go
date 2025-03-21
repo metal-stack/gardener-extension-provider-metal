@@ -2,6 +2,7 @@ package controlplane
 
 import (
 	"context"
+	"slices"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/go-logr/logr"
 
+	apimetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
@@ -227,4 +229,92 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 	*new = files
 
 	return nil
+}
+
+// EnsureCRIConfig ensures the CRI config.
+// "old" might be "nil" and must always be checked.
+func (e *ensurer) EnsureCRIConfig(ctx context.Context, gctx gcontext.GardenContext, new, _ *extensionsv1alpha1.CRIConfig) error {
+	if new == nil || new.Name != extensionsv1alpha1.CRINameContainerD {
+		return nil
+	}
+
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
+	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+	if err != nil {
+		return err
+	}
+
+	if cpConfig.NetworkAccessType != nil && *cpConfig.NetworkAccessType == apimetal.NetworkAccessBaseline {
+		return nil
+	}
+
+	infrastructure := &extensionsv1alpha1.Infrastructure{}
+	if err := e.client.Get(ctx, client.ObjectKey{Namespace: cluster.ObjectMeta.Name, Name: cluster.Shoot.Name}, infrastructure); err != nil {
+		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
+		return err
+	}
+
+	infrastructureConfig, err := helper.InfrastructureConfigFromInfrastructure(infrastructure)
+	if err != nil {
+		return err
+	}
+
+	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return err
+	}
+
+	_, p, err := helper.FindMetalControlPlane(cloudProfileConfig, infrastructureConfig.PartitionID)
+	if err != nil {
+		return err
+	}
+
+	if p.NetworkIsolation == nil {
+		return nil
+	}
+
+	if new.Containerd == nil {
+		new.Containerd = &extensionsv1alpha1.ContainerdConfig{}
+	}
+
+	new.Containerd.Registries = ensureContainerdRegistries(p.NetworkIsolation.RegistryMirrors, new.Containerd.Registries)
+
+	return nil
+}
+
+func ensureContainerdRegistries(mirrors []apimetal.RegistryMirror, configs []extensionsv1alpha1.RegistryConfig) []extensionsv1alpha1.RegistryConfig {
+	var result []extensionsv1alpha1.RegistryConfig
+	for _, c := range configs {
+		result = append(result, *c.DeepCopy())
+	}
+
+	for _, r := range mirrors {
+		registryConfig := extensionsv1alpha1.RegistryConfig{
+			Upstream:       r.Endpoint,
+			ReadinessProbe: pointer.Pointer(false),
+		}
+
+		for _, mirrorOf := range r.MirrorOf {
+			registryConfig.Hosts = append(registryConfig.Hosts, extensionsv1alpha1.RegistryHost{
+				URL:          mirrorOf,
+				Capabilities: []extensionsv1alpha1.RegistryCapability{extensionsv1alpha1.PullCapability, extensionsv1alpha1.ResolveCapability},
+			})
+		}
+
+		idx := slices.IndexFunc(result, func(rc extensionsv1alpha1.RegistryConfig) bool {
+			return rc.Upstream == r.Endpoint
+		})
+
+		if idx < 0 {
+			result = append(result, registryConfig)
+		} else {
+			result[idx] = registryConfig
+		}
+	}
+
+	return result
 }
