@@ -1,8 +1,6 @@
 module github.com/metal-stack/gardener-extension-provider-metal
 
-go 1.23.0
-
-toolchain go1.23.5
+go 1.24
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
@@ -35,9 +33,11 @@ require (
 	k8s.io/code-generator v0.31.1
 	k8s.io/component-base v0.31.1
 	k8s.io/kubelet v0.31.1
-	sigs.k8s.io/controller-runtime v0.19.0
+	sigs.k8s.io/controller-runtime v0.19.6
 	sigs.k8s.io/yaml v1.4.0
 )
+
+replace k8s.io/code-generator => k8s.io/code-generator v0.29.5
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
