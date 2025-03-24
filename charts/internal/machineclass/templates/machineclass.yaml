@@ -31,6 +31,14 @@ providerSpec:
   tags:
 {{ toYaml $machineClass.tags | indent 4 }}
 {{- end }}
+{{- if $machineClass.dnsServers }}
+  dnsServers:
+{{ toYaml $machineClass.dnsServers | indent 4 }}
+{{- end }}
+{{- if $machineClass.ntpServers }}
+  ntpServers:
+{{ toYaml $machineClass.ntpServers | indent 4 }}
+{{- end }}
 secretRef:
   name: {{ $machineClass.name }}
   namespace: {{ $.Release.Namespace }}
