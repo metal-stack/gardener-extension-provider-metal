@@ -1,4 +1,4 @@
-package controlplaneexposure
+package seedprovider
 
 import (
 	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
@@ -19,13 +19,13 @@ var (
 	DefaultAddOptions = AddOptions{}
 )
 
-// AddOptions are options to apply when adding the metal exposure webhook to the manager.
+// AddOptions are options to apply when adding the metal seedprovider webhook to the manager.
 type AddOptions struct {
 	// ETCD is the etcd configuration.
 	ETCD config.ETCD
 }
 
-var logger = log.Log.WithName("metal-controlplaneexposure-webhook")
+var logger = log.Log.WithName("metal-seedprovider-webhook")
 
 // AddToManagerWithOptions creates a webhook with the given options and adds it to the manager.
 func AddToManagerWithOptions(mgr manager.Manager, opts AddOptions) (*extensionswebhook.Webhook, error) {

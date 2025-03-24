@@ -30,6 +30,7 @@ type (
 		mclient              metalgo.Client
 		partition            *apismetal.Partition
 		cloudProfileConfig   *apismetal.CloudProfileConfig
+		cpConfig             *apismetal.ControlPlaneConfig
 	}
 
 	key int
@@ -46,6 +47,11 @@ const (
 
 func (a *actuator) getAdditionalData(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (*additionalData, error) {
 	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +113,7 @@ func (a *actuator) getAdditionalData(ctx context.Context, worker *extensionsv1al
 		mclient:              mclient,
 		partition:            partition,
 		cloudProfileConfig:   cloudProfileConfig,
+		cpConfig:             cpConfig,
 	}, nil
 }
 

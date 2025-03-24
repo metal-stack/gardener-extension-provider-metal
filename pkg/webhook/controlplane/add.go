@@ -183,8 +183,6 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 				Ingress: p.NetworkIsolation.AllowedNetworks.Ingress,
 				Egress:  p.NetworkIsolation.AllowedNetworks.Egress,
 			},
-			DNSServers:      p.NetworkIsolation.DNSServers,
-			NTPServers:      p.NetworkIsolation.NTPServers,
 			RegistryMirrors: mirrors,
 		},
 	})
