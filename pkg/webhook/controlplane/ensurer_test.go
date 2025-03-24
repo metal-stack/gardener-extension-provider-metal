@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	apimetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
+	"github.com/metal-stack/metal-lib/pkg/testcommon"
 )
 
 func Test_ensureContainerdRegistries(t *testing.T) {
@@ -15,13 +16,14 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 		mirrors []apimetal.RegistryMirror
 		configs []extensionsv1alpha1.RegistryConfig
 		want    []extensionsv1alpha1.RegistryConfig
+		wantErr error
 	}{
 		{
 			name:    "maintain existing config",
 			mirrors: nil,
 			configs: []extensionsv1alpha1.RegistryConfig{
 				{
-					Upstream: "https://registry-b",
+					Upstream: "registry-b",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "eu.gcr.io",
@@ -32,7 +34,7 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 			},
 			want: []extensionsv1alpha1.RegistryConfig{
 				{
-					Upstream: "https://registry-b",
+					Upstream: "registry-b",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "eu.gcr.io",
@@ -56,7 +58,7 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 			configs: nil,
 			want: []extensionsv1alpha1.RegistryConfig{
 				{
-					Upstream: "https://registry-a",
+					Upstream: "registry-a",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "quay.io",
@@ -80,7 +82,7 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 			},
 			configs: []extensionsv1alpha1.RegistryConfig{
 				{
-					Upstream: "https://registry-a",
+					Upstream: "registry-a",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "old.quay.io",
@@ -90,7 +92,7 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 					ReadinessProbe: pointer.Pointer(false),
 				},
 				{
-					Upstream: "https://registry-b",
+					Upstream: "registry-b",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "eu.gcr.io",
@@ -101,7 +103,7 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 			},
 			want: []extensionsv1alpha1.RegistryConfig{
 				{
-					Upstream: "https://registry-a",
+					Upstream: "registry-a",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "quay.io",
@@ -111,7 +113,7 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 					ReadinessProbe: pointer.Pointer(false),
 				},
 				{
-					Upstream: "https://registry-b",
+					Upstream: "registry-b",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "eu.gcr.io",
@@ -134,7 +136,7 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 			},
 			configs: []extensionsv1alpha1.RegistryConfig{
 				{
-					Upstream: "https://registry-b",
+					Upstream: "registry-b",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "eu.gcr.io",
@@ -145,7 +147,7 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 			},
 			want: []extensionsv1alpha1.RegistryConfig{
 				{
-					Upstream: "https://registry-b",
+					Upstream: "registry-b",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "eu.gcr.io",
@@ -154,7 +156,7 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 					},
 				},
 				{
-					Upstream: "https://registry-a",
+					Upstream: "registry-a",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "quay.io",
@@ -168,7 +170,11 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ensureContainerdRegistries(tt.mirrors, tt.configs)
+			got, err := ensureContainerdRegistries(tt.mirrors, tt.configs)
+			if diff := cmp.Diff(err, tt.wantErr, testcommon.ErrorStringComparer()); diff != "" {
+				t.Errorf("error diff = %s", diff)
+			}
+
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("diff = %s", diff)
 			}

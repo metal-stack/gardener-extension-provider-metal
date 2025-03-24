@@ -2,6 +2,8 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"slices"
 
 	"github.com/Masterminds/semver/v3"
@@ -248,7 +250,7 @@ func (e *ensurer) EnsureCRIConfig(ctx context.Context, gctx gcontext.GardenConte
 		return err
 	}
 
-	if cpConfig.NetworkAccessType != nil && *cpConfig.NetworkAccessType == apimetal.NetworkAccessBaseline {
+	if cpConfig.NetworkAccessType == nil || *cpConfig.NetworkAccessType == apimetal.NetworkAccessBaseline {
 		return nil
 	}
 
@@ -281,20 +283,28 @@ func (e *ensurer) EnsureCRIConfig(ctx context.Context, gctx gcontext.GardenConte
 		new.Containerd = &extensionsv1alpha1.ContainerdConfig{}
 	}
 
-	new.Containerd.Registries = ensureContainerdRegistries(p.NetworkIsolation.RegistryMirrors, new.Containerd.Registries)
+	new.Containerd.Registries, err = ensureContainerdRegistries(p.NetworkIsolation.RegistryMirrors, new.Containerd.Registries)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func ensureContainerdRegistries(mirrors []apimetal.RegistryMirror, configs []extensionsv1alpha1.RegistryConfig) []extensionsv1alpha1.RegistryConfig {
+func ensureContainerdRegistries(mirrors []apimetal.RegistryMirror, configs []extensionsv1alpha1.RegistryConfig) ([]extensionsv1alpha1.RegistryConfig, error) {
 	var result []extensionsv1alpha1.RegistryConfig
 	for _, c := range configs {
 		result = append(result, *c.DeepCopy())
 	}
 
 	for _, r := range mirrors {
+		url, err := url.Parse(r.Endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse registry endpoint: %w", err)
+		}
+
 		registryConfig := extensionsv1alpha1.RegistryConfig{
-			Upstream:       r.Endpoint,
+			Upstream:       url.Host,
 			ReadinessProbe: pointer.Pointer(false),
 		}
 
@@ -306,7 +316,7 @@ func ensureContainerdRegistries(mirrors []apimetal.RegistryMirror, configs []ext
 		}
 
 		idx := slices.IndexFunc(result, func(rc extensionsv1alpha1.RegistryConfig) bool {
-			return rc.Upstream == r.Endpoint
+			return rc.Upstream == url.Host
 		})
 
 		if idx < 0 {
@@ -316,5 +326,5 @@ func ensureContainerdRegistries(mirrors []apimetal.RegistryMirror, configs []ext
 		}
 	}
 
-	return result
+	return result, nil
 }
