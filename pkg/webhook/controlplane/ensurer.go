@@ -2,8 +2,6 @@ package controlplane
 
 import (
 	"context"
-	"fmt"
-	"net/url"
 	"slices"
 
 	"github.com/Masterminds/semver/v3"
@@ -283,48 +281,40 @@ func (e *ensurer) EnsureCRIConfig(ctx context.Context, gctx gcontext.GardenConte
 		new.Containerd = &extensionsv1alpha1.ContainerdConfig{}
 	}
 
-	new.Containerd.Registries, err = ensureContainerdRegistries(p.NetworkIsolation.RegistryMirrors, new.Containerd.Registries)
-	if err != nil {
-		return err
-	}
+	new.Containerd.Registries = ensureContainerdRegistries(p.NetworkIsolation.RegistryMirrors, new.Containerd.Registries)
 
 	return nil
 }
 
-func ensureContainerdRegistries(mirrors []apimetal.RegistryMirror, configs []extensionsv1alpha1.RegistryConfig) ([]extensionsv1alpha1.RegistryConfig, error) {
+func ensureContainerdRegistries(mirrors []apimetal.RegistryMirror, configs []extensionsv1alpha1.RegistryConfig) []extensionsv1alpha1.RegistryConfig {
 	var result []extensionsv1alpha1.RegistryConfig
 	for _, c := range configs {
 		result = append(result, *c.DeepCopy())
 	}
 
 	for _, r := range mirrors {
-		url, err := url.Parse(r.Endpoint)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse registry endpoint: %w", err)
-		}
-
-		registryConfig := extensionsv1alpha1.RegistryConfig{
-			Upstream:       url.Host,
-			ReadinessProbe: pointer.Pointer(false),
-		}
-
 		for _, mirrorOf := range r.MirrorOf {
+			registryConfig := extensionsv1alpha1.RegistryConfig{
+				Upstream:       mirrorOf,
+				ReadinessProbe: pointer.Pointer(false),
+			}
+
 			registryConfig.Hosts = append(registryConfig.Hosts, extensionsv1alpha1.RegistryHost{
-				URL:          mirrorOf,
+				URL:          r.Endpoint,
 				Capabilities: []extensionsv1alpha1.RegistryCapability{extensionsv1alpha1.PullCapability, extensionsv1alpha1.ResolveCapability},
 			})
-		}
 
-		idx := slices.IndexFunc(result, func(rc extensionsv1alpha1.RegistryConfig) bool {
-			return rc.Upstream == url.Host
-		})
+			idx := slices.IndexFunc(result, func(rc extensionsv1alpha1.RegistryConfig) bool {
+				return rc.Upstream == mirrorOf
+			})
 
-		if idx < 0 {
-			result = append(result, registryConfig)
-		} else {
-			result[idx] = registryConfig
+			if idx < 0 {
+				result = append(result, registryConfig)
+			} else {
+				result[idx] = registryConfig
+			}
 		}
 	}
 
-	return result, nil
+	return result
 }
