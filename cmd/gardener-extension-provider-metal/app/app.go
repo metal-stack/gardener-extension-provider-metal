@@ -21,7 +21,7 @@ import (
 	metalworker "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/worker"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	shootcontrolplanewebhook "github.com/metal-stack/gardener-extension-provider-metal/pkg/webhook/controlplane"
-	metalcontrolplaneexposure "github.com/metal-stack/gardener-extension-provider-metal/pkg/webhook/controlplaneexposure"
+	metalseedproviderwebhook "github.com/metal-stack/gardener-extension-provider-metal/pkg/webhook/seedprovider"
 	autoscalingv1 "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
 
 	"github.com/gardener/gardener/extensions/pkg/controller/heartbeat"
@@ -196,7 +196,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 			log.Info("Adding controllers to manager")
 
-			configFileOpts.Completed().ApplyETCD(&metalcontrolplaneexposure.DefaultAddOptions.ETCD)
+			configFileOpts.Completed().ApplyETCD(&metalseedproviderwebhook.DefaultAddOptions.ETCD)
 			configFileOpts.Completed().ApplyMachineImages(&metalworker.DefaultAddOptions.MachineImages)
 			configFileOpts.Completed().ApplyControllerConfig(&metalcontrolplane.DefaultAddOptions.ControllerConfig)
 			configFileOpts.Completed().ApplyControllerConfig(&shootcontrolplanewebhook.DefaultAddOptions.ControllerConfig)
