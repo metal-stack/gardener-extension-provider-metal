@@ -123,23 +123,25 @@ func Test_ensureContainerdRegistries(t *testing.T) {
 							Capabilities: []extensionsv1alpha1.RegistryCapability{extensionsv1alpha1.PullCapability},
 						},
 					},
+					ReadinessProbe: pointer.Pointer(false),
 				},
 			},
 			want: []extensionsv1alpha1.RegistryConfig{
 				{
-					Upstream: "quay.io",
+					Upstream: "eu.gcr.io",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
 							URL:          "https://registry-a",
 							Capabilities: []extensionsv1alpha1.RegistryCapability{extensionsv1alpha1.PullCapability},
 						},
 					},
+					ReadinessProbe: pointer.Pointer(false),
 				},
 				{
-					Upstream: "registry-a",
+					Upstream: "quay.io",
 					Hosts: []extensionsv1alpha1.RegistryHost{
 						{
-							URL:          "quay.io",
+							URL:          "https://registry-a",
 							Capabilities: []extensionsv1alpha1.RegistryCapability{extensionsv1alpha1.PullCapability, extensionsv1alpha1.ResolveCapability},
 						},
 					},
