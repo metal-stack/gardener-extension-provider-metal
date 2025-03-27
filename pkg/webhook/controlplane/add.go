@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
@@ -103,7 +104,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	case *extensionsv1alpha1.OperatingSystemConfig:
 		extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
 
-		err := m.mutateOperatingSystemConfig(ctx, gctx, x)
+		err := m.mutateOperatingSystemConfig(ctx, gctx, x, old.(*extensionsv1alpha1.OperatingSystemConfig))
 		if err != nil {
 			return err
 		}
@@ -123,7 +124,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	return m.gardenerMutator.Mutate(ctx, new, old)
 }
 
-func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext.GardenContext, osc *extensionsv1alpha1.OperatingSystemConfig) error {
+func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext.GardenContext, osc, oldOSC *extensionsv1alpha1.OperatingSystemConfig) error {
 	cluster, err := gctx.GetCluster(ctx)
 	if err != nil {
 		return err
@@ -191,6 +192,27 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 	}
 
 	osc.Spec.ProviderConfig = encoded
+
+	if oldOSC != nil && len(oldOSC.Status.ExtensionFiles) > 0 {
+		// this is required for backwards-compatibility before we started to create worker machines with DNS and NTP configuration through metal-stack
+		// otherwise existing machines would lose connectivity because the GNA cleans up these file definitions
+		// references https://github.com/metal-stack/gardener-extension-provider-metal/issues/433
+		//
+		// can potentially be cleaned up as soon as there are no worker nodes of isolated clusters anymore that were created without dns and ntp configuration
+		// ideally a point in time should be defined when we add the dns and ntp to the worker hashes to enforce the setting
+		for _, path := range []string{
+			"/etc/systemd/resolved.conf.d/dns.conf",
+			"/etc/resolv.conf",
+			"/etc/systemd/timesyncd.conf",
+		} {
+			if idx := slices.IndexFunc(oldOSC.Status.ExtensionFiles, func(f extensionsv1alpha1.File) bool {
+				return f.Path == path
+			}); idx >= 0 {
+				osc.Spec.Files = append(osc.Spec.Files, oldOSC.Status.ExtensionFiles[idx])
+			}
+		}
+
+	}
 
 	return nil
 }

@@ -2,7 +2,6 @@ package controlplane
 
 import (
 	"context"
-	"slices"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -216,28 +215,6 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 	}
 
 	var files []extensionsv1alpha1.File
-
-	if old != nil {
-		// this is required for backwards-compatibility before we started to create worker machines with DNS and NTP configuration through metal-stack
-		// otherwise existing machines would lose connectivity because the GNA cleans up these file definitions
-		// references https://github.com/metal-stack/gardener-extension-provider-metal/issues/433
-		//
-		// can potentially be cleaned up as soon as there are no worker nodes of isolated clusters anymore that were created without dns and ntp configuration
-		// ideally a point in time should be defined when we add the dns and ntp to the worker hashes to enforce the setting
-		for _, path := range []string{
-			"/etc/systemd/resolved.conf.d/dns.conf",
-			"/etc/resolv.conf",
-			"/etc/systemd/timesyncd.conf",
-		} {
-			if idx := slices.IndexFunc(*old, func(f extensionsv1alpha1.File) bool {
-				return f.Path == path
-			}); idx >= 0 {
-				files = append(files, (*old)[idx])
-			}
-		}
-
-	}
-
 	for _, f := range *new {
 		if f.Path == v1beta1constants.OperatingSystemConfigFilePathKubeletConfig {
 			// for cis benchmark this needs to be 600
