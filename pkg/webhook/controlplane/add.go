@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
@@ -103,7 +104,9 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	case *extensionsv1alpha1.OperatingSystemConfig:
 		extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
 
-		err := m.mutateOperatingSystemConfig(ctx, gctx, x)
+		o, _ := old.(*extensionsv1alpha1.OperatingSystemConfig)
+
+		err := m.mutateOperatingSystemConfig(ctx, gctx, x, o)
 		if err != nil {
 			return err
 		}
@@ -123,7 +126,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	return m.gardenerMutator.Mutate(ctx, new, old)
 }
 
-func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext.GardenContext, osc *extensionsv1alpha1.OperatingSystemConfig) error {
+func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext.GardenContext, osc, oldOSC *extensionsv1alpha1.OperatingSystemConfig) error {
 	cluster, err := gctx.GetCluster(ctx)
 	if err != nil {
 		return err
@@ -173,6 +176,29 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 		})
 	}
 
+	var dnsServers, ntpServers []string
+	if oldOSC != nil {
+		// this is required for backwards-compatibility before we started to create worker machines with DNS and NTP configuration through metal-stack
+		// otherwise existing machines would lose connectivity because the GNA cleans up the dns and ntp definitions
+		// references https://github.com/metal-stack/gardener-extension-provider-metal/issues/433
+		//
+		// can potentially be cleaned up as soon as there are no worker nodes of isolated clusters anymore that were created without dns and ntp configuration
+		// ideally a point in time should be defined when we add the dns and ntp to the worker hashes to enforce the setting
+		for _, path := range []string{
+			"/etc/systemd/resolved.conf.d/dns.conf",
+			"/etc/resolv.conf",
+			"/etc/systemd/timesyncd.conf",
+		} {
+			if idx := slices.IndexFunc(oldOSC.Status.ExtensionFiles, func(f extensionsv1alpha1.File) bool {
+				return f.Path == path
+			}); idx >= 0 {
+				dnsServers = p.NetworkIsolation.DNSServers
+				ntpServers = p.NetworkIsolation.NTPServers
+				break
+			}
+		}
+	}
+
 	encoded, err := helper.EncodeRawExtension(&metalv1alpha1.ImageProviderConfig{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "ImageProviderConfig",
@@ -183,6 +209,8 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 				Ingress: p.NetworkIsolation.AllowedNetworks.Ingress,
 				Egress:  p.NetworkIsolation.AllowedNetworks.Egress,
 			},
+			DNSServers:      dnsServers,
+			NTPServers:      ntpServers,
 			RegistryMirrors: mirrors,
 		},
 	})
