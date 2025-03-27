@@ -219,16 +219,17 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 				return f.Path == path
 			}); idx >= 0 {
 				osc.Spec.Files = ensureFile(osc.Spec.Files, oldOSC.Status.ExtensionFiles[idx])
-				continue
-			}
-
-			// after this was moved into spec.files we need to re-assure its presence
-			if idx := slices.IndexFunc(oldOSC.Spec.Files, func(f extensionsv1alpha1.File) bool {
+			} else if idx := slices.IndexFunc(oldOSC.Spec.Files, func(f extensionsv1alpha1.File) bool {
 				return f.Path == path
 			}); idx >= 0 {
+				// after this was moved into spec.files we need to re-assure its presence
 				osc.Spec.Files = ensureFile(osc.Spec.Files, oldOSC.Spec.Files[idx])
-				continue
 			}
+
+			// ensure no duplicates in status and spec
+			osc.Status.ExtensionFiles = slices.DeleteFunc(osc.Status.ExtensionFiles, func(f extensionsv1alpha1.File) bool {
+				return f.Path == path
+			})
 		}
 	}
 
