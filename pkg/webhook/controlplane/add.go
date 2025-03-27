@@ -176,38 +176,10 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 		})
 	}
 
-	encoded, err := helper.EncodeRawExtension(&metalv1alpha1.ImageProviderConfig{
-		TypeMeta: v1.TypeMeta{
-			Kind:       "ImageProviderConfig",
-			APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
-		},
-		NetworkIsolation: &metalv1alpha1.NetworkIsolation{
-			AllowedNetworks: metalv1alpha1.AllowedNetworks{
-				Ingress: p.NetworkIsolation.AllowedNetworks.Ingress,
-				Egress:  p.NetworkIsolation.AllowedNetworks.Egress,
-			},
-			RegistryMirrors: mirrors,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	osc.Spec.ProviderConfig = encoded
-
+	var dnsServers, ntpServers []string
 	if oldOSC != nil {
-		ensureFile := func(files []extensionsv1alpha1.File, file extensionsv1alpha1.File) []extensionsv1alpha1.File {
-			if !slices.ContainsFunc(files, func(f extensionsv1alpha1.File) bool {
-				return f.Path == file.Path
-			}) {
-				return append(files, file)
-			}
-
-			return files
-		}
-
 		// this is required for backwards-compatibility before we started to create worker machines with DNS and NTP configuration through metal-stack
-		// otherwise existing machines would lose connectivity because the GNA cleans up these file definitions
+		// otherwise existing machines would lose connectivity because the GNA cleans up the dns and ntp definitions
 		// references https://github.com/metal-stack/gardener-extension-provider-metal/issues/433
 		//
 		// can potentially be cleaned up as soon as there are no worker nodes of isolated clusters anymore that were created without dns and ntp configuration
@@ -220,20 +192,33 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 			if idx := slices.IndexFunc(oldOSC.Status.ExtensionFiles, func(f extensionsv1alpha1.File) bool {
 				return f.Path == path
 			}); idx >= 0 {
-				osc.Spec.Files = ensureFile(osc.Spec.Files, oldOSC.Status.ExtensionFiles[idx])
-			} else if idx := slices.IndexFunc(oldOSC.Spec.Files, func(f extensionsv1alpha1.File) bool {
-				return f.Path == path
-			}); idx >= 0 {
-				// after this was moved into spec.files we need to re-assure its presence
-				osc.Spec.Files = ensureFile(osc.Spec.Files, oldOSC.Spec.Files[idx])
+				dnsServers = p.NetworkIsolation.DNSServers
+				ntpServers = p.NetworkIsolation.NTPServers
+				break
 			}
-
-			// ensure no duplicates in status and spec
-			osc.Status.ExtensionFiles = slices.DeleteFunc(osc.Status.ExtensionFiles, func(f extensionsv1alpha1.File) bool {
-				return f.Path == path
-			})
 		}
 	}
+
+	encoded, err := helper.EncodeRawExtension(&metalv1alpha1.ImageProviderConfig{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "ImageProviderConfig",
+			APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
+		},
+		NetworkIsolation: &metalv1alpha1.NetworkIsolation{
+			AllowedNetworks: metalv1alpha1.AllowedNetworks{
+				Ingress: p.NetworkIsolation.AllowedNetworks.Ingress,
+				Egress:  p.NetworkIsolation.AllowedNetworks.Egress,
+			},
+			DNSServers:      dnsServers,
+			NTPServers:      ntpServers,
+			RegistryMirrors: mirrors,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	osc.Spec.ProviderConfig = encoded
 
 	return nil
 }
