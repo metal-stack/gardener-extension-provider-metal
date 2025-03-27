@@ -104,7 +104,9 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	case *extensionsv1alpha1.OperatingSystemConfig:
 		extensionswebhook.LogMutation(m.logger, x.Kind, x.Namespace, x.Name)
 
-		err := m.mutateOperatingSystemConfig(ctx, gctx, x, old.(*extensionsv1alpha1.OperatingSystemConfig))
+		o, _ := old.(*extensionsv1alpha1.OperatingSystemConfig)
+
+		err := m.mutateOperatingSystemConfig(ctx, gctx, x, o)
 		if err != nil {
 			return err
 		}
