@@ -193,7 +193,17 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 
 	osc.Spec.ProviderConfig = encoded
 
-	if oldOSC != nil && len(oldOSC.Status.ExtensionFiles) > 0 {
+	if oldOSC != nil {
+		ensureFile := func(files []extensionsv1alpha1.File, file extensionsv1alpha1.File) []extensionsv1alpha1.File {
+			if !slices.ContainsFunc(files, func(f extensionsv1alpha1.File) bool {
+				return f.Path == file.Path
+			}) {
+				return append(files, file)
+			}
+
+			return files
+		}
+
 		// this is required for backwards-compatibility before we started to create worker machines with DNS and NTP configuration through metal-stack
 		// otherwise existing machines would lose connectivity because the GNA cleans up these file definitions
 		// references https://github.com/metal-stack/gardener-extension-provider-metal/issues/433
@@ -208,10 +218,18 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 			if idx := slices.IndexFunc(oldOSC.Status.ExtensionFiles, func(f extensionsv1alpha1.File) bool {
 				return f.Path == path
 			}); idx >= 0 {
-				osc.Spec.Files = append(osc.Spec.Files, oldOSC.Status.ExtensionFiles[idx])
+				osc.Spec.Files = ensureFile(osc.Spec.Files, oldOSC.Status.ExtensionFiles[idx])
+				continue
+			}
+
+			// after this was moved into spec.files we need to re-assure its presence
+			if idx := slices.IndexFunc(oldOSC.Spec.Files, func(f extensionsv1alpha1.File) bool {
+				return f.Path == path
+			}); idx >= 0 {
+				osc.Spec.Files = ensureFile(osc.Spec.Files, oldOSC.Spec.Files[idx])
+				continue
 			}
 		}
-
 	}
 
 	return nil
