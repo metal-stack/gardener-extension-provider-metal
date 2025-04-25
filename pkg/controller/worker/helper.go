@@ -14,7 +14,6 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +30,7 @@ type (
 		mclient              metalgo.Client
 		partition            *apismetal.Partition
 		cloudProfileConfig   *apismetal.CloudProfileConfig
+		cpConfig             *apismetal.ControlPlaneConfig
 	}
 
 	key int
@@ -47,6 +47,11 @@ const (
 
 func (a *actuator) getAdditionalData(ctx context.Context, worker *extensionsv1alpha1.Worker, cluster *extensionscontroller.Cluster) (*additionalData, error) {
 	cloudProfileConfig, err := helper.CloudProfileConfigFromCluster(cluster)
+	if err != nil {
+		return nil, err
+	}
+
+	cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +113,7 @@ func (a *actuator) getAdditionalData(ctx context.Context, worker *extensionsv1al
 		mclient:              mclient,
 		partition:            partition,
 		cloudProfileConfig:   cloudProfileConfig,
+		cpConfig:             cpConfig,
 	}, nil
 }
 
@@ -119,7 +125,7 @@ func (w *workerDelegate) decodeWorkerProviderStatus() (*api.WorkerStatus, error)
 	}
 
 	if _, _, err := w.decoder.Decode(w.worker.Status.ProviderStatus.Raw, nil, workerStatus); err != nil {
-		return nil, fmt.Errorf("could not decode WorkerStatus '%s' %w", kutil.ObjectName(w.worker), err)
+		return nil, fmt.Errorf("could not decode WorkerStatus '%s' %w", w.worker.Name, err)
 	}
 
 	return workerStatus, nil

@@ -7,8 +7,6 @@ import (
 	confighelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/helper"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	apismetalhelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
-
-	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 )
 
 // UpdateMachineImagesStatus implements genericactuator.WorkerDelegate.
@@ -42,7 +40,7 @@ func (w *workerDelegate) findMachineImage(name, version string) (string, error) 
 	if providerStatus := w.worker.Status.ProviderStatus; providerStatus != nil {
 		workerStatus := &apismetal.WorkerStatus{}
 		if _, _, err := w.decoder.Decode(providerStatus.Raw, nil, workerStatus); err != nil {
-			return "", fmt.Errorf("could not decode worker status of worker '%s' %w", kutil.ObjectName(w.worker), err)
+			return "", fmt.Errorf("could not decode worker status of worker '%s' %w", w.worker.Name, err)
 		}
 
 		machineImage, err := apismetalhelper.FindMachineImage(workerStatus.MachineImages, name, version)

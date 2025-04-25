@@ -4,7 +4,7 @@ machineClasses:
   size: c1-xlarge-x86
   project: gardener-test
   network: private-network-id
-  image: ubuntu-19.04
+  image: ubuntu-24.4
   sshkeys: []
   tags:
     - gardener=something
@@ -16,3 +16,7 @@ machineClasses:
   credentialsSecretRef:
     name: cloudprovider
     namespace: shoot-namespace
+  ntpServers:
+    - address: "123"
+  dnsServers:
+    - ip: "123"

@@ -1,4 +1,4 @@
-package controlplaneexposure
+package seedprovider
 
 import (
 	"context"
@@ -20,12 +20,12 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 )
 
-// NewEnsurer creates a new controlplaneexposure ensurer.
+// NewEnsurer creates a new seedprovider ensurer.
 func NewEnsurer(mgr manager.Manager, etcdStorage *config.ETCD, logger logr.Logger) genericmutator.Ensurer {
 	return &ensurer{
 		c:      etcdStorage,
 		client: mgr.GetClient(),
-		logger: logger.WithName("metal-controlplaneexposure-ensurer"),
+		logger: logger.WithName("metal-seedprovider-ensurer"),
 	}
 }
 

@@ -11,8 +11,8 @@ VERIFY                      := true
 LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
-GO_VERSION                  := 1.23
-GOLANGCI_LINT_VERSION       := v1.61.0
+GO_VERSION                  := 1.24
+GOLANGCI_LINT_VERSION       := v1.64.8
 
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
@@ -83,11 +83,11 @@ check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM)
 
 .PHONY: generate
 generate: $(VGOPATH) $(HELM) $(YQ)
+	echo $(shell git -c safe.directory=/go/src/github.com/metal-stack/gardener-extension-provider-metal describe --abbrev=0 --tags) > VERSION
 	@REPO_ROOT=$(REPO_ROOT) VGOPATH=$(VGOPATH) GARDENER_HACK_DIR=$(GARDENER_HACK_DIR) bash $(GARDENER_HACK_DIR)/generate-sequential.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: generate-in-docker
-generate-in-docker: tidy update-crds $(HELM)
-	echo $(shell git describe --abbrev=0 --tags) > VERSION
+generate-in-docker: tidy install update-crds $(HELM)
 	docker run --rm -i$(DOCKER_TTY_ARG) \
 		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:$(GO_VERSION) \
 			sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \

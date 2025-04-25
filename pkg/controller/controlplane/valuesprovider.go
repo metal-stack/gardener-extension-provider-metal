@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -691,8 +692,14 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 		isDefaultSC = false
 	}
 
+	disableCsiLvm := false
+	if cp.FeatureGates.DisableCsiLvm != nil {
+		disableCsiLvm = *cp.FeatureGates.DisableCsiLvm
+	}
+
 	values := map[string]interface{}{
 		"isDefaultStorageClass": isDefaultSC,
+		"disableCsiLvm":         disableCsiLvm,
 	}
 
 	return values, nil
@@ -868,6 +875,8 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 			"default":     isDefaultSC,
 		})
 	}
+
+	scs = setDurosDefaultStorageClass(scs, cp)
 
 	controllerValues := map[string]any{
 		"endpoints":   partitionConfig.Endpoints,
@@ -1112,4 +1121,62 @@ func getDefaultExternalNetwork(nws networkMap, cpConfig *apismetal.ControlPlaneC
 	}
 
 	return "", nil
+}
+
+func setDurosDefaultStorageClass(scs []map[string]any, cpConfig *apismetal.ControlPlaneConfig) []map[string]any {
+	if cpConfig == nil || cpConfig.FeatureGates.DisableCsiLvm == nil || !*cpConfig.FeatureGates.DisableCsiLvm {
+		// csi-lvm is used as default storage class
+		return scs
+	}
+
+	var (
+		scsCopy    []map[string]any
+		scsForSort []map[string]any
+	)
+	for _, sc := range scs {
+		if isDefault, _ := sc["default"].(bool); isDefault {
+			return scs
+		}
+
+		scsCopy = append(scsCopy, sc)
+		scsForSort = append(scsForSort, sc)
+	}
+
+	// if no default storage class is set, we pick the one with the highest replicas that is not encrypted
+
+	sort.Slice(scsForSort, func(i, j int) bool {
+		var (
+			replicasI, _ = scsForSort[i]["replicas"].(int)
+			replicasJ, _ = scsForSort[j]["replicas"].(int)
+
+			encryptionI, _ = scsForSort[i]["encryption"].(bool)
+			encryptionJ, _ = scsForSort[j]["encryption"].(bool)
+		)
+
+		if replicasI == replicasJ {
+			return !encryptionI && encryptionJ
+		}
+
+		return replicasI > replicasJ
+	})
+
+	if len(scsCopy) > 0 {
+		name, _ := scsForSort[0]["name"].(string)
+
+		idx := slices.IndexFunc(scsCopy, func(e map[string]any) bool {
+			n, _ := e["name"].(string)
+
+			if cpConfig.CustomDefaultStorageClass != nil && cpConfig.CustomDefaultStorageClass.ClassName != n {
+				return false
+			}
+
+			return n == name
+		})
+
+		if idx >= 0 {
+			scsCopy[idx]["default"] = true
+		}
+	}
+
+	return scsCopy
 }
