@@ -33,15 +33,15 @@ jobs:
 
         - name: Make tag
           run: |
-            [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && echo "tag=${GITHUB_HEAD_REF##*/}" >> $GITHUB_ENV || true
+            [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && echo "tag=v0.0.0-pull-request.${{ github.event.number }}" >> $GITHUB_ENV || true
             [ "${GITHUB_EVENT_NAME}" == 'release' ] && echo "tag=${GITHUB_REF##*/}" >> $GITHUB_ENV || true
-            [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=latest" >> $GITHUB_ENV || true
+            [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=v0.0.0" >> $GITHUB_ENV || true
 
         - name: Release Helm OCI Artifact
           uses: appany/helm-oci-chart-releaser@v0.4.2
           with:
-            name: extension
-            repository: ${{ github.repository }}/charts
+            name: provider-metal
+            repository: charts/${{ github.repository }}
             tag: ${{ env.tag }}
             path: charts/gardener-extension-provider-metal
             registry: ${{ env.REGISTRY }}
