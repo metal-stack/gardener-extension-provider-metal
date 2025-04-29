@@ -1,0 +1,49 @@
+---
+name: Helm Chart Release Action
+on:
+  pull_request:
+    branches:
+        - master
+  release:
+    types:
+        - published
+  push:
+    branches:
+        - master
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+        - name: Log in to the container registry
+          uses: docker/login-action@v3
+          with:
+            registry: ${{ env.REGISTRY }}
+            username: ${{ secrets.DOCKER_REGISTRY_USER }}
+            password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Make tag
+          run: |
+            [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && echo "tag=${GITHUB_HEAD_REF##*/}" >> $GITHUB_ENV || true
+            [ "${GITHUB_EVENT_NAME}" == 'release' ] && echo "tag=${GITHUB_REF##*/}" >> $GITHUB_ENV || true
+            [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=latest" >> $GITHUB_ENV || true
+
+        - name: Release Helm OCI Artifact
+          uses: appany/helm-oci-chart-releaser@v0.4.2
+          with:
+            name: extension
+            repository: ${{ github.repository }}/charts
+            tag: ${{ env.tag }}
+            path: charts/gardener-extension-provider-metal
+            registry: ${{ env.REGISTRY }}
+            registry_username: ${{ secrets.DOCKER_REGISTRY_USER }}
+            registry_password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
