@@ -21,13 +21,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-        - name: Log in to the container registry
-          uses: docker/login-action@v3
-          with:
-            registry: ${{ env.REGISTRY }}
-            username: ${{ secrets.DOCKER_REGISTRY_USER }}
-            password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
-
         - name: Checkout
           uses: actions/checkout@v4
 
@@ -41,7 +34,7 @@ jobs:
           uses: appany/helm-oci-chart-releaser@v0.4.2
           with:
             name: gardener-extension-provider-metal
-            repository: ${{ github.repository }}/charts
+            repository: ${{ github.repository_owner }}/charts
             tag: ${{ env.tag }}
             path: charts/gardener-extension-provider-metal
             registry: ${{ env.REGISTRY }}
