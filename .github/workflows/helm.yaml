@@ -37,9 +37,9 @@ jobs:
               sudo chmod +x /usr/local/bin/yq
             fi
 
-            [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && echo "docker_tag=${GITHUB_HEAD_REF##*/}" || true
-            [ "${GITHUB_EVENT_NAME}" == 'release' ] && echo "docker_tag=${GITHUB_REF##*/}" || true
-            [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "docker_tag=latest" || true
+            [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && docker_tag=${GITHUB_HEAD_REF##*/} || true
+            [ "${GITHUB_EVENT_NAME}" == 'release' ] && docker_tag=${GITHUB_REF##*/} || true
+            [ "${GITHUB_EVENT_NAME}" == 'push' ] && docker_tag=latest|| true
 
             yq e -ij ".image.tag=\"${docker_tag}\"" charts/gardener-extension-provider-metal/values.yaml
             yq e '.image.tag' charts/gardener-extension-provider-metal/values.yaml
