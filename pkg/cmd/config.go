@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	configloader "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/loader"
 
