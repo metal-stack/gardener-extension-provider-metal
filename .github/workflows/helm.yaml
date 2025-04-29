@@ -30,6 +30,22 @@ jobs:
             [ "${GITHUB_EVENT_NAME}" == 'release' ] && echo "tag=${GITHUB_REF##*/}" >> $GITHUB_ENV || true
             [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=v0.0.0" >> $GITHUB_ENV || true
 
+            # replacing container image tags in values.yaml
+
+            if ! which yq; then
+              sudo curl -Lo /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64
+              sudo chmod +x /usr/local/bin/yq
+            fi
+
+            [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && echo "docker_tag=${GITHUB_HEAD_REF##*/}" || true
+            [ "${GITHUB_EVENT_NAME}" == 'release' ] && echo "docker_tag=${GITHUB_REF##*/}" || true
+            [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "docker_tag=latest" || true
+
+            yq e -ij ".image.tag=\"${docker_tag}\"" charts/gardener-extension-provider-metal/values.yaml
+            yq e '.image.tag' charts/gardener-extension-provider-metal/values.yaml
+            yq e -ij ".global.image.tag=\"${docker_tag}\"" charts/gardener-extension-admission-metal/values.yaml
+            yq e '.global.image.tag' charts/gardener-extension-admission-metal/values.yaml
+
         - name: Release Helm OCI Artifact
           uses: appany/helm-oci-chart-releaser@v0.4.2
           with:
@@ -37,6 +53,28 @@ jobs:
             repository: ${{ github.repository_owner }}/charts
             tag: ${{ env.tag }}
             path: charts/gardener-extension-provider-metal
+            registry: ${{ env.REGISTRY }}
+            registry_username: ${{ secrets.DOCKER_REGISTRY_USER }}
+            registry_password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+
+        - name: Release Helm OCI Artifact
+          uses: appany/helm-oci-chart-releaser@v0.4.2
+          with:
+            name: gardener-extension-admission-metal-runtime
+            repository: ${{ github.repository_owner }}/charts
+            tag: ${{ env.tag }}
+            path: charts/gardener-extension-admission-metal/charts/runtime
+            registry: ${{ env.REGISTRY }}
+            registry_username: ${{ secrets.DOCKER_REGISTRY_USER }}
+            registry_password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+
+        - name: Release Helm OCI Artifact
+          uses: appany/helm-oci-chart-releaser@v0.4.2
+          with:
+            name: gardener-extension-admission-metal-application
+            repository: ${{ github.repository_owner }}/charts
+            tag: ${{ env.tag }}
+            path: charts/gardener-extension-admission-metal/charts/application
             registry: ${{ env.REGISTRY }}
             registry_username: ${{ secrets.DOCKER_REGISTRY_USER }}
             registry_password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
