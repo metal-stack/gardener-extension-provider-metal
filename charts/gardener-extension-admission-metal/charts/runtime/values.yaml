@@ -1,1 +1,54 @@
-nn
+---
+image:
+  repository: ghcr.io/metal-stack/gardener-extension-provider-metal
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+resources: {}
+metricsPort: 8080
+healthPort: 8081
+vpa:
+  enabled: true
+  resourcePolicy:
+    minAllowed:
+      cpu: 50m
+      memory: 64Mi
+  updatePolicy:
+    updateMode: "Auto"
+webhookConfig:
+  serverPort: 443
+# Kubeconfig to the target cluster. In-cluster configuration will be used if not specified.
+kubeconfig:
+
+defaulter:
+  allowedPrivilegedContainers:
+  maxPods:
+  nodeCIDRMaskSize:
+  podsCIDR:
+  servicesCIDR:
+  networkType:
+  calicoBackend:
+  calicoKubeProxyEnabled:
+  calicoPoolMode:
+  calicoTyphaEnabled:
+  ciliumDevices:
+  ciliumHubbleEnabled:
+  ciliumKubeProxyEnabled:
+  ciliumTunnel:
+  ciliumIPv4NativeRoutingCIDREnabled:
+  ciliumLoadBalancingMode:
+  ciliumMTU:
+
+service:
+  topologyAwareRouting:
+    enabled: false
+
+gardener:
+  virtualCluster:
+    enabled: true
+    serviceAccount: {}
+#     name: extension-admission-provider-aws
+#     namespace: kube-system
+  runtimeCluster: {}
+#   priorityClassName: gardener-garden-system-400
