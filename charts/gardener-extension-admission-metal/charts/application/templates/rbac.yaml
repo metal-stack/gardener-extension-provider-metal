@@ -10,9 +10,43 @@ rules:
   - core.gardener.cloud
   resources:
   - cloudprofiles
+  - namespacedcloudprofiles
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  - validatingwebhookconfigurations
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - patch
+  - update
+- apiGroups:
+  - security.gardener.cloud
+  resources:
+  - workloadidentities
+  verbs:
+  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -25,6 +59,12 @@ roleRef:
   kind: ClusterRole
   name: {{ include "name" . }}
 subjects:
+{{- if .Values.gardener.virtualCluster.serviceAccount.name }}
+- kind: ServiceAccount
+  name: {{ required ".Values.gardener.virtualCluster.serviceAccount.name is required" .Values.gardener.virtualCluster.serviceAccount.name }}
+  namespace: {{ required ".Values.gardener.virtualCluster.serviceAccount.namespace is required" .Values.gardener.virtualCluster.serviceAccount.namespace }}
+{{- else }}
 - kind: ServiceAccount
   name: {{ include "name" . }}
   namespace: {{ .Release.Namespace }}
+{{- end }}
