@@ -64,3 +64,7 @@ subjects:
   name: {{ required ".Values.gardener.virtualCluster.serviceAccount.name is required" .Values.gardener.virtualCluster.serviceAccount.name }}
   namespace: {{ required ".Values.gardener.virtualCluster.serviceAccount.namespace is required" .Values.gardener.virtualCluster.serviceAccount.namespace }}
 {{- else }}
+- kind: ServiceAccount
+  name: {{ include "name" . }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}
