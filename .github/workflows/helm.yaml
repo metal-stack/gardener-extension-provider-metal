@@ -43,8 +43,8 @@ jobs:
 
             yq e -ij ".image.tag=\"${docker_tag}\"" charts/gardener-extension-provider-metal/values.yaml
             yq e '.image.tag' charts/gardener-extension-provider-metal/values.yaml
-            yq e -ij ".global.image.tag=\"${docker_tag}\"" charts/gardener-extension-admission-metal/values.yaml
-            yq e '.global.image.tag' charts/gardener-extension-admission-metal/values.yaml
+            yq e -ij ".image.tag=\"${docker_tag}\"" charts/gardener-extension-admission-metal/charts/runtime/values.yaml
+            yq e '.image.tag' charts/gardener-extension-admission-metal/charts/runtime/values.yaml
 
         - name: Release Helm OCI Artifact
           uses: appany/helm-oci-chart-releaser@v0.4.2
