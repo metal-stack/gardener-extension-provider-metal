@@ -39,7 +39,7 @@ jobs:
         - name: Patch container image tags in values.yaml
           uses: mikefarah/yq@v4
           with:
-            cmd: yq e -i '.image.tag="${{ steps.meta.outputs.version }}"' charts/gardener-extension-provider-metal/values.yaml
+            cmd: yq e -i '.image.tag="${{ steps.meta.outputs.version }}"' charts/${{ github.event.repository.name }}/values.yaml
 
         # the replacement can be checked with:
         # helm show values oci://ghcr.io/metal-stack/charts/<chart>:<tag>
@@ -51,10 +51,10 @@ jobs:
         - name: Release Helm OCI Artifact
           uses: appany/helm-oci-chart-releaser@v0.4.2
           with:
-            name: gardener-extension-provider-metal
+            name: ${{ github.event.repository.name }}
             repository: ${{ github.repository_owner }}/charts
             tag: ${{ env.tag }}
-            path: charts/gardener-extension-provider-metal
+            path: charts/${{ github.event.repository.name }}
             registry: ${{ env.REGISTRY }}
             registry_username: ${{ secrets.DOCKER_REGISTRY_USER }}
             registry_password: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
