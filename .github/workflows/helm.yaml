@@ -33,6 +33,9 @@ jobs:
         - name: Docker meta
           id: meta
           uses: docker/metadata-action@v5
+          with:
+            images: |
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
         # the replacement can be checked with:
         # helm show values oci://ghcr.io/metal-stack/charts/<chart>:<tag>
