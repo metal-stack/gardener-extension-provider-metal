@@ -28,11 +28,14 @@ jobs:
           run: |
             [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && echo "tag=v0.0.0-pull-request.${{ github.event.number }}" >> $GITHUB_ENV || true
             [ "${GITHUB_EVENT_NAME}" == 'release' ] && echo "tag=${GITHUB_REF##*/}" >> $GITHUB_ENV || true
-            [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=v0.0.0-develop" >> $GITHUB_ENV || true
+            [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=v0.0.0-${GITHUB_REF##*/}" >> $GITHUB_ENV || true
 
         - name: Docker meta
           id: meta
           uses: docker/metadata-action@v5
+          with:
+            images: |
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
         # the replacement can be checked with:
         # helm show values oci://ghcr.io/metal-stack/charts/<chart>:<tag>
