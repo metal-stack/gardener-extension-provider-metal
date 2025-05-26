@@ -28,23 +28,25 @@ jobs:
           run: |
             [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && echo "tag=v0.0.0-pull-request.${{ github.event.number }}" >> $GITHUB_ENV || true
             [ "${GITHUB_EVENT_NAME}" == 'release' ] && echo "tag=${GITHUB_REF##*/}" >> $GITHUB_ENV || true
-            [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=v0.0.0" >> $GITHUB_ENV || true
+            [ "${GITHUB_EVENT_NAME}" == 'push' ] && echo "tag=v0.0.0-develop" >> $GITHUB_ENV || true
 
-            # replacing container image tags in values.yaml
+        - name: Docker meta
+          id: meta
+          uses: docker/metadata-action@v5
 
-            if ! which yq; then
-              sudo curl -Lo /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64
-              sudo chmod +x /usr/local/bin/yq
-            fi
+        # the replacement can be checked with:
+        # helm show values oci://ghcr.io/metal-stack/charts/<chart>:<tag>
+        - name: Patch container image tags in values.yaml
+          uses: mikefarah/yq@v4
+          with:
+            cmd: yq e -i '.image.tag="${{ steps.meta.outputs.version }}"' charts/gardener-extension-provider-metal/values.yaml
 
-            [ "${GITHUB_EVENT_NAME}" == 'pull_request' ] && docker_tag=${GITHUB_HEAD_REF##*/} || true
-            [ "${GITHUB_EVENT_NAME}" == 'release' ] && docker_tag=${GITHUB_REF##*/} || true
-            [ "${GITHUB_EVENT_NAME}" == 'push' ] && docker_tag=latest|| true
-
-            yq e -ij ".image.tag=\"${docker_tag}\"" charts/gardener-extension-provider-metal/values.yaml
-            yq e '.image.tag' charts/gardener-extension-provider-metal/values.yaml
-            yq e -ij ".image.tag=\"${docker_tag}\"" charts/gardener-extension-admission-metal/charts/runtime/values.yaml
-            yq e '.image.tag' charts/gardener-extension-admission-metal/charts/runtime/values.yaml
+        # the replacement can be checked with:
+        # helm show values oci://ghcr.io/metal-stack/charts/<chart>:<tag>
+        - name: Patch admission container image tags in values.yaml
+          uses: mikefarah/yq@v4
+          with:
+            cmd: yq e -i '.image.tag="${{ steps.meta.outputs.version }}"' charts/gardener-extension-admission-metal/charts/runtime/values.yaml
 
         - name: Release Helm OCI Artifact
           uses: appany/helm-oci-chart-releaser@v0.4.2
