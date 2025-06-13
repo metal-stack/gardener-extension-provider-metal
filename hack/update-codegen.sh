@@ -19,7 +19,7 @@ PROJECT_ROOT=$(dirname $0)/..
 
 git config --global --add safe.directory /go/src/github.com/metal-stack/gardener-extension-provider-metal
 
-bash "${CODE_GEN_DIR}/kube_codegen.sh" \
+bash "${CODE_GEN_DIR}/generate-internal-groups.sh" \
   deepcopy,defaulter \
   github.com/metal-stack/gardener-extension-provider-metal/pkg/client \
   github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
@@ -27,7 +27,7 @@ bash "${CODE_GEN_DIR}/kube_codegen.sh" \
   "metal:v1alpha1" \
   --go-header-file "${PROJECT_ROOT}/hack/boilerplate.txt"
 
-bash "${CODE_GEN_DIR}/kube_codegen.sh" \
+bash "${CODE_GEN_DIR}/generate-internal-groups.sh" \
   conversion \
   github.com/metal-stack/gardener-extension-provider-metal/pkg/client \
   github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
@@ -36,7 +36,7 @@ bash "${CODE_GEN_DIR}/kube_codegen.sh" \
   --extra-peer-dirs=github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal,github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
   --go-header-file "${PROJECT_ROOT}/hack/boilerplate.txt"
 
-bash "${CODE_GEN_DIR}/kube_codegen.sh" \
+bash "${CODE_GEN_DIR}/generate-internal-groups.sh" \
   deepcopy,defaulter \
   github.com/metal-stack/gardener-extension-provider-metal/pkg/client/componentconfig \
   github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
@@ -44,7 +44,7 @@ bash "${CODE_GEN_DIR}/kube_codegen.sh" \
   "config:v1alpha1" \
   --go-header-file "${PROJECT_ROOT}/hack/boilerplate.txt"
 
-bash "${CODE_GEN_DIR}/kube_codegen.sh" \
+bash "${CODE_GEN_DIR}/generate-internal-groups.sh" \
   conversion \
   github.com/metal-stack/gardener-extension-provider-metal/pkg/client/componentconfig \
   github.com/metal-stack/gardener-extension-provider-metal/pkg/apis \
