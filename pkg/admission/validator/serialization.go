@@ -1,6 +1,8 @@
 package validator
 
 import (
+	"fmt"
+
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -10,7 +12,7 @@ import (
 func decodeControlPlaneConfig(decoder runtime.Decoder, cp *runtime.RawExtension, fldPath *field.Path) (*metal.ControlPlaneConfig, error) {
 	controlPlaneConfig := &metal.ControlPlaneConfig{}
 	if err := util.Decode(decoder, cp.Raw, controlPlaneConfig); err != nil {
-		return nil, field.Invalid(fldPath, string(cp.Raw), "isn't a supported version")
+		return nil, field.Invalid(fldPath, string(cp.Raw), fmt.Sprintf("isn't a supported version: %s", err))
 	}
 
 	return controlPlaneConfig, nil
@@ -19,7 +21,7 @@ func decodeControlPlaneConfig(decoder runtime.Decoder, cp *runtime.RawExtension,
 func decodeInfrastructureConfig(decoder runtime.Decoder, infra *runtime.RawExtension, fldPath *field.Path) (*metal.InfrastructureConfig, error) {
 	infraConfig := &metal.InfrastructureConfig{}
 	if err := util.Decode(decoder, infra.Raw, infraConfig); err != nil {
-		return nil, field.Invalid(fldPath, string(infra.Raw), "isn't a supported version")
+		return nil, field.Invalid(fldPath, string(infra.Raw), fmt.Sprintf("isn't a supported version: %s", err))
 	}
 
 	return infraConfig, nil

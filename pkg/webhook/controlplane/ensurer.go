@@ -218,7 +218,7 @@ func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.Garde
 	for _, f := range *new {
 		if f.Path == v1beta1constants.OperatingSystemConfigFilePathKubeletConfig {
 			// for cis benchmark this needs to be 600
-			f.Permissions = pointer.Pointer(int32(0600))
+			f.Permissions = pointer.Pointer(uint32(0600))
 		}
 
 		files = append(files, f)

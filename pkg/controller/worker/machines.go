@@ -66,7 +66,7 @@ func (w *workerDelegate) GenerateMachineDeployments(ctx context.Context) (worker
 func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	var (
 		machineDeployments = worker.MachineDeployments{}
-		machineClasses     []map[string]interface{}
+		machineClasses     []map[string]any
 		machineImages      []apismetal.MachineImage
 	)
 
@@ -153,7 +153,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			tags = append(tags, fmt.Sprintf("%s=%s", k, v))
 		}
 
-		machineClassSpec := map[string]interface{}{
+		machineClassSpec := map[string]any{
 			"partition": w.additionalData.infrastructureConfig.PartitionID,
 			"size":      pool.MachineType,
 			"project":   w.additionalData.infrastructureConfig.ProjectID,
@@ -161,13 +161,37 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			"image":     machineImage,
 			"tags":      tags,
 			"sshkeys":   []string{string(w.worker.Spec.SSHPublicKey)},
-			"secret": map[string]interface{}{
+			"secret": map[string]any{
 				"cloudConfig": string(userData),
 			},
-			"credentialsSecretRef": map[string]interface{}{
+			"credentialsSecretRef": map[string]any{
 				"name":      w.worker.Spec.SecretRef.Name,
 				"namespace": w.worker.Spec.SecretRef.Namespace,
 			},
+		}
+
+		if dnsServers := w.dnsServers(); len(dnsServers) > 0 {
+			var servers []map[string]string
+
+			for _, s := range dnsServers {
+				servers = append(servers, map[string]string{
+					"ip": s,
+				})
+			}
+
+			machineClassSpec["dnsServers"] = servers
+		}
+
+		if ntpServers := w.ntpServers(); len(ntpServers) > 0 {
+			var servers []map[string]string
+
+			for _, s := range ntpServers {
+				servers = append(servers, map[string]string{
+					"address": s,
+				})
+			}
+
+			machineClassSpec["ntpServers"] = servers
 		}
 
 		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, nil, nil)
@@ -225,4 +249,42 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	w.machineClasses = machineClasses
 
 	return nil
+}
+
+func (w *workerDelegate) dnsServers() []string {
+	nw := w.networkIsolationIfEnabled()
+	if nw == nil {
+		return nil
+	}
+
+	return nw.DNSServers
+}
+
+func (w *workerDelegate) ntpServers() []string {
+	nw := w.networkIsolationIfEnabled()
+	if nw == nil {
+		return nil
+	}
+
+	return nw.NTPServers
+}
+
+func (w *workerDelegate) networkIsolationIfEnabled() *apismetal.NetworkIsolation {
+	if w.additionalData == nil {
+		return nil
+	}
+
+	if w.additionalData.cpConfig == nil || w.additionalData.partition == nil {
+		return nil
+	}
+
+	if w.additionalData.cpConfig.NetworkAccessType == nil || *w.additionalData.cpConfig.NetworkAccessType == apismetal.NetworkAccessBaseline {
+		return nil
+	}
+
+	if w.additionalData.partition.NetworkIsolation == nil {
+		return nil
+	}
+
+	return w.additionalData.partition.NetworkIsolation
 }
