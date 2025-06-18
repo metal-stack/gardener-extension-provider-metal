@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
@@ -53,7 +53,6 @@ func RegisterHealthChecks(ctx context.Context, mgr manager.Manager, opts AddOpti
 	}
 
 	if err := healthcheck.DefaultRegistration(
-		ctx,
 		metal.Type,
 		extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.ControlPlaneResource),
 		func() client.ObjectList { return &extensionsv1alpha1.ControlPlaneList{} },
@@ -96,7 +95,6 @@ func RegisterHealthChecks(ctx context.Context, mgr manager.Manager, opts AddOpti
 	}
 
 	return healthcheck.DefaultRegistration(
-		ctx,
 		metal.Type,
 		extensionsv1alpha1.SchemeGroupVersion.WithKind(extensionsv1alpha1.WorkerResource),
 		func() client.ObjectList { return &extensionsv1alpha1.WorkerList{} },

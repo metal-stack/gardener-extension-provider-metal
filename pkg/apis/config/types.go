@@ -4,8 +4,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
-	componentbaseconfig "k8s.io/component-base/config"
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
+	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -16,7 +16,7 @@ type ControllerConfiguration struct {
 
 	// ClientConnection specifies the kubeconfig file and client connection
 	// settings for the proxy server to use when communicating with the apiserver.
-	ClientConnection *componentbaseconfig.ClientConnectionConfiguration
+	ClientConnection *configv1alpha1.ClientConnectionConfiguration
 
 	// MachineImages is the list of machine images that are understood by the controller. It maps
 	// logical names and versions to metal-specific identifiers, i.e. AMIs.
