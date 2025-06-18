@@ -106,8 +106,8 @@ github.com/gardener/cert-management v0.17.5 h1:feqNpdgkF2RJP5xPidbkUx2MS15m4mBWG
 github.com/gardener/cert-management v0.17.5/go.mod h1:jazLDc7bcJ0T8axC96A52X7AqeIYsEyALpYsuTFuhbw=
 github.com/gardener/etcd-druid v0.27.0 h1:vqcusx1O3G01BU3CHke6nZEYvDfiFqgCGS59mQCK0LM=
 github.com/gardener/etcd-druid v0.27.0/go.mod h1:SKjfV8bvdLGF1ynFbWF4ioK2a6M33g7N6lct45p50J8=
-github.com/gardener/gardener v1.114.2 h1:Yu0+ODjQQ1R7305+13CtLvSVEy3tLMW5MwIJMc552o0=
-github.com/gardener/gardener v1.114.2/go.mod h1:8FDYyOlNx2JiQAWKvPbEj8l9Ku8Biv+pgFvelAILkjk=
+github.com/gardener/gardener v1.113.3 h1:sMyGeg/FC2J4JvtBtE3dmvSRGeCFA7FgVHKOSuZ3wIk=
+github.com/gardener/gardener v1.113.3/go.mod h1:U2ft1QQafhDGyP1O2dK3KF614775gZ48fqbU2Vj2Szc=
 github.com/gardener/gardener-extension-networking-calico v1.42.0 h1:jr/V4chXDeJyhsm20YxEBL7SOZK+ye2Yyb1f030Se1E=
 github.com/gardener/gardener-extension-networking-calico v1.42.0/go.mod h1:T1F+ItBn2rcWeGqhIIiOMcvssB2EhDVJ847eUWLXlLg=
 github.com/gardener/gardener-extension-networking-cilium v1.37.0 h1:LNQkG9GYFsm+OZP2w90GvpEsC8g3eorqj2h9HrAK+s8=
