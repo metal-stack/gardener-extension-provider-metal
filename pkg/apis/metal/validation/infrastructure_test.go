@@ -3,6 +3,7 @@ package validation_test
 import (
 	"github.com/gardener/gardener/pkg/apis/core"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
@@ -253,6 +254,10 @@ func createCloudProfileConfig() *apismetal.CloudProfileConfig {
 					{Version: "v1.0.1", Classification: &supported},
 				},
 			},
+		},
+		TypeMeta: v1.TypeMeta{
+			Kind:       "cloudProfile",
+			APIVersion: "v1alpha1",
 		},
 	}
 }
