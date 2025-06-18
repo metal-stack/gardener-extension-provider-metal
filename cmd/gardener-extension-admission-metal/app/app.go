@@ -14,6 +14,7 @@ import (
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	"github.com/gardener/gardener/pkg/apis/core/install"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	securityinstall "github.com/gardener/gardener/pkg/apis/security/install"
 	gardenerhealthz "github.com/gardener/gardener/pkg/healthz"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -73,6 +74,11 @@ func NewAdmissionCommand(ctx context.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			verflag.PrintAndExitIfRequested()
 
+			if gardenKubeconfig := os.Getenv("GARDEN_KUBECONFIG"); gardenKubeconfig != "" {
+				log.Info("Getting rest config for garden from GARDEN_KUBECONFIG", "path", gardenKubeconfig)
+				restOpts.Kubeconfig = gardenKubeconfig
+			}
+
 			if err := aggOption.Complete(); err != nil {
 				return fmt.Errorf("error completing options: %w", err)
 			}
@@ -114,6 +120,7 @@ func NewAdmissionCommand(ctx context.Context) *cobra.Command {
 			}
 
 			install.Install(mgr.GetScheme())
+			securityinstall.Install(mgr.GetScheme())
 
 			if err := metalinstall.AddToScheme(mgr.GetScheme()); err != nil {
 				return fmt.Errorf("could not update manager scheme: %w", err)
