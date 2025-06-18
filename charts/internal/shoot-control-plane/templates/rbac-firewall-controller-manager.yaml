@@ -68,6 +68,16 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps
+  verbs:
+  - get
+  - create
+  - update
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - events
   verbs: ["*"]
 - apiGroups:
