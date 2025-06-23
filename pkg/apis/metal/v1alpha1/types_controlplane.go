@@ -45,11 +45,6 @@ type ControlPlaneFeatures struct {
 	// DurosStorageEncryption enables the deployment of configured encrypted storage classes for the duros-controller.
 	// +optional
 	DurosStorageEncryption *bool `json:"durosStorageEncryption,omitempty"`
-	// RestrictEgress limits the cluster egress to the API server and necessary external dependencies (like container registries)
-	// by using DNS egress policies.
-	// Requires firewall-controller >= 1.2.0.
-	// +optional
-	RestrictEgress *bool `json:"restrictEgress,omitempty"`
 
 	// ClusterAudit enables the deployment of a non-null audit policy to the apiserver and the forwarding
 	// of the audit events into the cluster where they appear as container log of an audittailer pod, where they

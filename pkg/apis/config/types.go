@@ -4,8 +4,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
-	componentbaseconfig "k8s.io/component-base/config"
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
+	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -16,7 +16,7 @@ type ControllerConfiguration struct {
 
 	// ClientConnection specifies the kubeconfig file and client connection
 	// settings for the proxy server to use when communicating with the apiserver.
-	ClientConnection *componentbaseconfig.ClientConnectionConfiguration
+	ClientConnection *configv1alpha1.ClientConnectionConfiguration
 
 	// MachineImages is the list of machine images that are understood by the controller. It maps
 	// logical names and versions to metal-specific identifiers, i.e. AMIs.
@@ -42,13 +42,6 @@ type ControllerConfiguration struct {
 
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 	ImagePullSecret *ImagePullSecret
-
-	// EgressDestinations is used when the RestrictEgress control plane feature gate is enabled
-	// and provides additional egress destinations to the kube-apiserver.
-	//
-	// It is intended to be configured at least with container registries for the cluster.
-	// Deprecated: Will be replaced by NetworkIsolation.AllowedNetworks.
-	EgressDestinations []EgressDest
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
@@ -135,17 +128,4 @@ type DurosSeedStorageClass struct {
 type ImagePullSecret struct {
 	// DockerConfigJSON contains the already base64 encoded JSON content for the image pull secret
 	DockerConfigJSON string
-}
-
-type EgressDest struct {
-	// Description is a description for this egress destination.
-	Description string
-	// MatchPattern is the DNS match pattern for this destination. Use either a pattern or a name.
-	MatchPattern string
-	// MatchName is the DNS match name for this destination. Use either a pattern or a name.
-	MatchName string
-	// Protocol is either TCP or UDP.
-	Protocol string
-	// Port is the port for this destination.
-	Port int
 }
