@@ -45,13 +45,6 @@ type ControllerConfiguration struct {
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 	// +optional
 	ImagePullSecret *ImagePullSecret `json:"imagePullSecret,omitempty"`
-
-	// EgressDestinations is used when the RestrictEgress control plane feature gate is enabled
-	// and provides additional egress destinations to the kube-apiserver.
-	//
-	// It is intended to be configured at least with container registries for the cluster.
-	// Deprecated: Will be replaced by NetworkAccessRestricted.
-	EgressDestinations []EgressDest `json:"egressDestinations,omitempty"`
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
@@ -142,17 +135,4 @@ type DurosSeedStorageClass struct {
 type ImagePullSecret struct {
 	// DockerConfigJSON contains the already base64 encoded JSON content for the image pull secret
 	DockerConfigJSON string `json:"encodedDockerConfigJSON"`
-}
-
-type EgressDest struct {
-	// Description is a description for this egress destination.
-	Description string `json:"description,omitempty"`
-	// MatchPattern is the DNS match pattern for this destination.
-	MatchPattern string `json:"matchPattern,omitempty"`
-	// MatchName is the DNS match name for this destination. Use either a pattern or a name.
-	MatchName string `json:"matchName,omitempty"`
-	// Protocol is either TCP or UDP.
-	Protocol string `json:"protocol,omitempty"`
-	// Port is the port for this destination.
-	Port int `json:"port,omitempty"`
 }

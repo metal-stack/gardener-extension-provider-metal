@@ -54,8 +54,6 @@ config:
     qps: 100
     burst: 130
   machineImages: []
-# FIXME remove
-  egressDestinations: []
   firewallInternalPrefixes: []
   etcd:
     storage:

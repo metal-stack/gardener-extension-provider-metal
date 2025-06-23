@@ -25,15 +25,6 @@ metallb:
 nodeInit:
   enabled: true
 
-restrictEgress:
-  enabled: false
-  apiServerIngressDomain: api.kube-apiserver
-  destinations:
-    - matchName: 'a-name.org'
-      matchPattern: '*.a-name.org'
-      protocol: TCP
-      port: 443
-
 networkAccess:
   restrictedOrForbidden: false
   dnsCidrs: ["0.0.0.0/0"]

@@ -153,11 +153,6 @@ func (in *ControlPlaneFeatures) DeepCopyInto(out *ControlPlaneFeatures) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.RestrictEgress != nil {
-		in, out := &in.RestrictEgress, &out.RestrictEgress
-		*out = new(bool)
-		**out = **in
-	}
 	if in.ClusterAudit != nil {
 		in, out := &in.ClusterAudit, &out.ClusterAudit
 		*out = new(bool)
