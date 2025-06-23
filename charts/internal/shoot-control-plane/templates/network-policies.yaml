@@ -112,8 +112,6 @@ spec:
     - protocol: TCP
       port: 8132
 {{- end }}
-{{- end }}
-
 {{- if .Values.duros.enabled }}
 ---
 apiVersion: metal-stack.io/v1
