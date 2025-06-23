@@ -523,30 +523,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 	}
 
-	// FIXME remove this block an replace with networkAccessType
-	var egressDestinations []map[string]any
-	for _, dest := range vp.controllerConfig.EgressDestinations {
-		dest := dest
-		if dest.MatchPattern == "" && dest.MatchName == "" {
-			continue
-		}
-		if dest.MatchPattern != "" && dest.MatchName != "" {
-			dest.MatchName = ""
-		}
-		if dest.Port == 0 {
-			dest.Port = 443
-		}
-		if dest.Protocol == "" {
-			dest.Protocol = "TCP"
-		}
-		egressDestinations = append(egressDestinations, map[string]any{
-			"matchName":    dest.MatchName,
-			"matchPattern": dest.MatchPattern,
-			"port":         dest.Port,
-			"protocol":     dest.Protocol,
-		})
-	}
-
 	networkAccessType := apismetal.NetworkAccessBaseline
 	if cpConfig.NetworkAccessType != nil {
 		networkAccessType = *cpConfig.NetworkAccessType
@@ -621,11 +597,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"cilium":          ciliumValues,
 		"metallb":         metallbValues,
 		"nodeInit":        nodeInitValues,
-		"restrictEgress": map[string]any{ // FIXME remove
-			"enabled":                cpConfig.FeatureGates.RestrictEgress != nil && *cpConfig.FeatureGates.RestrictEgress,
-			"apiServerIngressDomain": "api." + *cluster.Shoot.Spec.DNS.Domain,
-			"destinations":           egressDestinations,
-		},
 		"networkAccess": map[string]any{
 			"restrictedOrForbidden": restrictedOrForbidden,
 			"dnsCidrs":              dnsCidrs,
