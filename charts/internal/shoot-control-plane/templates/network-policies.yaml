@@ -63,7 +63,6 @@ spec:
     - protocol: TCP
       port: {{ $reg.port }}
   {{- end }}
-{{- end }}
 {{- else }}
 ---
 apiVersion: metal-stack.io/v1
