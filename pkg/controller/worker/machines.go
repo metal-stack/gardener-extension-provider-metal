@@ -80,6 +80,15 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			return "", false, nil
 		}
 
+		groupName, found := strings.CutPrefix(deploymentName, w.cluster.ObjectMeta.Name+"-")
+		if !found {
+			return "", false, fmt.Errorf("unable to extract worker group name from deployment name %q", deploymentName)
+		}
+
+		if hash, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/use-worker-hash-"+groupName]; ok {
+			return hash, true, nil
+		}
+
 		classes := &machinev1alpha1.MachineClassList{}
 		err := w.client.List(ctx, classes, client.InNamespace(w.worker.Namespace))
 		if err != nil {
@@ -88,8 +97,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		var hash string
 		for _, class := range classes.Items {
-			class := class
-
 			_, h, ok := strings.Cut(class.Name, deploymentName+"-")
 			if !ok {
 				continue
