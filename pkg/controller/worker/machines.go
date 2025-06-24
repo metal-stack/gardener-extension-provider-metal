@@ -85,10 +85,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			return "", false, fmt.Errorf("unable to extract worker group name from deployment name %q", deploymentName)
 		}
 
-		if hash, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/use-worker-hash-"+groupName]; ok {
-			return hash, true, nil
-		}
-
 		classes := &machinev1alpha1.MachineClassList{}
 		err := w.client.List(ctx, classes, client.InNamespace(w.worker.Namespace))
 		if err != nil {
@@ -109,8 +105,20 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		}
 
 		if hash == "" {
+			if explicitHash, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/use-worker-hash-"+groupName]; ok {
+				return explicitHash, true, nil
+			}
+
 			w.logger.Info("no machine classes found, allow creation of a new one", "name", deploymentName)
 			return "", false, nil
+		}
+
+		if explicitHash, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/use-worker-hash-"+groupName]; ok {
+			w.logger.Info("explicit worker hash set for worker group", "group-name", groupName, "hash", explicitHash)
+
+			if hash != explicitHash {
+				return "", false, fmt.Errorf("unable to use explicit hash which differs from hash that was figured out from existing machine classes")
+			}
 		}
 
 		return hash, true, nil
