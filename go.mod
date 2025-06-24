@@ -10,7 +10,7 @@ require (
 	github.com/gardener/gardener v1.113.3
 	github.com/gardener/gardener-extension-networking-calico v1.42.0
 	github.com/gardener/gardener-extension-networking-cilium v1.37.0
-	github.com/gardener/machine-controller-manager v0.57.2
+	github.com/gardener/machine-controller-manager v0.56.1
 	github.com/go-logr/logr v1.4.3
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/golang/mock v1.6.0
@@ -37,7 +37,10 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
-replace k8s.io/code-generator => k8s.io/code-generator v0.29.5
+replace (
+	k8s.io/code-generator => k8s.io/code-generator v0.29.5
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.20.2
+)
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
