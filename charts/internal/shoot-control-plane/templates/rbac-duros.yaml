@@ -9,16 +9,29 @@ rules:
   - snapshot.storage.k8s.io
   resources:
   - volumesnapshotclasses
+  verbs:
+  - create
+  - list
+  - watch
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshotclasses
   resourceNames:
   - partition-snapshot
   verbs:
-  - create
   - delete
   - get
-  - list
-  - watch
   - patch
   - update
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - csidrivers
+  verbs:
+  - create
+  - list
+  - watch
 - apiGroups:
   - storage.k8s.io
   resources:
@@ -26,13 +39,10 @@ rules:
   resourceNames:
   - csi.lightbitslabs.com
   verbs:
-  - create
   - delete
   - get
-  - list
   - patch
   - update
-  - watch
 - apiGroups:
   - storage.k8s.io
   resources:
@@ -49,6 +59,14 @@ rules:
   - "rbac.authorization.k8s.io"
   resources:
   - clusterroles
+  verbs:
+  - create
+  - list
+  - watch
+- apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
+  - clusterroles
   resourceNames:
   - external-resizer-runner
   - external-snapshotter-runner
@@ -57,12 +75,17 @@ rules:
   - lb-csi-provisioner-role
   - snapshot-controller-runner
   verbs:
-  - create
   - delete
   - get
-  - list
   - patch
   - update
+- apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
+  - clusterrolebindings
+  verbs:
+  - create
+  - list
   - watch
 - apiGroups:
   - "rbac.authorization.k8s.io"
@@ -76,13 +99,10 @@ rules:
   - lb-csi-provisioner-binding
   - snapshot-controller-role
   verbs:
-  - create
   - delete
   - get
-  - list
   - patch
   - update
-  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -94,15 +114,28 @@ rules:
   - ""
   resources:
   - secrets
+  verbs:
+  - create
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
   resourceNames:
   - lb-csi-creds
   verbs:
-  - create
   - delete
   - get
-  - list
   - patch
   - update
+- apiGroups:
+  - "apps"
+  resources:
+  - statefulsets
+  verbs:
+  - create
+  - list
   - watch
 - apiGroups:
   - "apps"
@@ -111,12 +144,17 @@ rules:
   resourceNames:
   - lb-csi-controller
   verbs:
-  - create
   - delete
   - get
-  - list
   - patch
   - update
+- apiGroups:
+  - "apps"
+  resources:
+  - daemonsets
+  verbs:
+  - create
+  - list
   - watch
 - apiGroups:
   - "apps"
@@ -125,12 +163,17 @@ rules:
   resourceNames:
   - lb-csi-node
   verbs:
-  - create
   - delete
   - get
-  - list
   - patch
   - update
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - list
   - watch
 - apiGroups:
   - ""
@@ -140,13 +183,10 @@ rules:
   - lb-csi-ctrl-sa
   - lb-csi-node-sa
   verbs:
-  - create
   - delete
   - get
-  - list
   - patch
   - update
-  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
