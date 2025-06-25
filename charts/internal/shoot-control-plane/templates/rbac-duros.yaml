@@ -9,10 +9,8 @@ rules:
   - snapshot.storage.k8s.io
   resources:
   - volumesnapshotclasses
-  - volumesnapshotcontents
-  - volumesnapshotcontents/status
-  - volumesnapshots
-  - volumesnapshots/status
+  resourceNames:
+  - partition-snapshot
   verbs:
   - create
   - delete
@@ -25,6 +23,8 @@ rules:
   - ""
   resources:
   - secrets
+  resourceNames:
+  - lb-csi-creds
   verbs:
   - create
   - delete
@@ -37,9 +37,19 @@ rules:
   - storage.k8s.io
   resources:
   - csidrivers
-  - csinodes
-  - volumeattachments
-  - volumeattachments/status
+  resourceNames:
+  - csi.lightbitslabs.com
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - storage.k8s.io
+  resources:
   - storageclasses
   verbs:
   - create
@@ -53,7 +63,32 @@ rules:
   - "rbac.authorization.k8s.io"
   resources:
   - clusterroles
+  resourceNames:
+  - external-resizer-runner
+  - external-snapshotter-runner
+  - lb-csi-attacher-role
+  - lb-csi-node
+  - lb-csi-provisioner-role
+  - snapshot-controller-runner
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
   - clusterrolebindings
+  resourceNames:
+  - csi-resizer-role
+  - csi-snapshotter-role
+  - lb-csi-attacher-binding
+  - lb-csi-node
+  - lb-csi-provisioner-binding
+  - snapshot-controller-role
   verbs:
   - create
   - delete
@@ -66,7 +101,22 @@ rules:
   - "apps"
   resources:
   - statefulsets
+  resourceNames:
+  - lb-csi-controller
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - "apps"
+  resources:
   - daemonsets
+  resourceNames:
+  - lb-csi-node
   verbs:
   - create
   - delete
@@ -78,15 +128,10 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - configmaps
-  - events
-  - secrets
   - serviceaccounts
-  - nodes
-  - persistentvolumes
-  - persistentvolumeclaims
-  - persistentvolumeclaims/status
-  - pods
+  resourceNames:
+  - lb-csi-ctrl-sa
+  - lb-csi-node-sa
   verbs:
   - create
   - delete
