@@ -103,6 +103,53 @@ rules:
   - get
   - patch
   - update
+#
+# following rules are required for the duros-controller to be able to create rbac resources for the CSI drivers
+# (Hint: forbidden - is attempting to grant RBAC permissions not currently held)
+# these are taken from: https://github.com/metal-stack/duros-controller/blob/master/controllers/resources.go
+#
+- apiGroups: [""]
+  resources: ["persistentvolumes"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "update"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims/status"]
+  verbs: ["patch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["list", "watch", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["csinodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshotclasses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshotcontents"]
+  verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshotcontents/status"]
+  verbs: ["patch", "update"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshots"]
+  verbs: ["get", "list", "watch", "patch", "update", "delete"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshots/status"]
+  verbs: ["patch", "update"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["volumeattachments","volumeattachments/status"]
+  verbs: ["get", "list", "watch", "update", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
