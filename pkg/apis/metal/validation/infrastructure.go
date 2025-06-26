@@ -36,6 +36,15 @@ func ValidateInfrastructureConfigAgainstCloudProfile(infra *apismetal.Infrastruc
 		return allErrs
 	}
 
+	cloudConfigPath := fldPath.Child("cloudConfig")
+
+	if cloudProfileConfig.Kind == "" {
+		allErrs = append(allErrs, field.Required(cloudConfigPath.Child("kind"), "at least kind is required"))
+	}
+	if cloudProfileConfig.APIVersion == "" {
+		allErrs = append(allErrs, field.Required(cloudConfigPath.Child("apiVersion"), "at least apiVersion is required"))
+	}
+
 	mcp, p, err := helper.FindMetalControlPlane(cloudProfileConfig, infra.PartitionID)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("partitionID"), infra.PartitionID, "cloud profile does not define the given shoot partition"))
