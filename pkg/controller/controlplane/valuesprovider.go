@@ -271,6 +271,8 @@ func NewValuesProvider(mgr manager.Manager, controllerConfig config.ControllerCo
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 			{Type: &rbacv1.ClusterRole{}, Name: "system:duros-controller"},
 			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:duros-controller"},
+			{Type: &rbacv1.Role{}, Name: "system:kube-system:duros-controller"},
+			{Type: &rbacv1.RoleBinding{}, Name: "system:kube-system:duros-controller"},
 		}...)
 	}
 
