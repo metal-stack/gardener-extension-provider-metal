@@ -9,37 +9,43 @@ rules:
   - snapshot.storage.k8s.io
   resources:
   - volumesnapshotclasses
-  - volumesnapshotcontents
-  - volumesnapshotcontents/status
-  - volumesnapshots
-  - volumesnapshots/status
   verbs:
   - create
-  - delete
-  - get
   - list
   - watch
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshotclasses
+  resourceNames:
+  - partition-snapshot
+  verbs:
+  - delete
+  - get
   - patch
   - update
 - apiGroups:
-  - ""
+  - storage.k8s.io
   resources:
-  - secrets
+  - csidrivers
   verbs:
   - create
-  - delete
-  - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - storage.k8s.io
   resources:
   - csidrivers
-  - csinodes
-  - volumeattachments
-  - volumeattachments/status
+  resourceNames:
+  - csi.lightbitslabs.com
+  verbs:
+  - delete
+  - get
+  - patch
+  - update
+- apiGroups:
+  - storage.k8s.io
+  resources:
   - storageclasses
   verbs:
   - create
@@ -53,48 +59,181 @@ rules:
   - "rbac.authorization.k8s.io"
   resources:
   - clusterroles
+  verbs:
+  - create
+  - list
+  - watch
+- apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
+  - clusterroles
+  resourceNames:
+  - external-resizer-runner
+  - external-snapshotter-runner
+  - lb-csi-attacher-role
+  - lb-csi-node
+  - lb-csi-provisioner-role
+  - snapshot-controller-runner
+  verbs:
+  - delete
+  - get
+  - patch
+  - update
+- apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
   - clusterrolebindings
   verbs:
   - create
+  - list
+  - watch
+- apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
+  - clusterrolebindings
+  resourceNames:
+  - csi-resizer-role
+  - csi-snapshotter-role
+  - lb-csi-attacher-binding
+  - lb-csi-node
+  - lb-csi-provisioner-binding
+  - snapshot-controller-role
+  verbs:
   - delete
   - get
-  - list
   - patch
   - update
+#
+# following rules are required for the duros-controller to be able to create rbac resources for the CSI drivers
+# (Hint: forbidden - is attempting to grant RBAC permissions not currently held)
+# these are taken from: https://github.com/metal-stack/duros-controller/blob/master/controllers/resources.go
+#
+- apiGroups: [""]
+  resources: ["persistentvolumes"]
+  verbs: ["get", "list", "watch", "create", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "update"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims/status"]
+  verbs: ["patch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["list", "watch", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["csinodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshotclasses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshotcontents"]
+  verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshotcontents/status"]
+  verbs: ["patch", "update"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshots"]
+  verbs: ["get", "list", "watch", "patch", "update", "delete"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshots/status"]
+  verbs: ["patch", "update"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["volumeattachments","volumeattachments/status"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: duros-controller
+  namespace: kube-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  resourceNames:
+  - lb-csi-creds
+  verbs:
+  - delete
+  - get
+  - patch
+  - update
+- apiGroups:
+  - "apps"
+  resources:
+  - statefulsets
+  verbs:
+  - create
+  - list
   - watch
 - apiGroups:
   - "apps"
   resources:
   - statefulsets
+  resourceNames:
+  - lb-csi-controller
+  verbs:
+  - delete
+  - get
+  - patch
+  - update
+- apiGroups:
+  - "apps"
+  resources:
   - daemonsets
   verbs:
   - create
+  - list
+  - watch
+- apiGroups:
+  - "apps"
+  resources:
+  - daemonsets
+  resourceNames:
+  - lb-csi-node
+  verbs:
   - delete
   - get
-  - list
   - patch
   - update
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - list
   - watch
 - apiGroups:
   - ""
   resources:
-  - configmaps
-  - events
-  - secrets
   - serviceaccounts
-  - nodes
-  - persistentvolumes
-  - persistentvolumeclaims
-  - persistentvolumeclaims/status
-  - pods
+  resourceNames:
+  - lb-csi-ctrl-sa
+  - lb-csi-node-sa
   verbs:
-  - create
   - delete
   - get
-  - list
   - patch
   - update
-  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -103,6 +242,20 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
+  name: duros-controller
+subjects:
+- kind: ServiceAccount
+  name: duros-controller
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: duros-controller
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
   name: duros-controller
 subjects:
 - kind: ServiceAccount
