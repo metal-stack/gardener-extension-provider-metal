@@ -151,6 +151,19 @@ rules:
   verbs:
   - create
   - patch
+- apiGroups:
+  - metallb.io
+  resources:
+  - servicel2statuses
+  - servicel2statuses/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -238,6 +251,19 @@ rules:
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - metallb.io
+  resources:
+  - servicebgpstatuses
+  - servicebgpstatuses/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
   - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -331,6 +357,12 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - metallb.io
+  resources:
+  - ipaddresspools/status
+  verbs:
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
