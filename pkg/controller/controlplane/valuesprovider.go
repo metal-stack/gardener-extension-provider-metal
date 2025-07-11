@@ -297,7 +297,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	return nil, nil
 }
 
@@ -489,7 +489,8 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	durosEnabled := vp.controllerConfig.Storage.Duros.Enabled && (cpConfig.FeatureGates.DisableDuros == nil || !*cpConfig.FeatureGates.DisableDuros)
-	durosValues := map[string]interface{}{
+	vp.logger.Info("duros is", "enabled", durosEnabled)
+	durosValues := map[string]any{
 		"enabled": durosEnabled,
 	}
 
