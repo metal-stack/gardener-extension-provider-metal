@@ -488,8 +488,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
+	durosEnabled := vp.controllerConfig.Storage.Duros.Enabled && (cpConfig.FeatureGates.DisableDuros == nil || !*cpConfig.FeatureGates.DisableDuros)
 	durosValues := map[string]interface{}{
-		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
+		"enabled": durosEnabled,
 	}
 
 	ciliumValues := map[string]any{
@@ -628,7 +629,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 	}
 
-	if vp.controllerConfig.Storage.Duros.Enabled {
+	if durosEnabled {
 		partitionConfig, ok := vp.controllerConfig.Storage.Duros.PartitionConfig[infrastructureConfig.PartitionID]
 
 		found, err := hasDurosStorageNetwork(infrastructureConfig, nws)
@@ -644,22 +645,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	return values, nil
-}
-
-// getSecret returns the secret with the given namespace/secretName
-func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
-	key := client.ObjectKey{Namespace: namespace, Name: secretName}
-	secret := &corev1.Secret{}
-	err := vp.client.Get(ctx, key, secret)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			vp.logger.Error(err, "error getting secret - not found")
-			return nil, err
-		}
-		vp.logger.Error(err, "error getting secret")
-		return nil, err
-	}
-	return secret, nil
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.

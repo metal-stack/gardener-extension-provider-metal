@@ -62,6 +62,11 @@ type ControlPlaneFeatures struct {
 	// In order to deploy the new csi-driver-lvm, the feature gate must be enabled so the old driver is removed.
 	// +optional
 	DisableCsiLvm *bool `json:"disableCsiLvm,omitempty"`
+
+	// DisableDuros disables the deployment of the duros controller for the control plane.
+	// In order to deploy the duros-controller, use the "gardener-extension-duros".
+	// +optional
+	DisableDuros *bool `json:"disableDuros,omitempty"`
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.
