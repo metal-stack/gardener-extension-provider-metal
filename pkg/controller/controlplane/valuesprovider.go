@@ -347,7 +347,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	nws := networkMap{}
 	for _, n := range resp.Payload {
-		n := n
 		nws[*n.ID] = n
 	}
 
@@ -387,7 +386,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	values := map[string]any{
 		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
-		"podAnnotations": map[string]interface{}{
+		"podAnnotations": map[string]any{
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
 			"checksum/secret-cloudprovider":                                    checksums[v1beta1constants.SecretNameCloudProvider],
 		},
@@ -751,10 +750,16 @@ func getCCMChartValues(
 }
 
 func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, cp *apismetal.ControlPlaneConfig, nws networkMap) (map[string]interface{}, error) {
-	disabledValues := map[string]interface{}{
-		"duros": map[string]interface{}{
+	disabledValues := map[string]any{
+		"duros": map[string]any{
 			"enabled": false,
 		},
+	}
+
+	durosEnabled := storageConfig.Duros.Enabled && (cp.FeatureGates.DisableDuros == nil || !*cp.FeatureGates.DisableDuros)
+	logger.Info("duros is", "enabled", durosEnabled)
+	if !durosEnabled {
+		return disabledValues, nil
 	}
 
 	partitionConfig, ok := storageConfig.Duros.PartitionConfig[infrastructure.PartitionID]
