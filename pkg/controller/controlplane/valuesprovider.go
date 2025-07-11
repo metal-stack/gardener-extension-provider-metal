@@ -54,8 +54,6 @@ import (
 	"github.com/gardener/gardener/pkg/utils/secrets"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 
-	"github.com/go-logr/logr"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -288,7 +286,6 @@ type valuesProvider struct {
 	genericactuator.NoopValuesProvider
 	client           client.Client
 	decoder          runtime.Decoder
-	logger           logr.Logger
 	controllerConfig config.ControllerConfiguration
 }
 
@@ -374,7 +371,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.client, vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
+	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.client, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -471,7 +468,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	values, err := vp.getControlPlaneShootChartValues(ctx, cpConfig, cluster, partition, nws, infrastructure, infrastructureConfig, secretsReader, checksums)
 	if err != nil {
-		vp.logger.Error(err, "Error getting shoot control plane chart values")
+		logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
 	}
 
@@ -488,7 +485,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	durosEnabled := vp.controllerConfig.Storage.Duros.Enabled && (cpConfig.FeatureGates.DisableDuros == nil || !*cpConfig.FeatureGates.DisableDuros)
-	vp.logger.Info("duros is", "enabled", durosEnabled)
+	logger.Info("duros is", "enabled", durosEnabled)
 	durosValues := map[string]any{
 		"enabled": durosEnabled,
 	}
@@ -749,7 +746,7 @@ func getCCMChartValues(
 	return values, nil
 }
 
-func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, cp *apismetal.ControlPlaneConfig, nws networkMap) (map[string]interface{}, error) {
+func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, cp *apismetal.ControlPlaneConfig, nws networkMap) (map[string]interface{}, error) {
 	disabledValues := map[string]any{
 		"duros": map[string]any{
 			"enabled": false,
