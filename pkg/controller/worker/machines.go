@@ -224,7 +224,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			Minimum:    pool.Minimum,
 			Maximum:    pool.Maximum,
 			Strategy: machinev1alpha1.MachineDeploymentStrategy{
-				Type: "",
 				RollingUpdate: &machinev1alpha1.RollingUpdateMachineDeployment{
 					UpdateConfiguration: machinev1alpha1.UpdateConfiguration{
 						MaxUnavailable: &pool.MaxUnavailable,
