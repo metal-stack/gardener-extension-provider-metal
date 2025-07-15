@@ -218,13 +218,20 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		)
 
 		machineDeployments = append(machineDeployments, worker.MachineDeployment{
-			Name:                 deploymentName,
-			ClassName:            className,
-			SecretName:           className,
-			Minimum:              pool.Minimum,
-			Maximum:              pool.Maximum,
-			MaxSurge:             pool.MaxSurge,
-			MaxUnavailable:       pool.MaxUnavailable,
+			Name:       deploymentName,
+			ClassName:  className,
+			SecretName: className,
+			Minimum:    pool.Minimum,
+			Maximum:    pool.Maximum,
+			Strategy: machinev1alpha1.MachineDeploymentStrategy{
+				Type: "",
+				RollingUpdate: &machinev1alpha1.RollingUpdateMachineDeployment{
+					UpdateConfiguration: machinev1alpha1.UpdateConfiguration{
+						MaxUnavailable: &pool.MaxUnavailable,
+						MaxSurge:       &pool.MaxSurge,
+					},
+				},
+			},
 			Labels:               pool.Labels,
 			Annotations:          pool.Annotations,
 			Taints:               pool.Taints,
