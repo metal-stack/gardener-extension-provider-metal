@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	druidv1alpha1 "github.com/gardener/etcd-druid/api/v1alpha1"
+	druidcorev1alpha1 "github.com/gardener/etcd-druid/api/core/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -177,7 +177,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			if err := metalinstall.AddToScheme(scheme); err != nil {
 				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
-			if err := druidv1alpha1.AddToScheme(scheme); err != nil {
+			if err := druidcorev1alpha1.AddToScheme(scheme); err != nil {
 				return fmt.Errorf("could not update manager scheme: %w", err)
 			}
 			if err := autoscalingv1.AddToScheme(scheme); err != nil {

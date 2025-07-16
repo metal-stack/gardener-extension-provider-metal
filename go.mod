@@ -6,20 +6,20 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.5.0
-	github.com/gardener/etcd-druid v0.27.0
-	github.com/gardener/gardener v1.113.3
+	github.com/gardener/etcd-druid/api v0.28.0
+	github.com/gardener/gardener v1.116.4
 	github.com/gardener/gardener-extension-networking-calico v1.42.0
 	github.com/gardener/gardener-extension-networking-cilium v1.37.0
-	github.com/gardener/machine-controller-manager v0.56.1
+	github.com/gardener/machine-controller-manager v0.57.1
 	github.com/go-logr/logr v1.4.3
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.7.0
-	github.com/metal-stack/duros-controller v0.11.5
+	github.com/metal-stack/duros-controller v0.11.7
 	github.com/metal-stack/firewall-controller-manager v0.5.1
 	github.com/metal-stack/firewall-controller/v2 v2.3.8
 	github.com/metal-stack/metal-go v0.41.2
-	github.com/metal-stack/metal-lib v0.23.0
+	github.com/metal-stack/metal-lib v0.23.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.37.0
 	github.com/spf13/cobra v1.9.1
@@ -34,7 +34,7 @@ require (
 	k8s.io/component-base v0.33.2
 	k8s.io/kubelet v0.33.2
 	sigs.k8s.io/controller-runtime v0.21.0
-	sigs.k8s.io/yaml v1.4.0
+	sigs.k8s.io/yaml v1.5.0
 )
 
 replace (
@@ -59,7 +59,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/fluent/fluent-operator/v2 v2.9.0 // indirect
+	github.com/fluent/fluent-operator/v3 v3.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/gardener/cert-management v0.17.5 // indirect
@@ -148,6 +148,8 @@ require (
 	go.uber.org/mock v0.5.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
+	go.yaml.in/yaml/v3 v3.0.3 // indirect
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/mod v0.25.0 // indirect

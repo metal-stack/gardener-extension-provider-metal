@@ -38,7 +38,7 @@ func (a *actuator) firewallRestore(ctx context.Context, log logr.Logger, worker 
 
 	if fcm.Status.Replicas != fcm.Status.ReadyReplicas {
 		return &reconciler.RequeueAfterError{
-			Cause:        fmt.Errorf("firewall-controller-manager deployment is not yet ready, waiting..."),
+			Cause:        fmt.Errorf("firewall-controller-manager deployment is not yet ready, waiting"),
 			RequeueAfter: 10 * time.Second,
 		}
 	}

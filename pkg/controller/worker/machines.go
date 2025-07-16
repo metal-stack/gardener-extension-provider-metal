@@ -11,6 +11,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	extensionsv1alpha1helper "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1/helper"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 
@@ -88,8 +89,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		var hash string
 		for _, class := range classes.Items {
-			class := class
-
 			_, h, ok := strings.Cut(class.Name, deploymentName+"-")
 			if !ok {
 				continue
@@ -218,17 +217,26 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		)
 
 		machineDeployments = append(machineDeployments, worker.MachineDeployment{
-			Name:                 deploymentName,
-			ClassName:            className,
-			SecretName:           className,
-			Minimum:              pool.Minimum,
-			Maximum:              pool.Maximum,
-			MaxSurge:             pool.MaxSurge,
-			MaxUnavailable:       pool.MaxUnavailable,
-			Labels:               pool.Labels,
-			Annotations:          pool.Annotations,
-			Taints:               pool.Taints,
-			MachineConfiguration: genericworkeractuator.ReadMachineConfiguration(pool),
+			Name:       deploymentName,
+			ClassName:  className,
+			SecretName: className,
+			Minimum:    pool.Minimum,
+			Maximum:    pool.Maximum,
+			Strategy: machinev1alpha1.MachineDeploymentStrategy{
+				Type: machinev1alpha1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &machinev1alpha1.RollingUpdateMachineDeployment{
+					UpdateConfiguration: machinev1alpha1.UpdateConfiguration{
+						MaxUnavailable: &pool.MaxUnavailable,
+						MaxSurge:       &pool.MaxSurge,
+					},
+				},
+			},
+			Priority:                     pool.Priority,
+			Labels:                       pool.Labels,
+			Annotations:                  pool.Annotations,
+			Taints:                       pool.Taints,
+			MachineConfiguration:         genericworkeractuator.ReadMachineConfiguration(pool),
+			ClusterAutoscalerAnnotations: extensionsv1alpha1helper.GetMachineDeploymentClusterAutoscalerAnnotations(pool.ClusterAutoscaler),
 		})
 
 		machineClassSpec["name"] = className
@@ -247,6 +255,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 	w.machineDeployments = machineDeployments
 	w.machineClasses = machineClasses
+	w.machineImages = machineImages
 
 	return nil
 }
