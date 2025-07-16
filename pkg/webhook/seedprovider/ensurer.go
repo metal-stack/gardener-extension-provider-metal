@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	druidcorev1alpha1 "github.com/gardener/etcd-druid/api/core/v1alpha1"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/go-logr/logr"
@@ -46,9 +45,6 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 	}
 
 	if new.Name == v1beta1constants.ETCDMain {
-		e.logger.Info("mutating etcd main")
-		spew.Dump(old)
-
 		if old == nil {
 			// capacity and storage class can only be set on initial deployment
 			// after that the stateful set prevents the update.
