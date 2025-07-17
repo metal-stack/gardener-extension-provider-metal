@@ -42,8 +42,6 @@ func (a *actuator) updateState(ctx context.Context, log logr.Logger, infrastruct
 	}
 
 	for _, fw := range firewalls.Items {
-		fw := fw
-
 		fw.ResourceVersion = ""
 		fw.OwnerReferences = nil
 		fw.Status = fcmv2.FirewallStatus{}
@@ -84,8 +82,6 @@ func (a *actuator) restoreState(ctx context.Context, log logr.Logger, infrastruc
 	log.Info("restoring firewalls from infrastructure status", "firewalls", len(infraState.Firewalls))
 
 	for _, raw := range infraState.Firewalls {
-		raw := raw
-
 		fw := &fcmv2.Firewall{}
 		err := yaml.Unmarshal([]byte(raw), fw)
 		if err != nil {
