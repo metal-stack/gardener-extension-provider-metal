@@ -19,7 +19,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -206,25 +205,5 @@ func (e *ensurer) EnsureMachineControllerManagerVPA(_ context.Context, _ gcontex
 		newObj.Spec.ResourcePolicy.ContainerPolicies,
 		machinecontrollermanager.ProviderSidecarVPAContainerPolicy(metal.Name),
 	)
-	return nil
-}
-
-func (e *ensurer) EnsureAdditionalFiles(ctx context.Context, gctx gcontext.GardenContext, new, old *[]extensionsv1alpha1.File) error {
-	if new == nil {
-		return nil
-	}
-
-	var files []extensionsv1alpha1.File
-	for _, f := range *new {
-		if f.Path == v1beta1constants.OperatingSystemConfigFilePathKubeletConfig {
-			// for cis benchmark this needs to be 600
-			f.Permissions = pointer.Pointer(uint32(0600))
-		}
-
-		files = append(files, f)
-	}
-
-	*new = files
-
 	return nil
 }

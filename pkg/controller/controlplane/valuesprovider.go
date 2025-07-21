@@ -271,6 +271,8 @@ func NewValuesProvider(mgr manager.Manager, controllerConfig config.ControllerCo
 		cpShootChart.Objects = append(cpShootChart.Objects, []*chart.Object{
 			{Type: &rbacv1.ClusterRole{}, Name: "system:duros-controller"},
 			{Type: &rbacv1.ClusterRoleBinding{}, Name: "system:duros-controller"},
+			{Type: &rbacv1.Role{}, Name: "system:kube-system:duros-controller"},
+			{Type: &rbacv1.RoleBinding{}, Name: "system:kube-system:duros-controller"},
 		}...)
 	}
 
@@ -667,7 +669,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 		return nil, err
 	}
 
-	isDefaultSC := true
+	isDefaultSC := true // nolint:staticcheck
 	if cp.CustomDefaultStorageClass != nil && cp.CustomDefaultStorageClass.ClassName != "csi-lvm" {
 		isDefaultSC = false
 	}
@@ -731,7 +733,7 @@ func getCCMChartValues(
 		"cloudControllerManager": map[string]interface{}{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"projectID":              projectID,
-			"clusterID":              cluster.Shoot.ObjectMeta.UID,
+			"clusterID":              cluster.Shoot.UID,
 			"partitionID":            infrastructureConfig.PartitionID,
 			"networkID":              *privateNetwork.ID,
 			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
