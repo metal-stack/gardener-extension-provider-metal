@@ -110,10 +110,11 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		if hash == "" {
 			if explicitHash, ok := w.cluster.Shoot.Annotations[explicitWorkerHashAnnotation(groupName)]; ok {
+				w.logger.Info("no existing machine class found, using explicit worker hash for new machine deployment", "group-name", groupName, "hash", explicitHash)
 				return explicitHash, true, nil
 			}
 
-			w.logger.Info("no machine classes found, allow creation of a new one", "name", deploymentName)
+			w.logger.Info("no existing machine class found, allow creation of a new one", "name", deploymentName)
 			return "", false, nil
 		}
 
