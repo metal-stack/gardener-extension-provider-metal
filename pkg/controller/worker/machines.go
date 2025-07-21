@@ -24,6 +24,9 @@ import (
 
 const (
 	MutatingWebhookObjectSelectorLabel = "gardener-shoot-namespace"
+
+	keepWorkerHashAnnotation           = "cluster.metal-stack.io/keep-worker-hash"
+	explicitWorkerHashAnnotationPrefix = "cluster.metal-stack.io/use-worker-hash-"
 )
 
 // MachineClassKind yields the name of the machine class.
@@ -77,7 +80,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	keepHash := func(deploymentName string) (string, bool, error) {
-		if _, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/keep-worker-hash"]; !ok {
+		if _, ok := w.cluster.Shoot.Annotations[keepWorkerHashAnnotation]; !ok {
 			return "", false, nil
 		}
 
@@ -106,7 +109,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		}
 
 		if hash == "" {
-			if explicitHash, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/use-worker-hash-"+groupName]; ok {
+			if explicitHash, ok := w.cluster.Shoot.Annotations[explicitWorkerHashAnnotation(groupName)]; ok {
 				return explicitHash, true, nil
 			}
 
@@ -114,7 +117,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			return "", false, nil
 		}
 
-		if explicitHash, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/use-worker-hash-"+groupName]; ok {
+		if explicitHash, ok := w.cluster.Shoot.Annotations[explicitWorkerHashAnnotation(groupName)]; ok {
 			w.logger.Info("explicit worker hash set for worker group", "group-name", groupName, "hash", explicitHash)
 
 			if hash != explicitHash {
@@ -313,4 +316,8 @@ func (w *workerDelegate) networkIsolationIfEnabled() *apismetal.NetworkIsolation
 	}
 
 	return w.additionalData.partition.NetworkIsolation
+}
+
+func explicitWorkerHashAnnotation(groupName string) string {
+	return explicitWorkerHashAnnotationPrefix + groupName
 }
