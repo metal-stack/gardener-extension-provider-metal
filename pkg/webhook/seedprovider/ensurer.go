@@ -3,6 +3,7 @@ package seedprovider
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	druidcorev1alpha1 "github.com/gardener/etcd-druid/api/core/v1alpha1"
@@ -74,6 +75,8 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 			new.Spec.Backup.FullSnapshotSchedule = e.c.Backup.Schedule
 		}
 	}
+
+	new.Spec.Annotations["metal-stack.io/csi-driver-lvm.is-eviction-allowed"] = strconv.FormatBool(true)
 
 	return nil
 }
