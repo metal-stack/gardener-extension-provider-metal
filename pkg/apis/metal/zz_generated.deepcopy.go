@@ -168,6 +168,11 @@ func (in *ControlPlaneFeatures) DeepCopyInto(out *ControlPlaneFeatures) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.DisableDuros != nil {
+		in, out := &in.DisableDuros, &out.DisableDuros
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 
