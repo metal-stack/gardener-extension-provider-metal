@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
-	extensionscontextwebhook "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
@@ -98,7 +97,7 @@ func (m *mutator) Mutate(ctx context.Context, new, old client.Object) error {
 	if new.GetDeletionTimestamp() != nil {
 		return nil
 	}
-	gctx := extensionscontextwebhook.NewGardenContext(m.client, new)
+	gctx := gcontext.NewGardenContext(m.client, new)
 
 	switch x := new.(type) {
 	case *extensionsv1alpha1.OperatingSystemConfig:

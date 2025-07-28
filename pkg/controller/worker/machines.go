@@ -11,6 +11,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/worker"
 	genericworkeractuator "github.com/gardener/gardener/extensions/pkg/controller/worker/genericactuator"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	extensionsv1alpha1helper "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1/helper"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 
@@ -23,6 +24,9 @@ import (
 
 const (
 	MutatingWebhookObjectSelectorLabel = "gardener-shoot-namespace"
+
+	keepWorkerHashAnnotation           = "cluster.metal-stack.io/keep-worker-hash"
+	explicitWorkerHashAnnotationPrefix = "cluster.metal-stack.io/use-worker-hash-"
 )
 
 // MachineClassKind yields the name of the machine class.
@@ -76,8 +80,13 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 	}
 
 	keepHash := func(deploymentName string) (string, bool, error) {
-		if _, ok := w.cluster.Shoot.Annotations["cluster.metal-stack.io/keep-worker-hash"]; !ok {
+		if _, ok := w.cluster.Shoot.Annotations[keepWorkerHashAnnotation]; !ok {
 			return "", false, nil
+		}
+
+		groupName, found := strings.CutPrefix(deploymentName, w.cluster.ObjectMeta.Name+"-")
+		if !found {
+			return "", false, fmt.Errorf("unable to extract worker group name from deployment name %q", deploymentName)
 		}
 
 		classes := &machinev1alpha1.MachineClassList{}
@@ -88,8 +97,6 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		var hash string
 		for _, class := range classes.Items {
-			class := class
-
 			_, h, ok := strings.Cut(class.Name, deploymentName+"-")
 			if !ok {
 				continue
@@ -102,8 +109,21 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		}
 
 		if hash == "" {
-			w.logger.Info("no machine classes found, allow creation of a new one", "name", deploymentName)
+			if explicitHash, ok := w.cluster.Shoot.Annotations[explicitWorkerHashAnnotation(groupName)]; ok {
+				w.logger.Info("no existing machine class found, using explicit worker hash for new machine deployment", "group-name", groupName, "hash", explicitHash)
+				return explicitHash, true, nil
+			}
+
+			w.logger.Info("no existing machine class found, allow creation of a new one", "name", deploymentName)
 			return "", false, nil
+		}
+
+		if explicitHash, ok := w.cluster.Shoot.Annotations[explicitWorkerHashAnnotation(groupName)]; ok {
+			w.logger.Info("explicit worker hash set for worker group", "group-name", groupName, "hash", explicitHash)
+
+			if hash != explicitHash {
+				return "", false, fmt.Errorf("unable to use explicit hash which differs from hash that was figured out from existing machine classes")
+			}
 		}
 
 		return hash, true, nil
@@ -218,17 +238,26 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		)
 
 		machineDeployments = append(machineDeployments, worker.MachineDeployment{
-			Name:                 deploymentName,
-			ClassName:            className,
-			SecretName:           className,
-			Minimum:              pool.Minimum,
-			Maximum:              pool.Maximum,
-			MaxSurge:             pool.MaxSurge,
-			MaxUnavailable:       pool.MaxUnavailable,
-			Labels:               pool.Labels,
-			Annotations:          pool.Annotations,
-			Taints:               pool.Taints,
-			MachineConfiguration: genericworkeractuator.ReadMachineConfiguration(pool),
+			Name:       deploymentName,
+			ClassName:  className,
+			SecretName: className,
+			Minimum:    pool.Minimum,
+			Maximum:    pool.Maximum,
+			Strategy: machinev1alpha1.MachineDeploymentStrategy{
+				Type: machinev1alpha1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &machinev1alpha1.RollingUpdateMachineDeployment{
+					UpdateConfiguration: machinev1alpha1.UpdateConfiguration{
+						MaxUnavailable: &pool.MaxUnavailable,
+						MaxSurge:       &pool.MaxSurge,
+					},
+				},
+			},
+			Priority:                     pool.Priority,
+			Labels:                       pool.Labels,
+			Annotations:                  pool.Annotations,
+			Taints:                       pool.Taints,
+			MachineConfiguration:         genericworkeractuator.ReadMachineConfiguration(pool),
+			ClusterAutoscalerAnnotations: extensionsv1alpha1helper.GetMachineDeploymentClusterAutoscalerAnnotations(pool.ClusterAutoscaler),
 		})
 
 		machineClassSpec["name"] = className
@@ -247,6 +276,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 	w.machineDeployments = machineDeployments
 	w.machineClasses = machineClasses
+	w.machineImages = machineImages
 
 	return nil
 }
@@ -287,4 +317,8 @@ func (w *workerDelegate) networkIsolationIfEnabled() *apismetal.NetworkIsolation
 	}
 
 	return w.additionalData.partition.NetworkIsolation
+}
+
+func explicitWorkerHashAnnotation(groupName string) string {
+	return explicitWorkerHashAnnotationPrefix + groupName
 }

@@ -19,7 +19,6 @@ import (
 	metalapi "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	metalgo "github.com/metal-stack/metal-go"
-	"github.com/metal-stack/metal-go/api/client/ip"
 	metalip "github.com/metal-stack/metal-go/api/client/ip"
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
@@ -160,7 +159,7 @@ func (a *actuator) maintainFirewallDeployment(ctx context.Context, logger logr.L
 func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 	currentEgressIPs := sets.NewString()
 
-	resp, err := r.mclient.IP().FindIPs(ip.NewFindIPsParams().WithBody(&models.V1IPFindRequest{
+	resp, err := r.mclient.IP().FindIPs(metalip.NewFindIPsParams().WithBody(&models.V1IPFindRequest{
 		Projectid: r.infrastructureConfig.ProjectID,
 		Tags:      []string{r.egressTag},
 		Type:      models.V1IPBaseTypeStatic,
