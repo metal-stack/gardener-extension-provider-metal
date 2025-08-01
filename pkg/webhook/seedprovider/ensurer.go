@@ -8,12 +8,13 @@ import (
 	druidcorev1alpha1 "github.com/gardener/etcd-druid/api/core/v1alpha1"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/go-logr/logr"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
 
@@ -44,7 +45,7 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 		return nil
 	}
 
-	if new.Name == v1beta1constants.ETCDMain {
+	if new.Name == v1beta1constants.ETCDMain || new.Name == v1beta1constants.ETCDEvents {
 		if old == nil {
 			// capacity and storage class can only be set on initial deployment
 			// after that the stateful set prevents the update.
@@ -61,7 +62,9 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 			new.Spec.StorageCapacity = old.Spec.StorageCapacity
 			new.Spec.StorageClass = old.Spec.StorageClass
 		}
+	}
 
+	if new.Name == v1beta1constants.ETCDMain {
 		if e.c.Backup.DeltaSnapshotPeriod != nil {
 			d, err := time.ParseDuration(*e.c.Backup.DeltaSnapshotPeriod)
 			if err != nil {
