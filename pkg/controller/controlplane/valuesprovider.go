@@ -485,11 +485,10 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	durosEnabled := vp.controllerConfig.Storage.Duros.Enabled && (cpConfig.FeatureGates.DisableDuros == nil || !*cpConfig.FeatureGates.DisableDuros)
-	logger.Info("duros is", "enabled", durosEnabled)
+
 	durosValues := map[string]any{
 		"enabled": durosEnabled,
 	}
-
 	ciliumValues := map[string]any{
 		"enabled": false,
 	}
@@ -754,7 +753,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	}
 
 	durosEnabled := storageConfig.Duros.Enabled && (cp.FeatureGates.DisableDuros == nil || !*cp.FeatureGates.DisableDuros)
-	logger.Info("duros is", "enabled", durosEnabled)
+
 	if !durosEnabled {
 		return disabledValues, nil
 	}
