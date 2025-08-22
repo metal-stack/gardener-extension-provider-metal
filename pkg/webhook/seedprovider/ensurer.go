@@ -76,6 +76,9 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 		}
 	}
 
+	if new.Spec.Annotations == nil {
+		new.Spec.Annotations = map[string]string{}
+	}
 	new.Spec.Annotations["metal-stack.io/csi-driver-lvm.is-eviction-allowed"] = strconv.FormatBool(true)
 
 	return nil
