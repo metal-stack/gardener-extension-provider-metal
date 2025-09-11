@@ -54,8 +54,6 @@ import (
 	"github.com/gardener/gardener/pkg/utils/secrets"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 
-	"github.com/go-logr/logr"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -288,7 +286,6 @@ type valuesProvider struct {
 	genericactuator.NoopValuesProvider
 	client           client.Client
 	decoder          runtime.Decoder
-	logger           logr.Logger
 	controllerConfig config.ControllerConfiguration
 }
 
@@ -297,7 +294,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	return nil, nil
 }
 
@@ -347,7 +344,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	nws := networkMap{}
 	for _, n := range resp.Payload {
-		n := n
 		nws[*n.ID] = n
 	}
 
@@ -375,7 +371,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.client, vp.logger, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
+	storageValues, err := getStorageControlPlaneChartValues(ctx, vp.client, vp.controllerConfig.Storage, cluster, infrastructureConfig, cpConfig, nws)
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +383,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	values := map[string]any{
 		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
-		"podAnnotations": map[string]interface{}{
+		"podAnnotations": map[string]any{
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
 			"checksum/secret-cloudprovider":                                    checksums[v1beta1constants.SecretNameCloudProvider],
 		},
@@ -472,7 +468,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	values, err := vp.getControlPlaneShootChartValues(ctx, cpConfig, cluster, partition, nws, infrastructure, infrastructureConfig, secretsReader, checksums)
 	if err != nil {
-		vp.logger.Error(err, "Error getting shoot control plane chart values")
+		logger.Error(err, "Error getting shoot control plane chart values")
 		return nil, err
 	}
 
@@ -488,10 +484,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	durosValues := map[string]interface{}{
-		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
-	}
+	durosEnabled := vp.controllerConfig.Storage.Duros.Enabled && (cpConfig.FeatureGates.DisableDuros == nil || !*cpConfig.FeatureGates.DisableDuros)
 
+	durosValues := map[string]any{
+		"enabled": durosEnabled,
+	}
 	ciliumValues := map[string]any{
 		"enabled": false,
 	}
@@ -628,7 +625,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 	}
 
-	if vp.controllerConfig.Storage.Duros.Enabled {
+	if durosEnabled {
 		partitionConfig, ok := vp.controllerConfig.Storage.Duros.PartitionConfig[infrastructureConfig.PartitionID]
 
 		found, err := hasDurosStorageNetwork(infrastructureConfig, nws)
@@ -644,22 +641,6 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	}
 
 	return values, nil
-}
-
-// getSecret returns the secret with the given namespace/secretName
-func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secretName string) (*corev1.Secret, error) {
-	key := client.ObjectKey{Namespace: namespace, Name: secretName}
-	secret := &corev1.Secret{}
-	err := vp.client.Get(ctx, key, secret)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			vp.logger.Error(err, "error getting secret - not found")
-			return nil, err
-		}
-		vp.logger.Error(err, "error getting secret")
-		return nil, err
-	}
-	return secret, nil
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
@@ -764,11 +745,17 @@ func getCCMChartValues(
 	return values, nil
 }
 
-func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, cp *apismetal.ControlPlaneConfig, nws networkMap) (map[string]interface{}, error) {
-	disabledValues := map[string]interface{}{
-		"duros": map[string]interface{}{
+func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, cp *apismetal.ControlPlaneConfig, nws networkMap) (map[string]interface{}, error) {
+	disabledValues := map[string]any{
+		"duros": map[string]any{
 			"enabled": false,
 		},
+	}
+
+	durosEnabled := storageConfig.Duros.Enabled && (cp.FeatureGates.DisableDuros == nil || !*cp.FeatureGates.DisableDuros)
+
+	if !durosEnabled {
+		return disabledValues, nil
 	}
 
 	partitionConfig, ok := storageConfig.Duros.PartitionConfig[infrastructure.PartitionID]

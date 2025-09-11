@@ -25,7 +25,7 @@ type DurosHealthChecker struct {
 	durosResourceName string
 }
 
-// CheckDuros is a healthCheck function to check Duross
+// CheckDuros is a healthCheck function to check Duros
 func CheckDuros(durosResourceName string) healthcheck.HealthCheck {
 	return &DurosHealthChecker{
 		durosResourceName: durosResourceName,
