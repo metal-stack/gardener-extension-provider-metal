@@ -133,7 +133,7 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Labels[tag.ClusterID] = clusterID
 
 		deploy.Spec.Template.Spec.Size = d.infrastructureConfig.Firewall.Size
-		if deploy.Spec.AutoUpdate.MachineImage && d.infrastructureConfig.Firewall.Image != "" {
+		if deploy.Spec.AutoUpdate.MachineImage && deploy.Spec.Template.Spec.Image != "" && d.infrastructureConfig.Firewall.Image != "" {
 			isPatch, err := patchUpdate(deploy.Spec.Template.Spec.Image, d.infrastructureConfig.Firewall.Image)
 			if err != nil {
 				return err
