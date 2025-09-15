@@ -63,6 +63,8 @@ type ETCD struct {
 	Storage ETCDStorage `json:"storage"`
 	// ETCDBackup is the etcd backup configuration.
 	Backup ETCDBackup `json:"backup"`
+	// EvictionAllowed is a flag to allow deletion of the etcd pvc through the csi-driver-lvm-controller
+	IsEvictionAllowed bool `json:"isEvictionAllowed"`
 }
 
 // ETCDStorage is an etcd storage configuration.
