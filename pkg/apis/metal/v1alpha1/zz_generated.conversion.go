@@ -337,6 +337,7 @@ func autoConvert_v1alpha1_ControlPlaneFeatures_To_metal_ControlPlaneFeatures(in 
 	out.ClusterAudit = (*bool)(unsafe.Pointer(in.ClusterAudit))
 	out.AuditToSplunk = (*bool)(unsafe.Pointer(in.AuditToSplunk))
 	out.DisableCsiLvm = (*bool)(unsafe.Pointer(in.DisableCsiLvm))
+	out.DisableDuros = (*bool)(unsafe.Pointer(in.DisableDuros))
 	return nil
 }
 
@@ -351,6 +352,7 @@ func autoConvert_metal_ControlPlaneFeatures_To_v1alpha1_ControlPlaneFeatures(in 
 	out.ClusterAudit = (*bool)(unsafe.Pointer(in.ClusterAudit))
 	out.AuditToSplunk = (*bool)(unsafe.Pointer(in.AuditToSplunk))
 	out.DisableCsiLvm = (*bool)(unsafe.Pointer(in.DisableCsiLvm))
+	out.DisableDuros = (*bool)(unsafe.Pointer(in.DisableDuros))
 	return nil
 }
 
