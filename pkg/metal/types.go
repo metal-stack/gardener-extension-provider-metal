@@ -43,6 +43,8 @@ const (
 	DroptailerClientSecretName = "droptailer-client" // nolint:gosec
 	// DroptailerServerSecretName is the name of the secret containing the certificates for the droptailer server.
 	DroptailerServerSecretName = "droptailer-server" // nolint:gosec
+	// MetalLbWebhookSecretName is the name of the secret containing the certificates for the metallb webhook server.
+	MetalLbWebhookSecretName = "metallb-webhook-cert" // nolint:gosec
 	// CloudControllerManagerDeploymentName is the name of the deployment for the cloud controller manager.
 	CloudControllerManagerDeploymentName = "cloud-controller-manager"
 	// CloudControllerManagerServerName is the name of the secret containing the certificates for the cloud controller manager server.
