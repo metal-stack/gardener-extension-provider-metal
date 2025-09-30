@@ -523,12 +523,11 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 	)
 
-	metallbCert, ok := secretsReader.Get(metal.DroptailerServerSecretName)
-	if ok {
+	if metallbCert, ok := secretsReader.Get(metal.MetalLbWebhookSecretName); ok {
 		metallbValues["podAnnotations"] = map[string]any{
 			"checksum/secret-metallb-webhook-server": checksums[metal.MetalLbWebhookSecretName],
 		}
-		metallbValues["webhook-server"] = map[string]any{
+		metallbValues["webhook"] = map[string]any{
 			"ca":    metallbCert.Data["ca.crt"],
 			"caKey": metallbCert.Data["ca.key"],
 			"cert":  metallbCert.Data["tls.crt"],

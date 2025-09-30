@@ -22,7 +22,7 @@ cilium:
 metallb:
   enabled: true
   podAnnotations: {}
-  webhook-server:
+  webhook:
     ca:
     caKey:
     cert:

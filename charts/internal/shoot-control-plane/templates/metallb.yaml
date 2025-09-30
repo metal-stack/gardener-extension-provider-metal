@@ -440,10 +440,10 @@ metadata:
   namespace: metallb-system
 type: Opaque
 data:
-  ca.crt: {{ .Values.metallb.webhook-server.ca }}
-  ca.key: {{ .Values.metallb.webhook-server.caKey }}
-  tls.crt: {{ .Values.metallb.webhook-server.cert }}
-  tls.key: {{ .Values.metallb.webhook-server.key }}
+  ca.crt: {{ .Values.metallb.webhook.ca }}
+  ca.key: {{ .Values.metallb.webhook.caKey }}
+  tls.crt: {{ .Values.metallb.webhook.cert }}
+  tls.key: {{ .Values.metallb.webhook.key }}
 ---
 apiVersion: v1
 kind: Service
