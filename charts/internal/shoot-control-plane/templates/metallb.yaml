@@ -438,11 +438,17 @@ kind: Secret
 metadata:
   name: webhook-server-cert
   namespace: metallb-system
+type: Opaque
+data:
+  ca.crt: {{ .Values.metallb.webhook.ca }}
+  ca.key: {{ .Values.metallb.webhook.caKey }}
+  tls.crt: {{ .Values.metallb.webhook.cert }}
+  tls.key: {{ .Values.metallb.webhook.key }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: webhook-service
+  name: metallb-webhook-service
   namespace: metallb-system
 spec:
   ports:
@@ -581,6 +587,9 @@ spec:
       annotations:
         prometheus.io/port: "7472"
         prometheus.io/scrape: "true"
+{{- if .Values.metallb.podAnnotations }}
+{{ toYaml .Values.metallb.podAnnotations | indent 8 }}
+{{- end }}
       labels:
         app: metallb
         component: controller
@@ -591,7 +600,8 @@ spec:
         - --port=7472
         - --log-level=info
         - --tls-min-version=VersionTLS12
-        - --webhook-mode=disabled
+        - --webhook-secret=webhook-server-cert
+        - --disable-cert-rotation=true
         env:
         - name: METALLB_ML_SECRET_NAME
           value: memberlist
