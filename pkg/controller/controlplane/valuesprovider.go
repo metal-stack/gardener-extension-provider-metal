@@ -182,7 +182,6 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.RoleBinding{}, Name: "controller"},
 		{Type: &rbacv1.RoleBinding{}, Name: "health-monitoring"},
 		{Type: &corev1.ConfigMap{}, Name: "metallb-excludel2"},
-		{Type: &corev1.Secret{}, Name: "webhook-server-cert"},
 		{Type: &corev1.Service{}, Name: "metallb-webhook-service"},
 		{Type: &appsv1.DaemonSet{}, Name: "speaker"},
 		{Type: &appsv1.Deployment{}, Name: "controller"},

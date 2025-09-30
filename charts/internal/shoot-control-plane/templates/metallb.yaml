@@ -434,12 +434,6 @@ data:
     announcedInterfacesToExclude: ["^docker.*", "^cbr.*", "^dummy.*", "^virbr.*", "^lxcbr.*", "^veth.*", "^lo$", "^cali.*", "^tunl.*", "^flannel.*", "^kube-ipvs.*", "^cni.*", "^nodelocaldns.*"]
 ---
 apiVersion: v1
-kind: Secret
-metadata:
-  name: webhook-server-cert
-  namespace: metallb-system
----
-apiVersion: v1
 kind: Service
 metadata:
   name: metallb-webhook-service
