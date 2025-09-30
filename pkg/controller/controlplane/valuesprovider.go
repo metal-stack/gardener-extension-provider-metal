@@ -645,7 +645,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 	droptailerClient, clientOK := secretsReader.Get(metal.DroptailerClientSecretName)
 	if serverOK && clientOK {
 		values["droptailer"] = map[string]any{
-			"podAnnotations": map[string]interface{}{
+			"podAnnotations": map[string]any{
 				"checksum/secret-droptailer-server": checksums[metal.DroptailerServerSecretName],
 				"checksum/secret-droptailer-client": checksums[metal.DroptailerClientSecretName],
 			},
