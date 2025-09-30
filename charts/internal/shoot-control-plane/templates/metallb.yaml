@@ -434,6 +434,18 @@ data:
     announcedInterfacesToExclude: ["^docker.*", "^cbr.*", "^dummy.*", "^virbr.*", "^lxcbr.*", "^veth.*", "^lo$", "^cali.*", "^tunl.*", "^flannel.*", "^kube-ipvs.*", "^cni.*", "^nodelocaldns.*"]
 ---
 apiVersion: v1
+kind: Secret
+metadata:
+  name: webhook-server-cert
+  namespace: metallb-system
+type: Opaque
+data:
+  ca.crt: {{ .Values.metallb.webhook-server.ca }}
+  ca.key: {{ .Values.metallb.webhook-server.caKey }}
+  tls.crt: {{ .Values.metallb.webhook-server.cert }}
+  tls.key: {{ .Values.metallb.webhook-server.key }}
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: metallb-webhook-service
@@ -575,6 +587,9 @@ spec:
       annotations:
         prometheus.io/port: "7472"
         prometheus.io/scrape: "true"
+{{- if .Values.metallb.podAnnotations }}
+{{ toYaml .Values.metallb.podAnnotations | indent 8 }}
+{{- end }}
       labels:
         app: metallb
         component: controller
@@ -586,6 +601,7 @@ spec:
         - --log-level=info
         - --tls-min-version=VersionTLS12
         - --webhook-secret=webhook-server-cert
+        - --disable-cert-rotation=true
         env:
         - name: METALLB_ML_SECRET_NAME
           value: memberlist

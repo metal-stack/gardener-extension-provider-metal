@@ -69,6 +69,7 @@ import (
 const (
 	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
 	droptailerCAName   = "ca-" + metal.Name + "-droptailer"
+	metallbCAName      = "ca-" + metal.Name + "-metallb-webhook"
 
 	ipv4HostMask = "/32"
 	ipv6HostMask = "/128"
@@ -138,6 +139,25 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
 		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:       metallbCAName,
+				CommonName: metallbCAName,
+				CertType:   secrets.CACert,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
+		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:                        metal.MetalLbWebhookSecretName,
+				CommonName:                  "cert",
+				DNSNames:                    []string{"cert"},
+				Organization:                []string{"metallb"},
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: false,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(metallbCAName, secretsmanager.UseCurrentCA)},
+		},
 	}
 }
 
@@ -182,6 +202,7 @@ var cpShootChart = &chart.Chart{
 		{Type: &rbacv1.RoleBinding{}, Name: "controller"},
 		{Type: &rbacv1.RoleBinding{}, Name: "health-monitoring"},
 		{Type: &corev1.ConfigMap{}, Name: "metallb-excludel2"},
+		{Type: &corev1.Secret{}, Name: "webhook-server-cert"},
 		{Type: &corev1.Service{}, Name: "metallb-webhook-service"},
 		{Type: &appsv1.DaemonSet{}, Name: "speaker"},
 		{Type: &appsv1.Deployment{}, Name: "controller"},
@@ -487,19 +508,34 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		return nil, err
 	}
 
-	durosValues := map[string]interface{}{
-		"enabled": vp.controllerConfig.Storage.Duros.Enabled,
+	var (
+		durosValues = map[string]any{
+			"enabled": vp.controllerConfig.Storage.Duros.Enabled,
+		}
+		ciliumValues = map[string]any{
+			"enabled": false,
+		}
+		metallbValues = map[string]any{
+			"enabled": true,
+		}
+		nodeInitValues = map[string]any{
+			"enabled": true,
+		}
+	)
+
+	metallbCert, ok := secretsReader.Get(metal.DroptailerServerSecretName)
+	if ok {
+		metallbValues["podAnnotations"] = map[string]any{
+			"checksum/secret-metallb-webhook-server": checksums[metal.MetalLbWebhookSecretName],
+		}
+		metallbValues["webhook-server"] = map[string]any{
+			"ca":    metallbCert.Data["ca.crt"],
+			"caKey": metallbCert.Data["ca.key"],
+			"cert":  metallbCert.Data["tls.crt"],
+			"key":   metallbCert.Data["tls.key"],
+		}
 	}
 
-	ciliumValues := map[string]any{
-		"enabled": false,
-	}
-	metallbValues := map[string]any{
-		"enabled": true,
-	}
-	nodeInitValues := map[string]any{
-		"enabled": true,
-	}
 	if pointer.SafeDeref(pointer.SafeDeref(cluster.Shoot.Spec.Networking).Type) == "cilium" {
 		ciliumValues["enabled"] = true
 		metallbValues["enabled"] = false

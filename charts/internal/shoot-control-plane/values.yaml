@@ -21,6 +21,12 @@ cilium:
 
 metallb:
   enabled: true
+  podAnnotations: {}
+  webhook-server:
+    ca:
+    caKey:
+    cert:
+    key:
 
 nodeInit:
   enabled: true
