@@ -339,7 +339,7 @@ spec:
     webhook:
       clientConfig:
         service:
-          name: metallb-webhook-service
+          name: webhook-service
           namespace: metallb-system
           path: /convert
       conversionReviewVersions:
