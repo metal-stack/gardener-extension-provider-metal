@@ -81,7 +81,11 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 			new.Spec.Annotations = map[string]string{}
 		}
 		new.Spec.Annotations["metal-stack.io/csi-driver-lvm.is-eviction-allowed"] = strconv.FormatBool(true)
-		new.Spec.Annotations["druid.gardener.cloud/disable-etcd-component-protection"] = strconv.FormatBool(true)
+
+		if new.Annotations == nil {
+			new.Annotations = map[string]string{}
+		}
+		new.Annotations["druid.gardener.cloud/disable-etcd-component-protection"] = strconv.FormatBool(true)
 	}
 
 	return nil
