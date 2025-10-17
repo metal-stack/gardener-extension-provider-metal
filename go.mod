@@ -6,11 +6,11 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.5.0
-	github.com/gardener/etcd-druid/api v0.28.0
+	github.com/gardener/etcd-druid/api v0.29.1
 	github.com/gardener/gardener v1.116.4
 	github.com/gardener/gardener-extension-networking-calico v1.42.0
 	github.com/gardener/gardener-extension-networking-cilium v1.37.0
-	github.com/gardener/machine-controller-manager v0.57.1
+	github.com/gardener/machine-controller-manager v0.58.0
 	github.com/go-logr/logr v1.4.3
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/golang/mock v1.6.0
@@ -38,6 +38,7 @@ require (
 )
 
 replace (
+	github.com/gardener/gardener => github.com/metal-stack/gardener v1.73.1-0.20251017104825-ae2c5374b353
 	k8s.io/code-generator => k8s.io/code-generator v0.29.5
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.20.2
 )
