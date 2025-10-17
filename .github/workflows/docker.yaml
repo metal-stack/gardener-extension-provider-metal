@@ -43,4 +43,4 @@ jobs:
         context: .
         push: true
         sbom: true
-        tags: v0.26.4-k8s-1.33
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v0.26.4-k8s-1.33
