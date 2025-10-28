@@ -85,7 +85,7 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 		if new.Annotations == nil {
 			new.Annotations = map[string]string{}
 		}
-		new.Annotations["druid.gardener.cloud/disable-etcd-component-protection"] = strconv.FormatBool(true)
+		new.Annotations[druidcorev1alpha1.DisableEtcdComponentProtectionAnnotation] = strconv.FormatBool(true)
 	}
 
 	return nil
