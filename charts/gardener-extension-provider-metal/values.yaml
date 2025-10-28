@@ -62,6 +62,7 @@ config:
     backup:
       schedule:
       deltaSnapshotPeriod:
+    isEvictionAllowed: false
   storage:
     duros:
       enabled: false

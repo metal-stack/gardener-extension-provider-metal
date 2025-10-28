@@ -32,6 +32,7 @@ data:
       backup:
         schedule: {{ .Values.config.etcd.backup.schedule }}
         deltaSnapshotPeriod: {{ .Values.config.etcd.backup.deltaSnapshotPeriod }}
+      isEvictionAllowed: {{ .Values.config.etcd.isEvictionAllowed }}
     storage:
       duros:
         enabled: {{ .Values.config.storage.duros.enabled }}

@@ -261,6 +261,7 @@ func autoConvert_v1alpha1_ETCD_To_config_ETCD(in *ETCD, out *config.ETCD, s conv
 	if err := Convert_v1alpha1_ETCDBackup_To_config_ETCDBackup(&in.Backup, &out.Backup, s); err != nil {
 		return err
 	}
+	out.IsEvictionAllowed = in.IsEvictionAllowed
 	return nil
 }
 
@@ -276,6 +277,7 @@ func autoConvert_config_ETCD_To_v1alpha1_ETCD(in *config.ETCD, out *ETCD, s conv
 	if err := Convert_config_ETCDBackup_To_v1alpha1_ETCDBackup(&in.Backup, &out.Backup, s); err != nil {
 		return err
 	}
+	out.IsEvictionAllowed = in.IsEvictionAllowed
 	return nil
 }
 
