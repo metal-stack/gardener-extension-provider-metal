@@ -105,8 +105,6 @@ github.com/gardener/cert-management v0.17.5 h1:feqNpdgkF2RJP5xPidbkUx2MS15m4mBWG
 github.com/gardener/cert-management v0.17.5/go.mod h1:jazLDc7bcJ0T8axC96A52X7AqeIYsEyALpYsuTFuhbw=
 github.com/gardener/etcd-druid/api v0.29.1 h1:PKit1++grtPhXrBb6zScIAyfrXxbBJ5gkCKzvmTBFWs=
 github.com/gardener/etcd-druid/api v0.29.1/go.mod h1:70xxFBajCoQd+ZwreEbMKORVGj0a0nrj4KeB5coPM9U=
-github.com/gardener/gardener v1.119.2 h1:GpEHHNg0VyNj59Dm7MYEr/EXr9RsmI7K8AKHDufSOQU=
-github.com/gardener/gardener v1.119.2/go.mod h1:eD9G3dW8+bINMPXFlVTb9zWACZHCqcRjJsi7F7wNpR8=
 github.com/gardener/gardener-extension-networking-calico v1.42.0 h1:jr/V4chXDeJyhsm20YxEBL7SOZK+ye2Yyb1f030Se1E=
 github.com/gardener/gardener-extension-networking-calico v1.42.0/go.mod h1:T1F+ItBn2rcWeGqhIIiOMcvssB2EhDVJ847eUWLXlLg=
 github.com/gardener/gardener-extension-networking-cilium v1.37.0 h1:LNQkG9GYFsm+OZP2w90GvpEsC8g3eorqj2h9HrAK+s8=
@@ -321,6 +319,8 @@ github.com/metal-stack/firewall-controller-manager v0.5.1 h1:TBOpJYShrMsoqtlsPVq
 github.com/metal-stack/firewall-controller-manager v0.5.1/go.mod h1:UIBMWXtiAHv40B6sAtzjsngaf+/RX6zQ0DzQCHgOJTI=
 github.com/metal-stack/firewall-controller/v2 v2.4.0 h1:qkGXMuzLgQXOgaCSExMnraRM4EH4anVtUulNn1HAsW4=
 github.com/metal-stack/firewall-controller/v2 v2.4.0/go.mod h1:PfF2jYwfr/XcGb7X5Ov0sV4NT/m0aNhFa7nYV1aUj2A=
+github.com/metal-stack/gardener v1.73.1-0.20251113084941-91ce7a7a7fa5 h1:4qg70nTd56jjJOS5znFGCiJfZmJk1dZjX6DgC0cVmNw=
+github.com/metal-stack/gardener v1.73.1-0.20251113084941-91ce7a7a7fa5/go.mod h1:eD9G3dW8+bINMPXFlVTb9zWACZHCqcRjJsi7F7wNpR8=
 github.com/metal-stack/metal-go v0.42.3 h1:oNpXWQHDT+6HuymcK3jQblhzhNISvnIHp1fg6VDLpSU=
 github.com/metal-stack/metal-go v0.42.3/go.mod h1:T0lbyrc+aHlI/GWAu2Og4Fmj4oaj5RD55736jBG0R8Y=
 github.com/metal-stack/metal-lib v0.23.5 h1:ozrkB3DNr3Cqn8nkBvmzc/KKpYqC1j1mv2OVOj8i7Ac=

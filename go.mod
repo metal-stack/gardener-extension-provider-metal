@@ -37,7 +37,10 @@ require (
 	sigs.k8s.io/yaml v1.5.0
 )
 
-replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.20.4
+replace (
+	github.com/gardener/gardener => github.com/metal-stack/gardener v1.73.1-0.20251113084941-91ce7a7a7fa5
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.20.4
+)
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
