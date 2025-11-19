@@ -150,8 +150,8 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 		{
 			Config: &secrets.CertificateSecretConfig{
 				Name:                        metal.MetalLbWebhookSecretName,
-				CommonName:                  "cert",
-				DNSNames:                    []string{"cert"},
+				CommonName:                  "metallb-webhook-service.metallb-system.svc",
+				DNSNames:                    []string{"metallb-webhook-service.metallb-system.svc"},
 				Organization:                []string{"metallb"},
 				CertType:                    secrets.ServerCert,
 				SkipPublishingCACertificate: false,
