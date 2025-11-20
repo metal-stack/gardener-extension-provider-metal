@@ -147,10 +147,10 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		var (
 			metalClusterIDTag      = fmt.Sprintf("%s=%s", tag.ClusterID, w.cluster.Shoot.GetUID())
-			metalClusterNameTag    = fmt.Sprintf("%s=%s", tag.ClusterName, w.worker.Namespace)
+			metalClusterNameTag    = fmt.Sprintf("%s=%s", tag.ClusterName, w.cluster.Shoot.Status.TechnicalID)
 			metalClusterProjectTag = fmt.Sprintf("%s=%s", tag.ClusterProject, w.additionalData.infrastructureConfig.ProjectID)
 
-			kubernetesClusterTag        = fmt.Sprintf("kubernetes.io/cluster=%s", w.worker.Namespace)
+			kubernetesClusterTag        = fmt.Sprintf("kubernetes.io/cluster=%s", w.cluster.Shoot.Status.TechnicalID)
 			kubernetesRoleTag           = "kubernetes.io/role=node"
 			kubernetesInstanceTypeTag   = fmt.Sprintf("node.kubernetes.io/instance-type=%s", pool.MachineType)
 			kubernetesTopologyRegionTag = fmt.Sprintf("topology.kubernetes.io/region=%s", w.worker.Spec.Region)
@@ -220,7 +220,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		}
 
 		var (
-			deploymentName = fmt.Sprintf("%s-%s", w.worker.Namespace, pool.Name)
+			deploymentName = fmt.Sprintf("%s-%s", w.cluster.Shoot.Status.TechnicalID, pool.Name)
 		)
 
 		override, ok, err := keepHash(deploymentName)
