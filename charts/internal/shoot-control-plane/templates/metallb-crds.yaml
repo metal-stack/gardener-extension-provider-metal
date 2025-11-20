@@ -338,6 +338,7 @@ spec:
     strategy: Webhook
     webhook:
       clientConfig:
+        caBundle: {{ required ".Values.metallb.webhook.ca is required" .Values.metallb.webhook.ca | b64enc }}
         service:
           name: metallb-webhook-service
           namespace: metallb-system
