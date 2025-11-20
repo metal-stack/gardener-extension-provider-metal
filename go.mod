@@ -16,7 +16,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.7.0
 	github.com/metal-stack/duros-controller v0.11.7
-	github.com/metal-stack/firewall-controller-manager v0.5.1
+	github.com/metal-stack/firewall-controller-manager v0.5.2-0.20251120145943-91414da2349f
 	github.com/metal-stack/firewall-controller/v2 v2.4.0
 	github.com/metal-stack/metal-go v0.42.3
 	github.com/metal-stack/metal-lib v0.23.5
