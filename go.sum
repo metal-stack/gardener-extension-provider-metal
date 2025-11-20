@@ -317,8 +317,8 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/metal-stack/duros-controller v0.11.7 h1:rTxiyVMf9D36jPwj+iF+jMV3Q5Tall26WiCeEwH2TAw=
 github.com/metal-stack/duros-controller v0.11.7/go.mod h1:HLSKXlf76MENi94K3UD6YSLJODTnWu2MJeoZE57Qijo=
-github.com/metal-stack/firewall-controller-manager v0.5.1 h1:TBOpJYShrMsoqtlsPVqjbUWjocHYPYj1KQRUMvOyZJg=
-github.com/metal-stack/firewall-controller-manager v0.5.1/go.mod h1:UIBMWXtiAHv40B6sAtzjsngaf+/RX6zQ0DzQCHgOJTI=
+github.com/metal-stack/firewall-controller-manager v0.5.2-0.20251120145943-91414da2349f h1:xvrVIJhdxT3UDUDvFIWfFxNeyeCkMiWmm+BOUrcmh2U=
+github.com/metal-stack/firewall-controller-manager v0.5.2-0.20251120145943-91414da2349f/go.mod h1:gXD4ExLo4IdcuiwojauT1NgMGwAGSV6YoS4Fu1ZM9k0=
 github.com/metal-stack/firewall-controller/v2 v2.4.0 h1:qkGXMuzLgQXOgaCSExMnraRM4EH4anVtUulNn1HAsW4=
 github.com/metal-stack/firewall-controller/v2 v2.4.0/go.mod h1:PfF2jYwfr/XcGb7X5Ov0sV4NT/m0aNhFa7nYV1aUj2A=
 github.com/metal-stack/metal-go v0.42.3 h1:oNpXWQHDT+6HuymcK3jQblhzhNISvnIHp1fg6VDLpSU=
