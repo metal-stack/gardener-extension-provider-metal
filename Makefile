@@ -106,7 +106,7 @@ test:
 test-in-docker: tidy
 	docker run --rm -i$(DOCKER_TTY_ARG) \
 		--user $$(id -u):$$(id -g) \
-		--mount type=tmpfs,destination=/.cache \
+		--tmpfs=/.cache:uid=$$(id -u),gid=$$(id -g) \
 		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:$(GO_VERSION) \
 			sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 					&& make install check test"
