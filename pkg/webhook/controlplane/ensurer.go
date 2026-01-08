@@ -2,6 +2,7 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/coreos/go-systemd/v22/unit"
@@ -179,13 +180,18 @@ func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gconte
 var ImageVector = imagevector.ImageVector()
 
 // EnsureMachineControllerManagerDeployment ensures that the machine-controller-manager deployment conforms to the provider requirements.
-func (e *ensurer) EnsureMachineControllerManagerDeployment(_ context.Context, _ gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
+func (e *ensurer) EnsureMachineControllerManagerDeployment(ctx context.Context, gctx gcontext.GardenContext, newObj, _ *appsv1.Deployment) error {
 	image, err := ImageVector.FindImage(metal.MCMProviderMetalImageName)
 	if err != nil {
 		return err
 	}
 
-	c := machinecontrollermanager.ProviderSidecarContainer(newObj.Namespace, metal.Name, image.String())
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return fmt.Errorf("failed reading Cluster: %w", err)
+	}
+
+	c := machinecontrollermanager.ProviderSidecarContainer(cluster.Shoot, newObj.Namespace, metal.Name, image.String())
 	c.Args = extensionswebhook.EnsureStringWithPrefix(c.Args, "--machine-health-timeout=", "10080m")
 
 	newObj.Spec.Template.Spec.Containers = extensionswebhook.EnsureContainerWithName(

@@ -214,7 +214,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			machineClassSpec["ntpServers"] = servers
 		}
 
-		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, nil, nil)
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, nil, nil, nil)
 		if err != nil {
 			return err
 		}
