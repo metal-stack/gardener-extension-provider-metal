@@ -11,6 +11,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/gardener/gardener/pkg/component/nodemanagement/machinecontrollermanager"
+	versionutils "github.com/gardener/gardener/pkg/utils/version"
 
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
@@ -54,6 +55,11 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
+	k8sVersion, err := semver.NewVersion(cluster.Shoot.Spec.Kubernetes.Version)
+	if err != nil {
+		return err
+	}
+
 	infrastructure := &extensionsv1alpha1.Infrastructure{}
 	if err := e.client.Get(ctx, client.ObjectKey{Namespace: cluster.ObjectMeta.Name, Name: cluster.Shoot.Name}, infrastructure); err != nil {
 		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
@@ -68,7 +74,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		ensureKubeAPIServerCommandLineArgs(c)
+		ensureKubeAPIServerCommandLineArgs(c, k8sVersion)
 	}
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
 		ensureVPNSeedEnvVars(c, nodeCIDR)
@@ -77,8 +83,15 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
 
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
-	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
+func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, k8sVersion *semver.Version) {
+	c.Command = extensionswebhook.EnsureNoStringWithPrefix(c.Command, "--cloud-provider=")
+	c.Command = extensionswebhook.EnsureNoStringWithPrefix(c.Command, "--cloud-config=")
+	if versionutils.ConstraintK8sLess131.Check(k8sVersion) {
+		c.Command = extensionswebhook.EnsureNoStringWithPrefixContains(c.Command, "--enable-admission-plugins=",
+			"PersistentVolumeLabel", ",")
+		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--disable-admission-plugins=",
+			"PersistentVolumeLabel", ",")
+	}
 }
 
 func ensureVPNSeedEnvVars(c *corev1.Container, nodeCIDR string) {
@@ -95,17 +108,39 @@ func ensureVPNSeedEnvVars(c *corev1.Container, nodeCIDR string) {
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
+	k8sVersion, err := semver.NewVersion(cluster.Shoot.Spec.Kubernetes.Version)
+	if err != nil {
+		return err
+	}
+
 	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-controller-manager"); c != nil {
-		ensureKubeControllerManagerCommandLineArgs(c)
+		ensureKubeControllerManagerCommandLineArgs(c, k8sVersion)
 	}
+
 	ensureKubeControllerManagerAnnotations(template)
+
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
 
-func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container) {
+func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container, k8sVersion *semver.Version) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
+
+	if versionutils.ConstraintK8sLess131.Check(k8sVersion) {
+		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
+			"InTreePluginAzureDiskUnregister=true", ",")
+		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
+			"InTreePluginAzureFileUnregister=true", ",")
+	}
+
+	c.Command = extensionswebhook.EnsureNoStringWithPrefix(c.Command, "--cloud-config=")
+	c.Command = extensionswebhook.EnsureNoStringWithPrefix(c.Command, "--external-cloud-volume-plugin=")
 }
 
 func ensureKubeControllerManagerAnnotations(t *corev1.PodTemplateSpec) {
