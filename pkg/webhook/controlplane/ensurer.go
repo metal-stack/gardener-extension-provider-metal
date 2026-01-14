@@ -129,16 +129,8 @@ func (e *ensurer) EnsureKubeControllerManagerDeployment(ctx context.Context, gct
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
 }
 
-func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container, k8sVersion *semver.Version) {
+func ensureKubeControllerManagerCommandLineArgs(c *corev1.Container, _ *semver.Version) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--cloud-provider=", "external")
-
-	if versionutils.ConstraintK8sLess131.Check(k8sVersion) {
-		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
-			"InTreePluginAzureDiskUnregister=true", ",")
-		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--feature-gates=",
-			"InTreePluginAzureFileUnregister=true", ",")
-	}
-
 	c.Command = extensionswebhook.EnsureNoStringWithPrefix(c.Command, "--cloud-config=")
 	c.Command = extensionswebhook.EnsureNoStringWithPrefix(c.Command, "--external-cloud-volume-plugin=")
 }
