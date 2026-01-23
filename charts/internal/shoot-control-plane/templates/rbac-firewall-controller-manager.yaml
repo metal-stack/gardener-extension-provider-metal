@@ -87,6 +87,7 @@ rules:
   - customresourcedefinitions
   - services
   - endpoints
+  - endpointslices
   verbs:
   - get
   - create
