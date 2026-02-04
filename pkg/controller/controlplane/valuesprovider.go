@@ -981,25 +981,34 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 		return nil, fmt.Errorf("secret %q not found", metal.FirewallControllerManagerDeploymentName)
 	}
 
-	return map[string]any{
-		"firewallControllerManager": map[string]any{
-			// We want to throw the firewall away once the cluster is hibernated.
-			// when woken up, a new firewall is created with new token, ssh key etc.
-			// This will break the firewall-only case actually only used in our test env.
-			// TODO: deletion of the firewall is not yet implemented.
-			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
-			"clusterID":        string(cluster.Shoot.GetUID()),
-			"seedApiURL":       seedApiURL,
-			"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
-			"sshKeySecretName": sshSecret.Name,
-			"metalapi": map[string]any{
-				"url": metalControlPlane.Endpoint,
-			},
-			"caBundle": strings.TrimSpace(string(caBundle.Data["ca.crt"])),
-			"secrets": map[string]any{
-				"server": serverSecret.Name,
-			},
+	firewallValues := map[string]any{
+		// We want to throw the firewall away once the cluster is hibernated.
+		// when woken up, a new firewall is created with new token, ssh key etc.
+		// This will break the firewall-only case actually only used in our test env.
+		// TODO: deletion of the firewall is not yet implemented.
+		"replicas":         extensionscontroller.GetReplicas(cluster, 1),
+		"clusterID":        string(cluster.Shoot.GetUID()),
+		"seedApiURL":       seedApiURL,
+		"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
+		"sshKeySecretName": sshSecret.Name,
+		"metalapi": map[string]any{
+			"url": metalControlPlane.Endpoint,
 		},
+		"caBundle": strings.TrimSpace(string(caBundle.Data["ca.crt"])),
+		"secrets": map[string]any{
+			"server": serverSecret.Name,
+		},
+	}
+
+	if vp.controllerConfig.FirewallHealthTimeout != nil {
+		firewallValues["firewallHealthTimeout"] = vp.controllerConfig.FirewallHealthTimeout.Duration.String()
+	}
+	if vp.controllerConfig.FirewallCreateTimeout != nil {
+		firewallValues["createTimeout"] = vp.controllerConfig.FirewallCreateTimeout.Duration.String()
+	}
+
+	return map[string]any{
+		"firewallControllerManager": firewallValues,
 	}, nil
 }
 

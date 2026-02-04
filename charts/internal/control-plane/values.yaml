@@ -17,6 +17,8 @@ firewallControllerManager:
   seedApiURL: address-to-the-seed-apiserver
   shootApiURL: address-to-the-shoot-apiserver
   sshKeySecretName: ssh-keypair
+  firewallHealthTimeout: 0s
+  createTimeout: 10m
   metalapi:
     url: https://metal-api
   caBundle: |

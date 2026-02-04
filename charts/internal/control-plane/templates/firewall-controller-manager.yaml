@@ -149,6 +149,8 @@ spec:
           - -shoot-token-secret-name=shoot-access-firewall-controller-manager
           - -ssh-key-secret-name={{ .Values.firewallControllerManager.sshKeySecretName }}
           - -shoot-token-path=/token
+          - -firewall-health-timeout={{ .Values.firewallControllerManager.firewallHealthTimeout }}
+          - -create-timeout={{ .Values.firewallControllerManager.createTimeout }}
         env:
           - name: METAL_AUTH_HMAC
             valueFrom:

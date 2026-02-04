@@ -42,4 +42,4 @@ images:
 - name: firewall-controller-manager
   sourceRepository: https://github.com/metal-stack/firewall-controller-manager
   repository: ghcr.io/metal-stack/firewall-controller-manager
-  tag: "v0.3.0"
+  tag: "firewall-health-check"

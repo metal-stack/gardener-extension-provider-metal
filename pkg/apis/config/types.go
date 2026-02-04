@@ -27,6 +27,13 @@ type ControllerConfiguration struct {
 	// networking traffic.
 	FirewallInternalPrefixes []string
 
+	// FirewallHealthTimeout is the duration after a created firewall not getting ready is considered dead.
+	// If set to 0, the timeout is disabled.
+	FirewallHealthTimeout *metav1.Duration
+
+	// FirewallCreateTimeout is the duration after which a firewall in the creation phase will be recreated.
+	FirewallCreateTimeout *metav1.Duration
+
 	// ETCD is the etcd configuration.
 	ETCD ETCD
 

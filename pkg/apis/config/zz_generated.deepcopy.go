@@ -11,6 +11,7 @@ package config
 
 import (
 	configv1alpha1 "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1alpha1 "k8s.io/component-base/config/v1alpha1"
 )
@@ -33,6 +34,16 @@ func (in *ControllerConfiguration) DeepCopyInto(out *ControllerConfiguration) {
 		in, out := &in.FirewallInternalPrefixes, &out.FirewallInternalPrefixes
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.FirewallHealthTimeout != nil {
+		in, out := &in.FirewallHealthTimeout, &out.FirewallHealthTimeout
+		*out = new(metav1.Duration)
+		**out = **in
+	}
+	if in.FirewallCreateTimeout != nil {
+		in, out := &in.FirewallCreateTimeout, &out.FirewallCreateTimeout
+		*out = new(metav1.Duration)
+		**out = **in
 	}
 	in.ETCD.DeepCopyInto(&out.ETCD)
 	if in.HealthCheckConfig != nil {
