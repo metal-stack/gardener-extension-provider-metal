@@ -15,7 +15,6 @@ import (
 	apisconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
 	config "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
 	resource "k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	configv1alpha1 "k8s.io/component-base/config/v1alpha1"
@@ -135,8 +134,6 @@ func autoConvert_v1alpha1_ControllerConfiguration_To_config_ControllerConfigurat
 	out.ClientConnection = (*configv1alpha1.ClientConnectionConfiguration)(unsafe.Pointer(in.ClientConnection))
 	out.MachineImages = *(*[]config.MachineImage)(unsafe.Pointer(&in.MachineImages))
 	out.FirewallInternalPrefixes = *(*[]string)(unsafe.Pointer(&in.FirewallInternalPrefixes))
-	out.FirewallHealthTimeout = (*metav1.Duration)(unsafe.Pointer(in.FirewallHealthTimeout))
-	out.FirewallCreateTimeout = (*metav1.Duration)(unsafe.Pointer(in.FirewallCreateTimeout))
 	if err := Convert_v1alpha1_ETCD_To_config_ETCD(&in.ETCD, &out.ETCD, s); err != nil {
 		return err
 	}
@@ -158,8 +155,6 @@ func autoConvert_config_ControllerConfiguration_To_v1alpha1_ControllerConfigurat
 	out.ClientConnection = (*configv1alpha1.ClientConnectionConfiguration)(unsafe.Pointer(in.ClientConnection))
 	out.MachineImages = *(*[]MachineImage)(unsafe.Pointer(&in.MachineImages))
 	out.FirewallInternalPrefixes = *(*[]string)(unsafe.Pointer(&in.FirewallInternalPrefixes))
-	out.FirewallHealthTimeout = (*metav1.Duration)(unsafe.Pointer(in.FirewallHealthTimeout))
-	out.FirewallCreateTimeout = (*metav1.Duration)(unsafe.Pointer(in.FirewallCreateTimeout))
 	if err := Convert_config_ETCD_To_v1alpha1_ETCD(&in.ETCD, &out.ETCD, s); err != nil {
 		return err
 	}

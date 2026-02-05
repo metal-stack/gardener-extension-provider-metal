@@ -5,8 +5,6 @@ machineImages:
 - name: ubuntu
   version: "19.04"
   imageID: ubuntu-19.04
-firewallHealthTimeout: 0s
-firewallCreateTimeout: 10m
 etcd:
   storage:
     className: gardener.cloud-fast

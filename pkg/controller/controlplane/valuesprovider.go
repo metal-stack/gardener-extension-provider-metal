@@ -400,7 +400,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, metalControlPlane, sshSecret, caBundle, secretsReader)
+	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, infrastructureConfig, metalControlPlane, sshSecret, caBundle, secretsReader)
 	if err != nil {
 		return nil, err
 	}
@@ -922,7 +922,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Context, cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, sshSecret, caBundle *corev1.Secret, secretsReader secretsmanager.Reader) (map[string]any, error) {
+func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Context, cluster *extensionscontroller.Cluster, infrastructureConfig *apismetal.InfrastructureConfig, metalControlPlane *apismetal.MetalControlPlane, sshSecret, caBundle *corev1.Secret, secretsReader secretsmanager.Reader) (map[string]any, error) {
 	if cluster.Shoot.Spec.DNS.Domain == nil {
 		return nil, fmt.Errorf("cluster dns domain is not yet set")
 	}
@@ -1000,11 +1000,11 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 		},
 	}
 
-	if vp.controllerConfig.FirewallHealthTimeout != nil {
-		firewallValues["firewallHealthTimeout"] = vp.controllerConfig.FirewallHealthTimeout.Duration.String()
+	if infrastructureConfig.Firewall.FirewallHealthTimeout != nil {
+		firewallValues["firewallHealthTimeout"] = infrastructureConfig.Firewall.FirewallHealthTimeout.Duration.String()
 	}
-	if vp.controllerConfig.FirewallCreateTimeout != nil {
-		firewallValues["createTimeout"] = vp.controllerConfig.FirewallCreateTimeout.Duration.String()
+	if infrastructureConfig.Firewall.FirewallCreateTimeout != nil {
+		firewallValues["createTimeout"] = infrastructureConfig.Firewall.FirewallCreateTimeout.Duration.String()
 	}
 
 	return map[string]any{

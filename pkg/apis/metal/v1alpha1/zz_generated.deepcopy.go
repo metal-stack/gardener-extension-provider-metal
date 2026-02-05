@@ -10,6 +10,7 @@
 package v1alpha1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -237,6 +238,16 @@ func (in *Firewall) DeepCopyInto(out *Firewall) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.FirewallHealthTimeout != nil {
+		in, out := &in.FirewallHealthTimeout, &out.FirewallHealthTimeout
+		*out = new(metav1.Duration)
+		**out = **in
+	}
+	if in.FirewallCreateTimeout != nil {
+		in, out := &in.FirewallCreateTimeout, &out.FirewallCreateTimeout
+		*out = new(metav1.Duration)
+		**out = **in
 	}
 	return
 }
