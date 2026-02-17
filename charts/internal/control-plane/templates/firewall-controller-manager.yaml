@@ -58,6 +58,7 @@ rules:
   - patch
   - create
 - apiGroups:
+  - events.k8s.io
   - ""
   resources:
   - events
