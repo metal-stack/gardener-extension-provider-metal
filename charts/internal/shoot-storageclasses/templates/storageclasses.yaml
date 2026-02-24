@@ -293,10 +293,6 @@ spec:
         - port: 53
           protocol: TCP
       to:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-        - ipBlock:
-            cidr: ::/0
         - podSelector:
             matchExpressions:
               - key: k8s-app
