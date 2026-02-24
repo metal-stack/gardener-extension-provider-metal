@@ -38,7 +38,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	v1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -207,10 +206,10 @@ var cpShootChart = &chart.Chart{
 		{Type: &corev1.Service{}, Name: "metallb-webhook-service"},
 		{Type: &appsv1.DaemonSet{}, Name: "speaker"},
 		{Type: &appsv1.Deployment{}, Name: "controller"},
-		{Type: &v1.NetworkPolicy{}, Name: "allow-to-apiserver"},
-		{Type: &v1.NetworkPolicy{}, Name: "allow-controller"},
-		{Type: &v1.NetworkPolicy{}, Name: "allow-speaker"},
-		{Type: &v1.NetworkPolicy{}, Name: "deny-all"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "allow-to-apiserver"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "allow-controller"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "allow-speaker"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "deny-all"},
 
 		// cluster wide network policies
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
