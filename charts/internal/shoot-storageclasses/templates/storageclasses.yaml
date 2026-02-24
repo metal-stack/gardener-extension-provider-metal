@@ -256,4 +256,77 @@ spec:
             path: /run/lock/lvm
             type: DirectoryOrCreate
           name: lvmlock
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    description: Allows traffic to the API server and DNS services.
+  name: allow-to-apiserver
+  namespace: csi-lvm
+spec:
+  egress:
+    - ports:
+        - port: 443
+          protocol: TCP
+    - ports:
+        - port: 8053
+          protocol: UDP
+        - port: 8053
+          protocol: TCP
+      to:
+        - podSelector:
+            matchExpressions:
+              - key: k8s-app
+                operator: In
+                values:
+                  - kube-dns
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - kube-system
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+        - ipBlock:
+            cidr: ::/0
+        - podSelector:
+            matchExpressions:
+              - key: k8s-app
+                operator: In
+                values:
+                  - node-local-dns
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - kube-system
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - allow-to-apiserver
+  policyTypes:
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    description: Disables all ingress and egress traffic into/from this namespace.
+  name: deny-all
+  namespace: csi-lvm
+spec:
+  policyTypes:
+    - Ingress
+    - Egress
 {{ end }}

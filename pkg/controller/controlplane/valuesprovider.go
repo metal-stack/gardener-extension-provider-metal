@@ -268,6 +268,8 @@ var storageClassChart = &chart.Chart{
 		{Type: &rbacv1.Role{}, Name: "csi-lvm-reviver"},
 		{Type: &rbacv1.RoleBinding{}, Name: "csi-lvm-reviver"},
 		{Type: &appsv1.DaemonSet{}, Name: "csi-lvm-reviver"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "allow-to-apiserver"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "deny-all"},
 	},
 }
 
