@@ -314,7 +314,7 @@ spec:
       - key: app
         operator: In
         values:
-          - allow-to-apiserver
+          - csi-lvm-controller
   policyTypes:
     - Egress
 ---
