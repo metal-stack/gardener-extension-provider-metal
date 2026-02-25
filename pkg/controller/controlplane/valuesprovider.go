@@ -206,10 +206,10 @@ var cpShootChart = &chart.Chart{
 		{Type: &corev1.Service{}, Name: "metallb-webhook-service"},
 		{Type: &appsv1.DaemonSet{}, Name: "speaker"},
 		{Type: &appsv1.Deployment{}, Name: "controller"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "allow-to-apiserver"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "allow-metallb-to-apiserver"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "allow-controller"},
 		{Type: &networkingv1.NetworkPolicy{}, Name: "allow-speaker"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "deny-all"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "deny-all-metallb-system"},
 
 		// cluster wide network policies
 		{Type: &firewallv1.ClusterwideNetworkPolicy{}, Name: "allow-to-http"},
@@ -268,8 +268,8 @@ var storageClassChart = &chart.Chart{
 		{Type: &rbacv1.Role{}, Name: "csi-lvm-reviver"},
 		{Type: &rbacv1.RoleBinding{}, Name: "csi-lvm-reviver"},
 		{Type: &appsv1.DaemonSet{}, Name: "csi-lvm-reviver"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "allow-to-apiserver"},
-		{Type: &networkingv1.NetworkPolicy{}, Name: "deny-all"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "allow-csi-lvm-to-apiserver"},
+		{Type: &networkingv1.NetworkPolicy{}, Name: "deny-all-csi-lvm"},
 	},
 }
 

@@ -720,7 +720,7 @@ kind: NetworkPolicy
 metadata:
   annotations:
     description: Allows traffic to the API server and DNS services.
-  name: allow-to-apiserver
+  name: allow-metallb-to-apiserver
   namespace: metallb-system
 spec:
   egress:
@@ -880,7 +880,7 @@ kind: NetworkPolicy
 metadata:
   annotations:
     description: Disables all ingress and egress traffic into/from this namespace.
-  name: deny-all
+  name: deny-all-metallb-system
   namespace: metallb-system
 spec:
   policyTypes:
