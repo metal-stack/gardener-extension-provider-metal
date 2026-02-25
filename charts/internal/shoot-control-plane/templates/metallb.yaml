@@ -714,4 +714,176 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: controller
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    description: Allows traffic to the API server and DNS services.
+  name: allow-metallb-to-apiserver
+  namespace: metallb-system
+spec:
+  egress:
+    - ports:
+        - port: 443
+          protocol: TCP
+    - ports:
+        - port: 8053
+          protocol: UDP
+        - port: 8053
+          protocol: TCP
+      to:
+        - podSelector:
+            matchExpressions:
+              - key: k8s-app
+                operator: In
+                values:
+                  - kube-dns
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - kube-system
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - podSelector:
+            matchExpressions:
+              - key: k8s-app
+                operator: In
+                values:
+                  - node-local-dns
+        - namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - kube-system
+  podSelector:
+    matchExpressions:
+      - key: component
+        operator: In
+        values:
+          - speaker
+          - controller
+  policyTypes:
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    description: Allows traffic to the controller monitoring port and metrics port.
+  name: allow-controller
+  namespace: metallb-system
+spec:
+  ingress:
+    - ports:
+        - port: 9443
+          protocol: TCP
+      from:
+        - podSelector:
+            matchLabels:
+              app: vpn-shoot
+              gardener.cloud/role: system-component
+              origin: gardener
+              type: tunnel
+          namespaceSelector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - kube-system
+    - ports:
+        - protocol: TCP
+          port: 7472
+      from:
+        - namespaceSelector: {}
+          podSelector: {}
+  podSelector:
+    matchExpressions:
+      - key: component
+        operator: In
+        values:
+          - controller
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    description: Allows traffic to and from speaker BGP, metrics and memberlist ports.
+  name: allow-speaker
+  namespace: metallb-system
+spec:
+  egress:
+    - ports:
+        - port: 179
+          protocol: TCP
+      to:
+        - ipBlock:
+            cidr: {{ .Values.nodeCIDR }}
+    - ports:
+        - protocol: TCP
+          port: 7946
+        - protocol: UDP
+          port: 7946
+      to:
+        - podSelector:
+            matchExpressions:
+              - key: component
+                operator: In
+                values:
+                  - speaker
+  ingress:
+    - ports:
+        - port: 179
+          protocol: TCP
+      from:
+        - ipBlock:
+            cidr: {{ .Values.nodeCIDR }}
+    - ports:
+        - protocol: TCP
+          port: 7946
+        - protocol: UDP
+          port: 7946
+      from:
+        - podSelector:
+            matchExpressions:
+              - key: component
+                operator: In
+                values:
+                  - speaker
+    - ports:
+        - protocol: TCP
+          port: 7472
+      from:
+        - namespaceSelector: {}
+          podSelector: {}
+  podSelector:
+    matchExpressions:
+      - key: component
+        operator: In
+        values:
+          - speaker
+  policyTypes:
+    - Egress
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    description: Disables all ingress and egress traffic into/from this namespace.
+  name: deny-all-metallb-system
+  namespace: metallb-system
+spec:
+  policyTypes:
+    - Ingress
+    - Egress
 {{- end }}
