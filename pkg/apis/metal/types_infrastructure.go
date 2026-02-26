@@ -23,6 +23,11 @@ type Firewall struct {
 	LogAcceptedConnections bool
 	ControllerVersion      string
 	AutoUpdateMachineImage bool
+	// FirewallHealthTimeout is the duration after a created firewall not getting ready is considered dead.
+	// If set to 0, the timeout is disabled.
+	FirewallHealthTimeout *metav1.Duration
+	// FirewallCreateTimeout is the duration after which a firewall in the creation phase will be recreated.
+	FirewallCreateTimeout *metav1.Duration
 }
 
 type RateLimit struct {
