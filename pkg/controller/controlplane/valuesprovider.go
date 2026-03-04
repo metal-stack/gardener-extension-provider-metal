@@ -406,7 +406,7 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		return nil, err
 	}
 
-	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, metalControlPlane, sshSecret, caBundle, secretsReader)
+	firewallValues, err := vp.getFirewallControllerManagerChartValues(ctx, cluster, infrastructureConfig, metalControlPlane, sshSecret, caBundle, secretsReader)
 	if err != nil {
 		return nil, err
 	}
@@ -928,7 +928,7 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 	return values, nil
 }
 
-func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Context, cluster *extensionscontroller.Cluster, metalControlPlane *apismetal.MetalControlPlane, sshSecret, caBundle *corev1.Secret, secretsReader secretsmanager.Reader) (map[string]any, error) {
+func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Context, cluster *extensionscontroller.Cluster, infrastructureConfig *apismetal.InfrastructureConfig, metalControlPlane *apismetal.MetalControlPlane, sshSecret, caBundle *corev1.Secret, secretsReader secretsmanager.Reader) (map[string]any, error) {
 	if cluster.Shoot.Spec.DNS.Domain == nil {
 		return nil, fmt.Errorf("cluster dns domain is not yet set")
 	}
@@ -987,25 +987,34 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 		return nil, fmt.Errorf("secret %q not found", metal.FirewallControllerManagerDeploymentName)
 	}
 
-	return map[string]any{
-		"firewallControllerManager": map[string]any{
-			// We want to throw the firewall away once the cluster is hibernated.
-			// when woken up, a new firewall is created with new token, ssh key etc.
-			// This will break the firewall-only case actually only used in our test env.
-			// TODO: deletion of the firewall is not yet implemented.
-			"replicas":         extensionscontroller.GetReplicas(cluster, 1),
-			"clusterID":        string(cluster.Shoot.GetUID()),
-			"seedApiURL":       seedApiURL,
-			"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
-			"sshKeySecretName": sshSecret.Name,
-			"metalapi": map[string]any{
-				"url": metalControlPlane.Endpoint,
-			},
-			"caBundle": strings.TrimSpace(string(caBundle.Data["ca.crt"])),
-			"secrets": map[string]any{
-				"server": serverSecret.Name,
-			},
+	firewallValues := map[string]any{
+		// We want to throw the firewall away once the cluster is hibernated.
+		// when woken up, a new firewall is created with new token, ssh key etc.
+		// This will break the firewall-only case actually only used in our test env.
+		// TODO: deletion of the firewall is not yet implemented.
+		"replicas":         extensionscontroller.GetReplicas(cluster, 1),
+		"clusterID":        string(cluster.Shoot.GetUID()),
+		"seedApiURL":       seedApiURL,
+		"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
+		"sshKeySecretName": sshSecret.Name,
+		"metalapi": map[string]any{
+			"url": metalControlPlane.Endpoint,
 		},
+		"caBundle": strings.TrimSpace(string(caBundle.Data["ca.crt"])),
+		"secrets": map[string]any{
+			"server": serverSecret.Name,
+		},
+	}
+
+	if infrastructureConfig.Firewall.FirewallHealthTimeout != nil {
+		firewallValues["firewallHealthTimeout"] = infrastructureConfig.Firewall.FirewallHealthTimeout.Duration.String()
+	}
+	if infrastructureConfig.Firewall.FirewallCreateTimeout != nil {
+		firewallValues["createTimeout"] = infrastructureConfig.Firewall.FirewallCreateTimeout.Duration.String()
+	}
+
+	return map[string]any{
+		"firewallControllerManager": firewallValues,
 	}, nil
 }
 

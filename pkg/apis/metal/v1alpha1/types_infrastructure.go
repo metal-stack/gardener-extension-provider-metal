@@ -23,6 +23,13 @@ type Firewall struct {
 	LogAcceptedConnections bool         `json:"logAcceptedConnections"`
 	ControllerVersion      string       `json:"controllerVersion"`
 	AutoUpdateMachineImage bool         `json:"autoUpdateMachineImage,omitempty"`
+	// FirewallHealthTimeout is the duration after a created firewall not getting ready is considered dead.
+	// If set to 0, the timeout is disabled.
+	// +optional
+	FirewallHealthTimeout *metav1.Duration `json:"firewallHealthTimeout,omitempty"`
+	// FirewallCreateTimeout is the duration after which a firewall in the creation phase will be recreated.
+	// +optional
+	FirewallCreateTimeout *metav1.Duration `json:"firewallCreateTimeout,omitempty"`
 }
 
 type RateLimit struct {

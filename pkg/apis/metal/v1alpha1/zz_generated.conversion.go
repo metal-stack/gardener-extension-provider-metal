@@ -13,6 +13,7 @@ import (
 	unsafe "unsafe"
 
 	metal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -410,6 +411,8 @@ func autoConvert_v1alpha1_Firewall_To_metal_Firewall(in *Firewall, out *metal.Fi
 	out.LogAcceptedConnections = in.LogAcceptedConnections
 	out.ControllerVersion = in.ControllerVersion
 	out.AutoUpdateMachineImage = in.AutoUpdateMachineImage
+	out.FirewallHealthTimeout = (*metav1.Duration)(unsafe.Pointer(in.FirewallHealthTimeout))
+	out.FirewallCreateTimeout = (*metav1.Duration)(unsafe.Pointer(in.FirewallCreateTimeout))
 	return nil
 }
 
@@ -427,6 +430,8 @@ func autoConvert_metal_Firewall_To_v1alpha1_Firewall(in *metal.Firewall, out *Fi
 	out.LogAcceptedConnections = in.LogAcceptedConnections
 	out.ControllerVersion = in.ControllerVersion
 	out.AutoUpdateMachineImage = in.AutoUpdateMachineImage
+	out.FirewallHealthTimeout = (*metav1.Duration)(unsafe.Pointer(in.FirewallHealthTimeout))
+	out.FirewallCreateTimeout = (*metav1.Duration)(unsafe.Pointer(in.FirewallCreateTimeout))
 	return nil
 }
 
