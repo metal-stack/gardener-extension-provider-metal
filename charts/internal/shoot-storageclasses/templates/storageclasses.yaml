@@ -281,7 +281,7 @@ spec:
                 operator: In
                 values:
                   - kube-dns
-        - namespaceSelector:
+          namespaceSelector:
             matchExpressions:
               - key: kubernetes.io/metadata.name
                 operator: In
@@ -299,12 +299,16 @@ spec:
                 operator: In
                 values:
                   - node-local-dns
-        - namespaceSelector:
+          namespaceSelector:
             matchExpressions:
               - key: kubernetes.io/metadata.name
                 operator: In
                 values:
                   - kube-system
+        - ipBlock:
+            cidr: 0.0.0.0/0
+        - ipBlock:
+            cidr: ::/0
   podSelector:
     matchExpressions:
       - key: app
