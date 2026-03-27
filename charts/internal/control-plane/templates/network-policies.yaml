@@ -1,10 +1,9 @@
-{{- if .Values.networkPolicies.enabled }}
+{{- if and .Values.networkPolicies.enabled .Values.networkPolicies.ingressController  }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-to-ingress-controller
-  namespace: {{ .Release.Namespace }}
 spec:
   egress:
   - ports:

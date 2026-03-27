@@ -47,5 +47,6 @@ data:
 {{- end }}
 {{- if .Values.config.networkPolicies.enabled }}
     networkPolicies:
-{{ toYaml .Values.config.networkPolicies.ingressController | indent 6 }}
+      ingressController:
+{{ toYaml .Values.config.networkPolicies.ingressController | indent 8 }}
 {{- end }}
