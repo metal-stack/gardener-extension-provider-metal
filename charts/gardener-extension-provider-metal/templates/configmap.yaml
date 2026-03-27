@@ -45,7 +45,7 @@ data:
     imagePullSecret:
       encodedDockerConfigJSON: {{ .Values.config.imagePullSecret.encodedDockerConfigJSON }}
 {{- end }}
-{{- if .Values.networkPolicies.enabled }}
+{{- if .Values.config.networkPolicies.enabled }}
     networkPolicies:
 {{ toYaml .Values.config.ingressController | indent 6 }}
 {{- end }}
