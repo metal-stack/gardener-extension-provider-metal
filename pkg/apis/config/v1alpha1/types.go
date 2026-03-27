@@ -147,7 +147,7 @@ type ImagePullSecret struct {
 type NetworkPolicies struct {
 	// IngressController contains extra configuration for network policies regarding an ingress-controller
 	// +optional
-	IngressController *NetpolsIngressController `json:"ingressController"`
+	IngressController *NetpolsIngressController `json:"ingressController,omitempty"`
 }
 
 // NetpolsIngressController contains extra configuration for network policies regarding an ingress-controller
