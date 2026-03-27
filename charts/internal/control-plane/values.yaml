@@ -69,3 +69,12 @@ duros:
     apiCert:
 
 genericTokenKubeconfigSecretName: generic-token-kubeconfig
+
+# this allows the connection to an ingress-controller namespace in the cluster (namespaced not governed by the Gardener)
+# only interesting when metal-stack and Garden cluster is in the same cluster
+networkPolicies:
+  enabled: false
+  ingressController:
+    namespace: ingress-nginx
+    podSelector:
+      app.kubernetes.io/name: ingress-nginx
