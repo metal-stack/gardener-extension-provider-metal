@@ -420,6 +420,22 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 		"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
 	}
 
+	if vp.controllerConfig.NetworkPolicies != nil {
+		var ingressValues map[string]any
+
+		if vp.controllerConfig.NetworkPolicies.IngressController != nil {
+			ingressValues = map[string]any{
+				"namespace":   vp.controllerConfig.NetworkPolicies.IngressController.Namespace,
+				"podSelector": vp.controllerConfig.NetworkPolicies.IngressController.PodSelector,
+			}
+		}
+
+		values["networkPolicies"] = map[string]any{
+			"enabled":           true,
+			"ingressController": ingressValues,
+		}
+	}
+
 	merge(values, ccmValues, storageValues, firewallValues)
 
 	if vp.controllerConfig.ImagePullSecret != nil {
