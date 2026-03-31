@@ -18,7 +18,6 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
@@ -66,18 +65,10 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		return err
 	}
 
-	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
-	if err != nil {
-		return err
-	}
-
 	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		ensureKubeAPIServerCommandLineArgs(c, k8sVersion)
-	}
-	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed"); c != nil {
-		ensureVPNSeedEnvVars(c, nodeCIDR)
 	}
 
 	return e.ensureChecksumAnnotations(ctx, &new.Spec.Template, new.Namespace)
@@ -92,18 +83,6 @@ func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, k8sVersion *semver.
 		c.Command = extensionswebhook.EnsureStringWithPrefixContains(c.Command, "--disable-admission-plugins=",
 			"PersistentVolumeLabel", ",")
 	}
-}
-
-func ensureVPNSeedEnvVars(c *corev1.Container, nodeCIDR string) {
-	// fixes a regression from https://github.com/gardener/gardener/pull/4691
-	// raising the timeout to 15 minutes leads to additional 15 minutes of provisioning time because
-	// the nodes cidr will only be set on next shoot reconcile
-	// with the following mutation we can immediately provide the proper nodes cidr and save time
-	logger.Info("ensuring nodes cidr in container", "container", c.Name, "cidr", nodeCIDR)
-	c.Env = extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
-		Name:  "NODE_NETWORK",
-		Value: nodeCIDR,
-	})
 }
 
 // EnsureKubeControllerManagerDeployment ensures that the kube-controller-manager deployment conforms to the provider requirements.
@@ -177,29 +156,6 @@ func (e *ensurer) EnsureKubeletConfiguration(ctx context.Context, gctx gcontext.
 
 // EnsureVPNSeedServerDeployment ensures that the vpn seed server deployment configuration conforms to the provider requirements.
 func (e *ensurer) EnsureVPNSeedServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
-	cluster, err := gctx.GetCluster(ctx)
-	if err != nil {
-		return err
-	}
-
-	infrastructure := &extensionsv1alpha1.Infrastructure{}
-	if err := e.client.Get(ctx, client.ObjectKey{Namespace: cluster.ObjectMeta.Name, Name: cluster.Shoot.Name}, infrastructure); err != nil {
-		logger.Error(err, "could not read Infrastructure for cluster", "cluster name", cluster.ObjectMeta.Name)
-		return err
-	}
-
-	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
-	if err != nil {
-		return err
-	}
-
-	template := &new.Spec.Template
-	ps := &template.Spec
-
-	if c := extensionswebhook.ContainerWithName(ps.Containers, "vpn-seed-server"); c != nil {
-		ensureVPNSeedEnvVars(c, nodeCIDR)
-	}
-
 	return nil
 }
 
