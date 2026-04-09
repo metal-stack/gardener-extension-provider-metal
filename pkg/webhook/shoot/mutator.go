@@ -45,13 +45,6 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 	}
 
 	switch x := new.(type) {
-	case *appsv1.Deployment:
-		switch x.Name {
-		case "vpn-shoot":
-			extensionswebhook.LogMutation(logger, x.Kind, x.Namespace, x.Name)
-			return m.mutateVPNShootDeployment(ctx, x)
-
-		}
 	case *appsv1.DaemonSet:
 		switch x.Name {
 		case "calico-node":
@@ -59,30 +52,6 @@ func (m *mutator) Mutate(ctx context.Context, new, _ client.Object) error {
 			return m.mutateCalicoNode(ctx, x)
 		}
 	}
-	return nil
-}
-
-func (m *mutator) mutateVPNShootDeployment(_ context.Context, deployment *appsv1.Deployment) error {
-	if c := extensionswebhook.ContainerWithName(deployment.Spec.Template.Spec.Containers, "vpn-shoot"); c != nil {
-		// fixes a regression from https://github.com/gardener/gardener/pull/4691
-		// raising the timeout to 15 minutes leads to additional 15 minutes of provisioning time because
-		// the nodes cidr will only be set on next shoot reconcile
-		// with the following mutation we can immediately provide the proper nodes cidr and save time
-		m.logger.Info("ensuring nodes cidr from shoot-node-cidr configmap in vpn-shoot deployment")
-		c.Env = extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
-			Name:  "NODE_NETWORK",
-			Value: "",
-			ValueFrom: &corev1.EnvVarSource{
-				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "shoot-info-node-cidr",
-					},
-					Key: "node-cidr",
-				},
-			},
-		})
-	}
-
 	return nil
 }
 
