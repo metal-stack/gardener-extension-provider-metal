@@ -1,0 +1,46 @@
+---
+name: metal-stack component release
+
+on:
+  pull_request:
+    branches:
+      - master
+  release:
+    types:
+      - published
+  push:
+    branches:
+      - master
+
+jobs:
+  draft:
+    uses: metal-stack/actions-common/.github/workflows/release-drafter.yaml@v1
+
+  go-build:
+    uses: metal-stack/actions-common/.github/workflows/go-build.yaml@v1
+    secrets: inherit
+    with:
+      build-command: make build
+      test-command: make test-in-docker
+
+  extension-helm-chart:
+    uses:  metal-stack/actions-common/.github/workflows/helm-chart.yaml@helm-chart-action
+    secrets: inherit
+    with:
+      chart-path: charts/gardener-extension-provider-metal
+      container-image-values-patch: image.tag
+
+  admission-runtime-helm-chart:
+    uses:  metal-stack/actions-common/.github/workflows/helm-chart.yaml@helm-chart-action
+    secrets: inherit
+    with:
+      chart-name: gardener-extension-admission-metal-runtime
+      chart-path: charts/gardener-extension-admission-metal/runtime
+      container-image-values-patch: image.tag
+
+  admission-application-helm-chart:
+    uses:  metal-stack/actions-common/.github/workflows/helm-chart.yaml@helm-chart-action
+    secrets: inherit
+    with:
+      chart-name: gardener-extension-admission-metal-application
+      chart-path: charts/gardener-extension-admission-metal/application
