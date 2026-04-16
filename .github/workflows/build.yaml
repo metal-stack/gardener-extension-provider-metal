@@ -35,7 +35,7 @@ jobs:
     secrets: inherit
     with:
       chart-name: gardener-extension-admission-metal-runtime
-      chart-path: charts/gardener-extension-admission-metal/runtime
+      chart-path: charts/gardener-extension-admission-metal/charts/runtime
       container-image-values-patch: image.tag
 
   admission-application-helm-chart:
@@ -43,4 +43,4 @@ jobs:
     secrets: inherit
     with:
       chart-name: gardener-extension-admission-metal-application
-      chart-path: charts/gardener-extension-admission-metal/application
+      chart-path: charts/gardener-extension-admission-metal/charts/application
