@@ -24,14 +24,14 @@ jobs:
       test-command: make test-in-docker
 
   extension-helm-chart:
-    uses:  metal-stack/actions-common/.github/workflows/helm-chart.yaml@helm-chart-action
+    uses:  metal-stack/actions-common/.github/workflows/helm-chart.yaml@v1
     secrets: inherit
     with:
       chart-path: charts/gardener-extension-provider-metal
       container-image-values-patch: image.tag
 
   admission-runtime-helm-chart:
-    uses:  metal-stack/actions-common/.github/workflows/helm-chart.yaml@helm-chart-action
+    uses:  metal-stack/actions-common/.github/workflows/helm-chart.yaml@v1
     secrets: inherit
     with:
       chart-name: gardener-extension-admission-metal-runtime
@@ -39,7 +39,7 @@ jobs:
       container-image-values-patch: image.tag
 
   admission-application-helm-chart:
-    uses:  metal-stack/actions-common/.github/workflows/helm-chart.yaml@helm-chart-action
+    uses:  metal-stack/actions-common/.github/workflows/helm-chart.yaml@v1
     secrets: inherit
     with:
       chart-name: gardener-extension-admission-metal-application
