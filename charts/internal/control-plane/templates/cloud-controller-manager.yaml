@@ -110,13 +110,18 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz
-            scheme: HTTPS
-            port: {{ include "cloud-controller-manager.port" . }}
-          successThreshold: 1
-          failureThreshold: 2
+            port: 10268
+            scheme: HTTP
           initialDelaySeconds: 15
-          periodSeconds: 10
-          timeoutSeconds: 15
+          failureThreshold: 60
+          periodSeconds: 60
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 10268
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 60
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         {{- if .Values.cloudControllerManager.resources }}
