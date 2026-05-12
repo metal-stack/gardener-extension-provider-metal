@@ -112,7 +112,7 @@ spec:
             path: /healthz
             port: 10268
             scheme: HTTP
-          initialDelaySeconds: 15
+          initialDelaySeconds: 60
           failureThreshold: 60
           periodSeconds: 60
         readinessProbe:
