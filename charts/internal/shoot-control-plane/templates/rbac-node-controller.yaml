@@ -144,11 +144,17 @@ rules:
     - update
 # allows metrics endpoint to be accessed
 - apiGroups:
+    - authentication.k8s.io
+  resources:
+    - tokenreviews
+  verbs:
+    - create
+- apiGroups:
     - authorization.k8s.io
   resources:
     - subjectaccessreviews
   verbs:
-    - create
+  - create
 {{- if .Values.cilium.enabled }}
 - apiGroups:
     - cilium.io
