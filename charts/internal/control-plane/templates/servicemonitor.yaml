@@ -1,0 +1,26 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    prometheus: shoot
+  name: shoot-cloud-controller-manager
+spec:
+  endpoints:
+  - authorization:
+      credentials:
+        key: token
+        name: shoot-access-prometheus-shoot
+    port: metrics
+    scheme: https
+    relabelings:
+    - action: labelmap
+      regex: __meta_kubernetes_service_label_(.+)
+    tlsConfig:
+      ca: {}
+      cert: {}
+      insecureSkipVerify: true
+  selector:
+    matchLabels:
+      app: kubernetes
+      role: cloud-controller-manager
