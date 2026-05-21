@@ -52,9 +52,14 @@ spec:
         networking.gardener.cloud/from-prometheus: allowed
         networking.gardener.cloud/to-dns: allowed
         networking.gardener.cloud/to-shoot-apiserver: allowed
-        networking.gardener.cloud/to-private-networks: "allowed"
+        networking.gardener.cloud/to-private-networks: allowed
         networking.gardener.cloud/to-public-networks: allowed
         networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: "allowed"
+{{- if and .Values.metrics.enableScraping }}
+        prometheus.io/name: cloud-controller-manager
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ include "cloud-controller-manager.port" . }}"
+{{- end }}
     spec:
       tolerations:
       - effect: NoExecute

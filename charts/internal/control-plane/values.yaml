@@ -78,3 +78,6 @@ networkPolicies:
     namespace: ingress-nginx
     podSelector:
       app.kubernetes.io/name: ingress-nginx
+
+metrics:
+  enableScraping: true

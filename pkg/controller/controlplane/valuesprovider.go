@@ -14,6 +14,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
@@ -785,6 +786,8 @@ func getCCMChartValues(
 		loadBalancer = "cilium"
 	}
 
+	spew.Dump(checksums)
+
 	values := map[string]interface{}{
 		"cloudControllerManager": map[string]interface{}{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
@@ -800,10 +803,8 @@ func getCCMChartValues(
 				"endpoint": mcp.Endpoint,
 			},
 			"podAnnotations": map[string]interface{}{
-				"checksum/secret-cloud-controller-manager":        checksums[metal.CloudControllerManagerDeploymentName],
 				"checksum/secret-cloud-controller-manager-server": checksums[metal.CloudControllerManagerServerName],
 				"checksum/secret-cloudprovider":                   checksums[v1beta1constants.SecretNameCloudProvider],
-				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
 			},
 			"tlsCipherSuites": kutil.TLSCipherSuites,
 			"secrets": map[string]any{

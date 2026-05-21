@@ -144,7 +144,7 @@ rules:
     - update
 # allows metrics endpoint to be accessed
 - apiGroups:
-    - subjectaccessreviews.authorization.k8s.io
+    - authorization.k8s.io
   resources:
     - subjectaccessreviews
   verbs:
