@@ -55,6 +55,7 @@ spec:
         networking.gardener.cloud/to-private-networks: allowed
         networking.gardener.cloud/to-public-networks: allowed
         networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: "allowed"
+        networking.resources.gardener.cloud/from-all-seed-scrape-targets-allowed-ports: '[{"protocol":"TCP","port":{{ include "cloud-controller-manager.port" . }}}]'
 {{- if and .Values.metrics.enableScraping }}
         prometheus.io/name: cloud-controller-manager
         prometheus.io/scrape: "true"
