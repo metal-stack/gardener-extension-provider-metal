@@ -61,7 +61,7 @@ var _ = Describe("Shoot validation", func() {
 
 		It("volume must be nil", func() {
 			workers[0].Volume = &core.Volume{
-				Type: strPtr("fancy-storage"),
+				Type: new("fancy-storage"),
 			}
 
 			errorList := ValidateWorkers(workers, cloudProfile, field.NewPath("workers"))
@@ -119,6 +119,7 @@ var _ = Describe("Shoot validation", func() {
 	})
 })
 
+//go:fix inline
 func strPtr(str string) *string {
-	return &str
+	return new(str)
 }
