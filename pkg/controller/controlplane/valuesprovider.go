@@ -792,7 +792,6 @@ func getCCMChartValues(
 			"clusterID":              cluster.Shoot.UID,
 			"partitionID":            infrastructureConfig.PartitionID,
 			"networkID":              *privateNetwork.ID,
-			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
 			"defaultExternalNetwork": defaultExternalNetwork,
 			"additionalNetworks":     strings.Join(infrastructureConfig.Firewall.Networks, ","),
 			"loadBalancer":           loadBalancer,
