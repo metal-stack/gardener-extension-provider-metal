@@ -113,7 +113,7 @@ spec:
           httpGet:
             path: /healthz
             scheme: HTTPS
-            port: {{ include "cloud-controller-manager.port" . }}
+            port: ccm-secure
           successThreshold: 1
           failureThreshold: 6
           initialDelaySeconds: 15
