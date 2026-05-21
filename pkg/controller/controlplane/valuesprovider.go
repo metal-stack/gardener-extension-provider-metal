@@ -14,7 +14,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/metal-stack/metal-go/api/client/network"
 	"github.com/metal-stack/metal-go/api/models"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
@@ -785,8 +784,6 @@ func getCCMChartValues(
 	if pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type) == "cilium" {
 		loadBalancer = "cilium"
 	}
-
-	spew.Dump(checksums)
 
 	values := map[string]interface{}{
 		"cloudControllerManager": map[string]interface{}{
