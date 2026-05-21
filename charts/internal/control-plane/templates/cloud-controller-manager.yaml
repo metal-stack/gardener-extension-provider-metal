@@ -119,16 +119,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 60
           timeoutSeconds: 15
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            scheme: HTTPS
-            port: {{ include "cloud-controller-manager.port" . }}
-          successThreshold: 1
-          failureThreshold: 6
-          initialDelaySeconds: 15
-          periodSeconds: 60
-          timeoutSeconds: 15
         startupProbe:
           httpGet:
             path: /healthz
