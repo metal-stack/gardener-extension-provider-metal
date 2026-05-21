@@ -106,7 +106,7 @@ spec:
           - name: LOADBALANCER
             value: {{ .Values.cloudControllerManager.loadBalancer }}
         ports:
-          - name: server
+          - name: ccm-secure
             containerPort: {{ include "cloud-controller-manager.port" . }}
             protocol: TCP
         livenessProbe:
