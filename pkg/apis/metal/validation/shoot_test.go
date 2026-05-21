@@ -118,8 +118,3 @@ var _ = Describe("Shoot validation", func() {
 		})
 	})
 })
-
-//go:fix inline
-func strPtr(str string) *string {
-	return new(str)
-}
