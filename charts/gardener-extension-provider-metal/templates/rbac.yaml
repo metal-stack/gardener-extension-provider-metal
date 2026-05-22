@@ -85,6 +85,7 @@ rules:
   - validatingwebhookconfigurations
   - customresourcedefinitions
   - networkpolicies
+  - servicemonitors
   verbs:
   - "*"
 - apiGroups:
