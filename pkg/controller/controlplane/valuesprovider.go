@@ -796,7 +796,7 @@ func getCCMChartValues(
 			"metal": map[string]any{
 				"endpoint": mcp.Endpoint,
 			},
-			"podAnnotations": map[string]interface{}{
+			"podAnnotations": map[string]any{
 				"checksum/secret-cloud-controller-manager-server": checksums[metal.CloudControllerManagerServerName],
 				"checksum/secret-cloudprovider":                   checksums[v1beta1constants.SecretNameCloudProvider],
 			},
