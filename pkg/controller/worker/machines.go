@@ -52,7 +52,7 @@ func (w *workerDelegate) DeployMachineClasses(ctx context.Context) error {
 		}
 	}
 
-	values := kubernetes.Values(map[string]interface{}{"machineClasses": w.machineClasses})
+	values := kubernetes.Values(map[string]any{"machineClasses": w.machineClasses})
 
 	return w.seedChartApplier.ApplyFromEmbeddedFS(ctx, charts.InternalChart, filepath.Join("internal", "machineclass"), w.worker.Namespace, "machineclass", values)
 }
@@ -214,7 +214,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			machineClassSpec["ntpServers"] = servers
 		}
 
-		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, nil, nil)
+		workerPoolHash, err := worker.WorkerPoolHash(pool, w.cluster, nil, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -267,9 +267,9 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 
 		// if we'd move the endpoint out of this secret into the deployment spec (which would be the way to go)
 		// it would roll all worker nodes...
-		machineClassSpec["secret"].(map[string]interface{})["metalAPIURL"] = w.additionalData.mcp.Endpoint
-		machineClassSpec["secret"].(map[string]interface{})[metal.APIKey] = w.additionalData.credentials.MetalAPIKey
-		machineClassSpec["secret"].(map[string]interface{})[metal.APIHMac] = w.additionalData.credentials.MetalAPIHMac
+		machineClassSpec["secret"].(map[string]any)["metalAPIURL"] = w.additionalData.mcp.Endpoint
+		machineClassSpec["secret"].(map[string]any)[metal.APIKey] = w.additionalData.credentials.MetalAPIKey
+		machineClassSpec["secret"].(map[string]any)[metal.APIHMac] = w.additionalData.credentials.MetalAPIHMac
 
 		machineClasses = append(machineClasses, machineClassSpec)
 	}

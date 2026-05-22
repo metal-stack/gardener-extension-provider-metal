@@ -82,7 +82,7 @@ type (
 		cluster *extensionscontroller.Cluster
 		worker  *extensionsv1alpha1.Worker
 
-		machineClasses     []map[string]interface{}
+		machineClasses     []map[string]any
 		machineDeployments worker.MachineDeployments
 		machineImages      []apismetal.MachineImage
 

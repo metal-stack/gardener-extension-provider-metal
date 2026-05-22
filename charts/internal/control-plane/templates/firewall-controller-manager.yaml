@@ -58,6 +58,7 @@ rules:
   - patch
   - create
 - apiGroups:
+  - events.k8s.io
   - ""
   resources:
   - events
@@ -149,6 +150,12 @@ spec:
           - -shoot-token-secret-name=shoot-access-firewall-controller-manager
           - -ssh-key-secret-name={{ .Values.firewallControllerManager.sshKeySecretName }}
           - -shoot-token-path=/token
+          {{ if .Values.firewallControllerManager.firewallHealthTimeout }}
+          - -firewall-health-timeout={{ .Values.firewallControllerManager.firewallHealthTimeout }}
+          {{ end }}
+          {{ if .Values.firewallControllerManager.createTimeout }}
+          - -create-timeout={{ .Values.firewallControllerManager.createTimeout }}
+          {{ end }}
         env:
           - name: METAL_AUTH_HMAC
             valueFrom:

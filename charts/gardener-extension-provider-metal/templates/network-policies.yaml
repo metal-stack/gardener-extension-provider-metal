@@ -1,0 +1,27 @@
+{{- if .Values.config.networkPolicies.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-ingress-controller
+  namespace: {{ .Release.Namespace }}
+spec:
+  egress:
+  - ports:
+    - port: 80
+      protocol: TCP
+    - port: 443
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          {{- .Values.config.networkPolicies.ingressController.podSelector | toYaml | nindent 10 }}
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: {{ .Values.config.networkPolicies.ingressController.namespace }}
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "name" . }}
+  policyTypes:
+  - Egress
+{{- end }}

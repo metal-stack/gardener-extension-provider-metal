@@ -11,8 +11,8 @@ VERIFY                      := true
 LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
-GO_VERSION                  := 1.25
-GOLANGCI_LINT_VERSION       := v2.4.0
+GO_VERSION                  := 1.26
+GOLANGCI_LINT_VERSION       := v2.10.1
 
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
@@ -106,7 +106,7 @@ test:
 test-in-docker: tidy
 	docker run --rm -i$(DOCKER_TTY_ARG) \
 		--user $$(id -u):$$(id -g) \
-		--mount type=tmpfs,destination=/.cache \
+		--tmpfs=/.cache:uid=$$(id -u),gid=$$(id -g) \
 		--volume $(PWD):/go/src/github.com/metal-stack/gardener-extension-provider-metal golang:$(GO_VERSION) \
 			sh -c "cd /go/src/github.com/metal-stack/gardener-extension-provider-metal \
 					&& make install check test"

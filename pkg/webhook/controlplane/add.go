@@ -164,7 +164,6 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 
 	var mirrors []metalv1alpha1.RegistryMirror
 	for _, m := range p.NetworkIsolation.RegistryMirrors {
-		m := m
 
 		mirrors = append(mirrors, metalv1alpha1.RegistryMirror{
 			Name:     m.Name,

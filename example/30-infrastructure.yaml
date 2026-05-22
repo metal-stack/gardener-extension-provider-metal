@@ -48,6 +48,8 @@ spec:
       partition: nbg-w8101
       size: c1-xlarge-x86
       image: firewall-1
+      firewallHealthTimeout: 0s
+      firewallCreateTimeout: 10m
       networks:
         - internet-nbg-w8101
         - underlay-nbg-w8101

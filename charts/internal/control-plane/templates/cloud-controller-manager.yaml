@@ -66,8 +66,6 @@ spec:
         imagePullPolicy: {{ .Values.imagePullPolicy }}
         command:
         - ./metal-cloud-controller-manager
-        - --cluster-cidr={{ .Values.cloudControllerManager.podNetwork }}
-        - --cluster-name={{ .Values.cloudControllerManager.clusterName }}
         - --concurrent-service-syncs=10
         {{- include "cloud-controller-manager.featureGates" . | trimSuffix "," | indent 8 }}
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
@@ -107,16 +105,29 @@ spec:
             value: {{ .Values.cloudControllerManager.sshPublicKey | quote }}
           - name: LOADBALANCER
             value: {{ .Values.cloudControllerManager.loadBalancer }}
+        ports:
+          - name: ccm-secure
+            containerPort: {{ include "cloud-controller-manager.port" . }}
+            protocol: TCP
         livenessProbe:
           httpGet:
             path: /healthz
             scheme: HTTPS
-            port: {{ include "cloud-controller-manager.port" . }}
+            port: ccm-secure
           successThreshold: 1
-          failureThreshold: 2
+          failureThreshold: 15
           initialDelaySeconds: 15
-          periodSeconds: 10
+          periodSeconds: 60
           timeoutSeconds: 15
+        startupProbe:
+          httpGet:
+            path: /healthz
+            scheme: HTTPS
+            port: ccm-secure
+          successThreshold: 1
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 5
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         {{- if .Values.cloudControllerManager.resources }}

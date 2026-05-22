@@ -36,7 +36,7 @@ type ControllerConfiguration struct {
 	HealthCheckConfig *healthcheckconfigv1alpha1.HealthCheckConfig `json:"healthCheckConfig,omitempty"`
 
 	// Storage is the configuration for storage.
-	Storage StorageConfiguration `json:"storage,omitempty"`
+	Storage StorageConfiguration `json:"storage"`
 
 	// ImagePullPolicy defines the pull policy for the components deployed through the control plane controller.
 	// Defaults to IfNotPresent if empty or unknown.
@@ -45,6 +45,10 @@ type ControllerConfiguration struct {
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 	// +optional
 	ImagePullSecret *ImagePullSecret `json:"imagePullSecret,omitempty"`
+
+	// NetworkPolicies contains extra configuration for network policies
+	// +optional
+	NetworkPolicies *NetworkPolicies `json:"networkPolicies,omitempty"`
 }
 
 // MachineImage is a mapping from logical names and versions to GCP-specific identifiers.
@@ -63,6 +67,8 @@ type ETCD struct {
 	Storage ETCDStorage `json:"storage"`
 	// ETCDBackup is the etcd backup configuration.
 	Backup ETCDBackup `json:"backup"`
+	// EvictionAllowed is a flag to allow deletion of the etcd pvc through the csi-driver-lvm-controller
+	IsEvictionAllowed bool `json:"isEvictionAllowed"`
 }
 
 // ETCDStorage is an etcd storage configuration.
@@ -135,4 +141,19 @@ type DurosSeedStorageClass struct {
 type ImagePullSecret struct {
 	// DockerConfigJSON contains the already base64 encoded JSON content for the image pull secret
 	DockerConfigJSON string `json:"encodedDockerConfigJSON"`
+}
+
+// NetworkPolicies contains extra configuration for network policies
+type NetworkPolicies struct {
+	// IngressController contains extra configuration for network policies regarding an ingress-controller
+	// +optional
+	IngressController *NetpolsIngressController `json:"ingressController,omitempty"`
+}
+
+// NetpolsIngressController contains extra configuration for network policies regarding an ingress-controller
+type NetpolsIngressController struct {
+	// Namespace is the namespace of the ingress-controller
+	Namespace string `json:"namespace"`
+	// PodSelector is the pod selector for the ingress-controller pods
+	PodSelector map[string]string `json:"podSelector"`
 }
