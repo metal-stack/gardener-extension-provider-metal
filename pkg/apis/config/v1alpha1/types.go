@@ -36,7 +36,7 @@ type ControllerConfiguration struct {
 	HealthCheckConfig *healthcheckconfigv1alpha1.HealthCheckConfig `json:"healthCheckConfig,omitempty"`
 
 	// Storage is the configuration for storage.
-	Storage StorageConfiguration `json:"storage,omitempty"`
+	Storage StorageConfiguration `json:"storage"`
 
 	// ImagePullPolicy defines the pull policy for the components deployed through the control plane controller.
 	// Defaults to IfNotPresent if empty or unknown.

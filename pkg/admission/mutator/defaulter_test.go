@@ -58,10 +58,10 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			},
 		}
 		completeCiliumSpec = &ciliumextensionv1alpha1.NetworkConfig{
-			Debug: pointer.Pointer(true),
+			Debug: new(true),
 			KubeProxy: &ciliumextensionv1alpha1.KubeProxy{
-				ServiceHost: pointer.Pointer("service-host"),
-				ServicePort: pointer.Pointer(int32(1)),
+				ServiceHost: new("service-host"),
+				ServicePort: new(int32(1)),
 			},
 			Hubble: &ciliumextensionv1alpha1.Hubble{
 				Enabled: false,
@@ -76,20 +76,20 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			Spec: gardenv1beta1.ShootSpec{
 				Kubernetes: gardenv1beta1.Kubernetes{
 					KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-						NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+						NodeCIDRMaskSize: new(int32(24)),
 					},
 					Kubelet: &gardenv1beta1.KubeletConfig{
-						MaxPods: pointer.Pointer(int32(200)),
+						MaxPods: new(int32(200)),
 					},
 					KubeProxy: &gardenv1beta1.KubeProxyConfig{
-						Enabled: pointer.Pointer(true),
+						Enabled: new(true),
 					},
 				},
 				Networking: &gardenv1beta1.Networking{
-					Type:           pointer.Pointer("cilium"),
+					Type:           new("cilium"),
 					ProviderConfig: mustEncode(t, completeCiliumSpec),
-					Pods:           pointer.Pointer("10.240.0.0/14"),
-					Services:       pointer.Pointer("10.248.0.0/19"),
+					Pods:           new("10.240.0.0/14"),
+					Services:       new("10.248.0.0/19"),
 				},
 				Provider: gardenv1beta1.Provider{
 					InfrastructureConfig: mustEncode(t, completeInfrastructureConfig),
@@ -112,10 +112,10 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: pointer.Pointer(int32(23)),
+							NodeCIDRMaskSize: new(int32(23)),
 						},
 						Kubelet: &gardenv1beta1.KubeletConfig{
-							MaxPods: pointer.Pointer(int32(250)),
+							MaxPods: new(int32(250)),
 						},
 					},
 					Provider: gardenv1beta1.Provider{
@@ -142,10 +142,10 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+							NodeCIDRMaskSize: new(int32(24)),
 						},
 						Kubelet: &gardenv1beta1.KubeletConfig{
-							MaxPods: pointer.Pointer(int32(200)),
+							MaxPods: new(int32(200)),
 						},
 					},
 					Provider: gardenv1beta1.Provider{
@@ -159,14 +159,14 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						},
 					},
 					Networking: &gardenv1beta1.Networking{
-						Type: pointer.Pointer("calico"),
+						Type: new("calico"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &calicoextensionv1alpha1.NetworkConfig{
 								Backend: pointer.Pointer(calicoextensionv1alpha1.Bird),
 							},
 						},
-						Pods:     pointer.Pointer("10.240.0.0/14"),
-						Services: pointer.Pointer("10.248.0.0/19"),
+						Pods:     new("10.240.0.0/14"),
+						Services: new("10.248.0.0/19"),
 					},
 				},
 			},
@@ -174,10 +174,10 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+							NodeCIDRMaskSize: new(int32(24)),
 						},
 						Kubelet: &gardenv1beta1.KubeletConfig{
-							MaxPods: pointer.Pointer(int32(200)),
+							MaxPods: new(int32(200)),
 						},
 					},
 					Provider: gardenv1beta1.Provider{
@@ -191,9 +191,9 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						},
 					},
 					Networking: &gardenv1beta1.Networking{
-						Type:     pointer.Pointer("calico"),
-						Pods:     pointer.Pointer("10.240.0.0/14"),
-						Services: pointer.Pointer("10.248.0.0/19"),
+						Type:     new("calico"),
+						Pods:     new("10.240.0.0/14"),
+						Services: new("10.248.0.0/19"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &calicoextensionv1alpha1.NetworkConfig{
 								Backend: pointer.Pointer(calicoextensionv1alpha1.Bird),
@@ -209,10 +209,10 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+							NodeCIDRMaskSize: new(int32(24)),
 						},
 						Kubelet: &gardenv1beta1.KubeletConfig{
-							MaxPods: pointer.Pointer(int32(200)),
+							MaxPods: new(int32(200)),
 						},
 					},
 					Provider: gardenv1beta1.Provider{
@@ -234,13 +234,13 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+							NodeCIDRMaskSize: new(int32(24)),
 						},
 						Kubelet: &gardenv1beta1.KubeletConfig{
-							MaxPods: pointer.Pointer(int32(200)),
+							MaxPods: new(int32(200)),
 						},
 						KubeProxy: &gardenv1beta1.KubeProxyConfig{
-							Enabled: pointer.Pointer(true),
+							Enabled: new(true),
 						},
 					},
 					Provider: gardenv1beta1.Provider{
@@ -257,9 +257,9 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						},
 					},
 					Networking: &gardenv1beta1.Networking{
-						Type:     pointer.Pointer("calico"),
-						Pods:     pointer.Pointer("10.240.0.0/13"),
-						Services: pointer.Pointer("10.248.0.0/18"),
+						Type:     new("calico"),
+						Pods:     new("10.240.0.0/13"),
+						Services: new("10.248.0.0/18"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &calicoextensionv1alpha1.NetworkConfig{
 								Backend: pointer.Pointer(calicoextensionv1alpha1.None),
@@ -281,10 +281,10 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+							NodeCIDRMaskSize: new(int32(24)),
 						},
 						Kubelet: &gardenv1beta1.KubeletConfig{
-							MaxPods: pointer.Pointer(int32(200)),
+							MaxPods: new(int32(200)),
 						},
 					},
 					Provider: gardenv1beta1.Provider{
@@ -301,7 +301,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						},
 					},
 					Networking: &gardenv1beta1.Networking{
-						Type: pointer.Pointer("cilium"),
+						Type: new("cilium"),
 					},
 				},
 			},
@@ -309,13 +309,13 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 				Spec: gardenv1beta1.ShootSpec{
 					Kubernetes: gardenv1beta1.Kubernetes{
 						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
-							NodeCIDRMaskSize: pointer.Pointer(int32(24)),
+							NodeCIDRMaskSize: new(int32(24)),
 						},
 						Kubelet: &gardenv1beta1.KubeletConfig{
-							MaxPods: pointer.Pointer(int32(200)),
+							MaxPods: new(int32(200)),
 						},
 						KubeProxy: &gardenv1beta1.KubeProxyConfig{
-							Enabled: pointer.Pointer(false),
+							Enabled: new(false),
 						},
 					},
 					Provider: gardenv1beta1.Provider{
@@ -332,20 +332,20 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						},
 					},
 					Networking: &gardenv1beta1.Networking{
-						Type:     pointer.Pointer("cilium"),
-						Pods:     pointer.Pointer("10.240.0.0/13"),
-						Services: pointer.Pointer("10.248.0.0/18"),
+						Type:     new("cilium"),
+						Pods:     new("10.240.0.0/13"),
+						Services: new("10.248.0.0/18"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &ciliumextensionv1alpha1.NetworkConfig{
 								Hubble: &ciliumextensionv1alpha1.Hubble{
 									Enabled: true,
 								},
 								TunnelMode:                   pointer.Pointer(ciliumextensionv1alpha1.Disabled),
-								MTU:                          pointer.Pointer(1440),
+								MTU:                          new(1440),
 								Devices:                      []string{"lan+", "lo"},
-								DirectRoutingDevice:          pointer.Pointer("lo"),
+								DirectRoutingDevice:          new("lo"),
 								LoadBalancingMode:            pointer.Pointer(ciliumextensionv1alpha1.DSR),
-								IPv4NativeRoutingCIDREnabled: pointer.Pointer(true),
+								IPv4NativeRoutingCIDREnabled: new(true),
 								BGPControlPlane:              &ciliumextensionv1alpha1.BGPControlPlane{Enabled: true},
 							},
 						},

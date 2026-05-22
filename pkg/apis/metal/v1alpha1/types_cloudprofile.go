@@ -26,7 +26,7 @@ type MetalControlPlane struct {
 	// FirewallControllerVersions is a list of available firewall controller binary versions
 	FirewallControllerVersions []FirewallControllerVersion `json:"firewallControllerVersions,omitempty"`
 	// NftablesExporter is the nftables exporter which will be reconciled by the firewall controller
-	NftablesExporter NftablesExporter `json:"nftablesExporter,omitempty"`
+	NftablesExporter NftablesExporter `json:"nftablesExporter"`
 }
 
 // FirewallControllerVersion describes the version of the firewall controller binary
@@ -80,7 +80,7 @@ type Partition struct {
 // NetworkIsolation defines configuration for restricted or forbidden clusters.
 type NetworkIsolation struct {
 	// AllowedNetworks is a list of networks which are allowed to connect in restricted or forbidden NetworkIsolated clusters.
-	AllowedNetworks AllowedNetworks `json:"allowedNetworks,omitempty"`
+	AllowedNetworks AllowedNetworks `json:"allowedNetworks"`
 	// DNSServers
 	DNSServers []string `json:"dnsServers,omitempty"`
 	// NTPServers
