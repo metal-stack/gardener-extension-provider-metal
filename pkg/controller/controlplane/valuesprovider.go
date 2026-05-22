@@ -797,10 +797,8 @@ func getCCMChartValues(
 				"endpoint": mcp.Endpoint,
 			},
 			"podAnnotations": map[string]any{
-				"checksum/secret-cloud-controller-manager":        checksums[metal.CloudControllerManagerDeploymentName],
 				"checksum/secret-cloud-controller-manager-server": checksums[metal.CloudControllerManagerServerName],
 				"checksum/secret-cloudprovider":                   checksums[v1beta1constants.SecretNameCloudProvider],
-				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
 			},
 			"tlsCipherSuites": kutil.TLSCipherSuites,
 			"secrets": map[string]any{
