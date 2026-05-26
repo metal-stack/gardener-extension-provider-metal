@@ -16,8 +16,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/install"
 	metalv1alpha1 "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/v1alpha1"
-
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 )
 
 func Test_defaulter_defaultShoot(t *testing.T) {
@@ -66,8 +64,8 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			Hubble: &ciliumextensionv1alpha1.Hubble{
 				Enabled: false,
 			},
-			TunnelMode: pointer.Pointer(ciliumextensionv1alpha1.Geneve),
-			Store:      pointer.Pointer(ciliumextensionv1alpha1.Kubernetes),
+			TunnelMode: new(ciliumextensionv1alpha1.Geneve),
+			Store:      new(ciliumextensionv1alpha1.Kubernetes),
 			IPv6: &ciliumextensionv1alpha1.IPv6{
 				Enabled: true,
 			},
@@ -162,7 +160,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						Type: new("calico"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &calicoextensionv1alpha1.NetworkConfig{
-								Backend: pointer.Pointer(calicoextensionv1alpha1.Bird),
+								Backend: new(calicoextensionv1alpha1.Bird),
 							},
 						},
 						Pods:     new("10.240.0.0/14"),
@@ -196,7 +194,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						Services: new("10.248.0.0/19"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &calicoextensionv1alpha1.NetworkConfig{
-								Backend: pointer.Pointer(calicoextensionv1alpha1.Bird),
+								Backend: new(calicoextensionv1alpha1.Bird),
 							},
 						},
 					},
@@ -262,9 +260,9 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						Services: new("10.248.0.0/18"),
 						ProviderConfig: &runtime.RawExtension{
 							Object: &calicoextensionv1alpha1.NetworkConfig{
-								Backend: pointer.Pointer(calicoextensionv1alpha1.None),
+								Backend: new(calicoextensionv1alpha1.None),
 								IPv4: &calicoextensionv1alpha1.IPv4{
-									Mode: pointer.Pointer(calicoextensionv1alpha1.Never),
+									Mode: new(calicoextensionv1alpha1.Never),
 								},
 								Typha: &calicoextensionv1alpha1.Typha{
 									Enabled: false,
@@ -340,11 +338,11 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 								Hubble: &ciliumextensionv1alpha1.Hubble{
 									Enabled: true,
 								},
-								TunnelMode:                   pointer.Pointer(ciliumextensionv1alpha1.Disabled),
+								TunnelMode:                   new(ciliumextensionv1alpha1.Disabled),
 								MTU:                          new(1440),
 								Devices:                      []string{"lan+", "lo"},
 								DirectRoutingDevice:          new("lo"),
-								LoadBalancingMode:            pointer.Pointer(ciliumextensionv1alpha1.DSR),
+								LoadBalancingMode:            new(ciliumextensionv1alpha1.DSR),
 								IPv4NativeRoutingCIDREnabled: new(true),
 								BGPControlPlane:              &ciliumextensionv1alpha1.BGPControlPlane{Enabled: true},
 							},
