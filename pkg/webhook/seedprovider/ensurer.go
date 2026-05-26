@@ -10,7 +10,6 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,29 +37,29 @@ type ensurer struct {
 }
 
 // EnsureETCD ensures that the etcd conform to the provider requirements.
-func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, new, old *druidcorev1alpha1.Etcd) error {
-	new.Spec.StorageCapacity = pointer.Pointer(resource.MustParse("16Gi"))
+func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, newObj, old *druidcorev1alpha1.Etcd) error {
+	newObj.Spec.StorageCapacity = new(resource.MustParse("16Gi"))
 
 	if e.c == nil {
 		return nil
 	}
 
-	if new.Name == v1beta1constants.ETCDMain {
+	if newObj.Name == v1beta1constants.ETCDMain {
 		if old == nil {
 			// capacity and storage class can only be set on initial deployment
 			// after that the stateful set prevents the update.
 
 			if e.c.Storage.Capacity != nil {
-				new.Spec.StorageCapacity = e.c.Storage.Capacity
+				newObj.Spec.StorageCapacity = e.c.Storage.Capacity
 			}
 			if e.c.Storage.ClassName != nil {
-				new.Spec.StorageClass = e.c.Storage.ClassName
+				newObj.Spec.StorageClass = e.c.Storage.ClassName
 			}
 		} else {
 			// ensure values stay as the were
 
-			new.Spec.StorageCapacity = old.Spec.StorageCapacity
-			new.Spec.StorageClass = old.Spec.StorageClass
+			newObj.Spec.StorageCapacity = old.Spec.StorageCapacity
+			newObj.Spec.StorageClass = old.Spec.StorageClass
 		}
 
 		if e.c.Backup.DeltaSnapshotPeriod != nil {
@@ -68,24 +67,24 @@ func (e *ensurer) EnsureETCD(ctx context.Context, gctx gcontext.GardenContext, n
 			if err != nil {
 				return fmt.Errorf("unable to set delta snapshot period %w", err)
 			}
-			new.Spec.Backup.DeltaSnapshotPeriod = &v1.Duration{Duration: d}
+			newObj.Spec.Backup.DeltaSnapshotPeriod = &v1.Duration{Duration: d}
 		}
 
 		if e.c.Backup.Schedule != nil {
-			new.Spec.Backup.FullSnapshotSchedule = e.c.Backup.Schedule
+			newObj.Spec.Backup.FullSnapshotSchedule = e.c.Backup.Schedule
 		}
 	}
 
 	if e.c.IsEvictionAllowed {
-		if new.Spec.Annotations == nil {
-			new.Spec.Annotations = map[string]string{}
+		if newObj.Spec.Annotations == nil {
+			newObj.Spec.Annotations = map[string]string{}
 		}
-		new.Spec.Annotations["metal-stack.io/csi-driver-lvm.is-eviction-allowed"] = strconv.FormatBool(true)
+		newObj.Spec.Annotations["metal-stack.io/csi-driver-lvm.is-eviction-allowed"] = strconv.FormatBool(true)
 
-		if new.Annotations == nil {
-			new.Annotations = map[string]string{}
+		if newObj.Annotations == nil {
+			newObj.Annotations = map[string]string{}
 		}
-		new.Annotations[druidcorev1alpha1.DisableEtcdComponentProtectionAnnotation] = strconv.FormatBool(true)
+		newObj.Annotations[druidcorev1alpha1.DisableEtcdComponentProtectionAnnotation] = strconv.FormatBool(true)
 	}
 
 	return nil
