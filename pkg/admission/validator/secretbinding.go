@@ -27,13 +27,13 @@ func NewSecretBindingValidator(mgr manager.Manager) extensionswebhook.Validator 
 
 // Validate checks whether the given SecretBinding refers to a Secret with valid metal-api credentials.
 func (sb *secretBinding) Validate(ctx context.Context, newObj, oldObj client.Object) error {
-	secretBinding, ok := newObj.(*core.SecretBinding)
+	secretBinding, ok := newObj.(*core.SecretBinding) //nolint:staticcheck
 	if !ok {
 		return fmt.Errorf("wrong object type %T", newObj)
 	}
 
 	if oldObj != nil {
-		oldSecretBinding, ok := oldObj.(*core.SecretBinding)
+		oldSecretBinding, ok := oldObj.(*core.SecretBinding) //nolint:staticcheck
 		if !ok {
 			return fmt.Errorf("wrong object type %T for old object", oldObj)
 		}

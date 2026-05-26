@@ -5,6 +5,7 @@ import (
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
+	"github.com/gardener/gardener/pkg/apis/security"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -30,9 +31,10 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		Name:     Name,
 		Path:     "/webhooks/validate",
 		Validators: map[extensionswebhook.Validator][]extensionswebhook.Type{
-			NewShootValidator(mgr):         {{Obj: &core.Shoot{}}},
-			NewCloudProfileValidator(mgr):  {{Obj: &core.CloudProfile{}}},
-			NewSecretBindingValidator(mgr): {{Obj: &core.SecretBinding{}}},
+			NewShootValidator(mgr):              {{Obj: &core.Shoot{}}},
+			NewCloudProfileValidator(mgr):       {{Obj: &core.CloudProfile{}}},
+			NewSecretBindingValidator(mgr):      {{Obj: &core.SecretBinding{}}}, //nolint:staticcheck
+			NewCredentialsBindingValidator(mgr): {{Obj: &security.CredentialsBinding{}}},
 		},
 		Target: extensionswebhook.TargetSeed,
 		ObjectSelector: &metav1.LabelSelector{
