@@ -37,6 +37,8 @@ require (
 	sigs.k8s.io/yaml v1.6.0
 )
 
+replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.4
+
 require (
 	cel.dev/expr v0.25.1 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
