@@ -11,8 +11,8 @@ VERIFY                      := true
 LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
-GO_VERSION                  := 1.26
-GOLANGCI_LINT_VERSION       := v2.10.1
+GO_VERSION                  := 1.26.4
+GOLANGCI_LINT_VERSION       := v2.12.2
 
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
@@ -82,9 +82,9 @@ check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM)
 	@REPO_ROOT=$(REPO_ROOT) bash $(GARDENER_HACK_DIR)/check-charts.sh ./charts
 
 .PHONY: generate
-generate: $(VGOPATH) $(HELM) $(YQ)
+generate: $(CONTROLLER_GEN) $(EXTENSION_GEN) $(GEN_CRD_API_REFERENCE_DOCS) $(HELM) $(KUSTOMIZE) $(MOCKGEN) $(YQ)
 	echo $(shell git -c safe.directory=/go/src/github.com/metal-stack/gardener-extension-provider-metal describe --abbrev=0 --tags) > VERSION
-	@REPO_ROOT=$(REPO_ROOT) VGOPATH=$(VGOPATH) GARDENER_HACK_DIR=$(GARDENER_HACK_DIR) bash $(GARDENER_HACK_DIR)/generate-sequential.sh ./charts/... ./cmd/... ./pkg/...
+	@REPO_ROOT=$(REPO_ROOT) GARDENER_HACK_DIR=$(GARDENER_HACK_DIR) bash $(GARDENER_HACK_DIR)/generate-sequential.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: generate-in-docker
 generate-in-docker: tidy install update-crds $(HELM)

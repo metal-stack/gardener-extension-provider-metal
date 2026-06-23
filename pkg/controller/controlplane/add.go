@@ -13,15 +13,12 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/imagevector"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var (
 	// DefaultAddOptions are the default AddOptions for AddToManager.
 	DefaultAddOptions = AddOptions{}
-
-	logger = log.Log.WithName("metal-controlplane-controller")
 )
 
 // AddOptions are options to apply when adding the Packet controlplane controller to the manager.
@@ -35,8 +32,8 @@ type AddOptions struct {
 	ShootWebhookConfig *atomic.Value
 	// WebhookServerNamespace is the namespace in which the webhook server runs.
 	WebhookServerNamespace string
-	// ExtensionClass defines the extension class this extension is responsible for.
-	ExtensionClass extensionsv1alpha1.ExtensionClass
+	// ExtensionClasses define the extension classes this extension is responsible for.
+	ExtensionClasses []extensionsv1alpha1.ExtensionClass
 }
 
 // AddToManagerWithOptions adds a controller with the given Options to the given manager.
@@ -57,7 +54,7 @@ func AddToManagerWithOptions(ctx context.Context, mgr manager.Manager, opts AddO
 		ControllerOptions: opts.Controller,
 		Predicates:        controlplane.DefaultPredicates(ctx, mgr, opts.IgnoreOperationAnnotation),
 		Type:              metal.Type,
-		ExtensionClass:    opts.ExtensionClass,
+		ExtensionClasses:  opts.ExtensionClasses,
 	})
 }
 
