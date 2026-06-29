@@ -61,7 +61,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -854,25 +853,20 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 				})
 			}
 
-			port443 := intstr.FromInt(443)
-			port4420 := intstr.FromInt(4420)
-			port8009 := intstr.FromInt(8009)
-			tcp := corev1.ProtocolTCP
-
 			cp.Spec.Egress = []firewallv1.EgressRule{
 				{
-					Ports: []networkingv1.NetworkPolicyPort{
+					Ports: []firewallv1.NetworkPolicyPort{
 						{
-							Port:     &port443,
-							Protocol: &tcp,
+							Port:     443,
+							Protocol: new(corev1.ProtocolTCP),
 						},
 						{
-							Port:     &port4420,
-							Protocol: &tcp,
+							Port:     4420,
+							Protocol: new(corev1.ProtocolTCP),
 						},
 						{
-							Port:     &port8009,
-							Protocol: &tcp,
+							Port:     8009,
+							Protocol: new(corev1.ProtocolTCP),
 						},
 					},
 					To: to,

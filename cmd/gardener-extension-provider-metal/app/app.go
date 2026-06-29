@@ -96,6 +96,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			metal.Name,
 			genericactuator.ShootWebhooksResourceName,
 			genericactuator.ShootWebhookNamespaceSelector(metal.Type),
+			generalOpts,
 			webhookServerOptions,
 			webhookSwitches,
 		)
@@ -207,13 +208,13 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 			infraCtrlOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.Controller)
 			heartbeatCtrlOpts.Completed().Apply(&heartbeat.DefaultAddOptions)
 			healthCheckCtrlOpts.Completed().Apply(&healthcheck.DefaultAddOptions.HealthCheckDefaults.Controller)
-			reconcileOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation, &metalinfrastructure.DefaultAddOptions.ExtensionClass)
-			reconcileOpts.Completed().Apply(&metalcontrolplane.DefaultAddOptions.IgnoreOperationAnnotation, &metalcontrolplane.DefaultAddOptions.ExtensionClass)
-			reconcileOpts.Completed().Apply(&metalworker.DefaultAddOptions.IgnoreOperationAnnotation, &metalworker.DefaultAddOptions.ExtensionClass)
+			reconcileOpts.Completed().Apply(&metalinfrastructure.DefaultAddOptions.IgnoreOperationAnnotation, &metalinfrastructure.DefaultAddOptions.ExtensionClasses)
+			reconcileOpts.Completed().Apply(&metalcontrolplane.DefaultAddOptions.IgnoreOperationAnnotation, &metalcontrolplane.DefaultAddOptions.ExtensionClasses)
+			reconcileOpts.Completed().Apply(&metalworker.DefaultAddOptions.IgnoreOperationAnnotation, &metalworker.DefaultAddOptions.ExtensionClasses)
 			workerCtrlOpts.Completed().Apply(&metalworker.DefaultAddOptions.Controller)
 			metalworker.DefaultAddOptions.GardenCluster = gardenCluster
 
-			atomicShootWebhookConfig, err := webhookOptions.Completed().AddToManager(ctx, mgr, nil, generalOpts.Completed().SelfHostedShootCluster)
+			atomicShootWebhookConfig, err := webhookOptions.Completed().AddToManager(ctx, mgr, nil)
 			if err != nil {
 				return fmt.Errorf("could not add webhooks to manager: %w", err)
 			}

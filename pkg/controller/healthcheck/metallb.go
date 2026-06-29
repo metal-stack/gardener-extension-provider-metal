@@ -26,9 +26,9 @@ func CheckMetalLB() healthcheck.HealthCheck {
 	return &MetalLBHealthChecker{}
 }
 
-// shootClient injects the shoot client
-func (healthChecker *MetalLBHealthChecker) InjectShootClient(shootClient client.Client) {
-	healthChecker.shootClient = shootClient
+// InjectTargetClient injects the shoot client
+func (healthChecker *MetalLBHealthChecker) InjectTargetClient(targetClient client.Client) {
+	healthChecker.shootClient = targetClient
 }
 
 // SetLoggerSuffix injects the logger
