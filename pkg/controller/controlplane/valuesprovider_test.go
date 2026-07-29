@@ -11,7 +11,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
 	"github.com/metal-stack/metal-go/api/models"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	"github.com/metal-stack/metal-lib/pkg/testcommon"
 )
@@ -27,12 +26,12 @@ func Test_firewallCompareFunc(t *testing.T) {
 			name: "single entry",
 			fws: []*models.V1FirewallResponse{
 				{
-					Allocation: &models.V1MachineAllocation{Created: pointer.Pointer(strfmt.DateTime(now))},
+					Allocation: &models.V1MachineAllocation{Created: new(strfmt.DateTime(now))},
 				},
 			},
 			want: []*models.V1FirewallResponse{
 				{
-					Allocation: &models.V1MachineAllocation{Created: pointer.Pointer(strfmt.DateTime(now))},
+					Allocation: &models.V1MachineAllocation{Created: new(strfmt.DateTime(now))},
 				},
 			},
 		},
@@ -40,24 +39,24 @@ func Test_firewallCompareFunc(t *testing.T) {
 			name: "three entries",
 			fws: []*models.V1FirewallResponse{
 				{
-					Allocation: &models.V1MachineAllocation{Created: pointer.Pointer(strfmt.DateTime(now.Add(1)))},
+					Allocation: &models.V1MachineAllocation{Created: new(strfmt.DateTime(now.Add(1)))},
 				},
 				{
-					Allocation: &models.V1MachineAllocation{Created: pointer.Pointer(strfmt.DateTime(now.Add(-1)))},
+					Allocation: &models.V1MachineAllocation{Created: new(strfmt.DateTime(now.Add(-1)))},
 				},
 				{
-					Allocation: &models.V1MachineAllocation{Created: pointer.Pointer(strfmt.DateTime(now))},
+					Allocation: &models.V1MachineAllocation{Created: new(strfmt.DateTime(now))},
 				},
 			},
 			want: []*models.V1FirewallResponse{
 				{
-					Allocation: &models.V1MachineAllocation{Created: pointer.Pointer(strfmt.DateTime(now.Add(1)))},
+					Allocation: &models.V1MachineAllocation{Created: new(strfmt.DateTime(now.Add(1)))},
 				},
 				{
-					Allocation: &models.V1MachineAllocation{Created: pointer.Pointer(strfmt.DateTime(now))},
+					Allocation: &models.V1MachineAllocation{Created: new(strfmt.DateTime(now))},
 				},
 				{
-					Allocation: &models.V1MachineAllocation{Created: pointer.Pointer(strfmt.DateTime(now.Add(-1)))},
+					Allocation: &models.V1MachineAllocation{Created: new(strfmt.DateTime(now.Add(-1)))},
 				},
 			},
 		},
@@ -157,17 +156,17 @@ func Test_getDefaultExternalNetwork(t *testing.T) {
 
 		nws = networkMap{
 			"own-external-network": &models.V1NetworkResponse{
-				ID:              pointer.Pointer("own-external-network"),
+				ID:              new("own-external-network"),
 				Parentnetworkid: "",
 				Projectid:       "own-project",
 			},
 			"somebody-external-network": &models.V1NetworkResponse{
-				ID:              pointer.Pointer("somebody-external-network"),
+				ID:              new("somebody-external-network"),
 				Parentnetworkid: "",
 				Projectid:       "another-project",
 			},
 			"internet": &models.V1NetworkResponse{
-				ID:              pointer.Pointer("internet"),
+				ID:              new("internet"),
 				Parentnetworkid: "",
 				Labels: map[string]string{
 					tag.NetworkDefaultExternal: "",
@@ -175,14 +174,14 @@ func Test_getDefaultExternalNetwork(t *testing.T) {
 				},
 			},
 			"mpls-network": &models.V1NetworkResponse{
-				ID:              pointer.Pointer("mpls-network"),
+				ID:              new("mpls-network"),
 				Parentnetworkid: "",
 				Labels: map[string]string{
 					tag.NetworkDefaultExternal: "",
 				},
 			},
 			"dmz-network": &models.V1NetworkResponse{
-				ID:              pointer.Pointer("dmz-network"),
+				ID:              new("dmz-network"),
 				Parentnetworkid: "super-network",
 				Projectid:       "own-project",
 				Shared:          true,
@@ -191,9 +190,9 @@ func Test_getDefaultExternalNetwork(t *testing.T) {
 				},
 			},
 			"super-network": &models.V1NetworkResponse{
-				ID:           pointer.Pointer("super-network"),
+				ID:           new("super-network"),
 				Projectid:    "",
-				Privatesuper: pointer.Pointer(true),
+				Privatesuper: new(true),
 			},
 		}
 	)
@@ -212,7 +211,7 @@ func Test_getDefaultExternalNetwork(t *testing.T) {
 			infrastructureConfig: internetFirewall,
 			cpConfig: &apismetal.ControlPlaneConfig{
 				CloudControllerManager: &apismetal.CloudControllerManagerConfig{
-					DefaultExternalNetwork: pointer.Pointer("own-external-network"),
+					DefaultExternalNetwork: new("own-external-network"),
 				},
 			},
 			want: "own-external-network",
@@ -223,7 +222,7 @@ func Test_getDefaultExternalNetwork(t *testing.T) {
 			infrastructureConfig: internetFirewall,
 			cpConfig: &apismetal.ControlPlaneConfig{
 				CloudControllerManager: &apismetal.CloudControllerManagerConfig{
-					DefaultExternalNetwork: pointer.Pointer("somebody-external-network"),
+					DefaultExternalNetwork: new("somebody-external-network"),
 				},
 			},
 			wantErr: fmt.Errorf("given default external network not contained in firewall networks"),
@@ -274,7 +273,7 @@ func Test_setDurosDefaultStorageClass(t *testing.T) {
 			name: "csi-lvm is configured explicitly",
 			cp: &apismetal.ControlPlaneConfig{
 				FeatureGates: apismetal.ControlPlaneFeatures{
-					DisableCsiLvm: pointer.Pointer(false),
+					DisableCsiLvm: new(false),
 				},
 			},
 		},
@@ -282,7 +281,7 @@ func Test_setDurosDefaultStorageClass(t *testing.T) {
 			name: "no storage classes",
 			cp: &apismetal.ControlPlaneConfig{
 				FeatureGates: apismetal.ControlPlaneFeatures{
-					DisableCsiLvm: pointer.Pointer(true),
+					DisableCsiLvm: new(true),
 				},
 			},
 		},
@@ -290,7 +289,7 @@ func Test_setDurosDefaultStorageClass(t *testing.T) {
 			name: "highest replicas count becomes default",
 			cp: &apismetal.ControlPlaneConfig{
 				FeatureGates: apismetal.ControlPlaneFeatures{
-					DisableCsiLvm: pointer.Pointer(true),
+					DisableCsiLvm: new(true),
 				},
 			},
 			scs: []map[string]any{
@@ -326,7 +325,7 @@ func Test_setDurosDefaultStorageClass(t *testing.T) {
 			name: "highest replicas count with unencrypted becomes default",
 			cp: &apismetal.ControlPlaneConfig{
 				FeatureGates: apismetal.ControlPlaneFeatures{
-					DisableCsiLvm: pointer.Pointer(true),
+					DisableCsiLvm: new(true),
 				},
 			},
 			scs: []map[string]any{
@@ -374,7 +373,7 @@ func Test_setDurosDefaultStorageClass(t *testing.T) {
 			name: "user explicitly wants no storage class",
 			cp: &apismetal.ControlPlaneConfig{
 				FeatureGates: apismetal.ControlPlaneFeatures{
-					DisableCsiLvm: pointer.Pointer(true),
+					DisableCsiLvm: new(true),
 				},
 				CustomDefaultStorageClass: &apismetal.CustomDefaultStorageClass{
 					ClassName: "",

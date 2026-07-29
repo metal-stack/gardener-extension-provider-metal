@@ -43,10 +43,14 @@ type AddOptions struct {
 
 // RegisterHealthChecks registers health checks for each extension resource
 func RegisterHealthChecks(ctx context.Context, mgr manager.Manager, opts AddOptions) error {
-	durosPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ *extensionscontroller.Cluster) bool {
+	durosPreCheck := func(_ context.Context, _ client.Client, _ client.Object, _ any) bool {
 		return opts.ControllerConfig.Storage.Duros.Enabled
 	}
-	metallbPreCheck := func(_ context.Context, _ client.Client, _ client.Object, cluster *extensionscontroller.Cluster) bool {
+	metallbPreCheck := func(_ context.Context, _ client.Client, _ client.Object, obj any) bool {
+		cluster, ok := obj.(*extensionscontroller.Cluster)
+		if !ok || cluster == nil {
+			return false
+		}
 		return pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type) == "calico"
 	}
 

@@ -21,7 +21,7 @@ func GetLatestIssuedSecret(secrets []corev1.Secret) (*corev1.Secret, error) {
 
 	var newestSecret *corev1.Secret
 	var currentIssuedAtTime time.Time
-	for i := 0; i < len(secrets); i++ {
+	for i := range secrets {
 		// if some of the secrets have no "issued-at-time" label
 		// we have a problem since this is the source of truth
 		issuedAt, ok := secrets[i].Labels[labelKeyIssuedAtTime]

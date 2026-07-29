@@ -32,9 +32,9 @@ func CheckDuros(durosResourceName string) healthcheck.HealthCheck {
 	}
 }
 
-// InjectSeedClient injects the seed client
-func (healthChecker *DurosHealthChecker) InjectSeedClient(seedClient client.Client) {
-	healthChecker.seedClient = seedClient
+// InjectSourceClient injects the seed client
+func (healthChecker *DurosHealthChecker) InjectSourceClient(sourceClient client.Client) {
+	healthChecker.seedClient = sourceClient
 }
 
 // SetLoggerSuffix injects the logger

@@ -89,6 +89,11 @@ func (m *mutator) mutateCalicoNode(_ context.Context, ds *appsv1.DaemonSet) erro
 			Name:  "FELIX_MTUIFACEPATTERN",
 			Value: "lan",
 		})
+
+		c.Env = extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
+			Name:  "FELIX_BPFCONNECTTIMELOADBALANCING",
+			Value: "Enabled",
+		})
 	}
 
 	return nil

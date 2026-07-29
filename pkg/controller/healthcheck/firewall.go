@@ -28,9 +28,9 @@ func CheckFirewall() healthcheck.HealthCheck {
 	return &FirewallHealthChecker{}
 }
 
-// InjectSeedClient injects the seed client
-func (healthChecker *FirewallHealthChecker) InjectSeedClient(seedClient client.Client) {
-	healthChecker.seedClient = seedClient
+// InjectSourceClient injects the seed client
+func (healthChecker *FirewallHealthChecker) InjectSourceClient(sourceClient client.Client) {
+	healthChecker.seedClient = sourceClient
 }
 
 // SetLoggerSuffix injects the logger

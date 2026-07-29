@@ -177,7 +177,6 @@ func reconcileEgressIPs(ctx context.Context, r *egressIPReconciler) error {
 		wantEgressIPs.Insert(egressRule.IPs...)
 
 		for _, ip := range egressRule.IPs {
-			ip := ip
 			if currentEgressIPs.Has(ip) {
 				continue
 			}

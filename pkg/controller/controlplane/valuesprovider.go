@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/netip"
 	"net/url"
 	"os"
@@ -60,7 +61,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -323,7 +323,7 @@ func (vp *valuesProvider) GetConfigChartValues(
 	ctx context.Context,
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	return nil, nil
 }
 
@@ -373,7 +373,6 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	nws := networkMap{}
 	for _, n := range resp.Payload {
-		n := n
 		nws[*n.ID] = n
 	}
 
@@ -413,11 +412,27 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 	values := map[string]any{
 		"imagePullPolicy": helper.ImagePullPolicyFromString(vp.controllerConfig.ImagePullPolicy),
-		"podAnnotations": map[string]interface{}{
+		"podAnnotations": map[string]any{
 			"checksum/secret-" + metal.FirewallControllerManagerDeploymentName: checksums[metal.FirewallControllerManagerDeploymentName],
 			"checksum/secret-cloudprovider":                                    checksums[v1beta1constants.SecretNameCloudProvider],
 		},
 		"genericTokenKubeconfigSecretName": extensionscontroller.GenericTokenKubeconfigSecretNameFromCluster(cluster),
+	}
+
+	if vp.controllerConfig.NetworkPolicies != nil {
+		var ingressValues map[string]any
+
+		if vp.controllerConfig.NetworkPolicies.IngressController != nil {
+			ingressValues = map[string]any{
+				"namespace":   vp.controllerConfig.NetworkPolicies.IngressController.Namespace,
+				"podSelector": vp.controllerConfig.NetworkPolicies.IngressController.PodSelector,
+			}
+		}
+
+		values["networkPolicies"] = map[string]any{
+			"enabled":           true,
+			"ingressController": ingressValues,
+		}
 	}
 
 	merge(values, ccmValues, storageValues, firewallValues)
@@ -431,11 +446,9 @@ func (vp *valuesProvider) GetControlPlaneChartValues(
 
 // merge all source maps in the target map
 // hint: prevent overwriting of values due to duplicate keys by the use of prefixes
-func merge(target map[string]interface{}, sources ...map[string]interface{}) {
+func merge(target map[string]any, sources ...map[string]any) {
 	for sIndex := range sources {
-		for k, v := range sources[sIndex] {
-			target[k] = v
-		}
+		maps.Copy(target, sources[sIndex])
 	}
 }
 
@@ -445,12 +458,12 @@ func (vp *valuesProvider) GetControlPlaneExposureChartValues(
 	cp *extensionsv1alpha1.ControlPlane,
 	cluster *extensionscontroller.Cluster,
 	secretsReader secretsmanager.Reader,
-	checksums map[string]string) (map[string]interface{}, error) {
+	checksums map[string]string) (map[string]any, error) {
 	return nil, nil
 }
 
 // GetControlPlaneShootChartValues returns the values for the control plane shoot chart applied by the generic actuator.
-func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, cp *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]any, error) {
 	infrastructureConfig := &apismetal.InfrastructureConfig{}
 	if _, _, err := vp.decoder.Decode(cluster.Shoot.Spec.Provider.InfrastructureConfig.Raw, nil, infrastructureConfig); err != nil {
 		return nil, fmt.Errorf("could not decode providerConfig of infrastructure %w", err)
@@ -483,7 +496,6 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 
 	nws := networkMap{}
 	for _, n := range resp.Payload {
-		n := n
 		nws[*n.ID] = n
 	}
 
@@ -506,7 +518,7 @@ func (vp *valuesProvider) GetControlPlaneShootChartValues(ctx context.Context, c
 }
 
 // getControlPlaneShootChartValues returns the values for the shoot control plane chart.
-func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, partition *apismetal.Partition, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]interface{}, error) {
+func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, cpConfig *apismetal.ControlPlaneConfig, cluster *extensionscontroller.Cluster, partition *apismetal.Partition, nws networkMap, infrastructure *extensionsv1alpha1.Infrastructure, infrastructureConfig *apismetal.InfrastructureConfig, secretsReader secretsmanager.Reader, checksums map[string]string) (map[string]any, error) {
 	namespace := cluster.ObjectMeta.Name
 
 	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
@@ -703,7 +715,7 @@ func (vp *valuesProvider) getSecret(ctx context.Context, namespace string, secre
 }
 
 // GetStorageClassesChartValues returns the values for the storage classes chart applied by the generic actuator.
-func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]interface{}, error) {
+func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, controlPlane *extensionsv1alpha1.ControlPlane, cluster *extensionscontroller.Cluster) (map[string]any, error) {
 	cp, err := helper.ControlPlaneConfigFromControlPlane(controlPlane)
 	if err != nil {
 		return nil, err
@@ -719,7 +731,7 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 		disableCsiLvm = *cp.FeatureGates.DisableCsiLvm
 	}
 
-	values := map[string]interface{}{
+	values := map[string]any{
 		"isDefaultStorageClass": isDefaultSC,
 		"disableCsiLvm":         disableCsiLvm,
 	}
@@ -741,7 +753,7 @@ func getCCMChartValues(
 	mcp *apismetal.MetalControlPlane,
 	nws networkMap,
 	secretsReader secretsmanager.Reader,
-) (map[string]interface{}, error) {
+) (map[string]any, error) {
 	projectID := infrastructureConfig.ProjectID
 
 	nodeCIDR, err := helper.GetNodeCIDR(infrastructure, cluster)
@@ -769,26 +781,23 @@ func getCCMChartValues(
 		loadBalancer = "cilium"
 	}
 
-	values := map[string]interface{}{
-		"cloudControllerManager": map[string]interface{}{
+	values := map[string]any{
+		"cloudControllerManager": map[string]any{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"projectID":              projectID,
 			"clusterID":              cluster.Shoot.UID,
 			"partitionID":            infrastructureConfig.PartitionID,
 			"networkID":              *privateNetwork.ID,
-			"podNetwork":             extensionscontroller.GetPodNetwork(cluster),
 			"defaultExternalNetwork": defaultExternalNetwork,
 			"additionalNetworks":     strings.Join(infrastructureConfig.Firewall.Networks, ","),
 			"loadBalancer":           loadBalancer,
 			"sshPublicKey":           string(sshSecret.Data["id_rsa.pub"]),
-			"metal": map[string]interface{}{
+			"metal": map[string]any{
 				"endpoint": mcp.Endpoint,
 			},
-			"podAnnotations": map[string]interface{}{
-				"checksum/secret-cloud-controller-manager":        checksums[metal.CloudControllerManagerDeploymentName],
+			"podAnnotations": map[string]any{
 				"checksum/secret-cloud-controller-manager-server": checksums[metal.CloudControllerManagerServerName],
 				"checksum/secret-cloudprovider":                   checksums[v1beta1constants.SecretNameCloudProvider],
-				"checksum/configmap-cloud-provider-config":        checksums[metal.CloudProviderConfigName],
 			},
 			"tlsCipherSuites": kutil.TLSCipherSuites,
 			"secrets": map[string]any{
@@ -804,9 +813,9 @@ func getCCMChartValues(
 	return values, nil
 }
 
-func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, cp *apismetal.ControlPlaneConfig, nws networkMap) (map[string]interface{}, error) {
-	disabledValues := map[string]interface{}{
-		"duros": map[string]interface{}{
+func getStorageControlPlaneChartValues(ctx context.Context, client client.Client, logger logr.Logger, storageConfig config.StorageConfiguration, cluster *extensionscontroller.Cluster, infrastructure *apismetal.InfrastructureConfig, cp *apismetal.ControlPlaneConfig, nws networkMap) (map[string]any, error) {
+	disabledValues := map[string]any{
+		"duros": map[string]any{
 			"enabled": false,
 		},
 	}
@@ -844,25 +853,20 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 				})
 			}
 
-			port443 := intstr.FromInt(443)
-			port4420 := intstr.FromInt(4420)
-			port8009 := intstr.FromInt(8009)
-			tcp := corev1.ProtocolTCP
-
 			cp.Spec.Egress = []firewallv1.EgressRule{
 				{
-					Ports: []networkingv1.NetworkPolicyPort{
+					Ports: []firewallv1.NetworkPolicyPort{
 						{
-							Port:     &port443,
-							Protocol: &tcp,
+							Port:     443,
+							Protocol: new(corev1.ProtocolTCP),
 						},
 						{
-							Port:     &port4420,
-							Protocol: &tcp,
+							Port:     4420,
+							Protocol: new(corev1.ProtocolTCP),
 						},
 						{
-							Port:     &port8009,
-							Protocol: &tcp,
+							Port:     8009,
+							Protocol: new(corev1.ProtocolTCP),
 						},
 					},
 					To: to,
@@ -1046,8 +1050,8 @@ func (vp *valuesProvider) GetControlPlaneShootCRDsChartValues(
 	_ context.Context,
 	_ *extensionsv1alpha1.ControlPlane,
 	_ *extensionscontroller.Cluster,
-) (map[string]interface{}, error) {
-	return map[string]interface{}{}, nil
+) (map[string]any, error) {
+	return map[string]any{}, nil
 }
 
 func firewallCompareFunc(a, b *models.V1FirewallResponse) int {

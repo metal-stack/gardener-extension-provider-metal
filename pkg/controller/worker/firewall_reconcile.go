@@ -209,7 +209,6 @@ func mapRateLimits(limits []apismetal.RateLimit) []fcmv2.RateLimit {
 func mapEgressRules(egress []apismetal.EgressRule) []fcmv2.EgressRuleSNAT {
 	var result []fcmv2.EgressRuleSNAT
 	for _, rule := range egress {
-		rule := rule
 		result = append(result, fcmv2.EgressRuleSNAT{
 			NetworkID: rule.NetworkID,
 			IPs:       rule.IPs,

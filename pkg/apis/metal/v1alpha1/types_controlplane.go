@@ -15,7 +15,7 @@ type ControlPlaneConfig struct {
 	CloudControllerManager *CloudControllerManagerConfig `json:"cloudControllerManager,omitempty"`
 
 	// FeatureGates contains feature gates for the control plane.
-	FeatureGates ControlPlaneFeatures `json:"featureGates,omitempty"`
+	FeatureGates ControlPlaneFeatures `json:"featureGates"`
 
 	// CustomDefaultStorageClass
 	CustomDefaultStorageClass *CustomDefaultStorageClass `json:"customDefaultStorageClass,omitempty"`

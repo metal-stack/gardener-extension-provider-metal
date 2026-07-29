@@ -2,15 +2,15 @@ images:
 - name: metalccm
   sourceRepository: github.com/metal-stack/metal-ccm
   repository: ghcr.io/metal-stack/metal-ccm
-  tag: "v0.7.13"
+  tag: "v0.9.10"
 - name: machine-controller-manager-provider-metal
   sourceRepository: https://github.com/metal-stack/machine-controller-manager-provider-metal
   repository: ghcr.io/metal-stack/machine-controller-manager-provider-metal
-  tag: "v0.1.19"
+  tag: "v0.1.28"
 - name: droptailer
   sourceRepository: github.com/metal-stack/droptailer
   repository: ghcr.io/metal-stack/droptailer
-  tag: "v0.2.12"
+  tag: "v0.2.15"
 - name: csi-lvm-controller
   sourceRepository: github.com/metal-stack/csi-lvm-controller
   repository: ghcr.io/metal-stack/csi-lvm-controller
@@ -30,11 +30,11 @@ images:
 - name: duros-controller
   sourceRepository: https://github.com/metal-stack/duros-controller
   repository: ghcr.io/metal-stack/duros-controller
-  tag: "v0.7.2"
+  tag: "v0.12.1"
 - name: node-init
   sourceRepository: https://github.com/metal-stack/node-init
   repository: ghcr.io/metal-stack/node-init
-  tag: "v0.1.4"
+  tag: "v0.1.8"
 - name: metallb-health-sidecar
   sourceRepository: https://github.com/metal-stack/metallb-health-sidecar
   repository: ghcr.io/metal-stack/metallb-health-sidecar

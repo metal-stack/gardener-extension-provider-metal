@@ -32,7 +32,7 @@ func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if shoot.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize == nil {
-		shoot.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize = pointer.Pointer(d.c.nodeCIDRMaskSize())
+		shoot.Spec.Kubernetes.KubeControllerManager.NodeCIDRMaskSize = new(d.c.nodeCIDRMaskSize())
 	}
 
 	if shoot.Spec.Kubernetes.Kubelet == nil {
@@ -40,7 +40,7 @@ func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if shoot.Spec.Kubernetes.Kubelet.MaxPods == nil {
-		shoot.Spec.Kubernetes.Kubelet.MaxPods = pointer.Pointer(d.c.maxPods())
+		shoot.Spec.Kubernetes.Kubelet.MaxPods = new(d.c.maxPods())
 	}
 
 	err := d.defaultInfrastructureConfig(shoot)
@@ -89,15 +89,15 @@ func (d *defaulter) defaultNetworking(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if pointer.SafeDeref(shoot.Spec.Networking.Type) == "" {
-		shoot.Spec.Networking.Type = pointer.Pointer(d.c.networkType())
+		shoot.Spec.Networking.Type = new(d.c.networkType())
 	}
 
 	if shoot.Spec.Networking.Pods == nil {
-		shoot.Spec.Networking.Pods = pointer.Pointer(d.c.podsCIDR())
+		shoot.Spec.Networking.Pods = new(d.c.podsCIDR())
 	}
 
 	if shoot.Spec.Networking.Services == nil {
-		shoot.Spec.Networking.Services = pointer.Pointer(d.c.servicesCIDR())
+		shoot.Spec.Networking.Services = new(d.c.servicesCIDR())
 	}
 
 	// we only default networking config if there is no provider config given
@@ -133,11 +133,11 @@ func (d *defaulter) defaultCalicoConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if shoot.Spec.Kubernetes.KubeProxy.Enabled == nil {
-		shoot.Spec.Kubernetes.KubeProxy.Enabled = pointer.Pointer(d.c.calicoKubeProxyEnabled())
+		shoot.Spec.Kubernetes.KubeProxy.Enabled = new(d.c.calicoKubeProxyEnabled())
 	}
 
 	if networkConfig.Backend == nil {
-		networkConfig.Backend = pointer.Pointer(d.c.calicoBackend())
+		networkConfig.Backend = new(d.c.calicoBackend())
 	}
 
 	if networkConfig.IPv4 == nil {
@@ -145,7 +145,7 @@ func (d *defaulter) defaultCalicoConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if networkConfig.IPv4.Mode == nil {
-		networkConfig.IPv4.Mode = pointer.Pointer(d.c.calicoPoolMode())
+		networkConfig.IPv4.Mode = new(d.c.calicoPoolMode())
 	}
 
 	if networkConfig.Typha == nil {
@@ -173,7 +173,7 @@ func (d *defaulter) defaultCiliumConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if shoot.Spec.Kubernetes.KubeProxy.Enabled == nil {
-		shoot.Spec.Kubernetes.KubeProxy.Enabled = pointer.Pointer(d.c.ciliumKubeProxyEnabled())
+		shoot.Spec.Kubernetes.KubeProxy.Enabled = new(d.c.ciliumKubeProxyEnabled())
 	}
 
 	if networkConfig.Hubble == nil {
@@ -183,7 +183,7 @@ func (d *defaulter) defaultCiliumConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if networkConfig.TunnelMode == nil {
-		networkConfig.TunnelMode = pointer.Pointer(d.c.ciliumTunnel())
+		networkConfig.TunnelMode = new(d.c.ciliumTunnel())
 	}
 
 	if networkConfig.Devices == nil {
@@ -191,7 +191,7 @@ func (d *defaulter) defaultCiliumConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if networkConfig.DirectRoutingDevice == nil {
-		networkConfig.DirectRoutingDevice = pointer.Pointer(d.c.ciliumDirectRoutingDevice())
+		networkConfig.DirectRoutingDevice = new(d.c.ciliumDirectRoutingDevice())
 	}
 
 	if networkConfig.BGPControlPlane == nil {
@@ -201,15 +201,15 @@ func (d *defaulter) defaultCiliumConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if networkConfig.IPv4NativeRoutingCIDREnabled == nil {
-		networkConfig.IPv4NativeRoutingCIDREnabled = pointer.Pointer(d.c.ciliumIPv4NativeRoutingCIDREnabled())
+		networkConfig.IPv4NativeRoutingCIDREnabled = new(d.c.ciliumIPv4NativeRoutingCIDREnabled())
 	}
 
 	if networkConfig.LoadBalancingMode == nil {
-		networkConfig.LoadBalancingMode = pointer.Pointer(d.c.ciliumLoadBalancingMode())
+		networkConfig.LoadBalancingMode = new(d.c.ciliumLoadBalancingMode())
 	}
 
 	if networkConfig.MTU == nil {
-		networkConfig.MTU = pointer.Pointer(d.c.ciliumMTU())
+		networkConfig.MTU = new(d.c.ciliumMTU())
 	}
 
 	shoot.Spec.Networking.ProviderConfig = &runtime.RawExtension{

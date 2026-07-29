@@ -8,9 +8,6 @@ metadata:
     role: cloud-controller-manager
   annotations:
     networking.resources.gardener.cloud/from-all-scrape-targets-allowed-ports: '[{"port":{{ include "cloud-controller-manager.port" . }},"protocol":"TCP"}]'
-    # TODO: This label approach is deprecated and no longer needed in the future. Remove them as soon as gardener/gardener@v1.75 has been released.
-    networking.resources.gardener.cloud/from-policy-pod-label-selector: all-scrape-targets
-    networking.resources.gardener.cloud/from-policy-allowed-ports: '[{"port":{{ include "cloud-controller-manager.port" . }},"protocol":"TCP"}]'
 spec:
   type: ClusterIP
   clusterIP: None
@@ -52,9 +49,14 @@ spec:
         networking.gardener.cloud/from-prometheus: allowed
         networking.gardener.cloud/to-dns: allowed
         networking.gardener.cloud/to-shoot-apiserver: allowed
-        networking.gardener.cloud/to-private-networks: "allowed"
+        networking.gardener.cloud/to-private-networks: allowed
         networking.gardener.cloud/to-public-networks: allowed
         networking.resources.gardener.cloud/to-kube-apiserver-tcp-443: "allowed"
+{{- if and .Values.metrics.enableScraping }}
+        prometheus.io/name: cloud-controller-manager
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ include "cloud-controller-manager.port" . }}"
+{{- end }}
     spec:
       tolerations:
       - effect: NoExecute
@@ -66,8 +68,6 @@ spec:
         imagePullPolicy: {{ .Values.imagePullPolicy }}
         command:
         - ./metal-cloud-controller-manager
-        - --cluster-cidr={{ .Values.cloudControllerManager.podNetwork }}
-        - --cluster-name={{ .Values.cloudControllerManager.clusterName }}
         - --concurrent-service-syncs=10
         {{- include "cloud-controller-manager.featureGates" . | trimSuffix "," | indent 8 }}
         - --kubeconfig=/var/run/secrets/gardener.cloud/shoot/generic-kubeconfig/kubeconfig
@@ -107,16 +107,29 @@ spec:
             value: {{ .Values.cloudControllerManager.sshPublicKey | quote }}
           - name: LOADBALANCER
             value: {{ .Values.cloudControllerManager.loadBalancer }}
+        ports:
+          - name: ccm-secure
+            containerPort: {{ include "cloud-controller-manager.port" . }}
+            protocol: TCP
         livenessProbe:
           httpGet:
             path: /healthz
             scheme: HTTPS
-            port: {{ include "cloud-controller-manager.port" . }}
+            port: ccm-secure
           successThreshold: 1
-          failureThreshold: 2
+          failureThreshold: 15
           initialDelaySeconds: 15
-          periodSeconds: 10
+          periodSeconds: 60
           timeoutSeconds: 15
+        startupProbe:
+          httpGet:
+            path: /healthz
+            scheme: HTTPS
+            port: ccm-secure
+          successThreshold: 1
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 5
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         {{- if .Values.cloudControllerManager.resources }}

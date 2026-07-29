@@ -2,7 +2,6 @@ package validation_test
 
 import (
 	apismetal "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal"
-	"github.com/metal-stack/metal-lib/pkg/pointer"
 
 	. "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -24,7 +23,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 		BeforeEach(func() {
 			partitionName = "partition-b"
 			controlPlaneConfig = &apismetal.ControlPlaneConfig{
-				NetworkAccessType: pointer.Pointer(apismetal.NetworkAccessBaseline),
+				NetworkAccessType: new(apismetal.NetworkAccessBaseline),
 			}
 			cloudProfileConfig = &apismetal.CloudProfileConfig{}
 			path = field.NewPath("test")
@@ -61,7 +60,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 
 		Describe("with network access type forbidden", func() {
 			BeforeEach(func() {
-				controlPlaneConfig.NetworkAccessType = pointer.Pointer(apismetal.NetworkAccessForbidden)
+				controlPlaneConfig.NetworkAccessType = new(apismetal.NetworkAccessForbidden)
 			})
 
 			It("should fail without network isolation", func() {
@@ -129,7 +128,7 @@ var _ = Describe("CloudProfileConfig validation", func() {
 
 		Describe("with network access type restricted", func() {
 			BeforeEach(func() {
-				controlPlaneConfig.NetworkAccessType = pointer.Pointer(apismetal.NetworkAccessRestricted)
+				controlPlaneConfig.NetworkAccessType = new(apismetal.NetworkAccessRestricted)
 			})
 
 			It("should fail without network isolation", func() {
