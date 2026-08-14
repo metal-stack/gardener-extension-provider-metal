@@ -3,17 +3,17 @@
 [![GitHub License](https://img.shields.io/github/license/metal-stack/gardener-extension-provider-metal)](https://github.com/metal-stack/gardener-extension-provider-metal/blob/master/LICENCE)
 [![Build](https://github.com/metal-stack/gardener-extension-provider-metal/actions/workflows/build.yaml/badge.svg)](https://github.com/metal-stack/gardener-extension-provider-metal/actions/workflows/build.yaml)
 
-[Project Gardener](https://gardener.cloud/) implements the automated management and operation of [Kubernetes](https://kubernetes.io/) clusters as a service. This controller implements [Gardener's extension contract](https://github.com/gardener/gardener/blob/master/docs/extensions/overview.md) for the **metal-stack** provider.
+[Project Gardener](https://gardener.cloud/) implements the automated management and operation of [Kubernetes](https://kubernetes.io/) clusters as a service. This controller implements [Gardener's extension contract](https://github.com/gardener/gardener/blob/master/docs/extensions/overview.md) for the [**metal-stack**](https://metal-stack.io/) provider.
 
 It reconciles the `Infrastructure`, `ControlPlane`, and `Worker` resources of `type: metal`, and additionally contains a validator for all metal-specific provider configs as well as mutating webhooks.
 
 The `Worker` resource will also create a `FirewallDeployment` resource reconciled by the [firewall-controller-manager](https://github.com/metal-stack/firewall-controller-manager).
 
-For the shoot `ControlPlane` the extension provider also deploys [MetalLB](https://metallb.io/) into the cluster, which gets dynamically configured by the [metal-ccm](https://github.com/metal-stack/metal-ccm).
+For the shoot `ControlPlane`, the extension provider also deploys [MetalLB](https://metallb.io/) into the cluster, which gets dynamically configured by the [metal-ccm](https://github.com/metal-stack/metal-ccm).
 
 ## Example
 
-An example `ControllerRegistration` resource that can be used to register this controller to Gardener can be found [here](example/controller-registration.yaml).
+An example `ControllerRegistration` resource that can be used to register this controller to Gardener can be found in [`example/controller-registration.yaml`](example/controller-registration.yaml).
 
 ## Development
 
