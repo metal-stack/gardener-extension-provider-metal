@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/coreos/go-systemd/v22 v22.7.0
-	github.com/gardener/etcd-druid/api v0.35.1
+	github.com/gardener/etcd-druid/api v0.38.1
 	github.com/gardener/gardener v1.136.7
 	github.com/gardener/gardener-extension-networking-calico v1.53.1
 	github.com/gardener/gardener-extension-networking-cilium v1.45.2
@@ -27,12 +27,12 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/mock v0.6.0
-	k8s.io/api v0.35.0
+	k8s.io/api v0.35.5
 	k8s.io/apiextensions-apiserver v0.35.0
-	k8s.io/apimachinery v0.35.0
+	k8s.io/apimachinery v0.35.5
 	k8s.io/autoscaler/vertical-pod-autoscaler v1.5.1
 	k8s.io/client-go v0.35.0
-	k8s.io/code-generator v0.35.0
+	k8s.io/code-generator v0.35.5
 	k8s.io/component-base v0.35.0
 	k8s.io/kubelet v0.35.0
 	sigs.k8s.io/controller-runtime v0.24.1
@@ -277,7 +277,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20260520065146-aa012df4f4af // indirect
 	k8s.io/metrics v0.35.0 // indirect
 	k8s.io/pod-security-admission v0.34.3 // indirect
-	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2 // indirect
+	k8s.io/utils v0.0.0-20260626114624-be93311217bd // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.35.0 // indirect
 	sigs.k8s.io/controller-tools v0.20.1 // indirect
 	sigs.k8s.io/gateway-api v1.5.0-rc.1 // indirect
