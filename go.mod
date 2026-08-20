@@ -10,7 +10,7 @@ require (
 	github.com/gardener/gardener v1.136.7
 	github.com/gardener/gardener-extension-networking-calico v1.53.1
 	github.com/gardener/gardener-extension-networking-cilium v1.45.2
-	github.com/gardener/machine-controller-manager v0.61.2
+	github.com/gardener/machine-controller-manager v0.62.1
 	github.com/go-logr/logr v1.4.4
 	github.com/go-openapi/strfmt v0.27.0
 	github.com/golang/mock v1.6.0
