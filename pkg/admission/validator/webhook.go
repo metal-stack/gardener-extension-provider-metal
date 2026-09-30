@@ -1,8 +1,6 @@
 package validator
 
 import (
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
-
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
 	"github.com/gardener/gardener/pkg/apis/security"
@@ -27,9 +25,8 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	logger.Info("Setting up webhook", "name", Name)
 
 	return extensionswebhook.New(mgr, extensionswebhook.Args{
-		Provider: metal.Type,
-		Name:     Name,
-		Path:     "/webhooks/validate",
+		Name: Name,
+		Path: "/webhooks/validate",
 		Validators: map[extensionswebhook.Validator][]extensionswebhook.Type{
 			NewShootValidator(mgr):         {{Obj: &core.Shoot{}}},
 			NewCloudProfileValidator(mgr):  {{Obj: &core.CloudProfile{}}},
@@ -50,9 +47,8 @@ func NewSecretsWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, error) 
 	logger.Info("Setting up webhook", "name", SecretsValidatorName)
 
 	return extensionswebhook.New(mgr, extensionswebhook.Args{
-		Provider: metal.Type,
-		Name:     SecretsValidatorName,
-		Path:     "/webhooks/validate/secrets",
+		Name: SecretsValidatorName,
+		Path: "/webhooks/validate/secrets",
 		Validators: map[extensionswebhook.Validator][]extensionswebhook.Type{
 			NewSecretValidator(): {{Obj: &corev1.Secret{}}},
 		},
