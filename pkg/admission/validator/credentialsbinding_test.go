@@ -10,9 +10,11 @@ import (
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/admission/validator"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -81,53 +83,57 @@ var _ = Describe("CredentialsBinding validator", func() {
 			Expect(err).To(MatchError(errors.New(`unsupported credentials reference: version "unknown", kind "Secret"`)))
 		})
 
-		// It("should return err if it fails to get the corresponding Secret", func() {
-		// 	apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).Return(fakeErr)
+		It("should return err if it fails to get the corresponding Secret", func() {
+			// Secret not pre-populated → fake client returns not-found
+			err := credentialsBindingValidator.Validate(ctx, credentialsBindingSecret, nil)
+			Expect(err).To(HaveOccurred())
+		})
 
-		// 	err := credentialsBindingValidator.Validate(ctx, credentialsBindingSecret, nil)
-		// 	Expect(err).To(MatchError(fakeErr))
-		// })
+		It("should return err when the corresponding Secret does not contain a valid credential", func() {
+			newValidator(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+				Data:       map[string][]byte{"foo": []byte("bar")},
+			})
 
-		// It("should return err when the corresponding Secret does not contain a 'serviceaccount.json' field", func() {
-		// 	apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).
-		// 		DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
-		// 			secret := &corev1.Secret{Data: map[string][]byte{
-		// 				"foo": []byte("bar"),
-		// 			}}
-		// 			*obj = *secret
-		// 			return nil
-		// 		})
+			err := credentialsBindingValidator.Validate(ctx, credentialsBindingSecret, nil)
+			Expect(err).To(MatchError("referenced secret garden-dev/my-provider-account is not valid: either hmac or api key must be set"))
+		})
 
-		// 	err := credentialsBindingValidator.Validate(ctx, credentialsBindingSecret, nil)
-		// 	Expect(err).To(MatchError("referenced secret garden-dev/my-provider-account is not valid: either hmac or api key must be set"))
-		// })
+		It("should return err when the corresponding Secret does not contain a valid 'metalAPIHMac' field", func() {
+			newValidator(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+				Data: map[string][]byte{
+					metal.APIHMac: []byte(``),
+				},
+			})
 
-		// It("should return err when the corresponding Secret does not contain a valid 'metalAPIHMac' field", func() {
-		// 	apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).
-		// 		DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
-		// 			secret := &corev1.Secret{Data: map[string][]byte{
-		// 				metal.APIHMac: []byte(``),
-		// 			}}
-		// 			*obj = *secret
-		// 			return nil
-		// 		})
+			err := credentialsBindingValidator.Validate(ctx, credentialsBindingSecret, nil)
+			Expect(err).To(MatchError("referenced secret garden-dev/my-provider-account is not valid: either hmac or api key must be set"))
+		})
 
-		// 	err := credentialsBindingValidator.Validate(ctx, credentialsBindingSecret, nil)
-		// 	Expect(err).To(MatchError("referenced secret garden-dev/my-provider-account is not valid: either hmac or api key must be set"))
-		// })
+		It("should return err when the corresponding Secret contains both hmac and api key", func() {
+			newValidator(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+				Data: map[string][]byte{
+					metal.APIHMac: []byte(`a-secure-secret`),
+					metal.APIKey:  []byte(`a-secure-api-key`),
+				},
+			})
 
-		// It("should succeed when the corresponding Secret is valid", func() {
-		// 	apiReader.EXPECT().Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, gomock.AssignableToTypeOf(&corev1.Secret{})).
-		// 		DoAndReturn(func(_ context.Context, _ client.ObjectKey, obj *corev1.Secret, _ ...client.GetOption) error {
-		// 			secret := &corev1.Secret{Data: map[string][]byte{
-		// 				metal.APIHMac: []byte(`a-secure-secret`),
-		// 			}}
-		// 			*obj = *secret
-		// 			return nil
-		// 		})
+			err := credentialsBindingValidator.Validate(ctx, credentialsBindingSecret, nil)
+			Expect(err).To(MatchError("referenced secret garden-dev/my-provider-account is not valid: either hmac or api key must be set, not both"))
+		})
 
-		// 	Expect(credentialsBindingValidator.Validate(ctx, credentialsBindingSecret, nil)).To(Succeed())
-		// })
+		It("should succeed when the corresponding Secret is valid", func() {
+			newValidator(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+				Data: map[string][]byte{
+					metal.APIHMac: []byte(`a-secure-secret`),
+				},
+			})
+
+			Expect(credentialsBindingValidator.Validate(ctx, credentialsBindingSecret, nil)).To(Succeed())
+		})
 
 		It("should return nil when the CredentialsBinding did not change", func() {
 			old := credentialsBindingSecret.DeepCopy()
