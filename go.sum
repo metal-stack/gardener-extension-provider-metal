@@ -173,8 +173,8 @@ github.com/gardener/gardener-extension-networking-cilium v1.45.2 h1:5rOI54cs0aIw
 github.com/gardener/gardener-extension-networking-cilium v1.45.2/go.mod h1:tQ0WyEeOlNIGS3La+0q/PiJUnc2V+abvCY6WeBGuyNo=
 github.com/gardener/gardener/pkg/apis v1.145.4 h1:Lt+iTwrdzBdsYqW3cOjmELwdRhJUYfk0bUQjTnfW4b4=
 github.com/gardener/gardener/pkg/apis v1.145.4/go.mod h1:LsjZw5/3awWSMDnKg4bgftM1kW9Dkeor/ged5DNHVPI=
-github.com/gardener/machine-controller-manager v0.61.3 h1:w0JuHCKLmcK7B8E7mx3TvE3e0hSYwikchsMSiMhocqw=
-github.com/gardener/machine-controller-manager v0.61.3/go.mod h1:8eE1qLztrWIbOM71mHSQGaC6Q+pl5lvOyN08qP39D7o=
+github.com/gardener/machine-controller-manager v0.63.0 h1:0mfZiop6jStdfQhsMYyTdRxyfx3rJBsXYifFZlxw6wM=
+github.com/gardener/machine-controller-manager v0.63.0/go.mod h1:MU2Cyrwvh+jYYvRUGxUMx8LNmFUvGog01YHlpsCiRrM=
 github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/gkampitakis/ciinfo v0.3.2 h1:JcuOPk8ZU7nZQjdUhctuhQofk7BGHuIy0c9Ez8BNhXs=
 github.com/gkampitakis/ciinfo v0.3.2/go.mod h1:1NIwaOcFChN4fa/B0hEBdAb6npDlFL8Bwx4dfRLRqAo=

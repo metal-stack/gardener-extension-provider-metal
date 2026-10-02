@@ -11,7 +11,7 @@ require (
 	github.com/gardener/gardener-extension-networking-calico v1.53.1
 	github.com/gardener/gardener-extension-networking-cilium v1.45.2
 	github.com/gardener/gardener/pkg/apis v1.145.4
-	github.com/gardener/machine-controller-manager v0.61.3
+	github.com/gardener/machine-controller-manager v0.63.0
 	github.com/go-logr/logr v1.4.4
 	github.com/go-openapi/strfmt v0.27.2
 	github.com/google/go-cmp v0.7.0
