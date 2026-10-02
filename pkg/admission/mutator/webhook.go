@@ -3,7 +3,6 @@ package mutator
 import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -21,9 +20,8 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	logger.Info("Setting up webhook", "name", Name)
 
 	return extensionswebhook.New(mgr, extensionswebhook.Args{
-		Provider: metal.Type,
-		Name:     Name,
-		Path:     "/webhooks/mutate",
+		Name: Name,
+		Path: "/webhooks/mutate",
 		Mutators: map[extensionswebhook.Mutator][]extensionswebhook.Type{
 			NewShootMutator(mgr): {{Obj: &gardencorev1beta1.Shoot{}}},
 		},
