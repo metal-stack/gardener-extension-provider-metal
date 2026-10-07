@@ -167,8 +167,8 @@ github.com/gardener/etcd-druid/api v0.36.4 h1:o/17ciPrbh/w+igKMUuglW7N9XLjoMh7Av
 github.com/gardener/etcd-druid/api v0.36.4/go.mod h1:RwZzKp8K415AS0zg8VoODjBxYepCAUYyLgXnZc1bmbo=
 github.com/gardener/gardener v1.145.4 h1:4qy9gM5ZIb7FYaXWytesU4ZUUKLkQJn+Epm0U6cgc+U=
 github.com/gardener/gardener v1.145.4/go.mod h1:cDTZIPHaoj9ywmBTvronK5SpPBc/zI942hsp2//WVNo=
-github.com/gardener/gardener-extension-networking-calico v1.58.0 h1:jCHWWRPB5temGZYYl1mls1Aw69Xmvj44meJ2gEWE4Rw=
-github.com/gardener/gardener-extension-networking-calico v1.58.0/go.mod h1:9nbH2Ftc2Rk/HQ2nYMiiHtMTENLAj0OaadGVts3zCu8=
+github.com/gardener/gardener-extension-networking-calico v1.59.1 h1:B8mwCYfW4FUeS5Lpn8fq4TnQSB6rKhMdsob2RM8zDWM=
+github.com/gardener/gardener-extension-networking-calico v1.59.1/go.mod h1:CTdu8c+5C8y7yoNR6QAvDBVRO4l8i8r7jvzIKv9ZFRc=
 github.com/gardener/gardener-extension-networking-cilium v1.48.4 h1:Kc55rgdEKeUscI0FTVI7BvgMWM80/hxUtiw1/oY/CHs=
 github.com/gardener/gardener-extension-networking-cilium v1.48.4/go.mod h1:NeywZWywq7AZJOK1IVbJJSppUSxIwrQdmhoZdwCQBVI=
 github.com/gardener/gardener/pkg/apis v1.145.4 h1:Lt+iTwrdzBdsYqW3cOjmELwdRhJUYfk0bUQjTnfW4b4=
