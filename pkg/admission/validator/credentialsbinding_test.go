@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -91,8 +90,8 @@ var _ = Describe("CredentialsBinding validator", func() {
 
 		It("should return err when the corresponding Secret does not contain a valid credential", func() {
 			newValidator(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-				Data:       map[string][]byte{"foo": []byte("bar")},
+				Name: name, Namespace: namespace,
+				Data: map[string][]byte{"foo": []byte("bar")},
 			})
 
 			err := credentialsBindingValidator.Validate(ctx, credentialsBindingSecret, nil)
@@ -101,7 +100,7 @@ var _ = Describe("CredentialsBinding validator", func() {
 
 		It("should return err when the corresponding Secret does not contain a valid 'metalAPIHMac' field", func() {
 			newValidator(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+				Name: name, Namespace: namespace,
 				Data: map[string][]byte{
 					metal.APIHMac: []byte(``),
 				},
@@ -113,7 +112,7 @@ var _ = Describe("CredentialsBinding validator", func() {
 
 		It("should return err when the corresponding Secret contains both hmac and api key", func() {
 			newValidator(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+				Name: name, Namespace: namespace,
 				Data: map[string][]byte{
 					metal.APIHMac: []byte(`a-secure-secret`),
 					metal.APIKey:  []byte(`a-secure-api-key`),
@@ -126,7 +125,7 @@ var _ = Describe("CredentialsBinding validator", func() {
 
 		It("should succeed when the corresponding Secret is valid", func() {
 			newValidator(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+				Name: name, Namespace: namespace,
 				Data: map[string][]byte{
 					metal.APIHMac: []byte(`a-secure-secret`),
 				},

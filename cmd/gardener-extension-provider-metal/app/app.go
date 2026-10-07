@@ -8,7 +8,6 @@ import (
 
 	druidcorev1alpha1 "github.com/gardener/etcd-druid/api/core/v1alpha1"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	gardenerhealthz "github.com/gardener/gardener/pkg/healthz"
 	"github.com/go-logr/logr"
@@ -155,9 +154,7 @@ func NewControllerManagerCommand(ctx context.Context) *cobra.Command {
 
 			// the firewall namespace needs to exist in order to be able to deploy the control plane chart properly
 			namespace := v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "firewall",
-				},
+				Name: "firewall",
 			}
 
 			if _, err := controllerutil.CreateOrUpdate(ctx, c, &namespace, func() error {

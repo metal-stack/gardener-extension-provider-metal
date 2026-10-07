@@ -18,7 +18,6 @@ import (
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -33,9 +32,7 @@ func (a *actuator) firewallReconcile(ctx context.Context, log logr.Logger, worke
 
 	name := "firewall-controller-manager-" + cluster.ObjectMeta.Name
 	mwc := &admissionregistrationv1.MutatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	err := a.client.Get(ctx, client.ObjectKeyFromObject(mwc), mwc)
 	if err != nil {
@@ -81,10 +78,8 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 	}
 
 	deploy := &fcmv2.FirewallDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      metal.FirewallDeploymentName,
-			Namespace: namespace,
-		},
+		Name:      metal.FirewallDeploymentName,
+		Namespace: namespace,
 		Spec: fcmv2.FirewallDeploymentSpec{
 			Template: fcmv2.FirewallTemplateSpec{
 				Spec: fcmv2.FirewallSpec{

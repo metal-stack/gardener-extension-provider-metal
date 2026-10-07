@@ -12,7 +12,6 @@ import (
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 
 	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -23,10 +22,8 @@ func (a *actuator) firewallRestore(ctx context.Context, log logr.Logger, worker 
 	)
 
 	fcm := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "firewall-controller-manager",
-			Namespace: namespace,
-		},
+		Name:      "firewall-controller-manager",
+		Namespace: namespace,
 	}
 	err := a.client.Get(ctx, client.ObjectKeyFromObject(fcm), fcm)
 	if err != nil {

@@ -41,7 +41,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
@@ -838,10 +837,8 @@ func getStorageControlPlaneChartValues(ctx context.Context, client client.Client
 
 	if storageConfig.Duros.Enabled {
 		cp := &firewallv1.ClusterwideNetworkPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "allow-to-storage",
-				Namespace: "firewall",
-			},
+			Name:      "allow-to-storage",
+			Namespace: "firewall",
 		}
 
 		_, err := controllerutil.CreateOrUpdate(ctx, client, cp, func() error {
@@ -950,10 +947,8 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 	// can be provided in this seed's garden namespace to provide the external
 	// ip address of the kube-apiserver.
 	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "seed-api-server",
-			Namespace: "garden",
-		},
+		Name:      "seed-api-server",
+		Namespace: "garden",
 	}
 	isConfigMapConfigured := false
 	err := vp.client.Get(ctx, client.ObjectKeyFromObject(cm), cm)

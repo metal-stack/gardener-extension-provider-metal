@@ -247,10 +247,8 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			Strategy: machinev1alpha1.MachineDeploymentStrategy{
 				Type: machinev1alpha1.RollingUpdateMachineDeploymentStrategyType,
 				RollingUpdate: &machinev1alpha1.RollingUpdateMachineDeployment{
-					UpdateConfiguration: machinev1alpha1.UpdateConfiguration{
-						MaxUnavailable: &pool.MaxUnavailable,
-						MaxSurge:       &pool.MaxSurge,
-					},
+					MaxUnavailable: &pool.MaxUnavailable,
+					MaxSurge:       &pool.MaxSurge,
 				},
 			},
 			Priority:                     pool.Priority,

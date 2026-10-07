@@ -26,14 +26,10 @@ var _ = Describe("Shoot validation", func() {
 							Name: "ubuntu",
 							Versions: []gardencorev1beta1.MachineImageVersion{
 								{
-									ExpirableVersion: gardencorev1beta1.ExpirableVersion{
-										Version: "19.04",
-									},
+									Version: "19.04",
 								},
 								{
-									ExpirableVersion: gardencorev1beta1.ExpirableVersion{
-										Version: "19.10",
-									},
+									Version: "19.10",
 								},
 							},
 						},

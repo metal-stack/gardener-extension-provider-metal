@@ -20,7 +20,6 @@ import (
 	"github.com/gardener/gardener/pkg/controllerutils/reconciler"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -81,9 +80,7 @@ func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructur
 	name := "firewall-controller-manager-" + cluster.ObjectMeta.Name
 
 	mwc := &admissionregistrationv1.MutatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	err = a.client.Delete(ctx, mwc)
 	if client.IgnoreNotFound(err) != nil {
@@ -91,9 +88,7 @@ func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructur
 	}
 
 	vwc := &admissionregistrationv1.ValidatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
+		Name: name,
 	}
 	err = a.client.Delete(ctx, vwc)
 	if client.IgnoreNotFound(err) != nil {
