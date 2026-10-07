@@ -74,10 +74,8 @@ func (m *mutator) mutateVPNShootDeployment(_ context.Context, deployment *appsv1
 			Value: "",
 			ValueFrom: &corev1.EnvVarSource{
 				ConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: "shoot-info-node-cidr",
-					},
-					Key: "node-cidr",
+					Name: "shoot-info-node-cidr",
+					Key:  "node-cidr",
 				},
 			},
 		})

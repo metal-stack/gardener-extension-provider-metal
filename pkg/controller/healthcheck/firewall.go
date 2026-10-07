@@ -11,7 +11,6 @@ import (
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -47,10 +46,8 @@ func (healthChecker *FirewallHealthChecker) DeepCopy() healthcheck.HealthCheck {
 // Check executes the health check
 func (healthChecker *FirewallHealthChecker) Check(ctx context.Context, request types.NamespacedName) (*healthcheck.SingleCheckResult, error) {
 	fwdeploy := &fcmv2.FirewallDeployment{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      metal.FirewallDeploymentName,
-			Namespace: request.Namespace,
-		},
+		Name:      metal.FirewallDeploymentName,
+		Namespace: request.Namespace,
 	}
 
 	if err := healthChecker.seedClient.Get(ctx, client.ObjectKeyFromObject(fwdeploy), fwdeploy); err != nil {

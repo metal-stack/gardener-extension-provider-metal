@@ -25,7 +25,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -199,10 +198,8 @@ func (m *mutator) mutateOperatingSystemConfig(ctx context.Context, gctx gcontext
 	}
 
 	encoded, err := helper.EncodeRawExtension(&metalv1alpha1.ImageProviderConfig{
-		TypeMeta: v1.TypeMeta{
-			Kind:       "ImageProviderConfig",
-			APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
-		},
+		Kind:       "ImageProviderConfig",
+		APIVersion: metalv1alpha1.SchemeGroupVersion.String(),
 		NetworkIsolation: &metalv1alpha1.NetworkIsolation{
 			AllowedNetworks: metalv1alpha1.AllowedNetworks{
 				Ingress: p.NetworkIsolation.AllowedNetworks.Ingress,

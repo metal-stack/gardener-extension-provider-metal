@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/metal-lib/pkg/tag"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -127,10 +126,8 @@ func (a *actuator) maintainFirewallDeployment(ctx context.Context, logger logr.L
 	}
 
 	deploy := &fcmv2.FirewallDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      metal.FirewallDeploymentName,
-			Namespace: namespace,
-		},
+		Name:      metal.FirewallDeploymentName,
+		Namespace: namespace,
 	}
 
 	err := a.client.Get(ctx, client.ObjectKeyFromObject(deploy), deploy)

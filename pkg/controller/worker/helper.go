@@ -13,7 +13,6 @@ import (
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -131,10 +130,8 @@ func (w *workerDelegate) decodeWorkerProviderStatus() (*apismetal.WorkerStatus, 
 
 func (w *workerDelegate) updateWorkerProviderStatus(ctx context.Context, workerStatus *apismetal.WorkerStatus) error {
 	var workerStatusV1alpha1 = &v1alpha1.WorkerStatus{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: v1alpha1.SchemeGroupVersion.String(),
-			Kind:       "WorkerStatus",
-		},
+		APIVersion: v1alpha1.SchemeGroupVersion.String(),
+		Kind:       "WorkerStatus",
 	}
 
 	if err := w.scheme.Convert(workerStatus, workerStatusV1alpha1, nil); err != nil {

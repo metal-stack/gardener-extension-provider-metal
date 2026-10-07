@@ -12,7 +12,6 @@ import (
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -21,10 +20,8 @@ func (a *actuator) firewallDelete(ctx context.Context, log logr.Logger, cluster 
 
 	return retryutils.UntilTimeout(ctx, 5*time.Second, 2*time.Minute, func(ctx context.Context) (bool, error) {
 		deploy := &fcmv2.FirewallDeployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      metal.FirewallDeploymentName,
-				Namespace: cluster.ObjectMeta.Name,
-			},
+			Name:      metal.FirewallDeploymentName,
+			Namespace: cluster.ObjectMeta.Name,
 		}
 
 		err := a.client.Get(ctx, client.ObjectKeyFromObject(deploy), deploy)
