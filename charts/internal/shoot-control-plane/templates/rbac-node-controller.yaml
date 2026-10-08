@@ -159,18 +159,11 @@ rules:
 - apiGroups:
     - cilium.io
   resources:
-    - ciliumbgppeeringpolicies
-  verbs:
-    - create
-    - delete
-    - get
-    - list
-    - patch
-    - update
-    - watch
-- apiGroups:
-    - cilium.io
-  resources:
+
+    - ciliumbgpclusterconfigs
+    - ciliumbgppeerconfigs
+    - ciliumbgpadvertisements
+    - ciliumbgpnodeconfigoverrides
     - ciliumloadbalancerippools
   verbs:
     - create
