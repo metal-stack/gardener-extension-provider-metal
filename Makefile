@@ -1,4 +1,5 @@
 ENSURE_GARDENER_MOD         := $(shell go get github.com/gardener/gardener@$$(go list -m -f "{{.Version}}" github.com/gardener/gardener))
+ENSURE_GARDENER_TOOLS_MOD	:= $(shell go mod download github.com/gardener/gardener/hack/tools >/dev/null)
 GARDENER_HACK_DIR    		:= $(shell go list -m -f "{{.Dir}}" github.com/gardener/gardener)/hack
 IMAGE_TAG                   := $(or ${GITHUB_TAG_NAME}, latest)
 REGISTRY                    := ghcr.io/metal-stack
