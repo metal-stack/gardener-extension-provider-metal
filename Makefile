@@ -13,7 +13,7 @@ LEADER_ELECTION             := false
 IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
 GO_VERSION                  := 1.27.1
-GOLANGCI_LINT_VERSION       := v2.14.0
+GOLANGCI_LINT_VERSION       := v2.15.0
 
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
@@ -25,6 +25,10 @@ export GO111MODULE := on
 
 TOOLS_DIR := $(HACK_DIR)/tools
 include $(GARDENER_HACK_DIR)/tools.mk
+
+$(GOLANGCI_LINT): $(call tool_version_file,$(GOLANGCI_LINT),$(GOLANGCI_LINT_VERSION))
+	@mkdir -p $(TOOLS_BIN_DIR)
+	GOBIN=$(abspath $(TOOLS_BIN_DIR)) CGO_ENABLED=1 go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 #################################################################
 # Rules related to binary build, Docker image build and release #
