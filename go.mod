@@ -13,7 +13,7 @@ require (
 	github.com/gardener/gardener/pkg/apis v1.147.5
 	github.com/gardener/machine-controller-manager v0.62.1
 	github.com/go-logr/logr v1.4.4
-	github.com/go-openapi/strfmt v0.27.3
+	github.com/go-openapi/strfmt v0.27.4
 	github.com/google/go-cmp v0.7.0
 	github.com/metal-stack/duros-controller v0.12.2
 	github.com/metal-stack/firewall-controller-manager v0.6.2
@@ -21,7 +21,7 @@ require (
 	github.com/metal-stack/metal-go v0.45.0
 	github.com/metal-stack/metal-lib v0.26.3
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/ginkgo/v2 v2.33.0
+	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -29,11 +29,11 @@ require (
 	k8s.io/api v0.37.1
 	k8s.io/apiextensions-apiserver v0.37.1
 	k8s.io/apimachinery v0.37.1
-	k8s.io/autoscaler/vertical-pod-autoscaler v1.6.0
+	k8s.io/autoscaler/vertical-pod-autoscaler v1.8.1
 	k8s.io/client-go v0.37.1
 	k8s.io/component-base v0.37.1
-	k8s.io/kubelet v0.36.2
-	sigs.k8s.io/controller-runtime v0.24.1
+	k8s.io/kubelet v0.37.1
+	sigs.k8s.io/controller-runtime v0.25.2
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -162,9 +162,9 @@ require (
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.92.1 // indirect
 	github.com/prometheus/alertmanager v0.29.0 // indirect
 	github.com/prometheus/client_golang v1.24.1 // indirect
-	github.com/prometheus/client_model v0.6.2 // indirect
+	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/common v0.70.1 // indirect
-	github.com/prometheus/procfs v0.21.1 // indirect
+	github.com/prometheus/procfs v0.22.0 // indirect
 	github.com/prometheus/sigv4 v0.3.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
@@ -220,8 +220,8 @@ require (
 	k8s.io/apiserver v0.37.1 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-aggregator v0.36.2 // indirect
-	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad // indirect
-	k8s.io/metrics v0.36.2 // indirect
+	k8s.io/kube-openapi v0.0.0-20260821135717-be32def86098 // indirect
+	k8s.io/metrics v0.37.1 // indirect
 	k8s.io/pod-security-admission v0.36.2 // indirect
 	k8s.io/streaming v0.37.1 // indirect
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3 // indirect
