@@ -23,6 +23,7 @@ defaulter:
   allowedPrivilegedContainers:
   maxPods:
   nodeCIDRMaskSize:
+  sshAccessEnabled: false
   podsCIDR:
   servicesCIDR:
   networkType:

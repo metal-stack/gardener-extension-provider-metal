@@ -43,6 +43,8 @@ func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
 		shoot.Spec.Kubernetes.Kubelet.MaxPods = new(d.c.maxPods())
 	}
 
+	d.defaultWorkersSettings(shoot)
+
 	err := d.defaultInfrastructureConfig(shoot)
 	if err != nil {
 		return err
@@ -54,6 +56,20 @@ func (d *defaulter) defaultShoot(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	return nil
+}
+
+// defaultWorkersSettings sets the SSH access to the worker nodes to the configured value. Gardener already defaults
+// the SSH access to enabled during shoot creation, so the value is always set and not only defaulted when unset.
+func (d *defaulter) defaultWorkersSettings(shoot *gardenv1beta1.Shoot) {
+	if shoot.Spec.Provider.WorkersSettings == nil {
+		shoot.Spec.Provider.WorkersSettings = &gardenv1beta1.WorkersSettings{}
+	}
+
+	if shoot.Spec.Provider.WorkersSettings.SSHAccess == nil {
+		shoot.Spec.Provider.WorkersSettings.SSHAccess = &gardenv1beta1.SSHAccess{}
+	}
+
+	shoot.Spec.Provider.WorkersSettings.SSHAccess.Enabled = d.c.sshAccessEnabled()
 }
 
 func (d *defaulter) defaultInfrastructureConfig(shoot *gardenv1beta1.Shoot) error {

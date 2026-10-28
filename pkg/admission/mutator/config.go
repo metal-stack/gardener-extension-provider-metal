@@ -19,6 +19,10 @@ func (c *config) nodeCIDRMaskSize() int32 {
 	return c.int32("DEFAULTER_NODECIDRMASKSIZE", 23)
 }
 
+func (c *config) sshAccessEnabled() bool {
+	return c.bool("DEFAULTER_SSHACCESSENABLED", false)
+}
+
 func (c *config) podsCIDR() string {
 	return c.string("DEFAULTER_PODSCIDR", "10.240.0.0/13")
 }

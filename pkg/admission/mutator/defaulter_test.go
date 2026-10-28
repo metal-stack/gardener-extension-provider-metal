@@ -55,6 +55,11 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 				Size:  "n1-medium-x86",
 			},
 		}
+		defaultedWorkersSettings = &gardenv1beta1.WorkersSettings{
+			SSHAccess: &gardenv1beta1.SSHAccess{
+				Enabled: false,
+			},
+		}
 		completeCiliumSpec = &ciliumextensionv1alpha1.NetworkConfig{
 			Debug: new(true),
 			KubeProxy: &ciliumextensionv1alpha1.KubeProxy{
@@ -91,6 +96,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 				},
 				Provider: gardenv1beta1.Provider{
 					InfrastructureConfig: mustEncode(t, completeInfrastructureConfig),
+					WorkersSettings:      defaultedWorkersSettings,
 				},
 			},
 		}
@@ -125,6 +131,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 								},
 							},
 						},
+						WorkersSettings: defaultedWorkersSettings,
 					},
 				},
 			},
@@ -187,6 +194,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 								},
 							},
 						},
+						WorkersSettings: defaultedWorkersSettings,
 					},
 					Networking: &gardenv1beta1.Networking{
 						Type:     new("calico"),
@@ -253,6 +261,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						Workers: []gardenv1beta1.Worker{
 							{},
 						},
+						WorkersSettings: defaultedWorkersSettings,
 					},
 					Networking: &gardenv1beta1.Networking{
 						Type:     new("calico"),
@@ -328,6 +337,7 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 						Workers: []gardenv1beta1.Worker{
 							{},
 						},
+						WorkersSettings: defaultedWorkersSettings,
 					},
 					Networking: &gardenv1beta1.Networking{
 						Type:     new("cilium"),
@@ -367,6 +377,86 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			require.NoError(t, err)
 
 			if diff := cmp.Diff(tt.want, got, cmpopts.IgnoreFields(runtime.RawExtension{}, "Raw")); diff != "" {
+				t.Errorf("diff (+got -want):\n %s", diff)
+			}
+		})
+	}
+}
+
+func Test_defaulter_defaultWorkersSettings(t *testing.T) {
+	tests := []struct {
+		name             string
+		sshAccessEnabled string
+		workersSettings  *gardenv1beta1.WorkersSettings
+		want             *gardenv1beta1.WorkersSettings
+	}{
+		{
+			name:            "missing workers settings are defaulted",
+			workersSettings: nil,
+			want: &gardenv1beta1.WorkersSettings{
+				SSHAccess: &gardenv1beta1.SSHAccess{
+					Enabled: false,
+				},
+			},
+		},
+		{
+			name:            "missing ssh access is defaulted",
+			workersSettings: &gardenv1beta1.WorkersSettings{},
+			want: &gardenv1beta1.WorkersSettings{
+				SSHAccess: &gardenv1beta1.SSHAccess{
+					Enabled: false,
+				},
+			},
+		},
+		{
+			name: "ssh access enabled by gardener is overridden",
+			workersSettings: &gardenv1beta1.WorkersSettings{
+				SSHAccess: &gardenv1beta1.SSHAccess{
+					Enabled: true,
+				},
+			},
+			want: &gardenv1beta1.WorkersSettings{
+				SSHAccess: &gardenv1beta1.SSHAccess{
+					Enabled: false,
+				},
+			},
+		},
+		{
+			name:             "ssh access can be enabled through the configuration",
+			sshAccessEnabled: "true",
+			workersSettings: &gardenv1beta1.WorkersSettings{
+				SSHAccess: &gardenv1beta1.SSHAccess{
+					Enabled: false,
+				},
+			},
+			want: &gardenv1beta1.WorkersSettings{
+				SSHAccess: &gardenv1beta1.SSHAccess{
+					Enabled: true,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.sshAccessEnabled != "" {
+				t.Setenv("DEFAULTER_SSHACCESSENABLED", tt.sshAccessEnabled)
+			}
+
+			d := &defaulter{
+				c: &config{},
+			}
+
+			shoot := &gardenv1beta1.Shoot{
+				Spec: gardenv1beta1.ShootSpec{
+					Provider: gardenv1beta1.Provider{
+						WorkersSettings: tt.workersSettings,
+					},
+				},
+			}
+
+			d.defaultWorkersSettings(shoot)
+
+			if diff := cmp.Diff(tt.want, shoot.Spec.Provider.WorkersSettings); diff != "" {
 				t.Errorf("diff (+got -want):\n %s", diff)
 			}
 		})
