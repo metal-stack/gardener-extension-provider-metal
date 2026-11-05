@@ -546,6 +546,10 @@ spec:
       containers:
       - args:
         - --metrics-bind-address=0.0.0.0:9140
+        # Deliberately not the upstream default (127.0.0.1:7572): this daemonset does not use host
+        # networking (see the comment on its hostNetwork field), so the health endpoint has to be
+        # reachable via the pod IP for the kubelet.
+        - --health-probe-bind-address=0.0.0.0:7572
         - --node-name=$(NODE_NAME)
         - --namespace=$(NAMESPACE)
         - --log-level=info
@@ -566,9 +570,14 @@ spec:
               fieldPath: metadata.namespace
         image: {{ index .Values.images "frr-k8s" }}
         imagePullPolicy: IfNotPresent
+        # The upstream manifest sets `host: 127.0.0.1` on the probes of this daemonset, because it
+        # runs with host networking. The kubelet resolves the host field in its own network
+        # namespace, which is the node here, so with host networking disabled `127.0.0.1` would
+        # address the node instead of the pod and all probes would fail with
+        # "connection refused", restarting the containers in a loop. Without the host field the
+        # kubelet probes the pod IP.
         livenessProbe:
           httpGet:
-            host: 127.0.0.1
             path: /healthz
             port: 7572
           initialDelaySeconds: 15
@@ -579,7 +588,6 @@ spec:
           name: metricshttps
         readinessProbe:
           httpGet:
-            host: 127.0.0.1
             path: /readyz
             port: 7572
           initialDelaySeconds: 5
@@ -608,10 +616,11 @@ spec:
         - name: TINI_SUBREAPER
           value: "true"
         image: {{ index .Values.images "frr" }}
+        # see the comment on the probes of the controller container, they are served by the
+        # frr-metrics container which listens on all interfaces
         livenessProbe:
           failureThreshold: 3
           httpGet:
-            host: 127.0.0.1
             path: /livez
             port: 9141
             scheme: HTTPS
@@ -629,7 +638,6 @@ spec:
         startupProbe:
           failureThreshold: 30
           httpGet:
-            host: 127.0.0.1
             path: /livez
             port: 9141
             scheme: HTTPS
@@ -709,7 +717,10 @@ spec:
       # can. Running the BGP session from the pod network namespace keeps the session originating
       # from the pod IP, which is exactly what the metallb speaker did before and what the router
       # accepts. The FRR instance does not need the host network namespace, it only advertises the
-      # load balancer IPs of this node.
+      # load balancer IPs of this node. Consequently the probes of this daemonset must not use the
+      # `host: 127.0.0.1` of the upstream manifest and the frr-k8s controller has to bind its
+      # health endpoint to 0.0.0.0 instead of the loopback, otherwise the kubelet would probe the
+      # node instead of the pod.
       hostNetwork: false
       initContainers:
       - command:

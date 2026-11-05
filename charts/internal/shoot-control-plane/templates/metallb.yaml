@@ -529,15 +529,14 @@ spec:
         - name: METALLB_ML_SECRET_KEY_PATH
           value: /etc/ml_secret_key
         image: {{ index .Values.images "metallb-speaker" }}
-        livenessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /healthz
-            port: 17472
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
+        # Deliberately no kubelet probes: upstream probes `127.0.0.1:17472`, because the speaker is
+        # meant to run with host networking and binds its health endpoint to the loopback address of
+        # its own network namespace (the bind address is hardcoded to 127.0.0.1 in the speaker, see
+        # the --health-probe-port flag). With host networking disabled, which is required here (see
+        # the comment on the hostNetwork field), such a probe can never succeed, it would only
+        # restart the speaker in a loop. The health of the speaker is reported through its
+        # `speaker-<node>` ConfigurationState, which the health check of this extension consumes,
+        # and a speaker process which exits is restarted by the kubelet anyway.
         name: speaker
         ports:
         - containerPort: 9120
@@ -553,15 +552,6 @@ spec:
           limits:
             cpu: 100m
             memory: 100Mi
-        readinessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /readyz
-            port: 17472
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
