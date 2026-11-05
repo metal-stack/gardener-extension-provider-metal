@@ -421,6 +421,8 @@ spec:
     strategy: Webhook
     webhook:
       clientConfig:
+        # ATTENTION: re-add this line if the CRDs are regenerated from an upstream release!
+        caBundle: {{ .Values.metallb.webhook.ca }}
         service:
           name: metallb-webhook-service
           namespace: metallb-system
