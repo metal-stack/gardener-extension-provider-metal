@@ -1,0 +1,810 @@
+{{- if .Values.metallb.enabled }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: frr-k8s-sa
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: serviceaccount
+    app.kubernetes.io/part-of: frr-k8s
+    token-invalidator.resources.gardener.cloud/skip: "true"
+  name: frr-k8s-daemon
+  namespace: metallb-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app: frr-k8s
+  name: frr-k8s-daemon-role
+  namespace: metallb-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: frr-k8s-role
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: role
+    app.kubernetes.io/part-of: frr-k8s
+  name: frr-k8s-nodestate-cleaner-role
+  namespace: metallb-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - frrk8s.metallb.io
+  resources:
+  - frrnodestates
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: frr-k8s-daemon-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resourceNames:
+  - frr-k8s-validating-webhook-configuration
+  resources:
+  - validatingwebhookconfigurations
+  verbs:
+  - update
+- apiGroups:
+  - frrk8s.metallb.io
+  resources:
+  - bgpsessionstates
+  - frrconfigurations
+  - frrnodestates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - frrk8s.metallb.io
+  resources:
+  - bgpsessionstates/status
+  - frrconfigurations/status
+  - frrnodestates/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - frrk8s.metallb.io
+  resources:
+  - frrconfigurations/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - frrk8s.metallb.io
+  resources:
+  - frrk8sconfigurations
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/component: frr-k8s
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: metrics-reader
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/part-of: frr-k8s
+  name: frr-k8s-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/component: frr-k8s
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: proxy-role
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/part-of: frr-k8s
+  name: frr-k8s-proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: frr-k8s-rolebinding
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: rolebinding
+    app.kubernetes.io/part-of: frr-k8s
+  name: frr-k8s-daemon-rolebinding
+  namespace: metallb-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: frr-k8s-daemon-role
+subjects:
+- kind: ServiceAccount
+  name: frr-k8s-daemon
+  namespace: metallb-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: frr-k8s-rolebinding
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: rolebinding
+    app.kubernetes.io/part-of: frr-k8s
+  name: frr-k8s-nodestate-cleaner-rolebinding
+  namespace: metallb-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: frr-k8s-nodestate-cleaner-role
+subjects:
+- kind: ServiceAccount
+  name: frr-k8s-daemon
+  namespace: metallb-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: frr-k8s-rolebinding
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: clusterrolebinding
+    app.kubernetes.io/part-of: frr-k8s
+  name: frr-k8s-daemon-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: frr-k8s-daemon-role
+subjects:
+- kind: ServiceAccount
+  name: frr-k8s-daemon
+  namespace: metallb-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: frr-k8s
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: proxy-rolebinding
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: clusterrolebinding
+    app.kubernetes.io/part-of: frr-k8s
+  name: frr-k8s-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: frr-k8s-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: frr-k8s-daemon
+  namespace: metallb-system
+---
+apiVersion: v1
+data:
+  daemons: |
+    # This file tells the frr package which daemons to start.
+    #
+    # Sample configurations for these daemons can be found in
+    # /usr/share/doc/frr/examples/.
+    #
+    # ATTENTION:
+    #
+    # When activating a daemon for the first time, a config file, even if it is
+    # empty, has to be present *and* be owned by the user and group "frr", else
+    # the daemon will not be started by /etc/init.d/frr. The permissions should
+    # be u=rw,g=r,o=.
+    # When using "vtysh" such a config file is also needed. It should be owned by
+    # group "frrvty" and set to ug=rw,o= though. Check /etc/pam.d/frr, too.
+    #
+    # The watchfrr and zebra daemons are always started.
+    #
+    bgpd=yes
+    ospfd=no
+    ospf6d=no
+    ripd=no
+    ripngd=no
+    isisd=no
+    pimd=no
+    ldpd=no
+    nhrpd=no
+    eigrpd=no
+    babeld=no
+    sharpd=no
+    pbrd=no
+    bfdd=yes
+    fabricd=no
+    vrrpd=no
+
+    #
+    # If this option is set the /etc/init.d/frr script automatically loads
+    # the config via "vtysh -b" when the servers are started.
+    # Check /etc/pam.d/frr if you intend to use "vtysh"!
+    #
+    vtysh_enable=yes
+    zebra_options="  -A 127.0.0.1 -K 120 -s 90000000 --limit-fds 100000"
+    bgpd_options="   -A 127.0.0.1 -p 0 --limit-fds 100000"
+    ospfd_options="  -A 127.0.0.1"
+    ospf6d_options=" -A ::1"
+    ripd_options="   -A 127.0.0.1"
+    ripngd_options=" -A ::1"
+    isisd_options="  -A 127.0.0.1"
+    pimd_options="   -A 127.0.0.1"
+    ldpd_options="   -A 127.0.0.1"
+    nhrpd_options="  -A 127.0.0.1"
+    eigrpd_options=" -A 127.0.0.1"
+    babeld_options=" -A 127.0.0.1"
+    sharpd_options=" -A 127.0.0.1"
+    pbrd_options="   -A 127.0.0.1"
+    staticd_options="-A 127.0.0.1 --limit-fds 100000"
+    bfdd_options="   -A 127.0.0.1 --limit-fds 100000"
+    fabricd_options="-A 127.0.0.1"
+    vrrpd_options="  -A 127.0.0.1"
+
+    # configuration profile
+    #
+    #frr_profile="traditional"
+    #frr_profile="datacenter"
+
+    #
+    # This is the maximum number of FD's that will be available.
+    # Upon startup this is read by the control files and ulimit
+    # is called. Uncomment and use a reasonable value for your
+    # setup if you are expecting a large number of peers in
+    # say BGP.
+    #MAX_FDS=1024
+
+    # The list of daemons to watch is automatically generated by the init script.
+    #watchfrr_options=""
+
+    # for debugging purposes, you can specify a "wrap" command to start instead
+    # of starting the daemon directly, e.g. to use valgrind on ospfd:
+    #   ospfd_wrap="/usr/bin/valgrind"
+    # or you can use "all_wrap" for all daemons, e.g. to use perf record:
+    #   all_wrap="/usr/bin/perf record --call-graph -"
+    # the normal daemon command is added to this at the end.
+  frr.conf: |
+    ! This file gets overriden the first time the speaker renders a config.
+    ! So anything configured here is only temporary.
+    frr version 8.0
+    frr defaults traditional
+    hostname Router
+    line vty
+    log stdout informational
+  vtysh.conf: |
+    service integrated-vtysh-config
+kind: ConfigMap
+metadata:
+  name: frr-k8s-frr-startup
+  namespace: metallb-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: frr-k8s-webhook-server-cert
+  namespace: metallb-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: frr-k8s
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: frr-k8s-metrics-service
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: service
+    app.kubernetes.io/part-of: frr-k8s
+    control-plane: frr-k8s
+  name: frr-k8s-metrics-service
+  namespace: metallb-system
+spec:
+  ports:
+  - name: metricshttps
+    port: 9140
+    targetPort: metricshttps
+  - name: frrmetricshttps
+    port: 9141
+    targetPort: frrmetricshttps
+  selector:
+    control-plane: frr-k8s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frr-k8s-webhook-service
+  namespace: metallb-system
+spec:
+  ports:
+  - port: 443
+    targetPort: webhook
+  selector:
+    control-plane: statuscleaner
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: statuscleaner
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: frr-k8s
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: frr-k8s
+    app.kubernetes.io/part-of: frr-k8s
+    control-plane: statuscleaner
+  name: frr-k8s-statuscleaner
+  namespace: metallb-system
+spec:
+  selector:
+    matchLabels:
+      control-plane: statuscleaner
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: frr-k8s-webhook-server
+      labels:
+        app: frr-k8s-webhook-server
+        app.kubernetes.io/component: statuscleaner
+        component: frr-k8s
+        app.kubernetes.io/part-of: frr-k8s
+        control-plane: statuscleaner
+        projected-token-mount.resources.gardener.cloud/skip: "true"
+    spec:
+      containers:
+      - args:
+        - --log-level=info
+        - --namespace=$(NAMESPACE)
+        command:
+        - /statuscleaner
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: {{ index .Values.images "frr-k8s" }}
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: webhook
+            scheme: HTTPS
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: frr-k8s-statuscleaner
+        ports:
+        - containerPort: 19443
+          name: webhook
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: webhook
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      # no host networking, see the comment on the frr-k8s-daemon daemonset
+      hostNetwork: false
+      serviceAccountName: frr-k8s-daemon
+      terminationGracePeriodSeconds: 10
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: frr-k8s-webhook-server-cert
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app.kubernetes.io/component: frr-k8s
+    app.kubernetes.io/created-by: frr-k8s
+    app.kubernetes.io/instance: frr-k8s
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: frr-k8s
+    app.kubernetes.io/part-of: frr-k8s
+    control-plane: frr-k8s
+  name: frr-k8s-daemon
+  namespace: metallb-system
+spec:
+  selector:
+    matchLabels:
+      control-plane: frr-k8s
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: frr-k8s
+      labels:
+        app: frr-k8s
+        app.kubernetes.io/component: frr-k8s
+        component: frr-k8s
+        app.kubernetes.io/part-of: frr-k8s
+        control-plane: frr-k8s
+        projected-token-mount.resources.gardener.cloud/skip: "true"
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - arm64
+                - ppc64le
+                - riscv64
+                - s390x
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+      containers:
+      - args:
+        - --metrics-bind-address=0.0.0.0:9140
+        - --node-name=$(NODE_NAME)
+        - --namespace=$(NAMESPACE)
+        - --log-level=info
+        command:
+        - /frr-k8s
+        env:
+        - name: FRR_CONFIG_FILE
+          value: /etc/frr_reloader/frr.conf
+        - name: FRR_RELOADER_PID_FILE
+          value: /etc/frr_reloader/reloader.pid
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: {{ index .Values.images "frr-k8s" }}
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            host: 127.0.0.1
+            path: /healthz
+            port: 7572
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: controller
+        ports:
+        - containerPort: 9140
+          name: metricshttps
+        readinessProbe:
+          httpGet:
+            host: 127.0.0.1
+            path: /readyz
+            port: 7572
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /etc/frr_reloader
+          name: reloader
+      - command:
+        - /bin/sh
+        - -c
+        - /sbin/tini -- /usr/lib/frr/docker-start
+        env:
+        - name: TINI_SUBREAPER
+          value: "true"
+        image: {{ index .Values.images "frr" }}
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            host: 127.0.0.1
+            path: /livez
+            port: 9141
+            scheme: HTTPS
+          periodSeconds: 5
+        name: frr
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            - SYS_ADMIN
+            - NET_BIND_SERVICE
+          readOnlyRootFilesystem: true
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            host: 127.0.0.1
+            path: /livez
+            port: 9141
+            scheme: HTTPS
+          periodSeconds: 5
+        volumeMounts:
+        - mountPath: /var/run/frr
+          name: frr-sockets
+        - mountPath: /etc/frr
+          name: frr-conf
+        - mountPath: /var/lib/frr
+          name: frr-lib
+        - mountPath: /var/tmp/frr
+          name: frr-tmp
+      - args:
+        - --metrics-port=9141
+        - --metrics-bind-address=0.0.0.0
+        command:
+        - /etc/frr_metrics/frr-metrics
+        image: {{ index .Values.images "frr" }}
+        name: frr-metrics
+        ports:
+        - containerPort: 9141
+          name: frrmetricshttps
+        - containerPort: 7573
+          name: frr-metrics
+        volumeMounts:
+        - mountPath: /var/run/frr
+          name: frr-sockets
+        - mountPath: /etc/frr
+          name: frr-conf
+        - mountPath: /etc/frr_metrics
+          name: metrics
+      - args:
+        - --node-name=$(NODE_NAME)
+        - --namespace=$(NAMESPACE)
+        - --pod-name=$(POD_NAME)
+        - --log-level=info
+        command:
+        - /etc/frr_status/frr-status
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        image: {{ index .Values.images "frr" }}
+        name: frr-status
+        volumeMounts:
+        - mountPath: /var/run/frr
+          name: frr-sockets
+        - mountPath: /etc/frr
+          name: frr-conf
+        - mountPath: /etc/frr_status
+          name: frr-status
+      - command:
+        - /etc/frr_reloader/frr-reloader.sh
+        image: {{ index .Values.images "frr" }}
+        name: reloader
+        volumeMounts:
+        - mountPath: /var/run/frr
+          name: frr-sockets
+        - mountPath: /etc/frr
+          name: frr-conf
+        - mountPath: /etc/frr_reloader
+          name: reloader
+      # Deliberately no host networking, deviating from the upstream frr-k8s manifest:
+      # metal-ccm configures a BGPPeer per node whose address is the node's own IP, because the
+      # BGP router the shoot peers with runs on the same host (the firewall node). The FRR based
+      # BGP modes of metallb cannot peer within the same host, while the native implementation
+      # can. Running the BGP session from the pod network namespace keeps the session originating
+      # from the pod IP, which is exactly what the metallb speaker did before and what the router
+      # accepts. The FRR instance does not need the host network namespace, it only advertises the
+      # load balancer IPs of this node.
+      hostNetwork: false
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - cp -rLf /tmp/frr/* /etc/frr/
+        image: {{ index .Values.images "frr" }}
+        name: cp-frr-files
+        securityContext:
+          runAsGroup: 101
+          runAsUser: 100
+        volumeMounts:
+        - mountPath: /tmp/frr
+          name: frr-startup
+        - mountPath: /etc/frr
+          name: frr-conf
+      - command:
+        - /bin/sh
+        - -c
+        - cp -f /frr-reloader.sh /etc/frr_reloader/
+        image: {{ index .Values.images "frr-k8s" }}
+        name: cp-reloader
+        volumeMounts:
+        - mountPath: /etc/frr_reloader
+          name: reloader
+      - command:
+        - /bin/sh
+        - -c
+        - cp -f /frr-metrics /etc/frr_metrics/
+        image: {{ index .Values.images "frr-k8s" }}
+        name: cp-metrics
+        volumeMounts:
+        - mountPath: /etc/frr_metrics
+          name: metrics
+      - command:
+        - /bin/sh
+        - -c
+        - cp -f /frr-status /etc/frr_status/
+        image: {{ index .Values.images "frr-k8s" }}
+        name: cp-frr-status
+        volumeMounts:
+        - mountPath: /etc/frr_status
+          name: frr-status
+      serviceAccountName: frr-k8s-daemon
+      shareProcessNamespace: true
+      terminationGracePeriodSeconds: 10
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      volumes:
+      - emptyDir: {}
+        name: frr-sockets
+      - configMap:
+          name: frr-k8s-frr-startup
+        name: frr-startup
+      - emptyDir: {}
+        name: frr-conf
+      - emptyDir: {}
+        name: reloader
+      - emptyDir: {}
+        name: metrics
+      - emptyDir: {}
+        name: frr-status
+      - emptyDir: {}
+        name: frr-lib
+      - emptyDir: {}
+        name: frr-tmp
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: frr-k8s-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: frr-k8s-webhook-service
+      namespace: metallb-system
+      path: /validate-frrk8s-metallb-io-v1beta1-frrconfiguration
+  failurePolicy: Fail
+  name: frrconfigurationsvalidationwebhook.metallb.io
+  rules:
+  - apiGroups:
+    - frrk8s.metallb.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - frrconfigurations
+  sideEffects: None
+{{- end }}

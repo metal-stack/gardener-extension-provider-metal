@@ -14,6 +14,10 @@ const (
 	MetallbSpeakerImageName = "metallb-speaker"
 	// MetallbControllerImageName is the name of the metallb controller to deploy to the shoot.
 	MetallbControllerImageName = "metallb-controller"
+	// FrrK8sImageName is the name of the frr-k8s to deploy to the shoot. It serves as the BGP backend of metallb.
+	FrrK8sImageName = "frr-k8s"
+	// FrrImageName is the name of the FRR routing suite deployed as part of frr-k8s to the shoot.
+	FrrImageName = "frr"
 	// CSIControllerImageName is the name of the csi lvm controller to deploy to the seed's shoot namespace.
 	CSIControllerImageName = "csi-lvm-controller"
 	// CSIProvisionerImageName is the name of the csi lvm provisioner to deploy to the seed's shoot namespace.
