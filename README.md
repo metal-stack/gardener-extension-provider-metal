@@ -9,8 +9,7 @@ It reconciles the `Infrastructure`, `ControlPlane`, and `Worker` resources of `t
 
 The `Worker` resource will also create a `FirewallDeployment` resource reconciled by the [firewall-controller-manager](https://github.com/metal-stack/firewall-controller-manager).
 
-For the shoot `ControlPlane`, the extension provider also deploys [MetalLB](https://metallb.io/) into the cluster, which gets dynamically configured by the [metal-ccm](https://github.com/metal-stack/metal-ccm).
-
+For the shoot `ControlPlane`, the extension provider also deploys [MetalLB](https://metallb.io/) into the cluster, which gets dynamically configured by the [metal-ccm](https://github.com/metal-stack/metal-ccm). MetalLB announces load balancer IPs via BGP, using [frr-k8s](https://github.com/metallb/frr-k8s) as BGP backend (`METALLB_BGP_TYPE=frr-k8s`). The health of MetalLB is derived from the `ConfigurationState` and `FRRNodeState` custom resources the components report.
 ## Example
 
 An example `ControllerRegistration` resource that can be used to register this controller to Gardener can be found in [`example/controller-registration.yaml`](example/controller-registration.yaml).
