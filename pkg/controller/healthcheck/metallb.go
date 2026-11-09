@@ -11,14 +11,14 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	frrv1beta1 "github.com/metallb/frr-k8s/api/v1beta1"
+	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -55,15 +55,6 @@ const (
 	// legacyHealthConfigMapConfigStaleKey is the key of the health sidecar configmap which reports whether the
 	// configuration of the metallb components is stale or erroneous.
 	legacyHealthConfigMapConfigStaleKey = "configStale"
-)
-
-var (
-	// configurationStateGVK is the group version kind of the configuration states reported by the metallb components.
-	configurationStateGVK     = schema.GroupVersionKind{Group: "metallb.io", Version: "v1beta1", Kind: "ConfigurationState"}
-	configurationStateListGVK = configurationStateGVK.GroupVersion().WithKind("ConfigurationStateList")
-	// frrNodeStateGVK is the group version kind of the node states reported by frr-k8s.
-	frrNodeStateGVK     = schema.GroupVersionKind{Group: "frrk8s.metallb.io", Version: "v1beta1", Kind: "FRRNodeState"}
-	frrNodeStateListGVK = frrNodeStateGVK.GroupVersion().WithKind("FRRNodeStateList")
 )
 
 // MetalLBHealthChecker contains all the information for the MetalLB HealthCheck
@@ -185,8 +176,8 @@ func (healthChecker *MetalLBHealthChecker) checkMetalLBComponents(ctx context.Co
 
 // configurationStates returns the configuration states of all metallb components, keyed by their name.
 func (healthChecker *MetalLBHealthChecker) configurationStates(ctx context.Context) (map[string]configurationState, error) {
-	list := &unstructured.UnstructuredList{}
-	list.SetGroupVersionKind(configurationStateListGVK)
+	list := &metallbv1beta1.ConfigurationStateList{}
+	list.SetGroupVersionKind(metallbv1beta1.GroupVersion.WithKind("ConfigurationStateList"))
 	if err := healthChecker.shootClient.List(ctx, list, client.InNamespace(metallbNamespace)); err != nil {
 		return nil, err
 	}
@@ -195,8 +186,8 @@ func (healthChecker *MetalLBHealthChecker) configurationStates(ctx context.Conte
 
 // frrNodeStates returns the frr-k8s node states of all nodes, keyed by the node name.
 func (healthChecker *MetalLBHealthChecker) frrNodeStates(ctx context.Context) (map[string]frrNodeState, error) {
-	list := &unstructured.UnstructuredList{}
-	list.SetGroupVersionKind(frrNodeStateListGVK)
+	list := &frrv1beta1.FRRNodeStateList{}
+	list.SetGroupVersionKind(frrv1beta1.GroupVersion.WithKind("FRRNodeStateList"))
 	if err := healthChecker.shootClient.List(ctx, list); err != nil {
 		return nil, err
 	}
@@ -215,22 +206,24 @@ type frrNodeState struct {
 	lastReloadResult     string
 }
 
-func toConfigurationStates(list *unstructured.UnstructuredList) map[string]configurationState {
+func toConfigurationStates(list *metallbv1beta1.ConfigurationStateList) map[string]configurationState {
 	states := make(map[string]configurationState, len(list.Items))
 	for _, item := range list.Items {
-		result, _, _ := unstructured.NestedString(item.Object, "status", "result")
-		errorSummary, _, _ := unstructured.NestedString(item.Object, "status", "errorSummary")
-		states[item.GetName()] = configurationState{result: result, errorSummary: errorSummary}
+		states[item.GetName()] = configurationState{
+			result:       string(item.Status.Result),
+			errorSummary: item.Status.ErrorSummary,
+		}
 	}
 	return states
 }
 
-func toFRRNodeStates(list *unstructured.UnstructuredList) map[string]frrNodeState {
+func toFRRNodeStates(list *frrv1beta1.FRRNodeStateList) map[string]frrNodeState {
 	states := make(map[string]frrNodeState, len(list.Items))
 	for _, item := range list.Items {
-		conversion, _, _ := unstructured.NestedString(item.Object, "status", "lastConversionResult")
-		reload, _, _ := unstructured.NestedString(item.Object, "status", "lastReloadResult")
-		states[item.GetName()] = frrNodeState{lastConversionResult: conversion, lastReloadResult: reload}
+		states[item.GetName()] = frrNodeState{
+			lastConversionResult: item.Status.LastConversionResult,
+			lastReloadResult:     item.Status.LastReloadResult,
+		}
 	}
 	return states
 }

@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	frrv1beta1 "github.com/metallb/frr-k8s/api/v1beta1"
+	metallbv1beta1 "go.universe.tf/metallb/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -169,7 +170,7 @@ func Test_speakerNodes(t *testing.T) {
 }
 
 func Test_toConfigurationStates(t *testing.T) {
-	list := &unstructured.UnstructuredList{Items: []unstructured.Unstructured{
+	list := &metallbv1beta1.ConfigurationStateList{Items: []metallbv1beta1.ConfigurationState{
 		*configurationStateObject("controller", "Valid", ""),
 		*configurationStateObject("speaker-node1", "Invalid", "duplicate ip address"),
 	}}
@@ -184,7 +185,7 @@ func Test_toConfigurationStates(t *testing.T) {
 }
 
 func Test_toFRRNodeStates(t *testing.T) {
-	list := &unstructured.UnstructuredList{Items: []unstructured.Unstructured{
+	list := &frrv1beta1.FRRNodeStateList{Items: []frrv1beta1.FRRNodeState{
 		*frrNodeStateObject("node1", "success", "success"),
 		*frrNodeStateObject("node2", "failed: unknown field", "success"),
 	}}
@@ -353,10 +354,12 @@ func newFakeClient(t *testing.T, objects ...client.Object) client.Client {
 	t.Helper()
 
 	s := runtime.NewScheme()
-	s.AddKnownTypeWithName(configurationStateGVK, &unstructured.Unstructured{})
-	s.AddKnownTypeWithName(configurationStateListGVK, &unstructured.UnstructuredList{})
-	s.AddKnownTypeWithName(frrNodeStateGVK, &unstructured.Unstructured{})
-	s.AddKnownTypeWithName(frrNodeStateListGVK, &unstructured.UnstructuredList{})
+	if err := metallbv1beta1.AddToScheme(s); err != nil {
+		t.Fatalf("unable to add the metallb types to the scheme: %v", err)
+	}
+	if err := frrv1beta1.AddToScheme(s); err != nil {
+		t.Fatalf("unable to add the frr-k8s types to the scheme: %v", err)
+	}
 	if err := corev1.AddToScheme(s); err != nil {
 		t.Fatalf("unable to add the core types to the scheme: %v", err)
 	}
@@ -364,35 +367,24 @@ func newFakeClient(t *testing.T, objects ...client.Object) client.Client {
 	return fake.NewClientBuilder().WithScheme(s).WithObjects(objects...).Build()
 }
 
-func configurationStateObject(name, result, errorSummary string) *unstructured.Unstructured {
-	status := map[string]any{"result": result}
-	if errorSummary != "" {
-		status["errorSummary"] = errorSummary
-	}
-
-	return &unstructured.Unstructured{Object: map[string]any{
-		"apiVersion": "metallb.io/v1beta1",
-		"kind":       "ConfigurationState",
-		"metadata": map[string]any{
-			"name":      name,
-			"namespace": "metallb-system",
+func configurationStateObject(name, result, errorSummary string) *metallbv1beta1.ConfigurationState {
+	return &metallbv1beta1.ConfigurationState{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: metallbNamespace},
+		Status: metallbv1beta1.ConfigurationStateStatus{
+			Result:       metallbv1beta1.ConfigurationResult(result),
+			ErrorSummary: errorSummary,
 		},
-		"status": status,
-	}}
+	}
 }
 
-func frrNodeStateObject(name, lastConversionResult, lastReloadResult string) *unstructured.Unstructured {
-	return &unstructured.Unstructured{Object: map[string]any{
-		"apiVersion": "frrk8s.metallb.io/v1beta1",
-		"kind":       "FRRNodeState",
-		"metadata": map[string]any{
-			"name": name,
+func frrNodeStateObject(name, lastConversionResult, lastReloadResult string) *frrv1beta1.FRRNodeState {
+	return &frrv1beta1.FRRNodeState{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Status: frrv1beta1.FRRNodeStateStatus{
+			LastConversionResult: lastConversionResult,
+			LastReloadResult:     lastReloadResult,
 		},
-		"status": map[string]any{
-			"lastConversionResult": lastConversionResult,
-			"lastReloadResult":     lastReloadResult,
-		},
-	}}
+	}
 }
 
 // clientWithoutMetallbCRDs simulates the shoot client of a shoot which still runs the metallb deployment which does not
