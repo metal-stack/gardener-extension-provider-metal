@@ -20,6 +20,8 @@ spec:
     deploymentRefs:
     - name: provider-metal
   resources:
+  - kind: Bastion
+    type: metal
   - kind: ControlPlane
     type: metal
   - kind: Infrastructure
