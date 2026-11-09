@@ -8,7 +8,6 @@ import (
 	"github.com/gardener/gardener/pkg/apis/security"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	metalvalidation "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/validation"
 )
@@ -17,8 +16,12 @@ type credentialsBinding struct {
 	apiReader client.Reader
 }
 
+type credentialsBindingReader interface {
+	GetAPIReader() client.Reader
+}
+
 // NewCredentialsBindingValidator returns a new instance of a credentials binding validator.
-func NewCredentialsBindingValidator(mgr manager.Manager) extensionswebhook.Validator {
+func NewCredentialsBindingValidator(mgr credentialsBindingReader) extensionswebhook.Validator {
 	return &credentialsBinding{
 		apiReader: mgr.GetAPIReader(),
 	}
