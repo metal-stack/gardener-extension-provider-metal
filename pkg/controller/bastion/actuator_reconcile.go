@@ -162,8 +162,8 @@ func allocateBastionMachine(ctx context.Context, mclient metalgo.Client, bastion
 			continue
 		}
 		networks = append(networks, &models.V1MachineAllocationNetwork{
-			Autoacquire: ptr.To(true),
-			Networkid:   ptr.To(id),
+			Autoacquire: new(true),
+			Networkid:   new(id),
 		})
 	}
 
@@ -179,10 +179,10 @@ func allocateBastionMachine(ctx context.Context, mclient metalgo.Client, bastion
 		Name:        opt.MachineName,
 		Hostname:    opt.MachineName,
 		UserData:    strings.TrimSpace(string(userData)),
-		Sizeid:      ptr.To(opt.Size),
-		Projectid:   ptr.To(opt.Project),
-		Partitionid: ptr.To(opt.Partition),
-		Imageid:     ptr.To(opt.Image),
+		Sizeid:      new(opt.Size),
+		Projectid:   new(opt.Project),
+		Partitionid: new(opt.Partition),
+		Imageid:     new(opt.Image),
 		Networks:    networks,
 		Tags:        tags,
 	}

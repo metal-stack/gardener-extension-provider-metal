@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -103,7 +102,7 @@ func Test_providerStatusRoundTrip(t *testing.T) {
 
 func Test_getProviderStatus_empty(t *testing.T) {
 	bastion := &extensionsv1alpha1.Bastion{
-		ObjectMeta: metav1.ObjectMeta{Name: "bastion"},
+		Name: "bastion",
 	}
 
 	got, err := getProviderStatus(bastion)
