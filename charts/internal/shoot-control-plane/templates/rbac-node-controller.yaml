@@ -155,6 +155,21 @@ rules:
     - subjectaccessreviews
   verbs:
   - create
+{{- if .Values.calico.enabled }}
+- apiGroups:
+    - crd.projectcalico.org
+  resources:
+    - bgppeers
+    - bgpconfigurations
+  verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+{{- end }}
 {{- if .Values.cilium.enabled }}
 - apiGroups:
     - cilium.io

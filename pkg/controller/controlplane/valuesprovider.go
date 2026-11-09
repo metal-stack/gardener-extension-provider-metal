@@ -529,6 +529,9 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		durosValues = map[string]any{
 			"enabled": vp.controllerConfig.Storage.Duros.Enabled,
 		}
+		calicoValues = map[string]any{
+			"enabled": false,
+		}
 		ciliumValues = map[string]any{
 			"enabled": false,
 		}
@@ -552,16 +555,18 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		}
 	}
 
-	if pointer.SafeDeref(pointer.SafeDeref(cluster.Shoot.Spec.Networking).Type) == "cilium" {
+	// the load balancer backend decides which resources the cloud-controller-manager has to be
+	// allowed to maintain in the shoot cluster.
+	switch loadBalancerType(pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type), pointer.SafeDeref(cpConfig.FeatureGates.CalicoBGPLoadBalancer)) {
+	case "cilium":
 		ciliumValues["enabled"] = true
 		metallbValues["enabled"] = false
 		nodeInitValues["enabled"] = false
-	}
-
-	if pointer.SafeDeref(cpConfig.FeatureGates.CalicoBGPLoadBalancer) {
+	case "calico":
 		// the calico networking extension announces the service load balancer ips via bgp,
 		// MetalLB is not required in this case
 		metallbValues["enabled"] = false
+		calicoValues["enabled"] = true
 	}
 
 	apiserverIPs := []string{}
@@ -653,6 +658,7 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		"apiserverIPs":    apiserverIPs,
 		"nodeCIDR":        nodeCIDR,
 		"duros":           durosValues,
+		"calico":          calicoValues,
 		"cilium":          ciliumValues,
 		"metallb":         metallbValues,
 		"nodeInit":        nodeInitValues,

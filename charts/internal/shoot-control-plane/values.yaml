@@ -16,6 +16,9 @@ duros:
   enabled: false
   endpoints: []
 
+calico:
+  enabled: false
+
 cilium:
   enabled: false
 
