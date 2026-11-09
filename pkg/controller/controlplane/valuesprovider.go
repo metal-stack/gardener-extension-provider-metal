@@ -558,6 +558,12 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 		nodeInitValues["enabled"] = false
 	}
 
+	if pointer.SafeDeref(cpConfig.FeatureGates.CalicoBGPLoadBalancer) {
+		// the calico networking extension announces the service load balancer ips via bgp,
+		// MetalLB is not required in this case
+		metallbValues["enabled"] = false
+	}
+
 	apiserverIPs := []string{}
 	if !extensionscontroller.IsHibernated(cluster) {
 		// get apiserver ip addresses from external dns entry
@@ -738,6 +744,20 @@ func (vp *valuesProvider) GetStorageClassesChartValues(_ context.Context, contro
 	return values, nil
 }
 
+// loadBalancerType returns the load balancer implementation that the metal
+// cloud-controller-manager should use for the given shoot network type.
+func loadBalancerType(networkType string, calicoBGPLoadBalancer bool) string {
+	switch {
+	case networkType == "cilium":
+		return "cilium"
+	case calicoBGPLoadBalancer:
+		// the calico networking extension announces the service load balancer ips via bgp
+		return "calico"
+	default:
+		return "metallb"
+	}
+}
+
 // getCCMChartValues collects and returns the CCM chart values.
 func getCCMChartValues(
 	ctx context.Context,
@@ -775,10 +795,7 @@ func getCCMChartValues(
 		return nil, fmt.Errorf("secret %q not found", metal.CloudControllerManagerServerName)
 	}
 
-	loadBalancer := "metallb"
-	if pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type) == "cilium" {
-		loadBalancer = "cilium"
-	}
+	loadBalancer := loadBalancerType(pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type), pointer.SafeDeref(cpConfig.FeatureGates.CalicoBGPLoadBalancer))
 
 	values := map[string]any{
 		"cloudControllerManager": map[string]any{
