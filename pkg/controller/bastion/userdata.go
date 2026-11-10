@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/flatcar/container-linux-config-transpiler/config/types"
-	"k8s.io/utils/ptr"
 )
 
 const (
@@ -46,22 +45,22 @@ func transpileUserData(userData []byte) ([]byte, error) {
 					Filesystem: "root",
 					Path:       hostsAllowPath,
 					Contents:   types.FileContents{Inline: ""},
-					Mode:       ptr.To(0644),
-					Overwrite:  ptr.To(true),
+					Mode:       new(0644),
+					Overwrite:  new(true),
 				},
 				{
 					Filesystem: "root",
 					Path:       hostsDenyPath,
 					Contents:   types.FileContents{Inline: ""},
-					Mode:       ptr.To(0644),
-					Overwrite:  ptr.To(true),
+					Mode:       new(0644),
+					Overwrite:  new(true),
 				},
 				{
 					Filesystem: "root",
 					Path:       userdataScriptPath,
 					Contents:   types.FileContents{Inline: string(userData)},
-					Mode:       ptr.To(0700),
-					Overwrite:  ptr.To(true),
+					Mode:       new(0700),
+					Overwrite:  new(true),
 				},
 			},
 		},
@@ -69,7 +68,7 @@ func transpileUserData(userData []byte) ([]byte, error) {
 			Units: []types.SystemdUnit{
 				{
 					Name:     userdataServiceName,
-					Enabled:  ptr.To(true),
+					Enabled:  new(true),
 					Contents: userdataServiceContents,
 				},
 			},
