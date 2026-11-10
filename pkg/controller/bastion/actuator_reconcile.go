@@ -211,7 +211,7 @@ func determineIngress(m *models.V1MachineResponse, opt *Options) *corev1.LoadBal
 			continue
 		}
 
-		if nw.Networktypev2 != new("external") {
+		if nw.Networktypev2 == nil || *nw.Networktypev2 != "external" {
 			continue
 		}
 
