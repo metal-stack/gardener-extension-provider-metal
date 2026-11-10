@@ -1,147 +1,90 @@
 package bastion
 
 import (
+	"encoding/json"
 	"fmt"
-	"strings"
 
-	"sigs.k8s.io/yaml"
+	"github.com/flatcar/container-linux-config-transpiler/config/types"
+	"k8s.io/utils/ptr"
 )
 
 const (
 	hostsAllowPath = "/etc/hosts.allow"
 	hostsDenyPath  = "/etc/hosts.deny"
 
-	// cloudConfigHeader is the marker that makes the metal os-installer treat the userdata as cloud-config.
-	cloudConfigHeader = "#cloud-config"
-
-	// userdataScriptPath is where the original bastion userdata script is stored before it is executed.
+	// userdataScriptPath is where the bastion script is stored before it is executed.
 	userdataScriptPath = "/var/lib/bastion/userdata.sh"
+
+	// userdataServiceName is the name of the systemd unit that executes the bastion script.
+	userdataServiceName = "bastion-userdata.service"
+
+	// userdataServiceContents is the systemd unit that runs the bastion userdata script.
+	userdataServiceContents = `[Unit]
+Description=Run metal-stack bastion userdata
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=` + userdataScriptPath + `
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+`
 )
 
-// cloudConfig is a minimal representation of a cloud-init cloud-config. Only the fields relevant for
-// the bastion provisioning are modelled, everything else is passed through untouched when merging.
-type cloudConfig struct {
-	// WriteFiles is the list of files that are written during the provisioning.
-	WriteFiles []cloudConfigFile `json:"write_files,omitempty"`
-	// RunCmd is the list of commands that are executed during the provisioning.
-	RunCmd []string `json:"runcmd,omitempty"`
-}
-
-type cloudConfigFile struct {
-	Path        string `json:"path"`
-	Owner       string `json:"owner,omitempty"`
-	Permissions string `json:"permissions,omitempty"`
-	Content     string `json:"content"`
-}
-
-// ensureEmptyHostsFiles makes sure that the given bastion userdata clears the /etc/hosts.allow and
-// /etc/hosts.deny files. These files are pre-populated in the metal-stack OS images (hosts.allow only
-// allows internal ranges and hosts.deny denies everything else), which would prevent SSH access to the
-// bastion. The original userdata is preserved.
-func ensureEmptyHostsFiles(userData []byte) ([]byte, error) {
-	if isCloudConfigFile(userData) {
-		return mergeHostsFilesIntoCloudConfig(userData)
-	}
-
-	return wrapBastionUserData(userData)
-}
-
-// isCloudConfigFile returns true if the given userdata should be interpreted as cloud-config by the metal
-// os-installer, i.e. if a line containing "#cloud-config" appears within the first two lines.
-func isCloudConfigFile(content []byte) bool {
-	for i, line := range strings.Split(string(content), "\n") {
-		if strings.Contains(line, cloudConfigHeader) {
-			return true
-		}
-		if i > 1 {
-			return false
-		}
-	}
-	return false
-}
-
-// wrapBastionUserData wraps the given (bash) userdata into a cloud-config that writes the empty
-// /etc/hosts.allow and /etc/hosts.deny files and afterwards executes the original script.
-func wrapBastionUserData(userData []byte) ([]byte, error) {
-	cfg := cloudConfig{
-		WriteFiles: []cloudConfigFile{
-			{
-				Path:        hostsAllowPath,
-				Owner:       "root:root",
-				Permissions: "0644",
-				Content:     "",
-			},
-			{
-				Path:        hostsDenyPath,
-				Owner:       "root:root",
-				Permissions: "0644",
-				Content:     "",
-			},
-			{
-				Path:        userdataScriptPath,
-				Owner:       "root:root",
-				Permissions: "0700",
-				Content:     string(userData),
+// transpileUserData converts the bastion userdata shell script into an ignition configuration, which is
+// the provisioning format understood by the metal-stack OS images. Besides running the original script it
+// also writes the /etc/hosts.allow and /etc/hosts.deny files as empty files, because the defaults baked
+// into the images would otherwise block SSH access to the bastion.
+func transpileUserData(userData []byte) ([]byte, error) {
+	cfg := types.Config{
+		Storage: types.Storage{
+			Files: []types.File{
+				{
+					Filesystem: "root",
+					Path:       hostsAllowPath,
+					Contents:   types.FileContents{Inline: ""},
+					Mode:       ptr.To(0644),
+					Overwrite:  ptr.To(true),
+				},
+				{
+					Filesystem: "root",
+					Path:       hostsDenyPath,
+					Contents:   types.FileContents{Inline: ""},
+					Mode:       ptr.To(0644),
+					Overwrite:  ptr.To(true),
+				},
+				{
+					Filesystem: "root",
+					Path:       userdataScriptPath,
+					Contents:   types.FileContents{Inline: string(userData)},
+					Mode:       ptr.To(0700),
+					Overwrite:  ptr.To(true),
+				},
 			},
 		},
-		RunCmd: []string{userdataScriptPath},
+		Systemd: types.Systemd{
+			Units: []types.SystemdUnit{
+				{
+					Name:     userdataServiceName,
+					Enabled:  ptr.To(true),
+					Contents: userdataServiceContents,
+				},
+			},
+		},
 	}
 
-	return marshalCloudConfig(cfg)
-}
-
-// mergeHostsFilesIntoCloudConfig merges the empty /etc/hosts.allow and /etc/hosts.deny write_files entries
-// into an already existing cloud-config userdata.
-func mergeHostsFilesIntoCloudConfig(userData []byte) ([]byte, error) {
-	cfg := map[string]any{}
-	if err := yaml.Unmarshal(userData, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse cloud-config userdata: %w", err)
+	out, report := types.Convert(cfg, "", nil)
+	if report.IsFatal() {
+		return nil, fmt.Errorf("could not transpile bastion userdata to ignition: %s", report.String())
 	}
 
-	var files []any
-	if existing, ok := cfg["write_files"].([]any); ok {
-		files = existing
-	}
-
-	files = upsertEmptyFile(files, hostsAllowPath)
-	files = upsertEmptyFile(files, hostsDenyPath)
-	cfg["write_files"] = files
-
-	out, err := yaml.Marshal(cfg)
+	ignition, err := json.Marshal(out)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal cloud-config userdata: %w", err)
+		return nil, fmt.Errorf("could not marshal ignition config: %w", err)
 	}
 
-	return append([]byte(cloudConfigHeader+"\n"), out...), nil
-}
-
-// upsertEmptyFile ensures that the write_files entry for the given path writes an empty file, preserving
-// any other keys of an already existing entry.
-func upsertEmptyFile(files []any, path string) []any {
-	for _, f := range files {
-		entry, ok := f.(map[string]any)
-		if !ok {
-			continue
-		}
-		if entry["path"] == path {
-			entry["content"] = ""
-			return files
-		}
-	}
-
-	return append(files, map[string]any{
-		"path":        path,
-		"owner":       "root:root",
-		"permissions": "0644",
-		"content":     "",
-	})
-}
-
-func marshalCloudConfig(cfg cloudConfig) ([]byte, error) {
-	out, err := yaml.Marshal(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal cloud-config: %w", err)
-	}
-
-	return append([]byte(cloudConfigHeader+"\n"), out...), nil
+	return ignition, nil
 }

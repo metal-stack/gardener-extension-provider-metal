@@ -1,120 +1,120 @@
 package bastion
 
 import (
-	"bytes"
+	"encoding/json"
+	"net/url"
+	"strings"
 	"testing"
-
-	"sigs.k8s.io/yaml"
 )
 
-func Test_isCloudConfigFile(t *testing.T) {
-	tests := []struct {
-		name string
-		in   string
-		want bool
-	}{
-		{name: "bash script", in: "#!/bin/bash -eu\necho hi\n", want: false},
-		{name: "cloud-config first line", in: "#cloud-config\nruncmd:\n- echo hi\n", want: true},
-		{name: "cloud-config second line", in: "#some header\n#cloud-config\nruncmd:\n", want: true},
-		{name: "cloud-config too late", in: "line1\nline2\nline3\n#cloud-config\n", want: false},
+func decodeDataURL(t *testing.T, source string) string {
+	t.Helper()
+
+	const prefix = "data:,"
+	if !strings.HasPrefix(source, prefix) {
+		t.Fatalf("unexpected data url %q", source)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isCloudConfigFile([]byte(tt.in)); got != tt.want {
-				t.Errorf("isCloudConfigFile() = %v, want %v", got, tt.want)
-			}
-		})
+	decoded, err := url.PathUnescape(strings.TrimPrefix(source, prefix))
+	if err != nil {
+		t.Fatalf("failed to decode data url %q: %v", source, err)
 	}
+
+	return decoded
 }
 
-func Test_ensureEmptyHostsFiles_wrap(t *testing.T) {
+func Test_transpileUserData(t *testing.T) {
 	script := "#!/bin/bash -eu\necho hello bastion\n"
 
-	out, err := ensureEmptyHostsFiles([]byte(script))
+	out, err := transpileUserData([]byte(script))
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if !bytes.HasPrefix(out, []byte(cloudConfigHeader)) {
-		t.Fatalf("expected output to start with %q, got %q", cloudConfigHeader, out)
+	if !json.Valid(out) {
+		t.Fatalf("output is not valid json: %s", out)
 	}
 
 	cfg := map[string]any{}
-	if err := yaml.Unmarshal(out, &cfg); err != nil {
-		t.Fatalf("output is not valid cloud-config yaml: %v", err)
+	if err := json.Unmarshal(out, &cfg); err != nil {
+		t.Fatalf("output is not valid ignition json: %v", err)
 	}
 
-	files, ok := cfg["write_files"].([]any)
-	if !ok || len(files) != 3 {
-		t.Fatalf("expected 3 write_files entries, got %v", cfg["write_files"])
-	}
-
-	contents := map[string]string{}
-	for _, f := range files {
-		entry := f.(map[string]any)
-		path, _ := entry["path"].(string)
-		content, _ := entry["content"].(string)
-		contents[path] = content
-	}
-
-	if content, ok := contents[hostsAllowPath]; !ok || content != "" {
-		t.Errorf("expected empty content for %s, got %q (present: %v)", hostsAllowPath, content, ok)
-	}
-	if content, ok := contents[hostsDenyPath]; !ok || content != "" {
-		t.Errorf("expected empty content for %s, got %q (present: %v)", hostsDenyPath, content, ok)
-	}
-	if content, ok := contents[userdataScriptPath]; !ok || content != script {
-		t.Errorf("expected original script for %s, got %q", userdataScriptPath, content)
-	}
-
-	runcmd, ok := cfg["runcmd"].([]any)
-	if !ok || len(runcmd) != 1 || runcmd[0] != userdataScriptPath {
-		t.Errorf("unexpected runcmd: %v", cfg["runcmd"])
-	}
-}
-
-func Test_ensureEmptyHostsFiles_merge(t *testing.T) {
-	userData := `#cloud-config
-write_files:
-- path: /tmp/other
-  content: "keep-me"
-runcmd:
-- echo hi
-`
-
-	out, err := ensureEmptyHostsFiles([]byte(userData))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := map[string]any{}
-	if err := yaml.Unmarshal(out, &cfg); err != nil {
-		t.Fatalf("output is not valid cloud-config yaml: %v", err)
-	}
-
-	files, ok := cfg["write_files"].([]any)
+	ignitionSection, ok := cfg["ignition"].(map[string]any)
 	if !ok {
-		t.Fatalf("expected write_files, got %v", cfg["write_files"])
+		t.Fatalf("expected ignition section, got %v", cfg["ignition"])
+	}
+	if version := ignitionSection["version"]; version != "2.3.0" {
+		t.Errorf("expected ignition version 2.3.0, got %v", version)
+	}
+
+	storage, ok := cfg["storage"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected storage section, got %v", cfg["storage"])
+	}
+	files, ok := storage["files"].([]any)
+	if !ok || len(files) != 3 {
+		t.Fatalf("expected 3 files, got %v", storage["files"])
 	}
 
 	contents := map[string]string{}
+	modes := map[string]float64{}
+	overwrite := map[string]bool{}
 	for _, f := range files {
-		entry := f.(map[string]any)
+		entry, ok := f.(map[string]any)
+		if !ok {
+			t.Fatalf("unexpected file entry %v", f)
+		}
 		path, _ := entry["path"].(string)
-		content, _ := entry["content"].(string)
-		contents[path] = content
+		fileContents, _ := entry["contents"].(map[string]any)
+		source, _ := fileContents["source"].(string)
+		contents[path] = decodeDataURL(t, source)
+		modes[path], _ = entry["mode"].(float64)
+		overwrite[path], _ = entry["overwrite"].(bool)
 	}
 
-	if contents[hostsAllowPath] != "" || contents[hostsDenyPath] != "" {
-		t.Errorf("expected hosts files to be emptied, got %v", contents)
+	if got := contents[hostsAllowPath]; got != "" {
+		t.Errorf("expected empty %s, got %q", hostsAllowPath, got)
 	}
-	if contents["/tmp/other"] != "keep-me" {
-		t.Errorf("expected /tmp/other to be preserved, got %v", contents)
+	if got := contents[hostsDenyPath]; got != "" {
+		t.Errorf("expected empty %s, got %q", hostsDenyPath, got)
+	}
+	if got := contents[userdataScriptPath]; got != script {
+		t.Errorf("expected original script at %s, got %q", userdataScriptPath, got)
 	}
 
-	runcmd, _ := cfg["runcmd"].([]any)
-	if len(runcmd) != 1 || runcmd[0] != "echo hi" {
-		t.Errorf("expected original runcmd to be preserved, got %v", cfg["runcmd"])
+	if modes[hostsAllowPath] != 0644 || modes[hostsDenyPath] != 0644 {
+		t.Errorf("expected hosts files to be 0644, got %v/%v", modes[hostsAllowPath], modes[hostsDenyPath])
+	}
+	if modes[userdataScriptPath] != 0700 {
+		t.Errorf("expected userdata script to be 0700, got %v", modes[userdataScriptPath])
+	}
+
+	for _, path := range []string{hostsAllowPath, hostsDenyPath, userdataScriptPath} {
+		if !overwrite[path] {
+			t.Errorf("expected overwrite=true for %s", path)
+		}
+	}
+
+	systemd, ok := cfg["systemd"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected systemd section, got %v", cfg["systemd"])
+	}
+	units, ok := systemd["units"].([]any)
+	if !ok || len(units) != 1 {
+		t.Fatalf("expected 1 systemd unit, got %v", systemd["units"])
+	}
+
+	unit := units[0].(map[string]any)
+	if name := unit["name"]; name != userdataServiceName {
+		t.Errorf("expected unit name %q, got %v", userdataServiceName, name)
+	}
+	if enabled, _ := unit["enabled"].(bool); !enabled {
+		t.Error("expected unit to be enabled")
+	}
+	if got := unit["contents"]; got != userdataServiceContents {
+		t.Errorf("unexpected unit contents %q", got)
+	}
+	if !strings.Contains(userdataServiceContents, "ExecStart="+userdataScriptPath) {
+		t.Errorf("expected unit to execute %s, got %q", userdataScriptPath, userdataServiceContents)
 	}
 }

@@ -66,7 +66,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 	}
 
 	if machine == nil {
-		userData, err := ensureEmptyHostsFiles(bastion.Spec.UserData)
+		userData, err := transpileUserData(bastion.Spec.UserData)
 		if err != nil {
 			return fmt.Errorf("failed to prepare bastion userdata: %w", err)
 		}
