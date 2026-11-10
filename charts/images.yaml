@@ -6,7 +6,7 @@ images:
 - name: machine-controller-manager-provider-metal
   sourceRepository: https://github.com/metal-stack/machine-controller-manager-provider-metal
   repository: ghcr.io/metal-stack/machine-controller-manager-provider-metal
-  tag: "v0.1.28"
+  tag: "pr-48-add-addresses-to-machine"
 - name: droptailer
   sourceRepository: github.com/metal-stack/droptailer
   repository: ghcr.io/metal-stack/droptailer
