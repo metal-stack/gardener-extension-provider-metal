@@ -59,6 +59,12 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        {{- range $index, $value := .Values.env }}
+        {{- if not (empty $value) }}
+        - name: {{ index $value "name" | quote }}
+          value: {{ index $value "value" | quote }}
+        {{- end }}
+        {{- end }}
         {{- if .Values.imageVectorOverwrite }}
         - name: IMAGEVECTOR_OVERWRITE
           value: /charts_overwrite/images_overwrite.yaml

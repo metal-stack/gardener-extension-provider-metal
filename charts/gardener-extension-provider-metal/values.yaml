@@ -3,6 +3,10 @@ image:
   tag: latest
   pullPolicy: Always
 
+# env:
+#   - name: 
+#     value:
+
 replicaCount: 1
 resources: {}
 
