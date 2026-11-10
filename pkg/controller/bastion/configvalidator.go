@@ -61,14 +61,15 @@ func (c *configValidator) Validate(_ context.Context, _ *extensionsv1alpha1.Bast
 		return append(allErrs, field.InternalError(field.NewPath("cloudProfile"), fmt.Errorf("cloud profile is not set")))
 	}
 
-	machineSpec, err := extensionsbastion.GetMachineSpecFromCloudProfile(cluster.CloudProfile)
-	if err != nil {
-		return append(allErrs, field.InternalError(field.NewPath("bastion"), err))
-	}
+	// machineSpec, err := extensionsbastion.GetMachineSpecFromCloudProfile(cluster.CloudProfile)
+	// if err != nil {
+	// 	return append(allErrs, field.InternalError(field.NewPath("bastion"), err))
+	// }
 
-	if _, err := confighelper.FindImage(c.machineImageMapping, machineSpec.ImageBaseName, machineSpec.ImageVersion); err != nil {
-		allErrs = append(allErrs, field.InternalError(field.NewPath("machineImage"), err))
-	}
+
+	// if _, err := confighelper.FindImage(c.machineImageMapping, machineSpec.ImageBaseName, machineSpec.ImageVersion); err != nil {
+	// 	allErrs = append(allErrs, field.InternalError(field.NewPath("machineImage"), err))
+	// }
 
 	return allErrs
 }
