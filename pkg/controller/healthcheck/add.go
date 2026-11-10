@@ -6,6 +6,7 @@ import (
 
 	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
+	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/metal"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
 
@@ -51,7 +52,15 @@ func RegisterHealthChecks(ctx context.Context, mgr manager.Manager, opts AddOpti
 		if !ok || cluster == nil {
 			return false
 		}
-		return pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type) == "calico"
+		if pointer.SafeDeref(cluster.Shoot.Spec.Networking.Type) != "calico" {
+			return false
+		}
+		cpConfig, err := helper.ControlPlaneConfigFromClusterShootSpec(cluster)
+		if err != nil {
+			return false
+		}
+		// if the calico networking extension announces the service load balancer ips via bgp, MetalLB is not deployed
+		return !pointer.SafeDeref(cpConfig.FeatureGates.CalicoBGPLoadBalancer)
 	}
 
 	if err := healthcheck.DefaultRegistration(

@@ -62,6 +62,14 @@ type ControlPlaneFeatures struct {
 	// In order to deploy the new csi-driver-lvm, the feature gate must be enabled so the old driver is removed.
 	// +optional
 	DisableCsiLvm *bool `json:"disableCsiLvm,omitempty"`
+
+	// CalicoBGPLoadBalancer enables the announcement of service load balancer IPs via BGP
+	// through the calico networking extension. When enabled, the calico networking extension
+	// is configured to run with the bird backend (backend: bird, ipv4.mode: Never, typha disabled)
+	// and the metal cloud-controller-manager is deployed with the calico load balancer implementation
+	// instead of MetalLB. MetalLB is not deployed in this case.
+	// +optional
+	CalicoBGPLoadBalancer *bool `json:"calicoBGPLoadBalancer,omitempty"`
 }
 
 // CloudControllerManagerConfig contains configuration settings for the cloud-controller-manager.

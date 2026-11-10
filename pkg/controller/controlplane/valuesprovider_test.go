@@ -418,3 +418,42 @@ func Test_setDurosDefaultStorageClass(t *testing.T) {
 		})
 	}
 }
+
+func Test_loadBalancerType(t *testing.T) {
+	tests := []struct {
+		name                  string
+		networkType           string
+		calicoBGPLoadBalancer bool
+		want                  string
+	}{
+		{
+			name:        "calico without the feature gate uses metallb",
+			networkType: "calico",
+			want:        "metallb",
+		},
+		{
+			name:                  "calico with the feature gate uses calico",
+			networkType:           "calico",
+			calicoBGPLoadBalancer: true,
+			want:                  "calico",
+		},
+		{
+			name:        "cilium uses cilium",
+			networkType: "cilium",
+			want:        "cilium",
+		},
+		{
+			name:                  "cilium ignores the feature gate",
+			networkType:           "cilium",
+			calicoBGPLoadBalancer: true,
+			want:                  "cilium",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := loadBalancerType(tt.networkType, tt.calicoBGPLoadBalancer); got != tt.want {
+				t.Errorf("loadBalancerType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
