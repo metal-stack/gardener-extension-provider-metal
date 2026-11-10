@@ -48,6 +48,7 @@ spec:
         - --ignore-operation-annotation={{ .Values.controllers.ignoreOperationAnnotation }}
         - --worker-max-concurrent-reconciles={{ .Values.controllers.worker.concurrentSyncs }}
         - --webhook-config-namespace={{ .Release.Namespace }}
+        - --webhook-config-service-port=443
         - --webhook-config-server-port={{ tpl .Values.webhookConfig.serverPort . }}
         - --disable-controllers={{ .Values.disableControllers | join "," }}
         - --disable-webhooks={{ .Values.disableWebhooks | join "," }}
