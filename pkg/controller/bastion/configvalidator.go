@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	extensionsbastion "github.com/gardener/gardener/extensions/pkg/bastion"
 	"github.com/gardener/gardener/extensions/pkg/controller/bastion"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/extensions"
@@ -15,7 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config"
-	confighelper "github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/config/helper"
 	"github.com/metal-stack/gardener-extension-provider-metal/pkg/apis/metal/helper"
 )
 
@@ -65,7 +63,6 @@ func (c *configValidator) Validate(_ context.Context, _ *extensionsv1alpha1.Bast
 	// if err != nil {
 	// 	return append(allErrs, field.InternalError(field.NewPath("bastion"), err))
 	// }
-
 
 	// if _, err := confighelper.FindImage(c.machineImageMapping, machineSpec.ImageBaseName, machineSpec.ImageVersion); err != nil {
 	// 	allErrs = append(allErrs, field.InternalError(field.NewPath("machineImage"), err))
