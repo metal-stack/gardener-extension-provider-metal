@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	reconcilerutils "github.com/gardener/gardener/pkg/controllerutils/reconciler"
@@ -18,7 +19,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -187,6 +187,8 @@ func allocateBastionMachine(ctx context.Context, mclient metalgo.Client, bastion
 		Tags:        tags,
 	}
 
+	spew.Dump(req)
+
 	resp, err := mclient.Machine().AllocateMachine(machine.NewAllocateMachineParams().WithBody(req).WithContext(ctx), nil)
 	if err != nil {
 		return nil, err
@@ -204,23 +206,16 @@ func determineIngress(m *models.V1MachineResponse, opt *Options) *corev1.LoadBal
 		return nil
 	}
 
-	publicNetworks := sets.New(opt.PublicNetworkIDs...)
-
-	var fallback string
 	for _, nw := range m.Allocation.Networks {
 		if nw == nil || len(nw.Ips) == 0 {
 			continue
 		}
-		if publicNetworks.Has(ptr.Deref(nw.Networkid, "")) {
-			return &corev1.LoadBalancerIngress{IP: nw.Ips[0]}
-		}
-		if fallback == "" && !ptr.Deref(nw.Private, false) {
-			fallback = nw.Ips[0]
-		}
-	}
 
-	if fallback != "" {
-		return &corev1.LoadBalancerIngress{IP: fallback}
+		if nw.Networktypev2 != new("external") {
+			continue
+		}
+
+		return &corev1.LoadBalancerIngress{IP: nw.Ips[0]}
 	}
 
 	return nil

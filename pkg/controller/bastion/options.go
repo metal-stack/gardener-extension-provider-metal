@@ -32,8 +32,6 @@ type Options struct {
 	Project string
 	// NetworkIDs contains all networks the bastion is allocated in (private node network + public networks).
 	NetworkIDs []string
-	// PublicNetworkIDs contains the public networks the bastion is allocated in.
-	PublicNetworkIDs []string
 }
 
 // providerStatusRaw is the provider specific status stored in the Bastion resource.
@@ -75,19 +73,13 @@ func DetermineOptions(
 		return nil, err
 	}
 
-	publicNetworkIDs := infrastructureConfig.Firewall.Networks
-	networkIDs := make([]string, 0, len(publicNetworkIDs)+1)
-	networkIDs = append(networkIDs, privateNetworkID)
-	networkIDs = append(networkIDs, publicNetworkIDs...)
-
 	return &Options{
-		MachineName:      machineName,
-		Size:             machineSpec.MachineTypeName,
-		Image:            image,
-		Partition:        infrastructureConfig.PartitionID,
-		Project:          infrastructureConfig.ProjectID,
-		NetworkIDs:       networkIDs,
-		PublicNetworkIDs: publicNetworkIDs,
+		MachineName: machineName,
+		Size:        machineSpec.MachineTypeName,
+		Image:       image,
+		Partition:   infrastructureConfig.PartitionID,
+		Project:     infrastructureConfig.ProjectID,
+		NetworkIDs:  infrastructureConfig.Firewall.Networks,
 	}, nil
 }
 
