@@ -35,7 +35,7 @@ WantedBy=multi-user.target
 #
 # modify sshd to allow ssh access from outside as user gardener and open a tunnel to the target worker
 #
-sed -i "s/^AllowUsers metal$/AllowedUsers metal gardener/g" /etc/ssh/sshd_config
+sed -i "s/^AllowUsers metal$/AllowUsers metal gardener/g" /etc/ssh/sshd_config
 sed -i "s/^AllowGroups sudo$/AllowGroups sudo gardener/g" /etc/ssh/sshd_config
 sed -i "s/^GatewayPorts no$/GatewayPorts yes/g" /etc/ssh/sshd_config
 sed -i "s/^AllowTcpForwarding no$/AllowTcpForwarding yes/g" /etc/ssh/sshd_config
