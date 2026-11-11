@@ -58,7 +58,7 @@ func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, bastion *exte
 		return fmt.Errorf("failed to store status.providerStatus: %w", err)
 	}
 
-	clusterID := string(cluster.Shoot.GetUID())
+	clusterID := string(cluster.Shoot.Status.UID)
 
 	machine, err := findBastionMachine(ctx, data.mclient, opt.Project, opt.MachineName, clusterID)
 	if err != nil {
@@ -168,7 +168,7 @@ func allocateBastionMachine(ctx context.Context, mclient metalgo.Client, bastion
 	}
 
 	tags := []string{
-		fmt.Sprintf("%s=%s", tag.ClusterID, cluster.Shoot.GetUID()),
+		fmt.Sprintf("%s=%s", tag.ClusterID, string(cluster.Shoot.Status.UID)),
 		fmt.Sprintf("%s=%s", tag.ClusterName, bastion.Namespace),
 		fmt.Sprintf("%s=%s", tag.ClusterProject, opt.Project),
 		fmt.Sprintf("%s=%s", bastionTag, bastion.Name),

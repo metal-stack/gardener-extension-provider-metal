@@ -147,7 +147,7 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 		}
 
 		var (
-			metalClusterIDTag      = fmt.Sprintf("%s=%s", tag.ClusterID, w.cluster.Shoot.GetUID())
+			metalClusterIDTag      = fmt.Sprintf("%s=%s", tag.ClusterID, w.cluster.Shoot.Status.UID)
 			metalClusterNameTag    = fmt.Sprintf("%s=%s", tag.ClusterName, w.worker.Namespace)
 			metalClusterProjectTag = fmt.Sprintf("%s=%s", tag.ClusterProject, w.additionalData.infrastructureConfig.ProjectID)
 

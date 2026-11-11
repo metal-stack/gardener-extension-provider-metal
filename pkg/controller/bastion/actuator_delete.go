@@ -26,7 +26,7 @@ func (a *actuator) Delete(ctx context.Context, log logr.Logger, bastion *extensi
 		return err
 	}
 
-	clusterID := string(cluster.Shoot.GetUID())
+	clusterID := string(cluster.Shoot.Status.UID)
 
 	m, err := findBastionMachine(ctx, data.mclient, data.projectID, machineName, clusterID)
 	if err != nil {
@@ -75,7 +75,7 @@ func (a *actuator) ForceDelete(ctx context.Context, log logr.Logger, bastion *ex
 		return nil
 	}
 
-	clusterID := string(cluster.Shoot.GetUID())
+	clusterID := string(cluster.Shoot.Status.UID)
 
 	m, err := findBastionMachine(ctx, data.mclient, data.projectID, machineName, clusterID)
 	if err != nil || m == nil {

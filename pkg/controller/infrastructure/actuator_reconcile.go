@@ -74,7 +74,7 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastruc
 		infrastructureConfig: internalInfrastructureConfig,
 		cluster:              cluster,
 		mclient:              mclient,
-		clusterID:            string(cluster.Shoot.GetUID()),
+		clusterID:            string(cluster.Shoot.Status.UID),
 	}
 	nodeCIDR, err := ensureNodeNetwork(ctx, networkReconciler)
 	if err != nil {
@@ -93,8 +93,8 @@ func (a *actuator) Reconcile(ctx context.Context, logger logr.Logger, infrastruc
 		logger:               logger,
 		infrastructureConfig: internalInfrastructureConfig,
 		mclient:              mclient,
-		clusterID:            string(cluster.Shoot.GetUID()),
-		egressTag:            egressTag(string(cluster.Shoot.GetUID())),
+		clusterID:            string(cluster.Shoot.Status.UID),
+		egressTag:            egressTag(string(cluster.Shoot.Status.UID)),
 	}
 	err = reconcileEgressIPs(ctx, egressIPReconciler)
 	if err != nil {

@@ -142,7 +142,7 @@ spec:
           - -seed-api-url={{ .Values.firewallControllerManager.seedApiURL }}
           - -shoot-api-url={{ .Values.firewallControllerManager.shootApiURL }}
           {{ if eq .Release.Namespace "kube-system" }}
-          - -internal-shoot-api-url=https://kubernetes
+          - -internal-shoot-api-url=https://kubernetes.default
           {{ else }}
           - -internal-shoot-api-url=https://kube-apiserver
           {{ end }}

@@ -996,7 +996,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 		// This will break the firewall-only case actually only used in our test env.
 		// TODO: deletion of the firewall is not yet implemented.
 		"replicas":         extensionscontroller.GetReplicas(cluster, 1),
-		"clusterID":        string(cluster.Shoot.GetUID()),
+		"clusterID":        string(cluster.Shoot.Status.UID),
 		"seedApiURL":       seedApiURL,
 		"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
 		"sshKeySecretName": sshSecret.Name,
