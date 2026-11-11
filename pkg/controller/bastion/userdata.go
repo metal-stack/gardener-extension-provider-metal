@@ -31,6 +31,16 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 `
+	sshdConfigPatchScriptContents = `
+#
+# modify sshd to allow ssh access from outside as user gardener and open a tunnel to the target worker
+#
+sed -i "s/^AllowUsers metal$/AllowedUsers metal gardener/g" /etc/ssh/sshd_config
+sed -i "s/^AllowGroups sudo$/AllowGroups sudo gardener/g" /etc/ssh/sshd_config
+sed -i "s/^GatewayPorts no$/GatewayPorts yes/g" /etc/ssh/sshd_config
+sed -i "s/^AllowTcpForwarding no$/AllowTcpForwarding yes/g" /etc/ssh/sshd_config
+echo -n "PermitOpen any" >> /etc/ssh/sshd_config
+`
 )
 
 // transpileUserData converts the bastion userdata shell script into an ignition configuration, which is
@@ -58,7 +68,7 @@ func transpileUserData(userData []byte) ([]byte, error) {
 				{
 					Filesystem: "root",
 					Path:       userdataScriptPath,
-					Contents:   types.FileContents{Inline: string(userData)},
+					Contents:   types.FileContents{Inline: string(userData) + sshdConfigPatchScriptContents},
 					Mode:       new(0700),
 					Overwrite:  new(true),
 				},
