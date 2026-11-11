@@ -785,7 +785,7 @@ func getCCMChartValues(
 		"cloudControllerManager": map[string]any{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"projectID":              projectID,
-			"clusterID":              cluster.Shoot.UID,
+			"clusterID":              cluster.Shoot.Status.UID,
 			"partitionID":            infrastructureConfig.PartitionID,
 			"networkID":              *privateNetwork.ID,
 			"defaultExternalNetwork": defaultExternalNetwork,
