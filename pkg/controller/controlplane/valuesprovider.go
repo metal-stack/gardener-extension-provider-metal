@@ -48,6 +48,7 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
+	v1beta1helper "github.com/gardener/gardener/pkg/api/core/v1beta1/helper"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
@@ -976,8 +977,11 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 
 		_, err = netip.ParseAddr(u.Hostname())
 		if err == nil {
-			// If hostname is a parsable ipaddress we error out because we need a dnsname.
-			panic(fmt.Sprintf("seedApiUrl:%q is not a dns entry, exiting", seedApiURL))
+			if !v1beta1helper.IsShootSelfHosted(cluster.Shoot.Spec.Provider.Workers) {
+				// If hostname is a parsable ipaddress we error out because we need a dnsname.
+				panic(fmt.Sprintf("seedApiUrl:%q is not a dns entry, exiting", seedApiURL))
+			}
+			seedApiURL = "https://kubernetes.default.svc.cluster.local"
 		}
 	}
 
