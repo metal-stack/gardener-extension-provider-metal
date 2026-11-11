@@ -39,7 +39,10 @@ sed -i "s/^AllowUsers metal$/AllowedUsers metal gardener/g" /etc/ssh/sshd_config
 sed -i "s/^AllowGroups sudo$/AllowGroups sudo gardener/g" /etc/ssh/sshd_config
 sed -i "s/^GatewayPorts no$/GatewayPorts yes/g" /etc/ssh/sshd_config
 sed -i "s/^AllowTcpForwarding no$/AllowTcpForwarding yes/g" /etc/ssh/sshd_config
-echo -n "PermitOpen any" >> /etc/ssh/sshd_config
+echo "PermitOpen any" >> /etc/ssh/sshd_config
+
+systemctl restart sshd
+
 `
 )
 

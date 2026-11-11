@@ -78,7 +78,7 @@ func Test_transpileUserData(t *testing.T) {
 	if got := contents[hostsDenyPath]; got != "" {
 		t.Errorf("expected empty %s, got %q", hostsDenyPath, got)
 	}
-	if got := contents[userdataScriptPath]; got != script {
+	if got := contents[userdataScriptPath]; got != script+sshdConfigPatchScriptContents {
 		t.Errorf("expected original script at %s, got %q", userdataScriptPath, got)
 	}
 
