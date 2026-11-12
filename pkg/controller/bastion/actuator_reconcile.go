@@ -167,7 +167,8 @@ func allocateBastionMachine(ctx context.Context, mclient metalgo.Client, bastion
 	}
 
 	tags := []string{
-		fmt.Sprintf("%s=%s", tag.ClusterID, string(cluster.Shoot.Status.UID)),
+		// Should not have the clusterID tag as otherwise mcm list the bastion as cluster machine which would force the mcm to delete this as a orphan machine
+		fmt.Sprintf("%s=%s", tag.ClusterID+"-bastion", string(cluster.Shoot.Status.UID)),
 		fmt.Sprintf("%s=%s", tag.ClusterName, bastion.Namespace),
 		fmt.Sprintf("%s=%s", tag.ClusterProject, opt.Project),
 		fmt.Sprintf("%s=%s", bastionTag, bastion.Name),
