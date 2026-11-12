@@ -44,9 +44,11 @@ spec:
         - --heartbeat-namespace={{ .Release.Namespace }}
         - --heartbeat-renew-interval-seconds={{ .Values.controllers.heartbeat.renewIntervalSeconds }}
         - --infrastructure-max-concurrent-reconciles={{ .Values.controllers.infrastructure.concurrentSyncs }}
+        - --bastion-max-concurrent-reconciles={{ .Values.controllers.bastion.concurrentSyncs }}
         - --ignore-operation-annotation={{ .Values.controllers.ignoreOperationAnnotation }}
         - --worker-max-concurrent-reconciles={{ .Values.controllers.worker.concurrentSyncs }}
         - --webhook-config-namespace={{ .Release.Namespace }}
+        - --webhook-config-service-port=443
         - --webhook-config-server-port={{ tpl .Values.webhookConfig.serverPort . }}
         - --disable-controllers={{ .Values.disableControllers | join "," }}
         - --disable-webhooks={{ .Values.disableWebhooks | join "," }}
@@ -58,6 +60,12 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        {{- range $index, $value := .Values.env }}
+        {{- if not (empty $value) }}
+        - name: {{ index $value "name" | quote }}
+          value: {{ index $value "value" | quote }}
+        {{- end }}
+        {{- end }}
         {{- if .Values.imageVectorOverwrite }}
         - name: IMAGEVECTOR_OVERWRITE
           value: /charts_overwrite/images_overwrite.yaml

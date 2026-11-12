@@ -48,9 +48,11 @@ import (
 	kutil "github.com/gardener/gardener/pkg/utils/kubernetes"
 
 	extensionssecretsmanager "github.com/gardener/gardener/extensions/pkg/util/secret/manager"
+	v1beta1helper "github.com/gardener/gardener/pkg/api/core/v1beta1/helper"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
+	retryutils "github.com/gardener/gardener/pkg/utils/retry"
 	"github.com/gardener/gardener/pkg/utils/secrets"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 
@@ -560,19 +562,21 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	apiserverIPs := []string{}
 	if !extensionscontroller.IsHibernated(cluster) {
-		// get apiserver ip addresses from external dns entry
-		// DNSEntry was replaced by DNSRecord and will be dropped in a future gardener release
-		// We can then remove reading the dns entry resources entirely
-		// get apiserver ip addresses from external dns record
-		dnsRecord := &extensionsv1alpha1.DNSRecord{}
-		err := vp.client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get dnsRecord %w", err)
-		}
-		apiserverIPs = dnsRecord.Spec.Values
+		if err := retryutils.UntilTimeout(ctx, 5*time.Second, 5*time.Minute, func(ctx context.Context) (bool, error) {
+			// get apiserver ip addresses from external dns record
+			dnsRecord := &extensionsv1alpha1.DNSRecord{}
+			err := vp.client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
+			if err != nil {
+				return false, fmt.Errorf("failed to get dnsRecord %w", err)
+			}
+			apiserverIPs = dnsRecord.Spec.Values
 
-		if len(apiserverIPs) == 0 {
-			return nil, fmt.Errorf("apiserver dns records were not yet reconciled")
+			if len(apiserverIPs) == 0 {
+				return false, fmt.Errorf("apiserver dns records were not yet reconciled")
+			}
+			return true, nil
+		}); err != nil {
+			return nil, fmt.Errorf("failed to determine apiserver IP from DNSRecord: %w", err)
 		}
 	}
 
@@ -784,7 +788,7 @@ func getCCMChartValues(
 		"cloudControllerManager": map[string]any{
 			"replicas":               extensionscontroller.GetControlPlaneReplicas(cluster, scaledDown, 1),
 			"projectID":              projectID,
-			"clusterID":              cluster.Shoot.UID,
+			"clusterID":              cluster.Shoot.Status.UID,
 			"partitionID":            infrastructureConfig.PartitionID,
 			"networkID":              *privateNetwork.ID,
 			"defaultExternalNetwork": defaultExternalNetwork,
@@ -976,8 +980,11 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 
 		_, err = netip.ParseAddr(u.Hostname())
 		if err == nil {
-			// If hostname is a parsable ipaddress we error out because we need a dnsname.
-			panic(fmt.Sprintf("seedApiUrl:%q is not a dns entry, exiting", seedApiURL))
+			if !v1beta1helper.IsShootSelfHosted(cluster.Shoot.Spec.Provider.Workers) {
+				// If hostname is a parsable ipaddress we error out because we need a dnsname.
+				panic(fmt.Sprintf("seedApiUrl:%q is not a dns entry, exiting", seedApiURL))
+			}
+			seedApiURL = "https://kubernetes.default.svc.cluster.local"
 		}
 	}
 
@@ -992,7 +999,7 @@ func (vp *valuesProvider) getFirewallControllerManagerChartValues(ctx context.Co
 		// This will break the firewall-only case actually only used in our test env.
 		// TODO: deletion of the firewall is not yet implemented.
 		"replicas":         extensionscontroller.GetReplicas(cluster, 1),
-		"clusterID":        string(cluster.Shoot.GetUID()),
+		"clusterID":        string(cluster.Shoot.Status.UID),
 		"seedApiURL":       seedApiURL,
 		"shootApiURL":      fmt.Sprintf("https://api.%s", *cluster.Shoot.Spec.DNS.Domain),
 		"sshKeySecretName": sshSecret.Name,

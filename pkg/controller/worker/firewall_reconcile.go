@@ -68,7 +68,7 @@ func (a *actuator) firewallReconcile(ctx context.Context, log logr.Logger, worke
 
 func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger, d *additionalData, cluster *extensionscontroller.Cluster, sshKey string) error {
 	var (
-		clusterID = string(cluster.Shoot.GetUID())
+		clusterID = string(cluster.Shoot.Status.UID)
 		namespace = cluster.ObjectMeta.Name
 	)
 
