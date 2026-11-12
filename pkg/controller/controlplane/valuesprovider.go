@@ -52,6 +52,7 @@ import (
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/utils/chart"
+	retryutils "github.com/gardener/gardener/pkg/utils/retry"
 	"github.com/gardener/gardener/pkg/utils/secrets"
 	secretsmanager "github.com/gardener/gardener/pkg/utils/secrets/manager"
 
@@ -561,19 +562,21 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 
 	apiserverIPs := []string{}
 	if !extensionscontroller.IsHibernated(cluster) {
-		// get apiserver ip addresses from external dns entry
-		// DNSEntry was replaced by DNSRecord and will be dropped in a future gardener release
-		// We can then remove reading the dns entry resources entirely
-		// get apiserver ip addresses from external dns record
-		dnsRecord := &extensionsv1alpha1.DNSRecord{}
-		err := vp.client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get dnsRecord %w", err)
-		}
-		apiserverIPs = dnsRecord.Spec.Values
+		if err := retryutils.UntilTimeout(ctx, 5*time.Second, 5*time.Minute, func(ctx context.Context) (bool, error) {
+			// get apiserver ip addresses from external dns record
+			dnsRecord := &extensionsv1alpha1.DNSRecord{}
+			err := vp.client.Get(ctx, types.NamespacedName{Name: fmt.Sprintf("%s-external", cluster.Shoot.Name), Namespace: namespace}, dnsRecord)
+			if err != nil {
+				return false, fmt.Errorf("failed to get dnsRecord %w", err)
+			}
+			apiserverIPs = dnsRecord.Spec.Values
 
-		if len(apiserverIPs) == 0 {
-			return nil, fmt.Errorf("apiserver dns records were not yet reconciled")
+			if len(apiserverIPs) == 0 {
+				return false, fmt.Errorf("apiserver dns records were not yet reconciled")
+			}
+			return true, nil
+		}); err != nil {
+			return nil, fmt.Errorf("failed to determine apiserver IP from DNSRecord: %w", err)
 		}
 	}
 
