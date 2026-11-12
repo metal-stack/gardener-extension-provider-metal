@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	reconcilerutils "github.com/gardener/gardener/pkg/controllerutils/reconciler"
@@ -186,8 +185,6 @@ func allocateBastionMachine(ctx context.Context, mclient metalgo.Client, bastion
 		Networks:    networks,
 		Tags:        tags,
 	}
-
-	spew.Dump(req)
 
 	resp, err := mclient.Machine().AllocateMachine(machine.NewAllocateMachineParams().WithBody(req).WithContext(ctx), nil)
 	if err != nil {
