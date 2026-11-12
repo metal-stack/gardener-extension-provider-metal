@@ -22,8 +22,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// bastionTag is a metal tag attached to the bastion machine to distinguish it from other machines.
-const bastionTag = "metal-stack.io/bastion"
+const (
+	// bastionTag is a metal tag attached to the bastion machine to distinguish it from other machines.
+	bastionTag = "metal-stack.io/bastion"
+	// Should not have the clusterID tag as otherwise mcm list the bastion as cluster machine which would force the mcm to delete this as a orphan machine
+	bastionClusterID = tag.ClusterID + "-bastion"
+)
 
 // Reconcile ensures that the bastion machine is allocated in the private node network and all public
 // networks of the shoot and publishes the public endpoint in the bastion status.
@@ -122,7 +126,7 @@ func findBastionMachine(ctx context.Context, mclient metalgo.Client, projectID, 
 		AllocationProject: projectID,
 		AllocationName:    machineName,
 		AllocationRole:    models.V1MachineAllocationRoleMachine,
-		Tags:              []string{fmt.Sprintf("%s=%s", tag.ClusterID, clusterID)},
+		Tags:              []string{fmt.Sprintf("%s=%s", bastionClusterID, clusterID)},
 	}
 
 	resp, err := mclient.Machine().FindMachines(machine.NewFindMachinesParams().WithBody(mfr).WithContext(ctx), nil)
@@ -167,8 +171,7 @@ func allocateBastionMachine(ctx context.Context, mclient metalgo.Client, bastion
 	}
 
 	tags := []string{
-		// Should not have the clusterID tag as otherwise mcm list the bastion as cluster machine which would force the mcm to delete this as a orphan machine
-		fmt.Sprintf("%s=%s", tag.ClusterID+"-bastion", string(cluster.Shoot.Status.UID)),
+		fmt.Sprintf("%s=%s", bastionClusterID, string(cluster.Shoot.Status.UID)),
 		fmt.Sprintf("%s=%s", tag.ClusterName, bastion.Namespace),
 		fmt.Sprintf("%s=%s", tag.ClusterProject, opt.Project),
 		fmt.Sprintf("%s=%s", bastionTag, bastion.Name),
