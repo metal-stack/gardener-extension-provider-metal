@@ -1,0 +1,31 @@
+apiVersion: operator.gardener.cloud/v1alpha1
+kind: Extension
+metadata:
+  name: provider-metal
+spec:
+  deployment:
+    admission:
+      runtimeCluster:
+        helm:
+          ociRepository:
+            ref: ghcr.io/metal-stack/charts/gardener-extension-admission-metal-runtime:latest
+      values:
+        image:
+          repository: ghcr.io/metal-stack/gardener-extension-provider-metal
+          tag: latest
+      virtualCluster:
+        helm:
+          ociRepository:
+            ref: ghcr.io/metal-stack/charts/gardener-extension-admission-metal-application:latest
+    extension:
+      helm:
+        ociRepository:
+          ref: ghcr.io/metal-stack/charts/gardener-extension-provider-metal:latest
+      injectGardenKubeconfig: true
+  resources:
+  - kind: ControlPlane
+    type: metal
+  - kind: Infrastructure
+    type: metal
+  - kind: Worker
+    type: metal
