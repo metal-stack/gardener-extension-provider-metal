@@ -7,12 +7,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   egress:
-  - ports:
-    - port: 80
-      protocol: TCP
-    - port: 443
-      protocol: TCP
-    to:
+  - to:
     - podSelector:
         matchLabels:
           {{- .Values.networkPolicies.ingressController.podSelector | toYaml | nindent 10 }}
