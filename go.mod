@@ -5,7 +5,7 @@ go 1.27
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/coreos/go-systemd/v22 v22.7.0
-	github.com/gardener/etcd-druid/api v0.37.0
+	github.com/gardener/etcd-druid/api v0.39.0
 	github.com/gardener/gardener v1.147.5
 	github.com/gardener/gardener-extension-networking-calico v1.58.0
 	github.com/gardener/gardener-extension-networking-cilium v1.48.4
