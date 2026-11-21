@@ -274,6 +274,91 @@ func Test_defaulter_defaultShoot(t *testing.T) {
 			},
 		},
 		{
+			name: "calico bgp load balancer feature gate configures the bird backend",
+			shoot: &gardenv1beta1.Shoot{
+				Spec: gardenv1beta1.ShootSpec{
+					Kubernetes: gardenv1beta1.Kubernetes{
+						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
+							NodeCIDRMaskSize: new(int32(24)),
+						},
+						Kubelet: &gardenv1beta1.KubeletConfig{
+							MaxPods: new(int32(200)),
+						},
+					},
+					Provider: gardenv1beta1.Provider{
+						ControlPlaneConfig: mustEncode(t, &metalv1alpha1.ControlPlaneConfig{
+							FeatureGates: metalv1alpha1.ControlPlaneFeatures{
+								CalicoBGPLoadBalancer: new(true),
+							},
+						}),
+						InfrastructureConfig: &runtime.RawExtension{
+							Object: &metalv1alpha1.InfrastructureConfig{
+								Firewall: metalv1alpha1.Firewall{
+									Image: "firewall-2.0.20210207",
+									Size:  "n1-medium-x86",
+								},
+							},
+						},
+						Workers: []gardenv1beta1.Worker{
+							{},
+						},
+					},
+					Networking: &gardenv1beta1.Networking{
+						Type: new("calico"),
+					},
+				},
+			},
+			want: &gardenv1beta1.Shoot{
+				Spec: gardenv1beta1.ShootSpec{
+					Kubernetes: gardenv1beta1.Kubernetes{
+						KubeControllerManager: &gardenv1beta1.KubeControllerManagerConfig{
+							NodeCIDRMaskSize: new(int32(24)),
+						},
+						Kubelet: &gardenv1beta1.KubeletConfig{
+							MaxPods: new(int32(200)),
+						},
+						KubeProxy: &gardenv1beta1.KubeProxyConfig{
+							Enabled: new(true),
+						},
+					},
+					Provider: gardenv1beta1.Provider{
+						ControlPlaneConfig: mustEncode(t, &metalv1alpha1.ControlPlaneConfig{
+							FeatureGates: metalv1alpha1.ControlPlaneFeatures{
+								CalicoBGPLoadBalancer: new(true),
+							},
+						}),
+						InfrastructureConfig: &runtime.RawExtension{
+							Object: &metalv1alpha1.InfrastructureConfig{
+								Firewall: metalv1alpha1.Firewall{
+									Image: "firewall-2.0.20210207",
+									Size:  "n1-medium-x86",
+								},
+							},
+						},
+						Workers: []gardenv1beta1.Worker{
+							{},
+						},
+					},
+					Networking: &gardenv1beta1.Networking{
+						Type:     new("calico"),
+						Pods:     new("10.240.0.0/13"),
+						Services: new("10.248.0.0/18"),
+						ProviderConfig: &runtime.RawExtension{
+							Object: &calicoextensionv1alpha1.NetworkConfig{
+								Backend: new(calicoextensionv1alpha1.Bird),
+								IPv4: &calicoextensionv1alpha1.IPv4{
+									Mode: new(calicoextensionv1alpha1.Never),
+								},
+								Typha: &calicoextensionv1alpha1.Typha{
+									Enabled: false,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "cilium networking provider config will be defaulted",
 			shoot: &gardenv1beta1.Shoot{
 				Spec: gardenv1beta1.ShootSpec{

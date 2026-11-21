@@ -86,6 +86,14 @@ func (m *mutator) mutateVPNShootDeployment(_ context.Context, deployment *appsv1
 
 func (m *mutator) mutateCalicoNode(_ context.Context, ds *appsv1.DaemonSet) error {
 	if c := extensionswebhook.ContainerWithName(ds.Spec.Template.Spec.Containers, "calico-node"); c != nil {
+		// Ensure a stable and unique bgp router id per node. This is required to announce service
+		// load balancer ips via bgp. The value "hash" makes calico derive the router id from a hash
+		// of the node name, guaranteeing uniqueness across all nodes.
+		c.Env = extensionswebhook.EnsureEnvVarWithName(c.Env, corev1.EnvVar{
+			Name:  "CALICO_ROUTER_ID",
+			Value: "hash",
+		})
+
 		ebpfEnabled := slices.ContainsFunc(c.Env, func(e corev1.EnvVar) bool {
 			if e.Name != "FELIX_BPFENABLED" {
 				return false

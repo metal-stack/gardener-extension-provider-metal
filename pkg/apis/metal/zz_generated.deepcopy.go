@@ -169,6 +169,11 @@ func (in *ControlPlaneFeatures) DeepCopyInto(out *ControlPlaneFeatures) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.CalicoBGPLoadBalancer != nil {
+		in, out := &in.CalicoBGPLoadBalancer, &out.CalicoBGPLoadBalancer
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 
