@@ -61,7 +61,7 @@ func (a *actuator) Delete(ctx context.Context, logger logr.Logger, infrastructur
 		infrastructure:       infrastructure,
 		infrastructureConfig: internalInfrastructureConfig,
 		mclient:              mclient,
-		clusterID:            string(cluster.Shoot.GetUID()),
+		clusterID:            string(cluster.Shoot.Status.UID),
 	}
 
 	err = a.releaseNetworkResources(deleter)

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	extensionsbastioncontroller "github.com/gardener/gardener/extensions/pkg/controller/bastion"
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	extensionscontrolplanecontroller "github.com/gardener/gardener/extensions/pkg/controller/controlplane"
 	extensionshealthcheckcontroller "github.com/gardener/gardener/extensions/pkg/controller/healthcheck"
@@ -10,6 +11,7 @@ import (
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	extensioncontrolplanewebhook "github.com/gardener/gardener/extensions/pkg/webhook/controlplane"
 	extensionshootwebhook "github.com/gardener/gardener/extensions/pkg/webhook/shoot"
+	bastioncontroller "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/bastion"
 	controlplanecontroller "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/controlplane"
 	healthcheckcontroller "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/healthcheck"
 	infrastructurecontroller "github.com/metal-stack/gardener-extension-provider-metal/pkg/controller/infrastructure"
@@ -23,6 +25,7 @@ import (
 func ControllerSwitchOptions() *controllercmd.SwitchOptions {
 	return controllercmd.NewSwitchOptions(
 		controllercmd.Switch(extensionsinfrastructurecontroller.ControllerName, infrastructurecontroller.AddToManager),
+		controllercmd.Switch(extensionsbastioncontroller.ControllerName, bastioncontroller.AddToManager),
 		controllercmd.Switch(extensionshealthcheckcontroller.ControllerName, healthcheckcontroller.AddToManager),
 		controllercmd.Switch(extensionscontrolplanecontroller.ControllerName, controlplanecontroller.AddToManager),
 		controllercmd.Switch(extensionsworkercontroller.ControllerName, workercontroller.AddToManager),
