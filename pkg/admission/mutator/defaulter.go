@@ -128,6 +128,11 @@ func (d *defaulter) defaultCalicoConfig(shoot *gardenv1beta1.Shoot) error {
 		return err
 	}
 
+	bgpLoadBalancer, err := d.calicoBGPLoadBalancerEnabled(shoot)
+	if err != nil {
+		return err
+	}
+
 	if shoot.Spec.Kubernetes.KubeProxy == nil {
 		shoot.Spec.Kubernetes.KubeProxy = &gardenv1beta1.KubeProxyConfig{}
 	}
@@ -137,7 +142,12 @@ func (d *defaulter) defaultCalicoConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if networkConfig.Backend == nil {
-		networkConfig.Backend = new(d.c.calicoBackend())
+		backend := d.c.calicoBackend()
+		if bgpLoadBalancer {
+			// bgp requires the bird backend to be able to announce service load balancer ips
+			backend = calicoextensionv1alpha1.Bird
+		}
+		networkConfig.Backend = new(backend)
 	}
 
 	if networkConfig.IPv4 == nil {
@@ -145,12 +155,21 @@ func (d *defaulter) defaultCalicoConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	if networkConfig.IPv4.Mode == nil {
-		networkConfig.IPv4.Mode = new(d.c.calicoPoolMode())
+		poolMode := d.c.calicoPoolMode()
+		if bgpLoadBalancer {
+			// keep native routing, the pods are routed through the underlay
+			poolMode = calicoextensionv1alpha1.Never
+		}
+		networkConfig.IPv4.Mode = new(poolMode)
 	}
 
 	if networkConfig.Typha == nil {
+		typhaEnabled := d.c.calicoTyphaEnabled()
+		if bgpLoadBalancer {
+			typhaEnabled = false
+		}
 		networkConfig.Typha = &calicoextensionv1alpha1.Typha{
-			Enabled: d.c.calicoTyphaEnabled(),
+			Enabled: typhaEnabled,
 		}
 	}
 
@@ -159,6 +178,18 @@ func (d *defaulter) defaultCalicoConfig(shoot *gardenv1beta1.Shoot) error {
 	}
 
 	return nil
+}
+
+// calicoBGPLoadBalancerEnabled returns whether the per-shoot calicoBGPLoadBalancer feature gate is
+// enabled. If enabled, the calico networking extension is configured to announce service load
+// balancer ips via bgp and the metal cloud-controller-manager deploys without MetalLB.
+func (d *defaulter) calicoBGPLoadBalancerEnabled(shoot *gardenv1beta1.Shoot) (bool, error) {
+	controlPlaneConfig := &metalv1alpha1.ControlPlaneConfig{}
+	if err := helper.DecodeRawExtension(shoot.Spec.Provider.ControlPlaneConfig, controlPlaneConfig, d.decoder); err != nil {
+		return false, err
+	}
+
+	return pointer.SafeDeref(controlPlaneConfig.FeatureGates.CalicoBGPLoadBalancer), nil
 }
 
 func (d *defaulter) defaultCiliumConfig(shoot *gardenv1beta1.Shoot) error {
