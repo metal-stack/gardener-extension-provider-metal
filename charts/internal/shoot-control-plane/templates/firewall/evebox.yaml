@@ -84,7 +84,6 @@ spec:
         image: {{ index .Values.images "evebox" }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
         args:
-        - server
         - --config=/etc/evebox/config.yaml
         ports:
         - protocol: TCP

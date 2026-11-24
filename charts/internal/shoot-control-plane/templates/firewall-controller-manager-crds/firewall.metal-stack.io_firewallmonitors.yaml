@@ -204,10 +204,6 @@ spec:
                     description: EveboxAgentRunning shows true when the evebox agent
                       is running.
                     type: boolean
-                  eveboxServerRunning:
-                    description: EveboxServerRunning shows true when the evebox server
-                      is running.
-                    type: boolean
                   running:
                     description: Running is true when suricata is currently running.
                     type: boolean
@@ -219,7 +215,6 @@ spec:
                     type: string
                 required:
                 - eveboxAgentRunning
-                - eveboxServerRunning
                 - running
                 - uptime
                 - version
