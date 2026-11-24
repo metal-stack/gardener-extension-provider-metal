@@ -84,18 +84,25 @@ func (a *actuator) getEveboxServerURL(ctx context.Context, worker *extensionsv1a
 		return "", fmt.Errorf("could not create shoot client: %w", err)
 	}
 
+	const podName = metal.EveboxServiceName + "-0"
+
+	pod := &corev1.Pod{}
+	if err := shootClient.Get(ctx, client.ObjectKey{Namespace: metal.FirewallNamespace, Name: podName}, pod); err != nil {
+		return "", fmt.Errorf("could not get evebox pod: %w", err)
+	}
+
+	if pod.Status.PodIP == "" {
+		return "", fmt.Errorf("evebox pod %q has no ip yet", podName)
+	}
+
 	service := &corev1.Service{}
 	if err := shootClient.Get(ctx, client.ObjectKey{Namespace: metal.FirewallNamespace, Name: metal.EveboxServiceName}, service); err != nil {
 		return "", fmt.Errorf("could not get evebox service: %w", err)
 	}
 
-	if service.Spec.ClusterIP == "" {
-		return "", fmt.Errorf("evebox service %q has no cluster ip yet", metal.EveboxServiceName)
-	}
-
 	for _, port := range service.Spec.Ports {
 		if port.Name == "http" {
-			return fmt.Sprintf("http://%s:%d", service.Spec.ClusterIP, port.Port), nil
+			return fmt.Sprintf("http://%s:%d", pod.Status.PodIP, port.Port), nil
 		}
 	}
 
