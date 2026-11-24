@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	extensionsconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/apis/config/v1alpha1"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
+	"github.com/gardener/gardener/extensions/pkg/util"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	fcmv2 "github.com/metal-stack/firewall-controller-manager/api/v2"
@@ -17,6 +19,7 @@ import (
 	metalcommon "github.com/metal-stack/metal-lib/pkg/metal"
 	"github.com/metal-stack/metal-lib/pkg/tag"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -53,7 +56,12 @@ func (a *actuator) firewallReconcile(ctx context.Context, log logr.Logger, worke
 		return fmt.Errorf("error getting additional data: %w", err)
 	}
 
-	err = a.ensureFirewallDeployment(ctx, log, d, cluster, string(sshSecret.Data["id_rsa.pub"]))
+	eveboxServerURL, err := a.getEveboxServerURL(ctx, worker, d)
+	if err != nil {
+		return err
+	}
+
+	err = a.ensureFirewallDeployment(ctx, log, d, cluster, string(sshSecret.Data["id_rsa.pub"]), eveboxServerURL)
 	if err != nil {
 		return err
 	}
@@ -66,7 +74,35 @@ func (a *actuator) firewallReconcile(ctx context.Context, log logr.Logger, worke
 	return nil
 }
 
-func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger, d *additionalData, cluster *extensionscontroller.Cluster, sshKey string) error {
+func (a *actuator) getEveboxServerURL(ctx context.Context, worker *extensionsv1alpha1.Worker, d *additionalData) (string, error) {
+	if !d.infrastructureConfig.Firewall.Suricata.EveboxEnabled {
+		return "", nil
+	}
+
+	_, shootClient, err := util.NewClientForShoot(ctx, a.client, worker.Namespace, client.Options{Scheme: a.scheme}, extensionsconfigv1alpha1.RESTOptions{})
+	if err != nil {
+		return "", fmt.Errorf("could not create shoot client: %w", err)
+	}
+
+	service := &corev1.Service{}
+	if err := shootClient.Get(ctx, client.ObjectKey{Namespace: metal.FirewallNamespace, Name: metal.EveboxServiceName}, service); err != nil {
+		return "", fmt.Errorf("could not get evebox service: %w", err)
+	}
+
+	if service.Spec.ClusterIP == "" {
+		return "", fmt.Errorf("evebox service %q has no cluster ip yet", metal.EveboxServiceName)
+	}
+
+	for _, port := range service.Spec.Ports {
+		if port.Name == "http" {
+			return fmt.Sprintf("http://%s:%d", service.Spec.ClusterIP, port.Port), nil
+		}
+	}
+
+	return "", fmt.Errorf("evebox service %q does not expose an http port", metal.EveboxServiceName)
+}
+
+func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger, d *additionalData, cluster *extensionscontroller.Cluster, sshKey, eveboxServerURL string) error {
 	var (
 		clusterID = string(cluster.Shoot.GetUID())
 		namespace = cluster.ObjectMeta.Name
@@ -149,6 +185,15 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Spec.NftablesExporterURL = d.mcp.NftablesExporter.URL
 		deploy.Spec.Template.Spec.LogAcceptedConnections = d.infrastructureConfig.Firewall.LogAcceptedConnections
 		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
+		deploy.Spec.Template.Spec.Suricata = fcmv2.Suricata{
+			Enabled: d.infrastructureConfig.Firewall.Suricata.Enabled,
+			Evebox: fcmv2.Evebox{
+				Enabled:   d.infrastructureConfig.Firewall.Suricata.EveboxEnabled,
+				ServerURL: eveboxServerURL,
+			},
+			ListenMode:        (*fcmv2.SuricataListenMode)(d.infrastructureConfig.Firewall.Suricata.ListenMode),
+			DetectionRulesets: d.infrastructureConfig.Firewall.Suricata.DetectionRulesets,
+		}
 
 		if d.partition.NetworkIsolation != nil &&
 			len(d.partition.NetworkIsolation.DNSServers) > 0 &&

@@ -68,6 +68,7 @@ import (
 const (
 	caNameControlPlane = "ca-" + metal.Name + "-controlplane"
 	droptailerCAName   = "ca-" + metal.Name + "-droptailer"
+	eveboxCAName       = "ca-" + metal.Name + "-evebox"
 	metallbCAName      = "ca-" + metal.Name + "-metallb-webhook"
 
 	ipv4HostMask = "/32"
@@ -138,6 +139,30 @@ func secretConfigsFunc(namespace string) []extensionssecretsmanager.SecretConfig
 			},
 			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(droptailerCAName, secretsmanager.UseCurrentCA)},
 		},
+		// evebox
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:       eveboxCAName,
+				CommonName: eveboxCAName,
+				CertType:   secrets.CACert,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.Persist()},
+		},
+		{
+			Config: &secrets.CertificateSecretConfig{
+				Name:       metal.EveboxServerSecretName,
+				CommonName: metal.EveboxServiceName,
+				DNSNames: []string{
+					metal.EveboxServiceName,
+					metal.EveboxServiceName + ".firewall",
+					metal.EveboxServiceName + ".firewall.svc",
+					metal.EveboxServiceName + ".firewall.svc.cluster.local",
+				},
+				CertType:                    secrets.ServerCert,
+				SkipPublishingCACertificate: false,
+			},
+			Options: []secretsmanager.GenerateOption{secretsmanager.SignedByCA(eveboxCAName, secretsmanager.UseCurrentCA)},
+		},
 		{
 			Config: &secrets.CertificateSecretConfig{
 				Name:       metallbCAName,
@@ -184,7 +209,7 @@ var cpShootChart = &chart.Chart{
 	Name:       "shoot-control-plane",
 	EmbeddedFS: charts.InternalChart,
 	Path:       filepath.Join(charts.InternalChartsPath, "shoot-control-plane"),
-	Images:     []string{metal.DroptailerImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName, metal.NodeInitImageName, metal.MetallbHealthSidecarImageName},
+	Images:     []string{metal.DroptailerImageName, metal.EveboxImageName, metal.MetallbSpeakerImageName, metal.MetallbControllerImageName, metal.NodeInitImageName, metal.MetallbHealthSidecarImageName},
 	Objects: []*chart.Object{
 		// metallb
 		{Type: &corev1.Namespace{}, Name: "metallb-system"},
@@ -236,6 +261,12 @@ var cpShootChart = &chart.Chart{
 
 		// droptailer
 		{Type: &appsv1.Deployment{}, Name: "droptailer"},
+
+		// evebox
+		{Type: &networkingv1.NetworkPolicy{}, Name: "evebox"},
+		{Type: &corev1.Secret{}, Name: "evebox-server"},
+		{Type: &corev1.Service{}, Name: "evebox"},
+		{Type: &appsv1.StatefulSet{}, Name: "evebox"},
 
 		// ccm
 		{Type: &rbacv1.ClusterRole{}, Name: "system:controller:cloud-node-controller"},
@@ -678,6 +709,28 @@ func (vp *valuesProvider) getControlPlaneShootChartValues(ctx context.Context, c
 			},
 		}
 	}
+
+	eveboxValues := map[string]any{
+		"enabled": infrastructureConfig.Firewall.Suricata.EveboxEnabled,
+	}
+
+	eveboxServer, eveboxServerOK := secretsReader.Get(metal.EveboxServerSecretName)
+	if eveboxServerOK {
+		eveboxValues["podAnnotations"] = map[string]any{
+			"checksum/secret-evebox-server": checksums[metal.EveboxServerSecretName],
+		}
+		eveboxValues["server"] = map[string]any{
+			"ca":   eveboxServer.Data["ca.crt"],
+			"cert": eveboxServer.Data["tls.crt"],
+			"key":  eveboxServer.Data["tls.key"],
+		}
+	}
+
+	if infrastructureConfig.Firewall.Suricata.EveboxEnabled && !eveboxServerOK {
+		return nil, fmt.Errorf("secret %q is required when evebox is enabled", metal.EveboxServerSecretName)
+	}
+
+	values["evebox"] = eveboxValues
 
 	if vp.controllerConfig.Storage.Duros.Enabled {
 		partitionConfig, ok := vp.controllerConfig.Storage.Duros.PartitionConfig[infrastructureConfig.PartitionID]
