@@ -15,9 +15,9 @@ import (
 func GetLatestSSHSecret(ctx context.Context, c client.Client, namespace string) (*corev1.Secret, error) {
 	secretList := &corev1.SecretList{}
 	if err := c.List(ctx, secretList, client.InNamespace(namespace), client.MatchingLabels{
-		secretsmanager.LabelKeyManagedBy:       secretsmanager.LabelValueSecretsManager,
-		secretsmanager.LabelKeyManagerIdentity: constants.SecretManagerIdentityGardenlet,
-		secretsmanager.LabelKeyName:            constants.SecretNameSSHKeyPair,
+		secretsmanager.LabelKeyManagedBy: secretsmanager.LabelValueSecretsManager,
+		// secretsmanager.LabelKeyManagerIdentity: constants.SecretManagerIdentityGardenlet, # Can be omitted to work in both cases (normal shoot and self hosted shoot)
+		secretsmanager.LabelKeyName: constants.SecretNameSSHKeyPair,
 	}); err != nil {
 		return nil, err
 	}
