@@ -224,8 +224,6 @@ spec:
                 - uptime
                 - version
                 type: object
-            required:
-            - suricata
             type: object
           egressRules:
             description: EgressRules contains egress rules configured for this firewall.
