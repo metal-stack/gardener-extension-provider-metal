@@ -157,8 +157,8 @@ github.com/fxamacker/cbor/v2 v2.9.6 h1:NHZPxuUjJXQjX9itA785y/5NKSlI4HQ+S7noZsmI7
 github.com/fxamacker/cbor/v2 v2.9.6/go.mod h1:4EaZp6ClVunETjQ4GHmGNzysDK91Lr+r6Yz6tJqzVCw=
 github.com/gardener/cert-management v0.23.0 h1:kD88XcPn6C4zLc8EYtrHyb+/45Iyaozhb+HEM44MKz0=
 github.com/gardener/cert-management v0.23.0/go.mod h1:Mehn8XY+iAkm8XOBbNGHmbMft8fP9ZEJFWzWSonPkfc=
-github.com/gardener/etcd-druid/api v0.37.0 h1:qnix78KixCHjKGYQ0tT2wGzgVyO996feIFtFqW0DlaQ=
-github.com/gardener/etcd-druid/api v0.37.0/go.mod h1:nFKkRStJEXoYE0xGf2Y5Ela1EayAdsfZAqfK+bBXV/M=
+github.com/gardener/etcd-druid/api v0.39.0 h1:/EOXls5u2l11XL6Ejdc9l+bSGBUEDdENPVMxKKZboJI=
+github.com/gardener/etcd-druid/api v0.39.0/go.mod h1:HsqEM/h4XuxPC4cFDm20V9TPAUqv0tjtnzds/nZ5p7Y=
 github.com/gardener/gardener v1.147.5 h1:/WtagU/91NTI4KoxoTrqdO7SgPH1QDOjDI4/Otf/0Kc=
 github.com/gardener/gardener v1.147.5/go.mod h1:FSbwvYXFWTEnTqOdE6eYKUMpeOPtcsIfS/IAfbtxhkc=
 github.com/gardener/gardener-extension-networking-calico v1.58.0 h1:jCHWWRPB5temGZYYl1mls1Aw69Xmvj44meJ2gEWE4Rw=
