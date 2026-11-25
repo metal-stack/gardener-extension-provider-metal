@@ -255,6 +255,72 @@ spec:
                         items:
                           type: string
                         type: array
+                      suricata:
+                        description: Suricata provides configuration for running suricata
+                          ids on the firewall.
+                        properties:
+                          deployEvebox:
+                            description: Evebox allows starting an evebox agent on
+                              the firewall that forwards it to an evebox server.
+                            properties:
+                              certificate:
+                                description: Certificate is the certificate used for
+                                  TLS.
+                                type: string
+                              certificateKey:
+                                description: CertificateKey is the certificate key
+                                  used for TLS.
+                                type: string
+                              enabled:
+                                description: Enabled enables the evebox forwarding.
+                                type: boolean
+                              key:
+                                description: Key is the key of the evebox server.
+                                type: string
+                              serverURL:
+                                description: ServerURL is the URL to forward events
+                                  to.
+                                type: string
+                              tlsEnabled:
+                                description: TlsEnabled enables TLS for the client-server
+                                  communication.
+                                type: boolean
+                            required:
+                            - certificate
+                            - certificateKey
+                            - enabled
+                            - key
+                            - serverURL
+                            - tlsEnabled
+                            type: object
+                          detectionRulesets:
+                            description: DetectionRulesets configures detection rulesets
+                              for suricata. The available values can be determined
+                              from the FirewallMonitor status. If this slice is nil,
+                              the default detection ruleset is used.
+                            items:
+                              type: string
+                            type: array
+                          dropRules:
+                            description: |-
+                              DropRules selects rules whose action is converted from alert to drop. Every entry is a suricata-update
+                              rule matcher as used in drop.conf, e.g. a signature id ("2402000"), "group:emerging-drop.rules",
+                              "re:Dshield Block Listed Source" or "metadata:signature_severity major".
+                              Dropping only takes effect when the listen mode is nfqueue, in af-packet mode the rules only alert.
+                            items:
+                              type: string
+                            type: array
+                          enabled:
+                            description: Enabled enables suricata. Enabled by default.
+                            type: boolean
+                          listenMode:
+                            description: ListenMode configures the suricata listen
+                              mode. when set to nfqueue suricata will actively filter
+                              packets instead of just sniffing traffic.
+                            type: string
+                        required:
+                        - deployEvebox
+                        type: object
                       userdata:
                         description: |-
                           Userdata contains the userdata used for the creation of the firewall.
@@ -266,6 +332,7 @@ spec:
                     - partition
                     - project
                     - size
+                    - suricata
                     type: object
                 type: object
             required:

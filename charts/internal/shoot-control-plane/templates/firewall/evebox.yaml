@@ -1,0 +1,133 @@
+{{- if .Values.evebox.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: evebox
+  namespace: firewall
+spec:
+  podSelector:
+    matchLabels:
+      k8s-app: evebox
+  policyTypes:
+  - Egress
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: evebox-server
+  namespace: firewall
+type: Opaque
+data:
+  ca.crt: {{ .Values.evebox.server.ca }}
+  tls.crt: {{ .Values.evebox.server.cert }}
+  tls.key: {{ .Values.evebox.server.key }}
+stringData:
+  config.yaml: |
+    data-directory: /var/lib/evebox
+    http:
+      host: 0.0.0.0
+      port: 5636
+      tls:
+        enabled: false
+        certificate: /certificates/tls.crt
+        key: /certificates/tls.key
+    authentication:
+      required: false
+    database:
+      type: sqlite
+      retention:
+        days: 7
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: evebox
+  namespace: firewall
+  labels:
+    k8s-app: evebox
+spec:
+  selector:
+    k8s-app: evebox
+  ports:
+  - name: http
+    port: 5636
+    targetPort: 5636
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: evebox
+  namespace: firewall
+  labels:
+    k8s-app: evebox
+spec:
+  serviceName: evebox
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: evebox
+  template:
+    metadata:
+      labels:
+        k8s-app: evebox
+        app: evebox
+        networking.gardener.cloud/from-prometheus: allowed
+{{- if .Values.evebox.podAnnotations }}
+      annotations:
+{{ toYaml .Values.evebox.podAnnotations | indent 8 }}
+{{- end }}
+    spec:
+      containers:
+      - name: evebox
+        image: {{ index .Values.images "evebox" }}
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        args:
+        - --config=/etc/evebox/config.yaml
+        ports:
+        - protocol: TCP
+          containerPort: 5636
+        readinessProbe:
+          tcpSocket:
+            port: 5636
+        volumeMounts:
+        - name: evebox-server
+          mountPath: /etc/evebox
+          readOnly: true
+        - name: evebox-server
+          mountPath: /certificates
+          readOnly: true
+        - name: evebox-data
+          mountPath: /var/lib/evebox
+        resources:
+          limits:
+            cpu: 200m
+            memory: 512Mi
+        securityContext:
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
+      restartPolicy: Always
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 65534
+      volumes:
+      - name: evebox-server
+        secret:
+          secretName: evebox-server
+  volumeClaimTemplates:
+  - metadata:
+      name: evebox-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.evebox.storageSize }}
+{{- end }}

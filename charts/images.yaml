@@ -11,6 +11,10 @@ images:
   sourceRepository: github.com/metal-stack/droptailer
   repository: ghcr.io/metal-stack/droptailer
   tag: "v0.2.15"
+- name: evebox
+  sourceRepository: https://github.com/jasonish/evebox
+  repository: docker.io/jasonish/evebox
+  tag: "0.32.0"
 - name: csi-lvm-controller
   sourceRepository: github.com/metal-stack/csi-lvm-controller
   repository: ghcr.io/metal-stack/csi-lvm-controller

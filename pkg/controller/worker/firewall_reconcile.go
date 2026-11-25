@@ -149,6 +149,21 @@ func (a *actuator) ensureFirewallDeployment(ctx context.Context, log logr.Logger
 		deploy.Spec.Template.Spec.NftablesExporterURL = d.mcp.NftablesExporter.URL
 		deploy.Spec.Template.Spec.LogAcceptedConnections = d.infrastructureConfig.Firewall.LogAcceptedConnections
 		deploy.Spec.Template.Spec.SSHPublicKeys = []string{sshKey}
+		var eveboxServerURL string
+		if d.infrastructureConfig.Firewall.Suricata.EveboxEnabled {
+			// the firewall-controller resolves this hostname to the evebox server pod ip through /etc/hosts
+			eveboxServerURL = metal.EveboxServerURL
+		}
+
+		deploy.Spec.Template.Spec.Suricata = fcmv2.Suricata{
+			Enabled: d.infrastructureConfig.Firewall.Suricata.Enabled,
+			Evebox: fcmv2.Evebox{
+				Enabled:   d.infrastructureConfig.Firewall.Suricata.EveboxEnabled,
+				ServerURL: eveboxServerURL,
+			},
+			ListenMode:        (*fcmv2.SuricataListenMode)(d.infrastructureConfig.Firewall.Suricata.ListenMode),
+			DetectionRulesets: d.infrastructureConfig.Firewall.Suricata.DetectionRulesets,
+		}
 
 		if d.partition.NetworkIsolation != nil &&
 			len(d.partition.NetworkIsolation.DNSServers) > 0 &&

@@ -10,6 +10,8 @@ const (
 	CCMImageName = "metalccm"
 	// DroptailerImageName is the name of the Droptailer to deploy to the shoot.
 	DroptailerImageName = "droptailer"
+	// EveboxImageName is the name of the EveBox server to deploy to the shoot.
+	EveboxImageName = "evebox"
 	// MetallbSpeakerImageName is the name of the metallb speaker to deploy to the shoot.
 	MetallbSpeakerImageName = "metallb-speaker"
 	// MetallbControllerImageName is the name of the metallb controller to deploy to the shoot.
@@ -37,12 +39,21 @@ const (
 
 	// ShootExtensionTypeTokenIssuer appears unused? CHECKME
 	ShootExtensionTypeTokenIssuer = "tokenissuer"
+	// FirewallNamespace is the namespace where firewall components are deployed in the shoot.
+	FirewallNamespace = "firewall"
 	// DroptailerNamespace is the namespace where the firewall droptailer will get deployed.
 	DroptailerNamespace = "firewall"
 	// DroptailerClientSecretName is the name of the secret containing the certificates for the droptailer client.
 	DroptailerClientSecretName = "droptailer-client" // nolint:gosec
 	// DroptailerServerSecretName is the name of the secret containing the certificates for the droptailer server.
 	DroptailerServerSecretName = "droptailer-server" // nolint:gosec
+	// EveboxServerSecretName is the name of the secret containing the certificates for the evebox server.
+	EveboxServerSecretName = "evebox-server" // nolint:gosec
+	// EveboxServiceName is the name of the evebox service deployed to the shoot.
+	EveboxServiceName = "evebox"
+	// EveboxServerURL is the url under which the evebox agent on the firewall reaches the evebox server in the shoot.
+	// the hostname is resolved by the firewall-controller, which maintains an /etc/hosts entry pointing to the evebox server pod ip.
+	EveboxServerURL = "http://evebox:5636"
 	// MetalLbWebhookSecretName is the name of the secret containing the certificates for the metallb webhook server.
 	MetalLbWebhookSecretName = "metallb-webhook-cert" // nolint:gosec
 	// CloudControllerManagerDeploymentName is the name of the deployment for the cloud controller manager.

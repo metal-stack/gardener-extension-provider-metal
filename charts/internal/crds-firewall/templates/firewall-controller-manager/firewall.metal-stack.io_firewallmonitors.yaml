@@ -184,6 +184,41 @@ spec:
                 - idsStats
                 - rules
                 type: object
+              suricata:
+                description: SuricataStatus contains information on the suricata ids
+                  status
+                properties:
+                  availableDetectionRulesets:
+                    description: AvailableDetectionRulesets shows the available detection
+                      rule sets.
+                    items:
+                      type: string
+                    type: array
+                  enabledDetectionRulesets:
+                    description: EnabledDetectionRulesets shows the configured detection
+                      rule sets.
+                    items:
+                      type: string
+                    type: array
+                  eveboxAgentRunning:
+                    description: EveboxAgentRunning shows true when the evebox agent
+                      is running.
+                    type: boolean
+                  running:
+                    description: Running is true when suricata is currently running.
+                    type: boolean
+                  uptime:
+                    description: Uptime shows how long the suricata service is running.
+                    type: string
+                  version:
+                    description: Version shows the current suricata version.
+                    type: string
+                required:
+                - eveboxAgentRunning
+                - running
+                - uptime
+                - version
+                type: object
             type: object
           egressRules:
             description: EgressRules contains egress rules configured for this firewall.
