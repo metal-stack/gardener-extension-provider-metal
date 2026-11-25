@@ -16,7 +16,7 @@ require (
 	github.com/go-openapi/strfmt v0.27.3
 	github.com/google/go-cmp v0.7.0
 	github.com/metal-stack/duros-controller v0.12.2
-	github.com/metal-stack/firewall-controller-manager v0.6.3-0.20261124150835-47dde34c1b2f
+	github.com/metal-stack/firewall-controller-manager v0.6.3-0.20261125123020-7a65284b555d
 	github.com/metal-stack/firewall-controller/v2 v2.5.0
 	github.com/metal-stack/metal-go v0.45.0
 	github.com/metal-stack/metal-lib v0.26.3
