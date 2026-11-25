@@ -59,12 +59,7 @@ func (a *actuator) firewallRestore(ctx context.Context, log logr.Logger, worker 
 		return fmt.Errorf("could not find current ssh secret: %w", err)
 	}
 
-	eveboxServerURL, err := a.getEveboxServerURL(ctx, worker, d)
-	if err != nil {
-		return err
-	}
-
-	err = a.ensureFirewallDeployment(ctx, log, d, cluster, string(sshSecret.Data["id_rsa.pub"]), eveboxServerURL)
+	err = a.ensureFirewallDeployment(ctx, log, d, cluster, string(sshSecret.Data["id_rsa.pub"]))
 	if err != nil {
 		return err
 	}

@@ -51,6 +51,9 @@ const (
 	EveboxServerSecretName = "evebox-server" // nolint:gosec
 	// EveboxServiceName is the name of the evebox service deployed to the shoot.
 	EveboxServiceName = "evebox"
+	// EveboxServerURL is the url under which the evebox agent on the firewall reaches the evebox server in the shoot.
+	// the hostname is resolved by the firewall-controller, which maintains an /etc/hosts entry pointing to the evebox server pod ip.
+	EveboxServerURL = "http://evebox:5636"
 	// MetalLbWebhookSecretName is the name of the secret containing the certificates for the metallb webhook server.
 	MetalLbWebhookSecretName = "metallb-webhook-cert" // nolint:gosec
 	// CloudControllerManagerDeploymentName is the name of the deployment for the cloud controller manager.
